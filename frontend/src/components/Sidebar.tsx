@@ -1,57 +1,106 @@
 import React from 'react';
+import { Menu, Typography, Button, Divider } from 'antd';
+import { HomeOutlined, ApartmentOutlined, SettingOutlined, BarChartOutlined, ExperimentOutlined, TeamOutlined, PlusOutlined } from '@ant-design/icons';
+import { Link, useLocation } from 'react-router-dom';
 
-const navLinks = [
-  { name: 'Dashboard', path: '/' },
-  { name: 'All Offices', path: '/offices' },
-  { name: 'Growth Projections', path: '/growth' },
-  { name: 'Seniority Analysis', path: '/seniority' },
-  { name: 'Configuration', path: '/config' },
-  { name: 'Simulation Lab', path: '/lab' },
-  { name: 'Settings', path: '/settings' },
+const { Title } = Typography;
+
+const officeCategories = [
+  {
+    label: 'New Offices',
+    offices: ['Office A', 'Office B'],
+    icon: <TeamOutlined style={{ color: '#52c41a' }} />,
+  },
+  {
+    label: 'Emerging Offices',
+    offices: ['Office C'],
+    icon: <TeamOutlined style={{ color: '#faad14' }} />,
+  },
+  {
+    label: 'Established Offices',
+    offices: ['Office D'],
+    icon: <TeamOutlined style={{ color: '#bfbfbf' }} />,
+  },
+  {
+    label: 'Mature Offices',
+    offices: ['Office E'],
+    icon: <TeamOutlined style={{ color: '#722ed1' }} />,
+  },
+];
+
+const menuItems = [
+  {
+    key: 'dashboard',
+    icon: <HomeOutlined />,
+    label: <Link to="/">Dashboard</Link>,
+  },
+  {
+    key: 'all-offices',
+    icon: <ApartmentOutlined />,
+    label: <Link to="/offices">All Offices</Link>,
+  },
+  {
+    key: 'growth',
+    icon: <BarChartOutlined />,
+    label: <Link to="/growth">Growth Projections</Link>,
+  },
+  {
+    key: 'seniority',
+    icon: <TeamOutlined />,
+    label: <Link to="/seniority">Seniority Analysis</Link>,
+  },
+  {
+    key: 'config',
+    icon: <SettingOutlined />,
+    label: <Link to="/config">Configuration</Link>,
+  },
+  {
+    key: 'lab',
+    icon: <ExperimentOutlined />,
+    label: <Link to="/lab">Simulation Lab</Link>,
+  },
+  {
+    key: 'settings',
+    icon: <SettingOutlined />,
+    label: <Link to="/settings">Settings</Link>,
+  },
+  {
+    key: 'offices-section',
+    type: 'group',
+    label: 'Offices',
+    children: officeCategories.map(cat => ({
+      key: cat.label,
+      icon: cat.icon,
+      label: cat.label,
+      children: cat.offices.map(office => ({
+        key: office,
+        label: office,
+      })),
+    })),
+  },
+  {
+    key: 'add-office',
+    icon: <PlusOutlined />,
+    label: 'Add Office',
+  },
 ];
 
 export default function Sidebar() {
+  const location = useLocation();
   return (
-    <aside className="w-72 bg-white border-r flex flex-col p-6 min-h-screen dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
-      <div className="mb-8">
-        <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mb-2">Org Growth Sim</div>
-        <select className="w-full mb-2 p-2 rounded border text-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
-          <option>Company 1</option>
-          <option>Company 2</option>
-        </select>
-        <button className="w-full text-xs text-blue-600 dark:text-blue-300 hover:underline mb-4">+ Add Company</button>
-      </div>
-      <div className="mb-8">
-        <div className="font-semibold text-sm text-gray-600 dark:text-gray-300 mb-2">Offices</div>
-        <div className="mb-2">
-          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-          <span>New Offices</span>
-        </div>
-        <div className="mb-2 ml-4 text-gray-500 dark:text-gray-400 text-sm">- Office A<br/>- Office B</div>
-        <div className="mb-2">
-          <span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
-          <span>Emerging Offices</span>
-        </div>
-        <div className="mb-2 ml-4 text-gray-500 dark:text-gray-400 text-sm">- Office C</div>
-        <div className="mb-2">
-          <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
-          <span>Established Offices</span>
-        </div>
-        <div className="mb-2 ml-4 text-gray-500 dark:text-gray-400 text-sm">- Office D</div>
-        <div className="mb-2">
-          <span className="inline-block w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-          <span>Mature Offices</span>
-        </div>
-        <div className="mb-2 ml-4 text-gray-500 dark:text-gray-400 text-sm">- Office E</div>
-        <button className="w-full text-xs text-blue-600 dark:text-blue-300 hover:underline mt-2">+ Add Office</button>
-      </div>
-      <nav className="flex flex-col gap-2 mt-4">
-        {navLinks.map(link => (
-          <a key={link.name} href={link.path} className="text-gray-700 dark:text-gray-100 hover:text-blue-700 dark:hover:text-blue-300 font-medium py-1 px-2 rounded hover:bg-blue-50 dark:hover:bg-gray-700">
-            {link.name}
-          </a>
-        ))}
-      </nav>
-    </aside>
+    <>
+      <Title level={4} style={{ color: '#fff', margin: 16 }}>Org Growth Sim</Title>
+      <Button type="primary" icon={<PlusOutlined />} block style={{ marginBottom: 16 }}>
+        Add Company
+      </Button>
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+        style={{ borderRight: 0 }}
+      />
+      <Divider style={{ background: '#222', margin: '16px 0' }} />
+    </>
   );
 } 

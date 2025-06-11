@@ -1,44 +1,76 @@
 import React from 'react';
+import { Card, Row, Col, Typography, Table, Progress, Space } from 'antd';
+
+const { Title, Text } = Typography;
+
+const kpis = [
+  { label: 'KPI 1', value: '[Value]' },
+  { label: 'KPI 2', value: '[Value]' },
+  { label: 'KPI 3', value: '[Value]' },
+  { label: 'KPI 4', value: '[Value]' },
+];
+
+const levelColumns = [
+  { title: 'Level', dataIndex: 'level', key: 'level' },
+  { title: 'Value', dataIndex: 'value', key: 'value' },
+];
+const levelData = [
+  { key: '1', level: 'A', value: 10 },
+  { key: '2', level: 'B', value: 20 },
+  { key: '3', level: 'C', value: 30 },
+];
+
+const growthDrivers = [
+  { label: 'Driver 1', value: 40 },
+  { label: 'Driver 2', value: 60 },
+  { label: 'Driver 3', value: 80 },
+];
 
 export default function Dashboard() {
   return (
-    <div className="space-y-8">
+    <Space direction="vertical" size={24} style={{ width: '100%' }}>
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1,2,3,4].map(i => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-            <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mb-2">KPI {i}</div>
-            <div className="text-gray-500 dark:text-gray-300">[Value]</div>
-          </div>
+      <Row gutter={16}>
+        {kpis.map(kpi => (
+          <Col span={6} key={kpi.label}>
+            <Card>
+              <Title level={5}>{kpi.label}</Title>
+              <Text strong style={{ fontSize: 24 }}>{kpi.value}</Text>
+            </Card>
+          </Col>
         ))}
-      </div>
+      </Row>
       {/* Charts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-64 flex items-center justify-center text-gray-400 dark:text-gray-300">[Chart 1]</div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-64 flex items-center justify-center text-gray-400 dark:text-gray-300">[Chart 2]</div>
-      </div>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Card style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf' }}>
+            [Chart 1]
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bfbfbf' }}>
+            [Chart 2]
+          </Card>
+        </Col>
+      </Row>
       {/* Level Breakdown Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Level Breakdown</div>
-        <div className="text-gray-400 dark:text-gray-300">[Level breakdown table here]</div>
-      </div>
+      <Card title={<Title level={5} style={{ margin: 0 }}>Level Breakdown</Title>}>
+        <Table columns={levelColumns} dataSource={levelData} pagination={false} />
+      </Card>
       {/* Growth Drivers */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Growth Drivers</div>
-        <div className="space-y-2">
-          {[1,2,3].map(i => (
-            <div key={i}>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
-                <span>Driver {i}</span>
-                <span>[Value]</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${30 + i*20}%` }}></div>
-              </div>
+      <Card title={<Title level={5} style={{ margin: 0 }}>Growth Drivers</Title>}>
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          {growthDrivers.map(driver => (
+            <div key={driver.label}>
+              <Row justify="space-between">
+                <Col><Text>{driver.label}</Text></Col>
+                <Col><Text strong>{driver.value}</Text></Col>
+              </Row>
+              <Progress percent={driver.value} showInfo={false} />
             </div>
           ))}
-        </div>
-      </div>
-    </div>
+        </Space>
+      </Card>
+    </Space>
   );
 } 

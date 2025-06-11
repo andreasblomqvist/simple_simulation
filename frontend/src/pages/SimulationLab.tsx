@@ -1,9 +1,121 @@
 import React, { useState } from 'react';
+import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message } from 'antd';
 
+const { Title, Text } = Typography;
+const { Option } = Select;
 const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
+const OFFICES = [
+  'Stockholm', 'Munich', 'Hamburg', 'Helsinki', 'Oslo', 'Berlin',
+  'Copenhagen', 'Zurich', 'Frankfurt', 'Cologne', 'Amsterdam',
+  'Toronto', 'London'
+];
+const LEVERS = [
+  { key: 'recruitment', label: 'Recruitment' },
+  { key: 'churn', label: 'Churn' },
+  { key: 'progression', label: 'Progression' },
+  { key: 'utr', label: 'UTR' },
+];
+const HALVES = ['H1', 'H2'];
+type LeversState = Record<string, Record<string, Record<string, number>>>;
+const getDefaultLevers = (): LeversState => {
+  const obj: LeversState = {};
+  OFFICES.forEach(office => {
+    obj[office] = {};
+    LEVELS.forEach(level => {
+      obj[office][level] = {};
+      LEVERS.forEach(lv => {
+        HALVES.forEach(h => {
+          obj[office][level][`${lv.key}_${h}`] = 0.1;
+        });
+      });
+    });
+  });
+  return obj;
+};
+
+// Example roles for each level
+const ROLES = ['Consultant', 'Sales', 'Recruitment', 'Operations'];
+
+// Helper to calculate diffs and format lever changes
+function getDiffString(current: number, baseline: number, percent = true) {
+  const diff = current - baseline;
+  if (diff === 0) return '';
+  const sign = diff > 0 ? '+' : '';
+  return percent ? ` (${sign}${(diff * 100).toFixed(0)}%)` : ` (${sign}${diff.toFixed(2)})`;
+}
+
+// Transform simulation results for expandable table
+function transformResults(results: any, baseline: any) {
+  // results: { offices: { [office]: { levels: { [level]: [ ... ] }, ... } } }
+  return Object.entries(results.offices).map(([officeName, officeData]: any) => {
+    const baselineOffice = baseline?.offices?.[officeName] || {};
+    return {
+      key: officeName,
+      office: officeName,
+      journey: officeData.journey ?? '-',
+      totalFte: officeData.total_fte ?? '-',
+      growth: officeData.growth ?? '-',
+      nonDebitRatio: officeData.non_debit_ratio ?? '-',
+      children: Object.entries(officeData.levels).map(([levelName, levelData]: any) => {
+        const baselineLevel = baselineOffice.levels?.[levelName] || {};
+        // Use the last period's data for each level
+        const lastIdx = Array.isArray(levelData) ? levelData.length - 1 : -1;
+        const lastData = lastIdx >= 0 ? levelData[lastIdx] : {};
+        const price_h1 = lastData.price ?? 0;
+        const salary_h1 = lastData.salary ?? 0;
+        // Recruitment, churn, progression, utr are not in backend output per level, so set to '-'
+        // If you add them to backend, update here accordingly
+        const recruitment_h1 = lastData.recruitment_h1 ?? '-';
+        const churn_h1 = lastData.churn_h1 ?? '-';
+        const progression_h1 = lastData.progression_h1 ?? '-';
+        const utr_h1 = lastData.utr_h1 ?? '-';
+        const baseline_price_h1 = baselineLevel.price_h1 ?? 0;
+        const baseline_salary_h1 = baselineLevel.salary_h1 ?? 0;
+        const baseline_recruitment_h1 = baselineLevel.recruitment_h1 ?? 0;
+        const baseline_churn_h1 = baselineLevel.churn_h1 ?? 0;
+        const baseline_progression_h1 = baselineLevel.progression_h1 ?? 0;
+        const baseline_utr_h1 = baselineLevel.utr_h1 ?? 0;
+        return {
+          key: `${officeName}-${levelName}`,
+          level: levelName,
+          total: lastData.total ?? '-',
+          price: `${price_h1.toFixed(2)}${getDiffString(price_h1, baseline_price_h1, false)}`,
+          salary: `${salary_h1.toFixed(2)}${getDiffString(salary_h1, baseline_salary_h1, false)}`,
+          recruitment: recruitment_h1,
+          churn: churn_h1,
+          progression: progression_h1,
+          utr: utr_h1,
+          children: ROLES.map(role => ({
+            key: `${officeName}-${levelName}-${role}`,
+            role,
+            fte: '-',
+            kpi: '-',
+          })),
+        };
+      }),
+    };
+  });
+}
+
+const levelColumns = [
+  { title: 'Level', dataIndex: 'level', key: 'level' },
+  { title: 'Total', dataIndex: 'total', key: 'total' },
+  { title: 'Price (H1)', dataIndex: 'price', key: 'price' },
+  { title: 'Salary (H1)', dataIndex: 'salary', key: 'salary' },
+  { title: 'Recruitment (H1)', dataIndex: 'recruitment', key: 'recruitment' },
+  { title: 'Churn (H1)', dataIndex: 'churn', key: 'churn' },
+  { title: 'Progression (H1)', dataIndex: 'progression', key: 'progression' },
+  { title: 'UTR (H1)', dataIndex: 'utr', key: 'utr' },
+];
+
+const roleColumns = [
+  { title: 'Role', dataIndex: 'role', key: 'role' },
+  { title: 'FTE', dataIndex: 'fte', key: 'fte' },
+  { title: 'KPI', dataIndex: 'kpi', key: 'kpi' },
+];
 
 export default function SimulationLab() {
-  const [form, setForm] = useState({
+  const [formVals, setFormVals] = useState({
     start_year: 2024,
     start_half: 'H1',
     end_year: 2025,
@@ -14,33 +126,68 @@ export default function SimulationLab() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // Lever manipulation state
+  const [selectedLever, setSelectedLever] = useState('recruitment');
+  const [selectedHalf, setSelectedHalf] = useState('H1');
+  const [selectedLevel, setSelectedLevel] = useState('AM');
+  const [selectedOffices, setSelectedOffices] = useState([] as string[]);
+  const [leverValue, setLeverValue] = useState(0.1);
+  const [levers, setLevers] = useState<LeversState>(getDefaultLevers());
+  const [lastAppliedSummary, setLastAppliedSummary] = useState<string | null>(null);
+  const [simulationResults, setSimulationResults] = useState<any>(null);
+  const [baselineResults, setBaselineResults] = useState<any>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleFormChange = (changed: any, all: any) => {
+    setFormVals(all);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const res = await fetch('http://127.0.0.1:8000/simulate', {
+      const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
+      const FLAT_ROLE = 'Operations';
+      const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
+      const office_overrides: Record<string, { roles: any }> = {};
+      Object.entries(levers).forEach(([office, levels]) => {
+        office_overrides[office] = { roles: {} };
+        // Roles with levels
+        ROLES_WITH_LEVELS.forEach(role => {
+          office_overrides[office].roles[role] = {};
+          LEVELS.forEach(level => {
+            if (levels[level]) {
+              office_overrides[office].roles[role][level] = { ...levels[level] };
+            }
+          });
+        });
+        // Flat role (Operations)
+        if (levels[FLAT_ROLE]) {
+          office_overrides[office].roles[FLAT_ROLE] = { ...levels[FLAT_ROLE] };
+        }
+      });
+      // LOGGING: Print the office_overrides payload
+      console.log('[DEBUG] office_overrides payload:', office_overrides);
+      const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          start_year: Number(form.start_year),
-          end_year: Number(form.end_year),
-          price_increase: Number(form.price_increase),
-          salary_increase: Number(form.salary_increase),
+          ...formVals,
+          start_year: Number(formVals.start_year),
+          end_year: Number(formVals.end_year),
+          price_increase: Number(formVals.price_increase),
+          salary_increase: Number(formVals.salary_increase),
+          office_overrides
         }),
       });
       if (!res.ok) throw new Error('Simulation failed');
       const data = await res.json();
       setResult(data);
+      setSimulationResults(data);
+      setBaselineResults(data);
     } catch (err: any) {
       setError(err.message);
+      message.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -90,6 +237,7 @@ export default function SimulationLab() {
           churn: lastMetrics.churn ?? 0,
           non_debit_ratio: lastMetrics.non_debit_ratio ?? null,
         },
+        original_journey: officeData.original_journey || '',
       };
     });
   };
@@ -103,14 +251,14 @@ export default function SimulationLab() {
     const periods = result.periods || [];
     const lastIdx = periods.length - 1;
     // Aggregate journey totals
-    const journeyTotals: { 'Journey 1': number; 'Journey 2': number; 'Journey 3': number; 'Journey 4': number } = { 'Journey 1': 0, 'Journey 2': 0, 'Journey 3': 0, 'Journey 4': 0 };
+    const journeyTotals: { [key: string]: number } = { 'Journey 1': 0, 'Journey 2': 0, 'Journey 3': 0, 'Journey 4': 0 };
     let totalConsultants = 0;
     let totalNonConsultants = 0;
-    (['Journey 1', 'Journey 2', 'Journey 3', 'Journey 4'] as const).forEach(j => { journeyTotals[j] = 0; });
+    Object.keys(journeyTotals).forEach(j => { journeyTotals[j] = 0; });
     Object.values(offices).forEach((officeData: any) => {
       // Sum journeys
       if (officeData.journeys) {
-        (['Journey 1', 'Journey 2', 'Journey 3', 'Journey 4'] as const).forEach(j => {
+        Object.keys(journeyTotals).forEach(j => {
           const arr = officeData.journeys[j];
           if (arr && arr[lastIdx]) {
             journeyTotals[j] += arr[lastIdx].total || 0;
@@ -130,139 +278,319 @@ export default function SimulationLab() {
         }
       }
     });
-    const totalJourney = journeyTotals['Journey 1'] + journeyTotals['Journey 2'] + journeyTotals['Journey 3'] + journeyTotals['Journey 4'];
+    const totalJourney = Object.values(journeyTotals).reduce((a, b) => a + b, 0);
     const overallNonDebitRatio = totalNonConsultants > 0 ? (totalConsultants / totalNonConsultants) : null;
     return { journeyTotals, totalJourney, overallNonDebitRatio };
   };
 
   const aggregatedKPIs = getAggregatedKPIs();
 
+  // Table columns for office KPIs
+  const columns = [
+    {
+      title: 'Office',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text: string) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'Journey',
+      dataIndex: 'journey',
+      key: 'journey',
+      render: (journey: string) => <Tag>{journey}</Tag>,
+    },
+    {
+      title: 'Total FTE',
+      dataIndex: 'total_fte',
+      key: 'total_fte',
+    },
+    {
+      title: 'Delta',
+      dataIndex: 'delta',
+      key: 'delta',
+      render: (delta: number) => <span style={{ color: delta > 0 ? '#52c41a' : delta < 0 ? '#ff4d4f' : '#bfbfbf' }}>{delta > 0 ? '+' : ''}{delta}</span>,
+    },
+    {
+      title: 'Growth %',
+      key: 'growth',
+      render: (value: any, row: any) => (value !== undefined && value !== null && !isNaN(value)) ? value : '-'
+    },
+    {
+      title: 'Non-Debit Ratio',
+      key: 'ndr',
+      render: (value: any, row: any) => (value !== undefined && value !== null && !isNaN(value)) ? value : '-'
+    },
+  ];
+
+  const handleApply = () => {
+    if (selectedOffices.length === 0) {
+      message.warning('Please select at least one office.');
+      return;
+    }
+    setLevers(prev => {
+      const updated = { ...prev };
+      selectedOffices.forEach(office => {
+        updated[office] = { ...updated[office] };
+        updated[office][selectedLevel] = { ...updated[office][selectedLevel] };
+        updated[office][selectedLevel][`${selectedLever}_${selectedHalf}`] = leverValue;
+      });
+      return updated;
+    });
+    // Build summary string
+    const leverLabel = LEVERS.find(l => l.key === selectedLever)?.label || selectedLever;
+    const percent = `${(leverValue * 100).toFixed(0)}%`;
+    const officeList = selectedOffices.join(', ');
+    setLastAppliedSummary(`${leverLabel} for level ${selectedLevel} (${selectedHalf}) set to ${percent} for ${officeList}.`);
+    message.success('Lever value applied!');
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Scenario Tabs */}
-      <div className="flex gap-2 mb-4">
-        <button className="px-4 py-2 rounded bg-blue-100 dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-semibold">Current Pyramid</button>
-        <button className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold">Target Pyramid</button>
-        <button className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold">Step-by-Step</button>
-      </div>
+    <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
+      {/* Lever Manipulation Panel */}
+      <Row gutter={16} align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <span>Lever: </span>
+          <Select value={selectedLever} onChange={setSelectedLever} style={{ width: 130 }}>
+            {LEVERS.map(l => <Option key={l.key} value={l.key}>{l.label}</Option>)}
+          </Select>
+        </Col>
+        <Col>
+          <span>Half: </span>
+          <Select value={selectedHalf} onChange={setSelectedHalf} style={{ width: 70 }}>
+            {HALVES.map(h => <Option key={h} value={h}>{h}</Option>)}
+          </Select>
+        </Col>
+        <Col>
+          <span>Level: </span>
+          <Select value={selectedLevel} onChange={setSelectedLevel} style={{ width: 90 }}>
+            {LEVELS.map(lv => <Option key={lv} value={lv}>{lv}</Option>)}
+          </Select>
+        </Col>
+        <Col>
+          <span>Offices: </span>
+          <Select
+            mode="multiple"
+            value={selectedOffices}
+            onChange={setSelectedOffices}
+            style={{ minWidth: 200 }}
+            placeholder="Select offices"
+          >
+            {OFFICES.map(ofc => <Option key={ofc} value={ofc}>{ofc}</Option>)}
+          </Select>
+        </Col>
+        <Col>
+          <span>Value: </span>
+          <InputNumber
+            min={0}
+            max={selectedLever === 'utr' ? 1 : 1}
+            step={0.01}
+            value={leverValue}
+            onChange={v => setLeverValue(v ?? 0)}
+            style={{ width: 90 }}
+          />
+        </Col>
+        <Col>
+          <Button type="primary" onClick={handleApply}>Apply</Button>
+        </Col>
+      </Row>
+      {lastAppliedSummary && (
+        <div style={{ marginBottom: 16, fontWeight: 500, color: '#096dd9' }}>{lastAppliedSummary}</div>
+      )}
       {/* Simulation Form */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-4">Simulation Parameters</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Start Year</label>
-            <input name="start_year" type="number" value={form.start_year} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Start Half</label>
-            <select name="start_half" value={form.start_half} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
-              <option value="H1">H1</option>
-              <option value="H2">H2</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">End Year</label>
-            <input name="end_year" type="number" value={form.end_year} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">End Half</label>
-            <select name="end_half" value={form.end_half} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
-              <option value="H1">H1</option>
-              <option value="H2">H2</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Price Increase (%)</label>
-            <input name="price_increase" type="number" step="0.01" value={form.price_increase} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Salary Increase (%)</label>
-            <input name="salary_increase" type="number" step="0.01" value={form.salary_increase} onChange={handleChange} className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
-          </div>
-        </div>
-        <button type="submit" className="px-6 py-3 rounded bg-blue-600 dark:bg-blue-800 text-white font-bold shadow" disabled={loading}>
-          {loading ? 'Running...' : 'Run Simulation'}
-        </button>
-        {error && <div className="text-red-500 mt-2">{error}</div>}
-      </form>
+      <Form
+        layout="vertical"
+        initialValues={formVals}
+        onValuesChange={handleFormChange}
+        onFinish={handleSubmit}
+        style={{ marginBottom: 32 }}
+      >
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Start Year" name="start_year" rules={[{ required: true }]}> 
+              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Start Half" name="start_half" rules={[{ required: true }]}> 
+              <Select>
+                <Option value="H1">H1</Option>
+                <Option value="H2">H2</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="End Year" name="end_year" rules={[{ required: true }]}> 
+              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="End Half" name="end_half" rules={[{ required: true }]}> 
+              <Select>
+                <Option value="H1">H1</Option>
+                <Option value="H2">H2</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Price Increase (%)" name="price_increase" rules={[{ required: true }]}> 
+              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Salary Increase (%)" name="salary_increase" rules={[{ required: true }]}> 
+              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            {loading ? 'Running...' : 'Run Simulation'}
+          </Button>
+        </Form.Item>
+        {error && <Text type="danger">{error}</Text>}
+      </Form>
+
       {/* KPI Cards */}
       {aggregatedKPIs && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-4 flex flex-col items-center">
-            <div className="text-xs text-gray-500 dark:text-gray-300 mb-1">Journey 1</div>
-            <div className="text-2xl font-bold text-blue-700 dark:text-blue-200">{aggregatedKPIs.journeyTotals['Journey 1']}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-300">{aggregatedKPIs.totalJourney > 0 ? ((aggregatedKPIs.journeyTotals['Journey 1'] / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%</div>
-          </div>
-          <div className="bg-yellow-100 dark:bg-yellow-900 rounded-lg p-4 flex flex-col items-center">
-            <div className="text-xs text-gray-500 dark:text-gray-300 mb-1">Journey 2</div>
-            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-200">{aggregatedKPIs.journeyTotals['Journey 2']}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-300">{aggregatedKPIs.totalJourney > 0 ? ((aggregatedKPIs.journeyTotals['Journey 2'] / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%</div>
-          </div>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex flex-col items-center">
-            <div className="text-xs text-gray-500 dark:text-gray-300 mb-1">Journey 3</div>
-            <div className="text-2xl font-bold text-gray-700 dark:text-gray-200">{aggregatedKPIs.journeyTotals['Journey 3']}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-300">{aggregatedKPIs.totalJourney > 0 ? ((aggregatedKPIs.journeyTotals['Journey 3'] / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%</div>
-          </div>
-          <div className="bg-purple-100 dark:bg-purple-900 rounded-lg p-4 flex flex-col items-center">
-            <div className="text-xs text-gray-500 dark:text-gray-300 mb-1">Journey 4</div>
-            <div className="text-2xl font-bold text-purple-700 dark:text-purple-200">{aggregatedKPIs.journeyTotals['Journey 4']}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-300">{aggregatedKPIs.totalJourney > 0 ? ((aggregatedKPIs.journeyTotals['Journey 4'] / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%</div>
-          </div>
-          <div className="bg-green-100 dark:bg-green-900 rounded-lg p-4 flex flex-col items-center">
-            <div className="text-xs text-gray-500 dark:text-gray-300 mb-1">Non-Debit Ratio</div>
-            <div className="text-2xl font-bold text-green-700 dark:text-green-200">{aggregatedKPIs.overallNonDebitRatio !== null ? aggregatedKPIs.overallNonDebitRatio.toFixed(2) : 'N/A'}</div>
-          </div>
-        </div>
+        <Row gutter={16} style={{ marginBottom: 32 }}>
+          {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => (
+            <Col xs={24} sm={12} md={6} key={journey}>
+              <Card>
+                <Text type="secondary">{journey}</Text>
+                <Title level={3} style={{ margin: 0 }}>{value}</Title>
+                <Text type="secondary">
+                  {aggregatedKPIs.totalJourney > 0 ? ((value / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%
+                </Text>
+              </Card>
+            </Col>
+          ))}
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Text type="secondary">Non-Debit Ratio</Text>
+              <Title level={3} style={{ margin: 0 }}>{aggregatedKPIs.overallNonDebitRatio !== null ? aggregatedKPIs.overallNonDebitRatio.toFixed(2) : 'N/A'}</Title>
+            </Card>
+          </Col>
+        </Row>
       )}
-      {/* Results Table with KPIs and Deltas */}
-      {officeKPIData.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-4 overflow-x-auto">
-          <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Simulation Results (KPIs & Deltas)</div>
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Office</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Journey</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total FTE</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Delta</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Growth %</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Recruitment</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Churn</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Non-Debit Ratio</th>
-                {LEVELS.map(level => (
-                  <th key={level} className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{level}</th>
-                ))}
-                <th className="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ops</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {officeKPIData.map(office => (
-                <tr key={office.name}>
-                  <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{office.name}</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.journey}</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.total_fte}</td>
-                  <td className={`px-2 py-2 whitespace-nowrap ${office.delta > 0 ? 'text-green-600 dark:text-green-400' : office.delta < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-300'}`}>{office.delta > 0 ? '+' : ''}{office.delta}</td>
-                  <td className={`px-2 py-2 whitespace-nowrap ${office.kpis.growth > 0 ? 'text-green-600 dark:text-green-400' : office.kpis.growth < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-300'}`}>{office.kpis.growth?.toFixed(1)}%</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.kpis.recruitment}</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.kpis.churn}</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.kpis.non_debit_ratio !== null ? office.kpis.non_debit_ratio.toFixed(2) : 'N/A'}</td>
-                  {LEVELS.map(level => (
-                    <td key={level} className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.levelTotals[level]}</td>
-                  ))}
-                  <td className="px-2 py-2 whitespace-nowrap text-gray-500 dark:text-gray-300">{office.opsTotal}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {/* Results: Raw JSON for reference */}
-      {result && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-4 overflow-x-auto">
-          <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">Simulation Results (Raw)</div>
-          <pre className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-all max-h-96 overflow-y-auto">{JSON.stringify(result, null, 2)}</pre>
-        </div>
-      )}
-    </div>
+
+      {/* Expandable Table (single table, hierarchical data) */}
+      <Table
+        columns={[
+          {
+            title: 'Office / Level / Role',
+            key: 'name',
+            render: (text, record) => {
+              if ('office' in record && record.office) return <span style={{ fontWeight: 600 }}>{record.office}</span>;
+              if ('level' in record && record.level) return <span style={{ marginLeft: 24 }}>{record.level}</span>;
+              if ('role' in record && record.role) return <span style={{ marginLeft: 48 }}>{record.role}</span>;
+              return null;
+            },
+          },
+          {
+            title: 'Journey',
+            dataIndex: 'journey',
+            key: 'journey',
+            render: (journey, record) => {
+              if ('journey' in record && record.journey) return <Tag>{record.journey}</Tag>;
+              return null;
+            },
+          },
+          {
+            title: 'Total FTE',
+            dataIndex: 'totalFte',
+            key: 'totalFte',
+            render: (val, record) => {
+              if ('totalFte' in record && record.totalFte !== undefined && record.totalFte !== null) return String(record.totalFte);
+              if ('total' in record && record.total !== undefined && record.total !== null) return String(record.total);
+              if ('fte' in record && record.fte !== undefined && record.fte !== null) return String(record.fte);
+              return null;
+            },
+          },
+          {
+            title: 'Delta',
+            dataIndex: 'delta',
+            key: 'delta',
+            render: (delta, record) => {
+              if ('delta' in record && typeof record.delta === 'number') {
+                return <span style={{ color: record.delta > 0 ? '#52c41a' : record.delta < 0 ? '#ff4d4f' : '#bfbfbf' }}>{record.delta > 0 ? '+' : ''}{record.delta}</span>;
+              }
+              return null;
+            },
+          },
+          {
+            title: 'Growth %',
+            key: 'growth',
+            render: (val, record) => {
+              if ('growth' in record && record.growth !== undefined && record.growth !== null) return String(record.growth);
+              if ('kpi' in record && record.kpi !== undefined && record.kpi !== null) return String(record.kpi);
+              return null;
+            },
+          },
+          {
+            title: 'Non-Debit Ratio',
+            key: 'ndr',
+            render: (val, record) => {
+              if ('nonDebitRatio' in record && record.nonDebitRatio !== undefined && record.nonDebitRatio !== null) return String(record.nonDebitRatio);
+              return null;
+            },
+          },
+          // Level columns
+          {
+            title: 'Price (H1)',
+            key: 'price',
+            render: (val, record) => {
+              if ('price' in record && record.price !== undefined && record.price !== null) return String(record.price);
+              return null;
+            },
+          },
+          {
+            title: 'Salary (H1)',
+            key: 'salary',
+            render: (val, record) => {
+              if ('salary' in record && record.salary !== undefined && record.salary !== null) return String(record.salary);
+              return null;
+            },
+          },
+          {
+            title: 'Recruitment (H1)',
+            key: 'recruitment',
+            render: (val, record) => {
+              if ('recruitment' in record && record.recruitment !== undefined && record.recruitment !== null) return String(record.recruitment);
+              return null;
+            },
+          },
+          {
+            title: 'Churn (H1)',
+            key: 'churn',
+            render: (val, record) => {
+              if ('churn' in record && record.churn !== undefined && record.churn !== null) return String(record.churn);
+              return null;
+            },
+          },
+          {
+            title: 'Progression (H1)',
+            key: 'progression',
+            render: (val, record) => {
+              if ('progression' in record && record.progression !== undefined && record.progression !== null) return String(record.progression);
+              return null;
+            },
+          },
+          {
+            title: 'UTR (H1)',
+            key: 'utr',
+            render: (val, record) => {
+              if ('utr' in record && record.utr !== undefined && record.utr !== null) return String(record.utr);
+              return null;
+            },
+          },
+        ]}
+        dataSource={simulationResults ? transformResults(simulationResults, baselineResults) : []}
+        rowKey="key"
+        pagination={false}
+        expandable={{
+          defaultExpandAllRows: false,
+        }}
+      />
+    </Card>
   );
 } 

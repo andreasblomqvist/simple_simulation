@@ -1,41 +1,65 @@
 import React from 'react';
+import { Card, Row, Col, Typography, Form, InputNumber, Select, Button } from 'antd';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 export default function GrowthProjections() {
   return (
-    <div className="space-y-8">
+    <Card title={<Title level={4} style={{ margin: 0 }}>Growth Projections</Title>}>
       {/* Global Growth Rate Inputs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-4">Global Growth Rate Inputs</div>
-        <div className="flex flex-col gap-4 md:flex-row md:gap-8">
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">New Office Growth Rate (%)</label>
-            <input type="number" className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="e.g. 10" />
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Established Office Growth Rate (%)</label>
-            <input type="number" className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="e.g. 5" />
-          </div>
-          <div>
-            <label className="block text-gray-600 dark:text-gray-300 mb-1">Mature Office Growth Rate (%)</label>
-            <input type="number" className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="e.g. 2" />
-          </div>
-        </div>
-      </div>
+      <Card style={{ marginBottom: 24 }}>
+        <Title level={5}>Global Growth Rate Inputs</Title>
+        <Form layout="vertical">
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item label="New Office Growth Rate (%)">
+                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="e.g. 10" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Established Office Growth Rate (%)">
+                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="e.g. 5" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Mature Office Growth Rate (%)">
+                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="e.g. 2" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
       {/* Office-Specific Growth Rate Inputs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-4">Office-Specific Growth Rate Inputs</div>
-        <div className="flex flex-col md:flex-row gap-4">
-          <select className="p-2 rounded border text-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
-            <option>Select Office</option>
-          </select>
-          <input type="number" className="p-2 rounded border w-full dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="Office growth rate (%)" />
-        </div>
-      </div>
+      <Card style={{ marginBottom: 24 }}>
+        <Title level={5}>Office-Specific Growth Rate Inputs</Title>
+        <Form layout="inline">
+          <Form.Item>
+            <Select style={{ width: 180 }} placeholder="Select Office">
+              <Option value="">Select Office</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item>
+            <InputNumber min={0} max={100} style={{ width: 180 }} placeholder="Office growth rate (%)" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary">Apply</Button>
+          </Form.Item>
+        </Form>
+      </Card>
       {/* Projection Charts and Tables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-64 flex items-center justify-center text-gray-400 dark:text-gray-300">[Projection Chart]</div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 h-64 flex items-center justify-center text-gray-400 dark:text-gray-300">[Projection Table]</div>
-      </div>
-    </div>
+      <Row gutter={16}>
+        <Col xs={24} md={12}>
+          <Card style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
+            [Projection Chart]
+          </Card>
+        </Col>
+        <Col xs={24} md={12}>
+          <Card style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
+            [Projection Table]
+          </Card>
+        </Col>
+      </Row>
+    </Card>
   );
 } 

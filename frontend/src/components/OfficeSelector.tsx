@@ -1,10 +1,13 @@
 import React from 'react';
+import { Card, Typography } from 'antd';
+
+const { Title, Text } = Typography;
 
 export default function OfficeSelector() {
   return (
-    <section className="bg-white rounded-lg shadow p-6 mb-6 w-full max-w-2xl">
-      <h2 className="text-2xl font-semibold mb-4 text-blue-700">Office/Group Selection</h2>
-      <div className="text-gray-500">[Office/group selection UI will go here]</div>
-    </section>
+    <Card style={{ marginBottom: 24 }}>
+      <Title level={4}>Office/Group Selection</Title>
+      <Text type="secondary">[Office/group selection UI will go here]</Text>
+    </Card>
   );
 } 
