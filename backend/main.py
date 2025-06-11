@@ -163,6 +163,7 @@ async def import_office_levers(file: UploadFile = File(...)):
                 # Roles with levels (Consultant, Sales, Recruitment)
                 if level_name in office.roles[role_name]:
                     level = office.roles[role_name][level_name]
+                    print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
                     level.total = int(row["FTE"]) if not pd.isna(row["FTE"]) else level.total
                     level.price_h1 = float(row["Price_H1"]) if not pd.isna(row["Price_H1"]) else level.price_h1
                     level.price_h2 = float(row["Price_H2"]) if not pd.isna(row["Price_H2"]) else level.price_h2
@@ -179,6 +180,7 @@ async def import_office_levers(file: UploadFile = File(...)):
             elif isinstance(office.roles[role_name], type(office.roles["Operations"])) and not level_name:
                 # Flat role
                 role = office.roles[role_name]
+                print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
                 role.total = int(row["FTE"]) if not pd.isna(row["FTE"]) else role.total
                 role.price_h1 = float(row["Price_H1"]) if not pd.isna(row["Price_H1"]) else role.price_h1
                 role.price_h2 = float(row["Price_H2"]) if not pd.isna(row["Price_H2"]) else role.price_h2
@@ -192,4 +194,5 @@ async def import_office_levers(file: UploadFile = File(...)):
                 role.progression_h2 = float(row["Progression_H2"]) if not pd.isna(row["Progression_H2"]) else role.progression_h2
                 role.utr_h1 = float(row["UTR_H1"]) if not pd.isna(row["UTR_H1"]) else role.utr_h1
                 role.utr_h2 = float(row["UTR_H2"]) if not pd.isna(row["UTR_H2"]) else role.utr_h2
+    print("[IMPORT] Completed updating office levers from Excel.")
     return {"status": "success", "rows": len(df)} 

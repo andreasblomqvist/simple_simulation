@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import { useConfig } from '../components/ConfigContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -28,19 +29,22 @@ export default function Configuration() {
   const [offices, setOffices] = useState<string[]>([]);
   const [selectedOffice, setSelectedOffice] = useState<string>('');
   const [rolesData, setRolesData] = useState<any>({});
+  const { setLevers } = useConfig();
+  const [loading, setLoading] = useState(false);
 
-  const fetchOffices = () => {
-    fetch('/api/offices')
-      .then(res => res.json())
-      .then(data => {
-        setOffices(data.map((o: any) => o.name));
-        setSelectedOffice(data[0]?.name || '');
-        const officeMap: any = {};
-        data.forEach((o: any) => {
-          officeMap[o.name] = o.roles;
-        });
-        setRolesData(officeMap);
-      });
+  const fetchOffices = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/offices');
+      const data = await res.json();
+      setRolesData(data);
+      setLevers(data);
+      setOffices(data.map((o: any) => o.name));
+      setSelectedOffice(data[0]?.name || '');
+    } catch (err) {
+      message.error('Failed to fetch offices');
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -90,15 +94,17 @@ export default function Configuration() {
 
   // New data transformation for table
   const getTableData = () => {
-    if (!selectedOffice || !rolesData[selectedOffice]) return [];
-    const roles = rolesData[selectedOffice];
+    if (!selectedOffice || !rolesData || !Array.isArray(rolesData)) return [];
+    const office = rolesData.find((o: any) => o.name === selectedOffice);
+    if (!office || !office.roles) return [];
     let rows: any[] = [];
     ROLES.forEach(role => {
-      if (roles[role]) {
+      const roleData = office.roles[role];
+      if (roleData) {
         if (ROLES_WITH_LEVELS.includes(role)) {
           // Role with levels
           const children = LEVELS.map(level => {
-            const data = roles[role][level] || {};
+            const data = roleData[level] || {};
             return {
               key: `${role}-${level}`,
               role,
@@ -114,7 +120,7 @@ export default function Configuration() {
           });
         } else {
           // Flat role (Operations)
-          const data = roles[role] || {};
+          const data = roleData || {};
           rows.push({
             key: role,
             role,

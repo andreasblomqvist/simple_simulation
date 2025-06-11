@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message } from 'antd';
+import { useConfig } from '../components/ConfigContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -46,55 +47,206 @@ function getDiffString(current: number, baseline: number, percent = true) {
 
 // Transform simulation results for expandable table
 function transformResults(results: any, baseline: any) {
-  // results: { offices: { [office]: { levels: { [level]: [ ... ] }, ... } } }
+  // results: { offices: { [office]: { levels: { [role]: { [level]: [ ... ] } }, ... } } }
+  const ROLES = ['Consultant', 'Sales', 'Recruitment', 'Operations'];
+  const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
+  const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
   return Object.entries(results.offices).map(([officeName, officeData]: any) => {
-    const baselineOffice = baseline?.offices?.[officeName] || {};
-    return {
-      key: officeName,
+    let rows: any[] = [];
+    let officeTotal = 0;
+    let officeStartTotal = 0;
+    ROLES.forEach(role => {
+      if (ROLES_WITH_LEVELS.includes(role)) {
+        let roleTotal = 0;
+        let roleStartTotal = 0;
+        let totalPrice = 0;
+        let totalSalary = 0;
+        let totalWithPrice = 0;
+        let totalWithSalary = 0;
+        let roleStartPrice = 0;
+        let roleStartSalary = 0;
+        let totalStartWithPrice = 0;
+        let totalStartWithSalary = 0;
+        let deltas: number[] = [];
+        const children = LEVELS.map(level => {
+          const arr = officeData.levels?.[role]?.[level] || [];
+          const last = arr.length > 0 ? arr[arr.length - 1] : {};
+          const first = arr.length > 0 ? arr[0] : {};
+          const delta = arr.length > 1 ? (last.total ?? 0) - (first?.total ?? 0) : null;
+          roleTotal += last.total || 0;
+          roleStartTotal += first.total || 0;
+          if (delta !== null && delta !== undefined) deltas.push(delta);
+          if (last.price) {
+            totalPrice += last.price * (last.total || 0);
+            totalWithPrice += last.total || 0;
+          }
+          if (last.salary) {
+            totalSalary += last.salary * (last.total || 0);
+            totalWithSalary += last.total || 0;
+          }
+          if (first.price) {
+            roleStartPrice += first.price * (first.total || 0);
+            totalStartWithPrice += first.total || 0;
+          }
+          if (first.salary) {
+            roleStartSalary += first.salary * (first.total || 0);
+            totalStartWithSalary += first.total || 0;
+          }
+          return {
+            key: `${officeName}-${role}-${level}`,
+            office: '',
+            role: '',
+            level,
+            total: (last.total !== undefined && first.total !== undefined)
+              ? `${last.total} (${first.total})`
+              : last.total ?? '',
+            delta: delta !== null && delta !== undefined ? Number(delta.toFixed(1)) : null,
+            price: (last.price !== undefined && first.price !== undefined)
+              ? `${Number(last.price.toFixed(1))} (${Number(first.price.toFixed(1))})`
+              : last.price !== undefined ? Number(last.price.toFixed(1)) : null,
+            salary: (last.salary !== undefined && first.salary !== undefined)
+              ? `${Number(last.salary.toFixed(1))} (${Number(first.salary.toFixed(1))})`
+              : last.salary !== undefined ? Number(last.salary.toFixed(1)) : null,
+            journey: '',
+            totalRole: (last.total !== undefined && first.total !== undefined)
+              ? `${last.total} (${first.total})`
+              : last.total ?? 0,
+            fteStart: first.total || 0,
+          };
+        });
+        officeTotal += roleTotal;
+        officeStartTotal += roleStartTotal;
+        // Calculate average delta for the role
+        const avgDelta = deltas.length > 0 ? Number((deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1)) : null;
+        rows.push({
+          key: `${officeName}-${role}`,
+          office: '',
+          role,
+          level: '',
+          total: '',
+          delta: avgDelta,
+          price: (totalWithPrice > 0 && totalStartWithPrice > 0)
+            ? `${Number((totalPrice / totalWithPrice).toFixed(1))} (${Number((roleStartPrice / totalStartWithPrice).toFixed(1))})`
+            : null,
+          salary: (totalWithSalary > 0 && totalStartWithSalary > 0)
+            ? `${Number((totalSalary / totalWithSalary).toFixed(1))} (${Number((roleStartSalary / totalStartWithSalary).toFixed(1))})`
+            : null,
+          journey: '',
+          totalRole: `${roleTotal} (${roleStartTotal})`,
+          children,
+        });
+      } else {
+        // Flat role (e.g., Operations)
+        let opTotal = 0;
+        let opStartTotal = 0;
+        let opTotalPrice = 0;
+        let opStartPrice = 0;
+        let opTotalSalary = 0;
+        let opStartSalary = 0;
+        let opTotalWith = 0;
+        let opStartWith = 0;
+        let deltas: number[] = [];
+        const children = (officeData[role.toLowerCase()] || []).map((item: any, idx: number, arr: any[]) => {
+          const first = arr[0] || {};
+          const last = item;
+          const delta = arr.length > 1 ? (last.total ?? 0) - (first?.total ?? 0) : null;
+          opTotal += last.total || 0;
+          opStartTotal += first.total || 0;
+          if (last.price) {
+            opTotalPrice += last.price * (last.total || 0);
+            opTotalWith += last.total || 0;
+          }
+          if (last.salary) {
+            opTotalSalary += last.salary * (last.total || 0);
+          }
+          if (first.price) {
+            opStartPrice += first.price * (first.total || 0);
+            opStartWith += first.total || 0;
+          }
+          if (first.salary) {
+            opStartSalary += first.salary * (first.total || 0);
+          }
+          if (delta !== null && delta !== undefined) deltas.push(delta);
+          return {
+            key: `${officeName}-${role}-op-${idx}`,
+            office: '',
+            role: '',
+            level: '',
+            total: '',
+            delta: delta !== null && delta !== undefined ? Number(delta.toFixed(1)) : null,
+            price: last.price ? Number(last.price.toFixed(1)) : null,
+            salary: last.salary ? Number(last.salary.toFixed(1)) : null,
+            journey: '',
+            totalRole: last.total || 0,
+            fteStart: first.total || 0,
+          };
+        });
+        const avgDelta = deltas.length > 0 ? Number((deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1)) : null;
+        rows.push({
+          key: `${officeName}-${role}`,
+          office: '',
+          role,
+          level: '',
+          total: '',
+          delta: avgDelta,
+          price: (opTotalWith > 0 && opStartWith > 0)
+            ? `${Number((opTotalPrice / opTotalWith).toFixed(1))} (${Number((opStartPrice / opStartWith).toFixed(1))})`
+            : '',
+          salary: (opTotalWith > 0 && opStartWith > 0)
+            ? `${Number((opTotalSalary / opTotalWith).toFixed(1))} (${Number((opStartSalary / opStartWith).toFixed(1))})`
+            : '',
+          journey: '',
+          totalRole: `${opTotal} (${opStartTotal})`,
+          children,
+        });
+      }
+    });
+    // Office summary row price/salary
+    let officeTotalPrice = 0;
+    let officeStartPrice = 0;
+    let officeTotalSalary = 0;
+    let officeStartSalary = 0;
+    let officeTotalWith = 0;
+    let officeStartWith = 0;
+    rows.forEach(row => {
+      // Only sum role rows (not children)
+      if (row.role && !row.level) {
+        const [curFte, startFte] = row.totalRole.split(' ').map((n: string) => parseInt(n.replace(/[()]/g, '')));
+        // Price
+        if (row.price && row.price.includes('(')) {
+          const [curPrice, startPrice] = row.price.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
+          officeTotalPrice += curPrice * curFte;
+          officeStartPrice += startPrice * startFte;
+          officeTotalWith += curFte;
+          officeStartWith += startFte;
+        }
+        // Salary
+        if (row.salary && row.salary.includes('(')) {
+          const [curSalary, startSalary] = row.salary.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
+          officeTotalSalary += curSalary * curFte;
+          officeStartSalary += startSalary * startFte;
+        }
+      }
+    });
+    // Add office summary row with officeTotal in 'total' and also in 'totalRole'
+    rows.unshift({
+      key: `${officeName}-office`,
       office: officeName,
-      journey: officeData.journey ?? '-',
-      totalFte: officeData.total_fte ?? '-',
-      growth: officeData.growth ?? '-',
-      nonDebitRatio: officeData.non_debit_ratio ?? '-',
-      children: Object.entries(officeData.levels).map(([levelName, levelData]: any) => {
-        const baselineLevel = baselineOffice.levels?.[levelName] || {};
-        // Use the last period's data for each level
-        const lastIdx = Array.isArray(levelData) ? levelData.length - 1 : -1;
-        const lastData = lastIdx >= 0 ? levelData[lastIdx] : {};
-        const price_h1 = lastData.price ?? 0;
-        const salary_h1 = lastData.salary ?? 0;
-        // Recruitment, churn, progression, utr are not in backend output per level, so set to '-'
-        // If you add them to backend, update here accordingly
-        const recruitment_h1 = lastData.recruitment_h1 ?? '-';
-        const churn_h1 = lastData.churn_h1 ?? '-';
-        const progression_h1 = lastData.progression_h1 ?? '-';
-        const utr_h1 = lastData.utr_h1 ?? '-';
-        const baseline_price_h1 = baselineLevel.price_h1 ?? 0;
-        const baseline_salary_h1 = baselineLevel.salary_h1 ?? 0;
-        const baseline_recruitment_h1 = baselineLevel.recruitment_h1 ?? 0;
-        const baseline_churn_h1 = baselineLevel.churn_h1 ?? 0;
-        const baseline_progression_h1 = baselineLevel.progression_h1 ?? 0;
-        const baseline_utr_h1 = baselineLevel.utr_h1 ?? 0;
-        return {
-          key: `${officeName}-${levelName}`,
-          level: levelName,
-          total: lastData.total ?? '-',
-          price: `${price_h1.toFixed(2)}${getDiffString(price_h1, baseline_price_h1, false)}`,
-          salary: `${salary_h1.toFixed(2)}${getDiffString(salary_h1, baseline_salary_h1, false)}`,
-          recruitment: recruitment_h1,
-          churn: churn_h1,
-          progression: progression_h1,
-          utr: utr_h1,
-          children: ROLES.map(role => ({
-            key: `${officeName}-${levelName}-${role}`,
-            role,
-            fte: '-',
-            kpi: '-',
-          })),
-        };
-      }),
-    };
-  });
+      role: '',
+      level: '',
+      total: officeTotal,
+      delta: officeStartTotal !== officeTotal ? Number(((officeTotal - officeStartTotal) / officeStartTotal * 100).toFixed(1)) : null,
+      price: (officeTotalWith > 0 && officeStartWith > 0)
+        ? `${Number((officeTotalPrice / officeTotalWith).toFixed(1))} (${Number((officeStartPrice / officeStartWith).toFixed(1))})`
+        : '',
+      salary: (officeTotalWith > 0 && officeStartWith > 0)
+        ? `${Number((officeTotalSalary / officeTotalWith).toFixed(1))} (${Number((officeStartSalary / officeStartWith).toFixed(1))})`
+        : '',
+      journey: officeData.office_journey || '',
+      totalRole: `${officeTotal} (${officeStartTotal})`,
+    });
+    return rows;
+  }).flat();
 }
 
 const levelColumns = [
@@ -132,8 +284,8 @@ export default function SimulationLab() {
   const [selectedLevel, setSelectedLevel] = useState('AM');
   const [selectedOffices, setSelectedOffices] = useState([] as string[]);
   const [leverValue, setLeverValue] = useState(0.1);
-  const [levers, setLevers] = useState<LeversState>(getDefaultLevers());
-  const [lastAppliedSummary, setLastAppliedSummary] = useState<string | null>(null);
+  const { levers, setLevers } = useConfig();
+  const [lastAppliedSummary, setLastAppliedSummary] = useState<string[] | null>(null);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [baselineResults, setBaselineResults] = useState<any>(null);
 
@@ -327,23 +479,43 @@ export default function SimulationLab() {
       message.warning('Please select at least one office.');
       return;
     }
-    setLevers(prev => {
-      const updated = { ...prev };
-      selectedOffices.forEach(office => {
-        updated[office] = { ...updated[office] };
-        updated[office][selectedLevel] = { ...updated[office][selectedLevel] };
-        updated[office][selectedLevel][`${selectedLever}_${selectedHalf}`] = leverValue;
-      });
-      return updated;
+    // Build the updated levers object first
+    const updatedLevers = { ...levers };
+    selectedOffices.forEach(office => {
+      updatedLevers[office] = { ...updatedLevers[office] };
+      updatedLevers[office][selectedLevel] = { ...updatedLevers[office][selectedLevel] };
+      updatedLevers[office][selectedLevel][`${selectedLever}_${selectedHalf}`] = leverValue;
     });
-    // Build summary string
-    const leverLabel = LEVERS.find(l => l.key === selectedLever)?.label || selectedLever;
-    const percent = `${(leverValue * 100).toFixed(0)}%`;
-    const officeList = selectedOffices.join(', ');
-    setLastAppliedSummary(`${leverLabel} for level ${selectedLevel} (${selectedHalf}) set to ${percent} for ${officeList}.`);
-    message.success('Lever value applied!');
+    setLevers(updatedLevers);
+
+    // Build summary array of all applied levers for selected offices
+    const defaultValue = 0.1;
+    const leverSummaries: string[] = [];
+    selectedOffices.forEach(office => {
+      if (!updatedLevers[office]) return;
+      Object.entries(updatedLevers[office]).forEach(([level, leverObj]) => {
+        Object.entries(leverObj as Record<string, number>).forEach(([leverHalf, value]) => {
+          if ((value as number) !== defaultValue) {
+            const [leverKey, half] = leverHalf.split('_');
+            const leverLabel = LEVERS.find(l => l.key === leverKey)?.label || leverKey;
+            const percent = `${((value as number) * 100).toFixed(0)}%`;
+            leverSummaries.push(`${leverLabel} for level ${level} (${half}) set to ${percent} for ${office}`);
+          }
+        });
+      });
+    });
+    if (leverSummaries.length > 0) {
+      setLastAppliedSummary(leverSummaries);
+    } else {
+      setLastAppliedSummary(['No levers applied.']);
+    }
   };
 
+  // Add debug log before transforming results
+  if (simulationResults) {
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] Raw simulationResults:', simulationResults);
+  }
   return (
     <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
       {/* Lever Manipulation Panel */}
@@ -394,7 +566,13 @@ export default function SimulationLab() {
         </Col>
       </Row>
       {lastAppliedSummary && (
-        <div style={{ marginBottom: 16, fontWeight: 500, color: '#096dd9' }}>{lastAppliedSummary}</div>
+        <div style={{ marginBottom: 16, fontWeight: 500, color: '#096dd9' }}>
+          <ul style={{ margin: 0, paddingLeft: 20 }}>
+            {lastAppliedSummary.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </div>
       )}
       {/* Simulation Form */}
       <Form
@@ -481,8 +659,8 @@ export default function SimulationLab() {
             key: 'name',
             render: (text, record) => {
               if ('office' in record && record.office) return <span style={{ fontWeight: 600 }}>{record.office}</span>;
-              if ('level' in record && record.level) return <span style={{ marginLeft: 24 }}>{record.level}</span>;
-              if ('role' in record && record.role) return <span style={{ marginLeft: 48 }}>{record.role}</span>;
+              if ('role' in record && record.role) return <span style={{ marginLeft: 24 }}>{record.role}</span>;
+              if ('level' in record && record.level) return <span style={{ marginLeft: 48 }}>{record.level}</span>;
               return null;
             },
           },
@@ -490,97 +668,54 @@ export default function SimulationLab() {
             title: 'Journey',
             dataIndex: 'journey',
             key: 'journey',
-            render: (journey, record) => {
-              if ('journey' in record && record.journey) return <Tag>{record.journey}</Tag>;
-              return null;
-            },
+            render: (text) => text || null,
           },
           {
-            title: 'Total FTE',
-            dataIndex: 'totalFte',
-            key: 'totalFte',
-            render: (val, record) => {
-              if ('totalFte' in record && record.totalFte !== undefined && record.totalFte !== null) return String(record.totalFte);
-              if ('total' in record && record.total !== undefined && record.total !== null) return String(record.total);
-              if ('fte' in record && record.fte !== undefined && record.fte !== null) return String(record.fte);
-              return null;
+            title: 'FTE',
+            dataIndex: 'totalRole',
+            key: 'totalRole',
+            render: (text) => {
+              if (!text) return null;
+              if (typeof text === 'string' && text.includes('(')) {
+                const [current, start] = text.split(' ').map((n: string) => parseInt(n.replace(/[()]/g, '')));
+                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
+                return <span style={{ color }}>{text}</span>;
+              }
+              return text;
             },
           },
           {
             title: 'Delta',
             dataIndex: 'delta',
             key: 'delta',
-            render: (delta, record) => {
-              if ('delta' in record && typeof record.delta === 'number') {
-                return <span style={{ color: record.delta > 0 ? '#52c41a' : record.delta < 0 ? '#ff4d4f' : '#bfbfbf' }}>{record.delta > 0 ? '+' : ''}{record.delta}</span>;
-              }
-              return null;
-            },
+            render: (text) => text ?? null,
           },
           {
-            title: 'Growth %',
-            key: 'growth',
-            render: (val, record) => {
-              if ('growth' in record && record.growth !== undefined && record.growth !== null) return String(record.growth);
-              if ('kpi' in record && record.kpi !== undefined && record.kpi !== null) return String(record.kpi);
-              return null;
-            },
-          },
-          {
-            title: 'Non-Debit Ratio',
-            key: 'ndr',
-            render: (val, record) => {
-              if ('nonDebitRatio' in record && record.nonDebitRatio !== undefined && record.nonDebitRatio !== null) return String(record.nonDebitRatio);
-              return null;
-            },
-          },
-          // Level columns
-          {
-            title: 'Price (H1)',
+            title: 'Price',
+            dataIndex: 'price',
             key: 'price',
-            render: (val, record) => {
-              if ('price' in record && record.price !== undefined && record.price !== null) return String(record.price);
-              return null;
+            render: (text) => {
+              if (!text && text !== 0) return null;
+              if (typeof text === 'string' && text.includes('(')) {
+                const [current, start] = text.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
+                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
+                return <span style={{ color }}>{text}</span>;
+              }
+              return text;
             },
           },
           {
-            title: 'Salary (H1)',
+            title: 'Salary',
+            dataIndex: 'salary',
             key: 'salary',
-            render: (val, record) => {
-              if ('salary' in record && record.salary !== undefined && record.salary !== null) return String(record.salary);
-              return null;
-            },
-          },
-          {
-            title: 'Recruitment (H1)',
-            key: 'recruitment',
-            render: (val, record) => {
-              if ('recruitment' in record && record.recruitment !== undefined && record.recruitment !== null) return String(record.recruitment);
-              return null;
-            },
-          },
-          {
-            title: 'Churn (H1)',
-            key: 'churn',
-            render: (val, record) => {
-              if ('churn' in record && record.churn !== undefined && record.churn !== null) return String(record.churn);
-              return null;
-            },
-          },
-          {
-            title: 'Progression (H1)',
-            key: 'progression',
-            render: (val, record) => {
-              if ('progression' in record && record.progression !== undefined && record.progression !== null) return String(record.progression);
-              return null;
-            },
-          },
-          {
-            title: 'UTR (H1)',
-            key: 'utr',
-            render: (val, record) => {
-              if ('utr' in record && record.utr !== undefined && record.utr !== null) return String(record.utr);
-              return null;
+            render: (text) => {
+              if (!text && text !== 0) return null;
+              if (typeof text === 'string' && text.includes('(')) {
+                const [current, start] = text.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
+                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
+                return <span style={{ color }}>{text}</span>;
+              }
+              return text;
             },
           },
         ]}

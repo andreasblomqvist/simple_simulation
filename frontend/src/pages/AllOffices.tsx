@@ -43,6 +43,7 @@ export default function AllOffices() {
         return res.json();
       })
       .then(data => {
+        console.log('[DEBUG] Data received from /api/offices:', data);
         setOffices(data);
         setLoading(false);
       })
