@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox } from 'antd';
 import { useConfig } from '../components/ConfigContext';
+import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -36,6 +37,7 @@ const getDefaultLevers = (): LeversState => {
 
 // Example roles for each level
 const ROLES = ['Consultant', 'Sales', 'Recruitment', 'Operations'];
+const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
 
 // Helper to calculate diffs and format lever changes
 function getDiffString(current: number, baseline: number, percent = true) {
@@ -48,206 +50,230 @@ function getDiffString(current: number, baseline: number, percent = true) {
 // Transform simulation results for expandable table
 function transformResults(results: any, baseline: any) {
   // results: { offices: { [office]: { levels: { [role]: { [level]: [ ... ] } }, ... } } }
-  const ROLES = ['Consultant', 'Sales', 'Recruitment', 'Operations'];
+  const ROLES = ['Consultant', 'Sales', 'Recruitment'];
   const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
   const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
   return Object.entries(results.offices).map(([officeName, officeData]: any) => {
     let rows: any[] = [];
-    let officeTotal = 0;
-    let officeStartTotal = 0;
-    ROLES.forEach(role => {
+    let officeCurrentTotal = 0;
+    let officeBaselineTotal = 0;
+    // Find the original config for this office
+    const baselineOffice = Array.isArray(baseline) ? baseline.find((o: any) => o.name === officeName) : undefined;
+    const baselineRoles = baselineOffice && baselineOffice.roles ? baselineOffice.roles : {};
+    // Leveled roles
+    ROLES_WITH_LEVELS.forEach((role: string) => {
+      const simLevels = officeData.levels && officeData.levels[role] ? officeData.levels[role] : {};
+      const baselineRole = baselineRoles[role] || {};
+      let roleCurrentTotal = 0;
+      let roleBaselineTotal = 0;
+      const children = LEVELS.map((level: string) => {
+        const simArray = simLevels[level]; // array of period objects
+        const current = simArray && simArray.length > 0 ? simArray[simArray.length - 1] : {};
+        const baselineLevel = baselineRole && baselineRole[level] ? baselineRole[level] : {};
+        const baselineTotal = baselineLevel.total ?? 0;
+        roleCurrentTotal += current.total ?? 0;
+        roleBaselineTotal += baselineTotal;
+        return {
+          key: `${officeName}-${role}-${level}`,
+          level,
+          total: `${current.total !== undefined ? current.total : ''} (${baselineTotal !== undefined ? baselineTotal : ''})`,
+          price: `${current.price !== undefined ? current.price.toFixed(2) : ''} (${baselineLevel.price_h1 !== undefined ? Number(baselineLevel.price_h1).toFixed(2) : ''})`,
+          salary: `${current.salary !== undefined ? current.salary.toFixed(2) : ''} (${baselineLevel.salary_h1 !== undefined ? Number(baselineLevel.salary_h1).toFixed(2) : ''})`,
+        };
+      });
+      officeCurrentTotal += roleCurrentTotal;
+      officeBaselineTotal += roleBaselineTotal;
+      rows.push({
+        key: `${officeName}-${role}`,
+        role,
+        total: `${roleCurrentTotal !== undefined ? roleCurrentTotal : ''} (${roleBaselineTotal !== undefined ? roleBaselineTotal : ''})`,
+        children,
+      });
+    });
+    // Flat role: Operations
+    if (officeData.operations && Array.isArray(officeData.operations)) {
+      const simArray = officeData.operations;
+      const current = simArray && simArray.length > 0 ? simArray[simArray.length - 1] : {};
+      const baselineRole = baselineRoles['Operations'] || {};
+      const baselineTotal = baselineRole.total ?? 0;
+      officeCurrentTotal += current.total ?? 0;
+      officeBaselineTotal += baselineTotal;
+      rows.push({
+        key: `${officeName}-Operations`,
+        role: 'Operations',
+        total: `${current.total !== undefined ? current.total : ''} (${baselineTotal !== undefined ? baselineTotal : ''})`,
+        price: `${current.price !== undefined ? current.price.toFixed(2) : ''} (${baselineRole.price_h1 !== undefined ? Number(baselineRole.price_h1).toFixed(2) : ''})`,
+        salary: `${current.salary !== undefined ? current.salary.toFixed(2) : ''} (${baselineRole.salary_h1 !== undefined ? Number(baselineRole.salary_h1).toFixed(2) : ''})`,
+      });
+    }
+    return {
+      key: officeName,
+      office: officeName,
+      journey: officeData.office_journey,
+      total: `${officeCurrentTotal !== undefined ? officeCurrentTotal : ''} (${officeBaselineTotal !== undefined ? officeBaselineTotal : ''})`,
+      children: rows,
+    };
+  });
+}
+
+// Move LEVER_KEYS above configColumns and getConfigTableData
+const LEVER_KEYS = [
+  { key: 'fte', label: 'FTE' },
+  { key: 'price_h1', label: 'Price H1' },
+  { key: 'price_h2', label: 'Price H2' },
+  { key: 'salary_h1', label: 'Salary H1' },
+  { key: 'salary_h2', label: 'Salary H2' },
+  { key: 'recruitment_h1', label: 'Recruitment H1' },
+  { key: 'recruitment_h2', label: 'Recruitment H2' },
+  { key: 'churn_h1', label: 'Churn H1' },
+  { key: 'churn_h2', label: 'Churn H2' },
+  { key: 'progression_h1', label: 'Progression H1' },
+  { key: 'progression_h2', label: 'Progression H2' },
+  { key: 'utr_h1', label: 'UTR H1' },
+  { key: 'utr_h2', label: 'UTR H2' },
+];
+
+// Move configColumns definition after LEVER_KEYS
+const configColumns: any[] = [
+  {
+    title: 'Role',
+    dataIndex: 'role',
+    key: 'role',
+    render: (text: string, row: any) => (
+      <span>{row.level ? '' : row.role}</span>
+    ),
+  },
+  {
+    title: 'Level',
+    dataIndex: 'level',
+    key: 'level',
+    render: (text: string) => text || '-',
+  },
+  {
+    title: 'Total FTE',
+    dataIndex: 'fte',
+    key: 'fte',
+    render: (text: any, row: any) => {
+      if (row.level) {
+        return row.total ?? row.fte ?? 0;
+      } else if (row.children && row.children.length > 0) {
+        return row.children.reduce((sum: number, child: any) => sum + (child.total ?? child.fte ?? 0), 0);
+      } else {
+        return row.total ?? row.fte ?? 0;
+      }
+    },
+  },
+  ...LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => ({
+    title: lv.label,
+    dataIndex: lv.key,
+    key: lv.key,
+    render: (val: any) => {
+      if (val === undefined || val === null) return '-';
+      if (['price_h1', 'price_h2', 'salary_h1', 'salary_h2'].includes(lv.key)) {
+        const num = Number(val);
+        if (!isNaN(num)) return num.toFixed(2);
+      }
+      return val;
+    },
+  })),
+];
+
+const getConfigTableData = (officeData: { roles?: { [key: string]: { [key: string]: any } } }): any[] => {
+  if (!officeData || !officeData.roles) return [];
+  let rows: any[] = [];
+  ROLES.forEach((role: string) => {
+    const roleData = officeData.roles![role] as Record<string, any>;
+    if (roleData) {
       if (ROLES_WITH_LEVELS.includes(role)) {
-        let roleTotal = 0;
-        let roleStartTotal = 0;
-        let totalPrice = 0;
-        let totalSalary = 0;
-        let totalWithPrice = 0;
-        let totalWithSalary = 0;
-        let roleStartPrice = 0;
-        let roleStartSalary = 0;
-        let totalStartWithPrice = 0;
-        let totalStartWithSalary = 0;
-        let deltas: number[] = [];
-        const children = LEVELS.map(level => {
-          const arr = officeData.levels?.[role]?.[level] || [];
-          const last = arr.length > 0 ? arr[arr.length - 1] : {};
-          const first = arr.length > 0 ? arr[0] : {};
-          const delta = arr.length > 1 ? (last.total ?? 0) - (first?.total ?? 0) : null;
-          roleTotal += last.total || 0;
-          roleStartTotal += first.total || 0;
-          if (delta !== null && delta !== undefined) deltas.push(delta);
-          if (last.price) {
-            totalPrice += last.price * (last.total || 0);
-            totalWithPrice += last.total || 0;
-          }
-          if (last.salary) {
-            totalSalary += last.salary * (last.total || 0);
-            totalWithSalary += last.total || 0;
-          }
-          if (first.price) {
-            roleStartPrice += first.price * (first.total || 0);
-            totalStartWithPrice += first.total || 0;
-          }
-          if (first.salary) {
-            roleStartSalary += first.salary * (first.total || 0);
-            totalStartWithSalary += first.total || 0;
-          }
+        const children = LEVELS.map((level: string) => {
+          const data = (roleData && Object.prototype.hasOwnProperty.call(roleData, level)) ? (roleData as Record<string, any>)[level] : {};
+          const price = (data.price !== undefined) ? Number(data.price).toFixed(2) : '-';
+          const salary = (data.salary !== undefined) ? Number(data.salary).toFixed(2) : '-';
+          const levers: any = {};
+          LEVER_KEYS.forEach(lv => {
+            if (lv.key !== 'fte') {
+              const v = data[lv.key];
+              levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
+            }
+          });
           return {
-            key: `${officeName}-${role}-${level}`,
-            office: '',
-            role: '',
+            key: `${role}-${level}`,
+            role,
             level,
-            total: (last.total !== undefined && first.total !== undefined)
-              ? `${last.total} (${first.total})`
-              : last.total ?? '',
-            delta: delta !== null && delta !== undefined ? Number(delta.toFixed(1)) : null,
-            price: (last.price !== undefined && first.price !== undefined)
-              ? `${Number(last.price.toFixed(1))} (${Number(first.price.toFixed(1))})`
-              : last.price !== undefined ? Number(last.price.toFixed(1)) : null,
-            salary: (last.salary !== undefined && first.salary !== undefined)
-              ? `${Number(last.salary.toFixed(1))} (${Number(first.salary.toFixed(1))})`
-              : last.salary !== undefined ? Number(last.salary.toFixed(1)) : null,
-            journey: '',
-            totalRole: (last.total !== undefined && first.total !== undefined)
-              ? `${last.total} (${first.total})`
-              : last.total ?? 0,
-            fteStart: first.total || 0,
+            total: data.total ?? 0,
+            price,
+            salary,
+            ...levers,
           };
         });
-        officeTotal += roleTotal;
-        officeStartTotal += roleStartTotal;
-        // Calculate average delta for the role
-        const avgDelta = deltas.length > 0 ? Number((deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1)) : null;
+        // Compute averages for price and salary for parent row
+        const validPrices = children.map(c => parseFloat((c.price || '').toString())).filter(n => !isNaN(n));
+        const avgPrice = validPrices.length ? (validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : null;
+        const price = avgPrice !== null ? avgPrice.toFixed(2) : '-';
+        const validSalaries = children.map(c => parseFloat((c.salary || '').toString())).filter(n => !isNaN(n));
+        const avgSalary = validSalaries.length ? (validSalaries.reduce((a, b) => a + b, 0) / validSalaries.length) : null;
+        const salary = avgSalary !== null ? avgSalary.toFixed(2) : '-';
         rows.push({
-          key: `${officeName}-${role}`,
-          office: '',
+          key: role,
           role,
-          level: '',
-          total: '',
-          delta: avgDelta,
-          price: (totalWithPrice > 0 && totalStartWithPrice > 0)
-            ? `${Number((totalPrice / totalWithPrice).toFixed(1))} (${Number((roleStartPrice / totalStartWithPrice).toFixed(1))})`
-            : null,
-          salary: (totalWithSalary > 0 && totalStartWithSalary > 0)
-            ? `${Number((totalSalary / totalWithSalary).toFixed(1))} (${Number((roleStartSalary / totalStartWithSalary).toFixed(1))})`
-            : null,
-          journey: '',
-          totalRole: `${roleTotal} (${roleStartTotal})`,
+          price,
+          salary,
           children,
         });
       } else {
-        // Flat role (e.g., Operations)
-        let opTotal = 0;
-        let opStartTotal = 0;
-        let opTotalPrice = 0;
-        let opStartPrice = 0;
-        let opTotalSalary = 0;
-        let opStartSalary = 0;
-        let opTotalWith = 0;
-        let opStartWith = 0;
-        let deltas: number[] = [];
-        const children = (officeData[role.toLowerCase()] || []).map((item: any, idx: number, arr: any[]) => {
-          const first = arr[0] || {};
-          const last = item;
-          const delta = arr.length > 1 ? (last.total ?? 0) - (first?.total ?? 0) : null;
-          opTotal += last.total || 0;
-          opStartTotal += first.total || 0;
-          if (last.price) {
-            opTotalPrice += last.price * (last.total || 0);
-            opTotalWith += last.total || 0;
+        // Flat role (Operations)
+        const data = (roleData as Record<string, any>) || {};
+        const price = (data.price !== undefined) ? Number(data.price).toFixed(2) : '-';
+        const salary = (data.salary !== undefined) ? Number(data.salary).toFixed(2) : '-';
+        const levers: any = {};
+        LEVER_KEYS.forEach(lv => {
+          if (lv.key !== 'fte') {
+            const v = data[lv.key];
+            levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
           }
-          if (last.salary) {
-            opTotalSalary += last.salary * (last.total || 0);
-          }
-          if (first.price) {
-            opStartPrice += first.price * (first.total || 0);
-            opStartWith += first.total || 0;
-          }
-          if (first.salary) {
-            opStartSalary += first.salary * (first.total || 0);
-          }
-          if (delta !== null && delta !== undefined) deltas.push(delta);
-          return {
-            key: `${officeName}-${role}-op-${idx}`,
-            office: '',
-            role: '',
-            level: '',
-            total: '',
-            delta: delta !== null && delta !== undefined ? Number(delta.toFixed(1)) : null,
-            price: last.price ? Number(last.price.toFixed(1)) : null,
-            salary: last.salary ? Number(last.salary.toFixed(1)) : null,
-            journey: '',
-            totalRole: last.total || 0,
-            fteStart: first.total || 0,
-          };
         });
-        const avgDelta = deltas.length > 0 ? Number((deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1)) : null;
         rows.push({
-          key: `${officeName}-${role}`,
-          office: '',
+          key: role,
           role,
-          level: '',
-          total: '',
-          delta: avgDelta,
-          price: (opTotalWith > 0 && opStartWith > 0)
-            ? `${Number((opTotalPrice / opTotalWith).toFixed(1))} (${Number((opStartPrice / opStartWith).toFixed(1))})`
-            : '',
-          salary: (opTotalWith > 0 && opStartWith > 0)
-            ? `${Number((opTotalSalary / opTotalWith).toFixed(1))} (${Number((opStartSalary / opStartWith).toFixed(1))})`
-            : '',
-          journey: '',
-          totalRole: `${opTotal} (${opStartTotal})`,
+          price,
+          salary,
+          ...levers,
+          total: data.total ?? 0,
+        });
+      }
+    } else {
+      // Role missing in backend, show as zero
+      if (ROLES_WITH_LEVELS.includes(role)) {
+        const children = LEVELS.map((level: string) => ({
+          key: `${role}-${level}`,
+          role,
+          level,
+          total: 0,
+          price: '-',
+          salary: '-',
+          ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
+        }));
+        rows.push({
+          key: role,
+          role,
+          price: '-',
+          salary: '-',
           children,
         });
+      } else {
+        rows.push({
+          key: role,
+          role,
+          price: '-',
+          salary: '-',
+          ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
+          total: 0,
+        });
       }
-    });
-    // Office summary row price/salary
-    let officeTotalPrice = 0;
-    let officeStartPrice = 0;
-    let officeTotalSalary = 0;
-    let officeStartSalary = 0;
-    let officeTotalWith = 0;
-    let officeStartWith = 0;
-    rows.forEach(row => {
-      // Only sum role rows (not children)
-      if (row.role && !row.level) {
-        const [curFte, startFte] = row.totalRole.split(' ').map((n: string) => parseInt(n.replace(/[()]/g, '')));
-        // Price
-        if (row.price && row.price.includes('(')) {
-          const [curPrice, startPrice] = row.price.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
-          officeTotalPrice += curPrice * curFte;
-          officeStartPrice += startPrice * startFte;
-          officeTotalWith += curFte;
-          officeStartWith += startFte;
-        }
-        // Salary
-        if (row.salary && row.salary.includes('(')) {
-          const [curSalary, startSalary] = row.salary.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
-          officeTotalSalary += curSalary * curFte;
-          officeStartSalary += startSalary * startFte;
-        }
-      }
-    });
-    // Add office summary row with officeTotal in 'total' and also in 'totalRole'
-    rows.unshift({
-      key: `${officeName}-office`,
-      office: officeName,
-      role: '',
-      level: '',
-      total: officeTotal,
-      delta: officeStartTotal !== officeTotal ? Number(((officeTotal - officeStartTotal) / officeStartTotal * 100).toFixed(1)) : null,
-      price: (officeTotalWith > 0 && officeStartWith > 0)
-        ? `${Number((officeTotalPrice / officeTotalWith).toFixed(1))} (${Number((officeStartPrice / officeStartWith).toFixed(1))})`
-        : '',
-      salary: (officeTotalWith > 0 && officeStartWith > 0)
-        ? `${Number((officeTotalSalary / officeTotalWith).toFixed(1))} (${Number((officeStartSalary / officeStartWith).toFixed(1))})`
-        : '',
-      journey: officeData.office_journey || '',
-      totalRole: `${officeTotal} (${officeStartTotal})`,
-    });
-    return rows;
-  }).flat();
-}
+    }
+  });
+  return rows;
+};
 
 const levelColumns = [
   { title: 'Level', dataIndex: 'level', key: 'level' },
@@ -288,6 +314,36 @@ export default function SimulationLab() {
   const [lastAppliedSummary, setLastAppliedSummary] = useState<string[] | null>(null);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [baselineResults, setBaselineResults] = useState<any>(null);
+  const [showConfig, setShowConfig] = useState(false);
+  const [config, setConfig] = useState<any>(null);
+  const [configOffices, setConfigOffices] = useState<any[]>([]);
+  const [originalConfigOffices, setOriginalConfigOffices] = useState<any[]>([]);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [showConfigTable, setShowConfigTable] = useState(false);
+  const [selectedConfigOffice, setSelectedConfigOffice] = useState<string>('');
+  // Add state for the checkbox
+  const [applyToBothHalves, setApplyToBothHalves] = useState(false);
+
+  // Fetch config on mount
+  useEffect(() => {
+    setConfigLoading(true);
+    fetch('/api/offices')
+      .then(res => res.json())
+      .then(data => {
+        setConfigOffices(data);
+        setConfigLoading(false);
+        // Only set originalConfigOffices if it is empty
+        setOriginalConfigOffices(prev => (prev && prev.length > 0 ? prev : data));
+      })
+      .catch(() => setConfigLoading(false));
+  }, []);
+
+  // Update selectedConfigOffice when configOffices changes
+  useEffect(() => {
+    if (Array.isArray(configOffices) && configOffices.length > 0) {
+      setSelectedConfigOffice(configOffices[0].name);
+    }
+  }, [configOffices]);
 
   const handleFormChange = (changed: any, all: any) => {
     setFormVals(all);
@@ -298,9 +354,6 @@ export default function SimulationLab() {
     setError(null);
     setResult(null);
     try {
-      const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
-      const FLAT_ROLE = 'Operations';
-      const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
       const office_overrides: Record<string, { roles: any }> = {};
       Object.entries(levers).forEach(([office, levels]) => {
         office_overrides[office] = { roles: {} };
@@ -314,12 +367,18 @@ export default function SimulationLab() {
           });
         });
         // Flat role (Operations)
-        if (levels[FLAT_ROLE]) {
-          office_overrides[office].roles[FLAT_ROLE] = { ...levels[FLAT_ROLE] };
+        if (levels[ROLES[3]]) {
+          office_overrides[office].roles[ROLES[3]] = { ...levels[ROLES[3]] };
         }
       });
-      // LOGGING: Print the office_overrides payload
-      console.log('[DEBUG] office_overrides payload:', office_overrides);
+      // Add debug logging
+      console.log('[DEBUG] office_overrides payload:', JSON.stringify(office_overrides, null, 2));
+      console.log('[DEBUG] Selected lever:', selectedLever);
+      console.log('[DEBUG] Selected half:', selectedHalf);
+      console.log('[DEBUG] Selected level:', selectedLevel);
+      console.log('[DEBUG] Selected offices:', selectedOffices);
+      console.log('[DEBUG] Lever value:', leverValue);
+      
       const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -337,6 +396,8 @@ export default function SimulationLab() {
       setResult(data);
       setSimulationResults(data);
       setBaselineResults(data);
+      setConfig(data);
+      setShowConfig(true);
     } catch (err: any) {
       setError(err.message);
       message.error(err.message);
@@ -484,7 +545,13 @@ export default function SimulationLab() {
     selectedOffices.forEach(office => {
       updatedLevers[office] = { ...updatedLevers[office] };
       updatedLevers[office][selectedLevel] = { ...updatedLevers[office][selectedLevel] };
-      updatedLevers[office][selectedLevel][`${selectedLever}_${selectedHalf}`] = leverValue;
+      if (applyToBothHalves) {
+        ['H1', 'H2'].forEach(half => {
+          updatedLevers[office][selectedLevel][`${selectedLever}_${half}`] = leverValue;
+        });
+      } else {
+        updatedLevers[office][selectedLevel][`${selectedLever}_${selectedHalf}`] = leverValue;
+      }
     });
     setLevers(updatedLevers);
 
@@ -515,10 +582,20 @@ export default function SimulationLab() {
   if (simulationResults) {
     // eslint-disable-next-line no-console
     console.log('[DEBUG] Raw simulationResults:', simulationResults);
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] simulationResults.offices:', simulationResults.offices);
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] originalConfigOffices:', originalConfigOffices);
   }
+
+  // In the render, use the first office in configOffices for the config table
+  const selectedOfficeData = Array.isArray(configOffices) && configOffices.length > 0
+    ? configOffices.find((o: any) => o.name === selectedConfigOffice)
+    : null;
+
   return (
     <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
-      {/* Lever Manipulation Panel */}
+      {/* Lever Manipulation Panel - always at the top */}
       <Row gutter={16} align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <span>Lever: </span>
@@ -562,6 +639,14 @@ export default function SimulationLab() {
           />
         </Col>
         <Col>
+          <Checkbox
+            checked={applyToBothHalves}
+            onChange={e => setApplyToBothHalves(e.target.checked)}
+          >
+            Apply to both H1 and H2
+          </Checkbox>
+        </Col>
+        <Col>
           <Button type="primary" onClick={handleApply}>Apply</Button>
         </Col>
       </Row>
@@ -574,7 +659,8 @@ export default function SimulationLab() {
           </ul>
         </div>
       )}
-      {/* Simulation Form */}
+
+      {/* Simulation Form and rest of the content follows */}
       <Form
         layout="vertical"
         initialValues={formVals}
@@ -620,6 +706,23 @@ export default function SimulationLab() {
             </Form.Item>
           </Col>
         </Row>
+        {/* Toggle buttons moved here */}
+        <div style={{ marginBottom: 16 }}>
+          <Space>
+            <Button
+              type={showConfigTable ? 'primary' : 'default'}
+              onClick={() => setShowConfigTable(true)}
+            >
+              Show Current Config
+            </Button>
+            <Button
+              type={!showConfigTable ? 'primary' : 'default'}
+              onClick={() => setShowConfigTable(false)}
+            >
+              Show Simulation Results
+            </Button>
+          </Space>
+        </div>
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
             {loading ? 'Running...' : 'Run Simulation'}
@@ -628,104 +731,239 @@ export default function SimulationLab() {
         {error && <Text type="danger">{error}</Text>}
       </Form>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - Modern Dashboard Style (now after the form, before the table) */}
       {aggregatedKPIs && (
-        <Row gutter={16} style={{ marginBottom: 32 }}>
-          {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => (
-            <Col xs={24} sm={12} md={6} key={journey}>
-              <Card>
-                <Text type="secondary">{journey}</Text>
-                <Title level={3} style={{ margin: 0 }}>{value}</Title>
-                <Text type="secondary">
-                  {aggregatedKPIs.totalJourney > 0 ? ((value / aggregatedKPIs.totalJourney) * 100).toFixed(1) : '0.0'}%
-                </Text>
-              </Card>
-            </Col>
-          ))}
+        <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+          {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => {
+            // Calculate percentage and delta
+            const percent = aggregatedKPIs.totalJourney > 0 ? ((value / aggregatedKPIs.totalJourney) * 100) : 0;
+            // Find delta: percentage change from previous period (if available)
+            let delta = null;
+            if (result && result.offices) {
+              const offices = result.offices;
+              const periods = result.periods || [];
+              const prevIdx = periods.length - 2;
+              if (prevIdx >= 0) {
+                let prevTotal = 0;
+                Object.values(offices).forEach((officeData: any) => {
+                  if (officeData.journeys && officeData.journeys[journey] && officeData.journeys[journey][prevIdx]) {
+                    prevTotal += officeData.journeys[journey][prevIdx].total || 0;
+                  }
+                });
+                if (prevTotal > 0) {
+                  delta = ((value - prevTotal) / prevTotal) * 100;
+                } else {
+                  delta = null;
+                }
+              }
+            }
+            let deltaColor = '#bfbfbf';
+            if (delta !== null) {
+              if (delta > 0) deltaColor = '#52c41a';
+              else if (delta < 0) deltaColor = '#ff4d4f';
+            }
+            return (
+              <Col xs={24} sm={12} md={6} key={journey}>
+                <Card
+                  bordered={false}
+                  style={{
+                    background: '#1f1f1f',
+                    color: '#fff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
+                    borderRadius: 12,
+                    minHeight: 80,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    padding: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 2, color: '#40a9ff' }}>{percent.toFixed(1)}%</div>
+                  <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>{value}</div>
+                  {delta !== null && (
+                    <div style={{ fontSize: 18, fontWeight: 500, color: deltaColor }}>
+                      Δ {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                    </div>
+                  )}
+                  <div style={{ fontSize: 16, fontWeight: 400, marginTop: 4, color: '#aaa' }}>{journey}</div>
+                </Card>
+              </Col>
+            );
+          })}
+          {/* Non-Debit Ratio card in the same row */}
           <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Text type="secondary">Non-Debit Ratio</Text>
-              <Title level={3} style={{ margin: 0 }}>{aggregatedKPIs.overallNonDebitRatio !== null ? aggregatedKPIs.overallNonDebitRatio.toFixed(2) : 'N/A'}</Title>
+            <Card
+              bordered={false}
+              style={{
+                background: '#1f1f1f',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
+                borderRadius: 12,
+                minHeight: 80,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                padding: 16,
+              }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                <PercentageOutlined style={{ fontSize: 20, color: '#ffa940', marginRight: 8 }} />
+                <div>
+                  <Text style={{ color: '#bfbfbf', fontSize: 12 }}>Non-Debit Ratio</Text>
+                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff', lineHeight: 1 }}>
+                    {aggregatedKPIs.overallNonDebitRatio !== null ? aggregatedKPIs.overallNonDebitRatio.toFixed(2) : 'N/A'}
+                  </div>
+                </div>
+              </div>
             </Card>
           </Col>
         </Row>
       )}
 
-      {/* Expandable Table (single table, hierarchical data) */}
-      <Table
-        columns={[
-          {
-            title: 'Office / Level / Role',
-            key: 'name',
-            render: (text, record) => {
-              if ('office' in record && record.office) return <span style={{ fontWeight: 600 }}>{record.office}</span>;
-              if ('role' in record && record.role) return <span style={{ marginLeft: 24 }}>{record.role}</span>;
-              if ('level' in record && record.level) return <span style={{ marginLeft: 48 }}>{record.level}</span>;
-              return null;
-            },
-          },
-          {
-            title: 'Journey',
-            dataIndex: 'journey',
-            key: 'journey',
-            render: (text) => text || null,
-          },
-          {
-            title: 'FTE',
-            dataIndex: 'totalRole',
-            key: 'totalRole',
-            render: (text) => {
-              if (!text) return null;
-              if (typeof text === 'string' && text.includes('(')) {
-                const [current, start] = text.split(' ').map((n: string) => parseInt(n.replace(/[()]/g, '')));
-                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
-                return <span style={{ color }}>{text}</span>;
-              }
-              return text;
-            },
-          },
-          {
-            title: 'Delta',
-            dataIndex: 'delta',
-            key: 'delta',
-            render: (text) => text ?? null,
-          },
-          {
-            title: 'Price',
-            dataIndex: 'price',
-            key: 'price',
-            render: (text) => {
-              if (!text && text !== 0) return null;
-              if (typeof text === 'string' && text.includes('(')) {
-                const [current, start] = text.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
-                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
-                return <span style={{ color }}>{text}</span>;
-              }
-              return text;
-            },
-          },
-          {
-            title: 'Salary',
-            dataIndex: 'salary',
-            key: 'salary',
-            render: (text) => {
-              if (!text && text !== 0) return null;
-              if (typeof text === 'string' && text.includes('(')) {
-                const [current, start] = text.split(' ').map((n: string) => parseFloat(n.replace(/[()]/g, '')));
-                const color = current < start ? 'red' : current > start ? 'green' : 'inherit';
-                return <span style={{ color }}>{text}</span>;
-              }
-              return text;
-            },
-          },
-        ]}
-        dataSource={simulationResults ? transformResults(simulationResults, baselineResults) : []}
-        rowKey="key"
-        pagination={false}
-        expandable={{
-          defaultExpandAllRows: false,
-        }}
-      />
+      {/* Table Section - after KPI cards */}
+      <div style={{ marginBottom: 24 }}>
+        {showConfigTable ? (
+          <>
+            <Row align="middle" gutter={16} style={{ marginBottom: 16 }}>
+              <Col>
+                <Select
+                  value={selectedConfigOffice}
+                  onChange={setSelectedConfigOffice}
+                  style={{ width: 200 }}
+                  options={configOffices.map((office: any) => ({ label: office.name, value: office.name }))}
+                />
+              </Col>
+            </Row>
+            <Table
+              columns={configColumns}
+              dataSource={getConfigTableData(selectedOfficeData)}
+              rowKey={row => row.key}
+              loading={configLoading}
+              pagination={false}
+              expandable={{
+                childrenColumnName: 'children',
+                defaultExpandAllRows: true,
+              }}
+            />
+          </>
+        ) :
+          <Table
+            columns={[
+              {
+                title: 'Office / Level / Role',
+                key: 'name',
+                render: (text, record) => {
+                  if ('office' in record && record.office) return <span style={{ fontWeight: 600 }}>{record.office}</span>;
+                  if ('role' in record && record.role) return <span style={{ marginLeft: 24 }}>{record.role}</span>;
+                  if ('level' in record && record.level) return <span style={{ marginLeft: 48 }}>{record.level}</span>;
+                  return null;
+                },
+              },
+              {
+                title: 'Journey',
+                dataIndex: 'journey',
+                key: 'journey',
+                render: (text) => text || null,
+              },
+              {
+                title: 'FTE',
+                dataIndex: 'total',
+                key: 'total',
+                render: (text) => {
+                  if (typeof text !== 'string') return null;
+                  const match = text.match(/^([\d.]+) \(([^)]+)\)$/);
+                  if (!match) return text;
+                  const current = parseFloat(match[1]);
+                  const baseline = parseFloat(match[2]);
+                  let color = undefined;
+                  if (current > baseline) color = 'green';
+                  else if (current < baseline) color = 'red';
+                  return <span style={{ color }}>{text}</span>;
+                },
+              },
+              {
+                title: 'Delta',
+                key: 'delta',
+                render: (text, record) => {
+                  // Use the FTE value for delta calculation
+                  const fteText = record.total;
+                  if (typeof fteText !== 'string') return null;
+                  const match = fteText.match(/^([\d.]+) \(([^)]+)\)$/);
+                  if (!match) return null;
+                  const current = parseFloat(match[1]);
+                  const baseline = parseFloat(match[2]);
+                  const delta = current - baseline;
+                  let color = undefined;
+                  if (delta > 0) color = 'green';
+                  else if (delta < 0) color = 'red';
+                  if (delta === 0) return null;
+                  return <span style={{ color }}>{delta > 0 ? '+' : ''}{delta}</span>;
+                },
+              },
+              {
+                title: 'Price',
+                dataIndex: 'price',
+                key: 'price',
+                render: (text) => {
+                  if (typeof text !== 'string') return null;
+                  const match = text.match(/^([\d.]+) \(([^)]+)\)$/);
+                  if (!match) return text;
+                  const current = parseFloat(match[1]);
+                  const baseline = parseFloat(match[2]);
+                  let color = undefined;
+                  if (current > baseline) color = 'green';
+                  else if (current < baseline) color = 'red';
+                  return <span style={{ color }}>{text}</span>;
+                },
+              },
+              {
+                title: 'Salary',
+                dataIndex: 'salary',
+                key: 'salary',
+                render: (text) => {
+                  if (typeof text !== 'string') return null;
+                  const match = text.match(/^([\d.]+) \(([^)]+)\)$/);
+                  if (!match) return text;
+                  const current = parseFloat(match[1]);
+                  const baseline = parseFloat(match[2]);
+                  let color = undefined;
+                  if (current > baseline) color = 'green';
+                  else if (current < baseline) color = 'red';
+                  return <span style={{ color }}>{text}</span>;
+                },
+              },
+            ]}
+            dataSource={simulationResults ? transformResults(simulationResults, originalConfigOffices) : []}
+            rowKey="key"
+            pagination={false}
+            expandable={{
+              defaultExpandAllRows: false,
+            }}
+          />
+        }
+      </div>
+
+      {/* Configuration card at the bottom */}
+      {showConfig && config && (
+        <Card title="Configuration" style={{ marginBottom: 16 }}>
+          <pre style={{ 
+            background: '#1f1f1f', 
+            padding: 16, 
+            borderRadius: 8,
+            color: '#fff',
+            fontSize: 14,
+            maxHeight: '400px',
+            overflow: 'auto'
+          }}>
+            {JSON.stringify(config, (key, value) => 
+              typeof value === 'number' ? Number(value.toFixed(2)) : value
+            , 2)}
+          </pre>
+        </Card>
+      )}
     </Card>
   );
 } 

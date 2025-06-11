@@ -88,7 +88,14 @@ export default function Configuration() {
       title: lv.label,
       dataIndex: lv.key,
       key: lv.key,
-      render: (val: any) => val !== undefined && val !== null ? val : '-',
+      render: (val: any) => {
+        if (val === undefined || val === null) return '-';
+        if (['price_h1', 'price_h2', 'salary_h1', 'salary_h2'].includes(lv.key)) {
+          const num = Number(val);
+          if (!isNaN(num)) return num.toFixed(2);
+        }
+        return val;
+      },
     })),
   ];
 
@@ -105,27 +112,83 @@ export default function Configuration() {
           // Role with levels
           const children = LEVELS.map(level => {
             const data = roleData[level] || {};
+            // Format price and salary as value (start) if both available
+            const price = (data.price !== undefined && data.price_start !== undefined)
+              ? `${Number(data.price).toFixed(2)} (${Number(data.price_start).toFixed(2)})`
+              : data.price !== undefined ? Number(data.price).toFixed(2) : data.price_start !== undefined ? `(${Number(data.price_start).toFixed(2)})` : '-';
+            const salary = (data.salary !== undefined && data.salary_start !== undefined)
+              ? `${Number(data.salary).toFixed(2)} (${Number(data.salary_start).toFixed(2)})`
+              : data.salary !== undefined ? Number(data.salary).toFixed(2) : data.salary_start !== undefined ? `(${Number(data.salary_start).toFixed(2)})` : '-';
+            // Format all lever columns
+            const levers: any = {};
+            LEVER_KEYS.forEach(lv => {
+              if (lv.key !== 'fte') {
+                const v = data[lv.key];
+                levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
+              }
+            });
             return {
               key: `${role}-${level}`,
               role,
               level,
               total: data.total ?? 0,
-              ...data,
+              price,
+              salary,
+              ...levers,
             };
           });
+          // Compute averages for price and salary for parent row
+          const validPrices = children.map(c => parseFloat((c.price || '').toString().split(' ')[0])).filter(n => !isNaN(n));
+          const validStartPrices = children.map(c => {
+            const match = (c.price || '').toString().match(/\(([^)]+)\)/);
+            return match ? parseFloat(match[1]) : NaN;
+          }).filter(n => !isNaN(n));
+          const avgPrice = validPrices.length ? (validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : null;
+          const avgStartPrice = validStartPrices.length ? (validStartPrices.reduce((a, b) => a + b, 0) / validStartPrices.length) : null;
+          const price = (avgPrice !== null && avgStartPrice !== null)
+            ? `${avgPrice.toFixed(2)} (${avgStartPrice.toFixed(2)})`
+            : avgPrice !== null ? avgPrice.toFixed(2) : avgStartPrice !== null ? `(${avgStartPrice.toFixed(2)})` : '-';
+          const validSalaries = children.map(c => parseFloat((c.salary || '').toString().split(' ')[0])).filter(n => !isNaN(n));
+          const validStartSalaries = children.map(c => {
+            const match = (c.salary || '').toString().match(/\(([^)]+)\)/);
+            return match ? parseFloat(match[1]) : NaN;
+          }).filter(n => !isNaN(n));
+          const avgSalary = validSalaries.length ? (validSalaries.reduce((a, b) => a + b, 0) / validSalaries.length) : null;
+          const avgStartSalary = validStartSalaries.length ? (validStartSalaries.reduce((a, b) => a + b, 0) / validStartSalaries.length) : null;
+          const salary = (avgSalary !== null && avgStartSalary !== null)
+            ? `${avgSalary.toFixed(2)} (${avgStartSalary.toFixed(2)})`
+            : avgSalary !== null ? avgSalary.toFixed(2) : avgStartSalary !== null ? `(${avgStartSalary.toFixed(2)})` : '-';
           rows.push({
             key: role,
             role,
+            price,
+            salary,
             children,
           });
         } else {
           // Flat role (Operations)
           const data = roleData || {};
+          const price = (data.price !== undefined && data.price_start !== undefined)
+            ? `${Number(data.price).toFixed(2)} (${Number(data.price_start).toFixed(2)})`
+            : data.price !== undefined ? Number(data.price).toFixed(2) : data.price_start !== undefined ? `(${Number(data.price_start).toFixed(2)})` : '-';
+          const salary = (data.salary !== undefined && data.salary_start !== undefined)
+            ? `${Number(data.salary).toFixed(2)} (${Number(data.salary_start).toFixed(2)})`
+            : data.salary !== undefined ? Number(data.salary).toFixed(2) : data.salary_start !== undefined ? `(${Number(data.salary_start).toFixed(2)})` : '-';
+          // Format all lever columns
+          const levers: any = {};
+          LEVER_KEYS.forEach(lv => {
+            if (lv.key !== 'fte') {
+              const v = data[lv.key];
+              levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
+            }
+          });
           rows.push({
             key: role,
             role,
+            price,
+            salary,
+            ...levers,
             total: data.total ?? 0,
-            ...data,
           });
         }
       } else {
@@ -136,16 +199,24 @@ export default function Configuration() {
             role,
             level,
             total: 0,
+            price: '-',
+            salary: '-',
+            ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
           }));
           rows.push({
             key: role,
             role,
+            price: '-',
+            salary: '-',
             children,
           });
         } else {
           rows.push({
             key: role,
             role,
+            price: '-',
+            salary: '-',
+            ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
             total: 0,
           });
         }

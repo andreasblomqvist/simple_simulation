@@ -55,39 +55,29 @@ class SimulationRequest(BaseModel):
 
 @app.post("/simulate")
 def run_simulation(req: SimulationRequest):
-    print("[SIMULATION INPUT]", req)
-    # Use the global engine
-    # Apply office_overrides if provided
+    lever_plan = None
     if req.office_overrides:
+        lever_plan = {}
         for office_name, overrides in req.office_overrides.items():
-            office = engine.offices.get(office_name)
-            if not office:
-                continue
-            # Override FTE if provided
-            if "total_fte" in overrides:
-                office.total_fte = overrides["total_fte"]
-            # Override role/level params
+            lever_plan[office_name] = {}
             for role_name, role_data in overrides.get("roles", {}).items():
-                if role_name not in office.roles:
-                    continue
+                lever_plan[office_name][role_name] = {}
                 if isinstance(role_data, dict):
-                    # Roles with levels (Consultant, Sales, Recruitment)
-                    if isinstance(office.roles[role_name], dict):
-                        for level_name, level_overrides in role_data.items():
-                            if level_name in office.roles[role_name]:
-                                for key, value in level_overrides.items():
-                                    setattr(office.roles[role_name][level_name], key.lower(), value)
+                    for level_name, level_overrides in role_data.items():
+                        lever_plan[office_name][role_name][level_name] = {}
+                        for key, value in level_overrides.items():
+                            lever_plan[office_name][role_name][level_name][key.lower()] = value
                 else:
-                    # Flat roles (Operations)
                     for key, value in role_data.items():
-                        setattr(office.roles[role_name], key.lower(), value)
+                        lever_plan[office_name][role_name][key.lower()] = value
     results = engine.run_simulation(
         start_year=req.start_year,
         start_half=HalfYear[req.start_half],
         end_year=req.end_year,
         end_half=HalfYear[req.end_half],
         price_increase=req.price_increase,
-        salary_increase=req.salary_increase
+        salary_increase=req.salary_increase,
+        lever_plan=lever_plan
     )
     return results
 
@@ -194,5 +184,4 @@ async def import_office_levers(file: UploadFile = File(...)):
                 role.progression_h2 = float(row["Progression_H2"]) if not pd.isna(row["Progression_H2"]) else role.progression_h2
                 role.utr_h1 = float(row["UTR_H1"]) if not pd.isna(row["UTR_H1"]) else role.utr_h1
                 role.utr_h2 = float(row["UTR_H2"]) if not pd.isna(row["UTR_H2"]) else role.utr_h2
-    print("[IMPORT] Completed updating office levers from Excel.")
     return {"status": "success", "rows": len(df)} 
