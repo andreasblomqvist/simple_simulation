@@ -292,6 +292,60 @@ const roleColumns = [
   { title: 'KPI', dataIndex: 'kpi', key: 'kpi' },
 ];
 
+// Add helper to calculate financial KPIs
+function calculateFinancialKPIs({
+  offices,
+  unplannedAbsence,
+  hyWorkingHours,
+  otherExpense
+}: {
+  offices: any,
+  unplannedAbsence: number,
+  hyWorkingHours: number,
+  otherExpense: number
+}) {
+  // For simplicity, aggregate across all offices and all consultant levels
+  let totalFTEConsultants = 0;
+  let totalUTR = 0;
+  let totalPrice = 0;
+  let totalSalary = 0;
+  let count = 0;
+  Object.values(offices).forEach((office: any) => {
+    if (!office.levels || !office.levels.Consultant) return;
+    Object.entries(office.levels.Consultant).forEach(([level, arr]: any) => {
+      if (!Array.isArray(arr) || arr.length === 0) return;
+      const last = arr[arr.length - 1];
+      totalFTEConsultants += last.total ?? 0;
+      totalUTR += last.utr_h1 ?? 0; // Use H1 as a proxy, or average if needed
+      totalPrice += last.price_h1 ?? 0;
+      totalSalary += last.salary_h1 ?? 0;
+      count++;
+    });
+  });
+  const avgUTR = count ? totalUTR / count : 0;
+  const avgPrice = count ? totalPrice / count : 0;
+  const avgSalary = count ? totalSalary / count : 0;
+  const consultantTime = totalFTEConsultants * hyWorkingHours;
+  const availableConsultantTime = consultantTime * (1 - unplannedAbsence);
+  const invoicedTime = availableConsultantTime * avgUTR;
+  const netSales = invoicedTime * avgPrice;
+  const totalSalaries = avgSalary * (totalFTEConsultants * (1 - unplannedAbsence)) * 6;
+  const ebitda = netSales - totalSalaries - otherExpense;
+  return {
+    totalFTEConsultants,
+    consultantTime,
+    availableConsultantTime,
+    invoicedTime,
+    avgUTR,
+    avgPrice,
+    netSales,
+    avgSalary,
+    totalSalaries,
+    otherExpense,
+    ebitda
+  };
+}
+
 export default function SimulationLab() {
   const [formVals, setFormVals] = useState({
     start_year: 2024,
@@ -300,6 +354,9 @@ export default function SimulationLab() {
     end_half: 'H2',
     price_increase: 0.03,
     salary_increase: 0.03,
+    unplanned_absence: 0.05,
+    hy_working_hours: 998.4,
+    other_expense: 100000,
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -593,6 +650,14 @@ export default function SimulationLab() {
     ? configOffices.find((o: any) => o.name === selectedConfigOffice)
     : null;
 
+  // After simulationResults are set, calculate KPIs
+  const financialKPIs = simulationResults && formVals ? calculateFinancialKPIs({
+    offices: simulationResults.offices,
+    unplannedAbsence: formVals.unplanned_absence,
+    hyWorkingHours: formVals.hy_working_hours,
+    otherExpense: formVals.other_expense
+  }) : null;
+
   return (
     <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
       {/* Lever Manipulation Panel - always at the top */}
@@ -705,6 +770,21 @@ export default function SimulationLab() {
               <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Unplanned Absence (%)" name="unplanned_absence" rules={[{ required: true }]}> 
+              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="HY Working Hours" name="hy_working_hours" rules={[{ required: true }]}> 
+              <InputNumber min={0} max={2000} step={0.1} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Form.Item label="Other Expense" name="other_expense" rules={[{ required: true }]}> 
+              <InputNumber min={0} step={100} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
         </Row>
         {/* Toggle buttons moved here */}
         <div style={{ marginBottom: 16 }}>
@@ -792,7 +872,7 @@ export default function SimulationLab() {
             );
           })}
           {/* Non-Debit Ratio card in the same row */}
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={6} key="non-debit-ratio">
             <Card
               bordered={false}
               style={{
@@ -820,6 +900,16 @@ export default function SimulationLab() {
               </div>
             </Card>
           </Col>
+          {/* Financial KPIs */}
+          {financialKPIs && [
+            <Col xs={24} sm={12} md={6} key="net-sales"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Net Sales</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.netSales.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="ebitda"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>EBITDA</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="total-salaries"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Total Salaries</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.totalSalaries.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="other-expense"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Other Expense</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.otherExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="consultant-time"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Consultant Time</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.consultantTime.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="available-consultant-time"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Available Consultant Time</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.availableConsultantTime.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>,
+            <Col xs={24} sm={12} md={6} key="invoiced-time"><Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}><div style={{ fontSize: 12, color: '#bfbfbf' }}>Invoiced Time</div><div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.invoicedTime.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div></Card></Col>
+          ]}
         </Row>
       )}
 
