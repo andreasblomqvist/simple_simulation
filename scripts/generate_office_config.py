@@ -11,7 +11,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 # Import and reload the default_config module
-from simple_simulation.config.default_config import (
+from backend.config.default_config import (
     OFFICE_HEADCOUNT,
     ROLE_DISTRIBUTION,
     CONSULTANT_LEVEL_DISTRIBUTION,
@@ -26,7 +26,7 @@ from simple_simulation.config.default_config import (
 )
 
 # Force reload the module to ensure we get the latest values
-importlib.reload(sys.modules['simple_simulation.config.default_config'])
+importlib.reload(sys.modules['backend.config.default_config'])
 
 def generate_office_config():
     """
