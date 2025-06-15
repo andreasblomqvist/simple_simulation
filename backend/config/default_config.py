@@ -497,14 +497,46 @@ ACTUAL_OFFICE_LEVEL_DATA = {
     }
 }
 
-# Default rates for simulation
+# Default rates for simulation (based on 5-year growth analysis)
 DEFAULT_RATES = {
-    'recruitment': 0.10,     # 10% monthly recruitment
-    'churn': 0.05,           # 5% monthly churn
+    'recruitment': {
+        'Consultant': {
+            'A': 0.025,      # 2.5% monthly for entry level (high intake)
+            'AC': 0.015,     # 1.5% monthly for associate level
+            'C': 0.008,      # 0.8% monthly for consultant level
+            'SrC': 0.005,    # 0.5% monthly for senior consultant
+            'AM': 0.003,     # 0.3% monthly for associate manager
+            'M': 0.001,      # 0.1% monthly for manager (mostly internal)
+            'SrM': 0.0005,   # 0.05% monthly for senior manager (rare external)
+            'PiP': 0.0002    # 0.02% monthly for partner (very rare)
+        },
+        'Sales': {
+            'A': 0.020,      # 2.0% monthly (smaller team, focused hiring)
+            'AC': 0.012,     # 1.2% monthly
+            'C': 0.008,      # 0.8% monthly
+            'SrC': 0.005,    # 0.5% monthly
+            'AM': 0.003,     # 0.3% monthly
+            'M': 0.001,      # 0.1% monthly
+            'SrM': 0.0005,   # 0.05% monthly
+            'PiP': 0.0002    # 0.02% monthly
+        },
+        'Recruitment': {
+            'A': 0.015,      # 1.5% monthly (specialized role)
+            'AC': 0.010,     # 1.0% monthly
+            'C': 0.006,      # 0.6% monthly
+            'SrC': 0.004,    # 0.4% monthly
+            'AM': 0.002,     # 0.2% monthly
+            'M': 0.001,      # 0.1% monthly
+            'SrM': 0.0005,   # 0.05% monthly
+            'PiP': 0.0002    # 0.02% monthly
+        },
+        'Operations': 0.008  # 0.8% monthly (support function)
+    },
+    'churn': 0.015,          # 1.5% monthly churn (more realistic)
     'progression': {
         'evaluation_months': [5, 11],  # May and November
-        'A_AM_rate': 0.15,            # 15% for A-AM levels in evaluation months
-        'M_plus_rate': 0.15,          # 15% for M+ levels in November only
+        'A_AM_rate': 0.08,            # 8% for A-AM levels in evaluation months
+        'M_plus_rate': 0.05,          # 5% for M+ levels in November only
         'non_evaluation_rate': 0.0    # 0% in non-evaluation months
     },
     'utr': 0.85,            # 85% utilization rate
@@ -535,18 +567,32 @@ def get_monthly_salaries(base_salary, monthly_increase=0.0025):
         for i in range(1, 13)
     }
 
-def get_monthly_rates():
-    """Generate monthly rates with progression timing"""
+def get_monthly_rates(role_name='Consultant', level_name='A'):
+    """Generate monthly rates with progression timing for specific role/level"""
     rates = {}
     for i in range(1, 13):
-        rates[f'recruitment_{i}'] = DEFAULT_RATES['recruitment']
+        # Get recruitment rate based on role and level
+        if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
+            rates[f'recruitment_{i}'] = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
+        elif role_name in DEFAULT_RATES['recruitment']:
+            rates[f'recruitment_{i}'] = DEFAULT_RATES['recruitment'][role_name]
+        else:
+            rates[f'recruitment_{i}'] = 0.01  # Default fallback
+            
         rates[f'churn_{i}'] = DEFAULT_RATES['churn']
         rates[f'utr_{i}'] = DEFAULT_RATES['utr']
         
-        # Progression rates based on evaluation timing
+        # Progression rates based on evaluation timing and level
         if i in DEFAULT_RATES['progression']['evaluation_months']:
-            # May and November - evaluation months
-            rates[f'progression_{i}'] = DEFAULT_RATES['progression']['A_AM_rate']
+            if level_name in ['M', 'SrM', 'PiP']:
+                # M+ levels only progress in November
+                if i == 11:
+                    rates[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
+                else:
+                    rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+            else:
+                # A-AM levels progress in May and November
+                rates[f'progression_{i}'] = DEFAULT_RATES['progression']['A_AM_rate']
         else:
             # Other months
             rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
@@ -594,9 +640,6 @@ def generate_default_config():
         office_pricing = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
         office_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
         
-        # Get monthly rates
-        monthly_rates = get_monthly_rates()
-        
         # Add roles with levels (Consultant, Sales, Recruitment)
         for role_name in ['Consultant', 'Sales', 'Recruitment']:
             role_levels = office_data.get(role_name, {})
@@ -605,16 +648,19 @@ def generate_default_config():
                 if fte > 0:  # Only add levels with actual FTE
                     base_price = office_pricing.get(level, office_pricing.get('A', 1000))  # Default fallback
                     base_salary = office_salaries.get(level, office_salaries.get('A', 40000))  # Default fallback
+                    
+                    # Get monthly rates specific to this role and level
+                    monthly_rates = get_monthly_rates(role_name, level)
                 
-                row = {
-                    'Office': office_name,
+                    row = {
+                        'Office': office_name,
                         'Role': role_name,
-                    'Level': level,
-                    'FTE': fte,
-                    **get_monthly_pricing(base_price),
-                    **get_monthly_salaries(base_salary),
-                    **monthly_rates
-                }
+                        'Level': level,
+                        'FTE': fte,
+                        **get_monthly_pricing(base_price),
+                        **get_monthly_salaries(base_salary),
+                        **monthly_rates
+                    }
                 
                 # Adjust progression rates for M+ levels (only November)
                 if level in ['M', 'SrM', 'PiP']:
@@ -629,6 +675,9 @@ def generate_default_config():
         # Add Operations (flat role)
         operations_fte = office_data.get('Operations', 0)
         if operations_fte > 0:
+            # Get monthly rates for Operations
+            operations_rates = get_monthly_rates('Operations', 'Operations')
+            
             row = {
                 'Office': office_name,
                 'Role': 'Operations',
@@ -636,7 +685,7 @@ def generate_default_config():
                 'FTE': operations_fte,
                 **get_monthly_pricing(80.0),  # Lower pricing for operations
                 **get_monthly_salaries(40.0),  # Lower salary for operations
-                **monthly_rates
+                **operations_rates
             }
             
             # Operations has no progression
