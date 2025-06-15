@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import sys
 sys.path.append('./simple_simulation/src')
-from services.simulation_engine import SimulationEngine, Month
+from backend.src.services.simulation_engine import SimulationEngine, Month
 from fastapi import UploadFile, File
 import pandas as pd
 

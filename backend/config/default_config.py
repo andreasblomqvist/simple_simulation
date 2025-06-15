@@ -605,26 +605,26 @@ def generate_default_config():
                 if fte > 0:  # Only add levels with actual FTE
                     base_price = office_pricing.get(level, office_pricing.get('A', 1000))  # Default fallback
                     base_salary = office_salaries.get(level, office_salaries.get('A', 40000))  # Default fallback
-                    
-                    row = {
-                        'Office': office_name,
+                
+                row = {
+                    'Office': office_name,
                         'Role': role_name,
-                        'Level': level,
-                        'FTE': fte,
-                        **get_monthly_pricing(base_price),
-                        **get_monthly_salaries(base_salary),
-                        **monthly_rates
-                    }
-                    
-                    # Adjust progression rates for M+ levels (only November)
-                    if level in ['M', 'SrM', 'PiP']:
-                        for i in range(1, 13):
-                            if i == 11:  # November only for senior levels
-                                row[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
-                            else:
-                                row[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
-                    
-                    config_data.append(row)
+                    'Level': level,
+                    'FTE': fte,
+                    **get_monthly_pricing(base_price),
+                    **get_monthly_salaries(base_salary),
+                    **monthly_rates
+                }
+                
+                # Adjust progression rates for M+ levels (only November)
+                if level in ['M', 'SrM', 'PiP']:
+                    for i in range(1, 13):
+                        if i == 11:  # November only for senior levels
+                            row[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
+                        else:
+                            row[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                
+                config_data.append(row)
         
         # Add Operations (flat role)
         operations_fte = office_data.get('Operations', 0)

@@ -5,7 +5,7 @@ import os
 # Add parent directory to path to import config
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
-sys.path.append(os.path.join(parent_dir, 'simple_simulation', 'config'))
+sys.path.append(os.path.join(parent_dir, 'backend', 'config'))
 
 from default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES
 
