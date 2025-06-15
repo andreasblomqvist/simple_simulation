@@ -320,7 +320,12 @@ class SimulationEngine:
                             monthly_salary = salary * (1 + 0.0025 * (month - 1))
                             setattr(office.roles[role_name][level_name], f'price_{month}', monthly_price)
                             setattr(office.roles[role_name][level_name], f'salary_{month}', monthly_salary)
-                            setattr(office.roles[role_name][level_name], f'recruitment_{month}', DEFAULT_RATES['recruitment'])
+                            # Get recruitment rate for this role and level
+                            if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
+                                recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
+                            else:
+                                recruitment_rate = 0.01  # Default fallback
+                            setattr(office.roles[role_name][level_name], f'recruitment_{month}', recruitment_rate)
                             setattr(office.roles[role_name][level_name], f'churn_{month}', DEFAULT_RATES['churn'])
                             
                             # Set progression rate based on level and month
@@ -348,9 +353,12 @@ class SimulationEngine:
                 op_price = base_prices.get('Operations', 80.0)  # Default fallback
                 op_salary = base_salaries.get('Operations', 40000.0)  # Default fallback
                 
+                # Get Operations recruitment rate
+                operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.008)
+                
                 office.roles["Operations"] = RoleData(
                     total=operations_fte,
-                    recruitment_1=DEFAULT_RATES['recruitment'], recruitment_2=DEFAULT_RATES['recruitment'], recruitment_3=DEFAULT_RATES['recruitment'], recruitment_4=DEFAULT_RATES['recruitment'], recruitment_5=DEFAULT_RATES['recruitment'], recruitment_6=DEFAULT_RATES['recruitment'], recruitment_7=DEFAULT_RATES['recruitment'], recruitment_8=DEFAULT_RATES['recruitment'], recruitment_9=DEFAULT_RATES['recruitment'], recruitment_10=DEFAULT_RATES['recruitment'], recruitment_11=DEFAULT_RATES['recruitment'], recruitment_12=DEFAULT_RATES['recruitment'],
+                    recruitment_1=operations_recruitment, recruitment_2=operations_recruitment, recruitment_3=operations_recruitment, recruitment_4=operations_recruitment, recruitment_5=operations_recruitment, recruitment_6=operations_recruitment, recruitment_7=operations_recruitment, recruitment_8=operations_recruitment, recruitment_9=operations_recruitment, recruitment_10=operations_recruitment, recruitment_11=operations_recruitment, recruitment_12=operations_recruitment,
                     churn_1=DEFAULT_RATES['churn'], churn_2=DEFAULT_RATES['churn'], churn_3=DEFAULT_RATES['churn'], churn_4=DEFAULT_RATES['churn'], churn_5=DEFAULT_RATES['churn'], churn_6=DEFAULT_RATES['churn'], churn_7=DEFAULT_RATES['churn'], churn_8=DEFAULT_RATES['churn'], churn_9=DEFAULT_RATES['churn'], churn_10=DEFAULT_RATES['churn'], churn_11=DEFAULT_RATES['churn'], churn_12=DEFAULT_RATES['churn'],
                     price_1=op_price, price_2=op_price, price_3=op_price, price_4=op_price, price_5=op_price, price_6=op_price, price_7=op_price, price_8=op_price, price_9=op_price, price_10=op_price, price_11=op_price, price_12=op_price,
                     salary_1=op_salary, salary_2=op_salary, salary_3=op_salary, salary_4=op_salary, salary_5=op_salary, salary_6=op_salary, salary_7=op_salary, salary_8=op_salary, salary_9=op_salary, salary_10=op_salary, salary_11=op_salary, salary_12=op_salary,
