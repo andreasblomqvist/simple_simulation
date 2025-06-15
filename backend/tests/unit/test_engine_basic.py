@@ -3,8 +3,8 @@ import sys
 import os
 from unittest.mock import patch
 
-# Add the backend directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+# Add the src directory to the path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from services.simulation_engine import SimulationEngine, Month, OfficeJourney, Journey
 

@@ -6,6 +6,10 @@ import json
 import sys
 import os
 
+# Add parent directory to path to import config
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(parent_dir)
+
 from config.default_config import (
     OFFICE_HEADCOUNT,
     ROLE_DISTRIBUTION,
