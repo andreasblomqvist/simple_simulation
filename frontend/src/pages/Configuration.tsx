@@ -11,18 +11,78 @@ const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'];
 const LEVELS = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
 const LEVER_KEYS = [
   { key: 'fte', label: 'FTE' },
-  { key: 'price_h1', label: 'Price H1' },
-  { key: 'price_h2', label: 'Price H2' },
-  { key: 'salary_h1', label: 'Salary H1' },
-  { key: 'salary_h2', label: 'Salary H2' },
-  { key: 'recruitment_h1', label: 'Recruitment H1' },
-  { key: 'recruitment_h2', label: 'Recruitment H2' },
-  { key: 'churn_h1', label: 'Churn H1' },
-  { key: 'churn_h2', label: 'Churn H2' },
-  { key: 'progression_h1', label: 'Progression H1' },
-  { key: 'progression_h2', label: 'Progression H2' },
-  { key: 'utr_h1', label: 'UTR H1' },
-  { key: 'utr_h2', label: 'UTR H2' },
+  { key: 'price_1', label: 'Price Jan' },
+  { key: 'price_2', label: 'Price Feb' },
+  { key: 'price_3', label: 'Price Mar' },
+  { key: 'price_4', label: 'Price Apr' },
+  { key: 'price_5', label: 'Price May' },
+  { key: 'price_6', label: 'Price Jun' },
+  { key: 'price_7', label: 'Price Jul' },
+  { key: 'price_8', label: 'Price Aug' },
+  { key: 'price_9', label: 'Price Sep' },
+  { key: 'price_10', label: 'Price Oct' },
+  { key: 'price_11', label: 'Price Nov' },
+  { key: 'price_12', label: 'Price Dec' },
+  { key: 'salary_1', label: 'Salary Jan' },
+  { key: 'salary_2', label: 'Salary Feb' },
+  { key: 'salary_3', label: 'Salary Mar' },
+  { key: 'salary_4', label: 'Salary Apr' },
+  { key: 'salary_5', label: 'Salary May' },
+  { key: 'salary_6', label: 'Salary Jun' },
+  { key: 'salary_7', label: 'Salary Jul' },
+  { key: 'salary_8', label: 'Salary Aug' },
+  { key: 'salary_9', label: 'Salary Sep' },
+  { key: 'salary_10', label: 'Salary Oct' },
+  { key: 'salary_11', label: 'Salary Nov' },
+  { key: 'salary_12', label: 'Salary Dec' },
+  { key: 'recruitment_1', label: 'Recruitment Jan' },
+  { key: 'recruitment_2', label: 'Recruitment Feb' },
+  { key: 'recruitment_3', label: 'Recruitment Mar' },
+  { key: 'recruitment_4', label: 'Recruitment Apr' },
+  { key: 'recruitment_5', label: 'Recruitment May' },
+  { key: 'recruitment_6', label: 'Recruitment Jun' },
+  { key: 'recruitment_7', label: 'Recruitment Jul' },
+  { key: 'recruitment_8', label: 'Recruitment Aug' },
+  { key: 'recruitment_9', label: 'Recruitment Sep' },
+  { key: 'recruitment_10', label: 'Recruitment Oct' },
+  { key: 'recruitment_11', label: 'Recruitment Nov' },
+  { key: 'recruitment_12', label: 'Recruitment Dec' },
+  { key: 'churn_1', label: 'Churn Jan' },
+  { key: 'churn_2', label: 'Churn Feb' },
+  { key: 'churn_3', label: 'Churn Mar' },
+  { key: 'churn_4', label: 'Churn Apr' },
+  { key: 'churn_5', label: 'Churn May' },
+  { key: 'churn_6', label: 'Churn Jun' },
+  { key: 'churn_7', label: 'Churn Jul' },
+  { key: 'churn_8', label: 'Churn Aug' },
+  { key: 'churn_9', label: 'Churn Sep' },
+  { key: 'churn_10', label: 'Churn Oct' },
+  { key: 'churn_11', label: 'Churn Nov' },
+  { key: 'churn_12', label: 'Churn Dec' },
+  { key: 'progression_1', label: 'Progression Jan' },
+  { key: 'progression_2', label: 'Progression Feb' },
+  { key: 'progression_3', label: 'Progression Mar' },
+  { key: 'progression_4', label: 'Progression Apr' },
+  { key: 'progression_5', label: 'Progression May' },
+  { key: 'progression_6', label: 'Progression Jun' },
+  { key: 'progression_7', label: 'Progression Jul' },
+  { key: 'progression_8', label: 'Progression Aug' },
+  { key: 'progression_9', label: 'Progression Sep' },
+  { key: 'progression_10', label: 'Progression Oct' },
+  { key: 'progression_11', label: 'Progression Nov' },
+  { key: 'progression_12', label: 'Progression Dec' },
+  { key: 'utr_1', label: 'UTR Jan' },
+  { key: 'utr_2', label: 'UTR Feb' },
+  { key: 'utr_3', label: 'UTR Mar' },
+  { key: 'utr_4', label: 'UTR Apr' },
+  { key: 'utr_5', label: 'UTR May' },
+  { key: 'utr_6', label: 'UTR Jun' },
+  { key: 'utr_7', label: 'UTR Jul' },
+  { key: 'utr_8', label: 'UTR Aug' },
+  { key: 'utr_9', label: 'UTR Sep' },
+  { key: 'utr_10', label: 'UTR Oct' },
+  { key: 'utr_11', label: 'UTR Nov' },
+  { key: 'utr_12', label: 'UTR Dec' },
 ];
 
 export default function Configuration() {
@@ -51,7 +111,7 @@ export default function Configuration() {
     fetchOffices();
   }, []);
 
-  // New table columns
+  // New table columns - showing only first 3 months for better UX
   const columns = [
     {
       title: 'Role',
@@ -84,19 +144,17 @@ export default function Configuration() {
         }
       },
     },
-    ...LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => ({
-      title: lv.label,
-      dataIndex: lv.key,
-      key: lv.key,
-      render: (val: any) => {
-        if (val === undefined || val === null) return '-';
-        if (['price_h1', 'price_h2', 'salary_h1', 'salary_h2'].includes(lv.key)) {
-          const num = Number(val);
-          if (!isNaN(num)) return num.toFixed(2);
-        }
-        return val;
-      },
-    })),
+    // Show a sample of monthly data (Jan-Mar)
+    { title: 'Price Jan', dataIndex: 'price_1', key: 'price_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Price Feb', dataIndex: 'price_2', key: 'price_2', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Price Mar', dataIndex: 'price_3', key: 'price_3', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Salary Jan', dataIndex: 'salary_1', key: 'salary_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Salary Feb', dataIndex: 'salary_2', key: 'salary_2', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Salary Mar', dataIndex: 'salary_3', key: 'salary_3', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Recruit Jan', dataIndex: 'recruitment_1', key: 'recruitment_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Churn Jan', dataIndex: 'churn_1', key: 'churn_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'Progress Jan', dataIndex: 'progression_1', key: 'progression_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    { title: 'UTR Jan', dataIndex: 'utr_1', key: 'utr_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
   ];
 
   // New data transformation for table
@@ -112,112 +170,90 @@ export default function Configuration() {
           // Role with levels
           const children = LEVELS.map(level => {
             const data = roleData[level] || {};
-            // Format price and salary as value (start) if both available
-            const price = (data.price !== undefined && data.price_start !== undefined)
-              ? `${Number(data.price).toFixed(2)} (${Number(data.price_start).toFixed(2)})`
-              : data.price !== undefined ? Number(data.price).toFixed(2) : data.price_start !== undefined ? `(${Number(data.price_start).toFixed(2)})` : '-';
-            const salary = (data.salary !== undefined && data.salary_start !== undefined)
-              ? `${Number(data.salary).toFixed(2)} (${Number(data.salary_start).toFixed(2)})`
-              : data.salary !== undefined ? Number(data.salary).toFixed(2) : data.salary_start !== undefined ? `(${Number(data.salary_start).toFixed(2)})` : '-';
-            // Format all lever columns
-            const levers: any = {};
-            LEVER_KEYS.forEach(lv => {
-              if (lv.key !== 'fte') {
-                const v = data[lv.key];
-                levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
-              }
-            });
+            // Prepare monthly data for display
+            const monthlyData: any = {};
+            for (let i = 1; i <= 12; i++) {
+              monthlyData[`price_${i}`] = data[`price_${i}`] ?? data[`_${i}`] ?? 0;
+              monthlyData[`salary_${i}`] = data[`salary_${i}`] ?? 0;
+              monthlyData[`recruitment_${i}`] = data[`recruitment_${i}`] ?? 0;
+              monthlyData[`churn_${i}`] = data[`churn_${i}`] ?? 0;
+              monthlyData[`progression_${i}`] = data[`progression_${i}`] ?? 0;
+              monthlyData[`utr_${i}`] = data[`utr_${i}`] ?? 0;
+            }
             return {
               key: `${role}-${level}`,
               role,
               level,
               total: data.total ?? 0,
-              price,
-              salary,
-              ...levers,
+              ...monthlyData,
             };
           });
-          // Compute averages for price and salary for parent row
-          const validPrices = children.map(c => parseFloat((c.price || '').toString().split(' ')[0])).filter(n => !isNaN(n));
-          const validStartPrices = children.map(c => {
-            const match = (c.price || '').toString().match(/\(([^)]+)\)/);
-            return match ? parseFloat(match[1]) : NaN;
-          }).filter(n => !isNaN(n));
-          const avgPrice = validPrices.length ? (validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : null;
-          const avgStartPrice = validStartPrices.length ? (validStartPrices.reduce((a, b) => a + b, 0) / validStartPrices.length) : null;
-          const price = (avgPrice !== null && avgStartPrice !== null)
-            ? `${avgPrice.toFixed(2)} (${avgStartPrice.toFixed(2)})`
-            : avgPrice !== null ? avgPrice.toFixed(2) : avgStartPrice !== null ? `(${avgStartPrice.toFixed(2)})` : '-';
-          const validSalaries = children.map(c => parseFloat((c.salary || '').toString().split(' ')[0])).filter(n => !isNaN(n));
-          const validStartSalaries = children.map(c => {
-            const match = (c.salary || '').toString().match(/\(([^)]+)\)/);
-            return match ? parseFloat(match[1]) : NaN;
-          }).filter(n => !isNaN(n));
-          const avgSalary = validSalaries.length ? (validSalaries.reduce((a, b) => a + b, 0) / validSalaries.length) : null;
-          const avgStartSalary = validStartSalaries.length ? (validStartSalaries.reduce((a, b) => a + b, 0) / validStartSalaries.length) : null;
-          const salary = (avgSalary !== null && avgStartSalary !== null)
-            ? `${avgSalary.toFixed(2)} (${avgStartSalary.toFixed(2)})`
-            : avgSalary !== null ? avgSalary.toFixed(2) : avgStartSalary !== null ? `(${avgStartSalary.toFixed(2)})` : '-';
+
           rows.push({
             key: role,
             role,
-            price,
-            salary,
             children,
           });
         } else {
           // Flat role (Operations)
           const data = roleData || {};
-          const price = (data.price !== undefined && data.price_start !== undefined)
-            ? `${Number(data.price).toFixed(2)} (${Number(data.price_start).toFixed(2)})`
-            : data.price !== undefined ? Number(data.price).toFixed(2) : data.price_start !== undefined ? `(${Number(data.price_start).toFixed(2)})` : '-';
-          const salary = (data.salary !== undefined && data.salary_start !== undefined)
-            ? `${Number(data.salary).toFixed(2)} (${Number(data.salary_start).toFixed(2)})`
-            : data.salary !== undefined ? Number(data.salary).toFixed(2) : data.salary_start !== undefined ? `(${Number(data.salary_start).toFixed(2)})` : '-';
-          // Format all lever columns
-          const levers: any = {};
-          LEVER_KEYS.forEach(lv => {
-            if (lv.key !== 'fte') {
-              const v = data[lv.key];
-              levers[lv.key] = v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v).toFixed(2) : v ?? '-';
-            }
-          });
+          const monthlyData: any = {};
+          for (let i = 1; i <= 12; i++) {
+            monthlyData[`price_${i}`] = data[`price_${i}`] ?? data[`_${i}`] ?? 0;
+            monthlyData[`salary_${i}`] = data[`salary_${i}`] ?? 0;
+            monthlyData[`recruitment_${i}`] = data[`recruitment_${i}`] ?? 0;
+            monthlyData[`churn_${i}`] = data[`churn_${i}`] ?? 0;
+            monthlyData[`progression_${i}`] = data[`progression_${i}`] ?? 0;
+            monthlyData[`utr_${i}`] = data[`utr_${i}`] ?? 0;
+          }
           rows.push({
             key: role,
             role,
-            price,
-            salary,
-            ...levers,
             total: data.total ?? 0,
+            ...monthlyData,
           });
         }
       } else {
         // Role missing in backend, show as zero
         if (ROLES_WITH_LEVELS.includes(role)) {
-          const children = LEVELS.map(level => ({
-            key: `${role}-${level}`,
-            role,
-            level,
-            total: 0,
-            price: '-',
-            salary: '-',
-            ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
-          }));
+          const children = LEVELS.map(level => {
+            const monthlyData: any = {};
+            for (let i = 1; i <= 12; i++) {
+              monthlyData[`price_${i}`] = 0;
+              monthlyData[`salary_${i}`] = 0;
+              monthlyData[`recruitment_${i}`] = 0;
+              monthlyData[`churn_${i}`] = 0;
+              monthlyData[`progression_${i}`] = 0;
+              monthlyData[`utr_${i}`] = 0;
+            }
+            return {
+              key: `${role}-${level}`,
+              role,
+              level,
+              total: 0,
+              ...monthlyData,
+            };
+          });
           rows.push({
             key: role,
             role,
-            price: '-',
-            salary: '-',
             children,
           });
         } else {
+          const monthlyData: any = {};
+          for (let i = 1; i <= 12; i++) {
+            monthlyData[`price_${i}`] = 0;
+            monthlyData[`salary_${i}`] = 0;
+            monthlyData[`recruitment_${i}`] = 0;
+            monthlyData[`churn_${i}`] = 0;
+            monthlyData[`progression_${i}`] = 0;
+            monthlyData[`utr_${i}`] = 0;
+          }
           rows.push({
             key: role,
             role,
-            price: '-',
-            salary: '-',
-            ...Object.fromEntries(LEVER_KEYS.filter(lv => lv.key !== 'fte').map(lv => [lv.key, '-'])),
             total: 0,
+            ...monthlyData,
           });
         }
       }
@@ -260,7 +296,7 @@ export default function Configuration() {
       {/* Office Lever Table */}
       <Card style={{ marginBottom: 24 }}>
         <Row align="middle" gutter={16} style={{ marginBottom: 16 }}>
-          <Col><Title level={5} style={{ margin: 0 }}>Office Levers</Title></Col>
+          <Col><Title level={5} style={{ margin: 0 }}>Office Levers (Monthly Data - Showing Jan-Mar Sample)</Title></Col>
           <Col>
             <Select value={selectedOffice} onChange={setSelectedOffice} style={{ width: 200 }}>
               {offices.map(office => <Option key={office} value={office}>{office}</Option>)}
@@ -274,7 +310,11 @@ export default function Configuration() {
           rowKey={row => row.key}
           size="small"
           expandable={{ defaultExpandAllRows: true }}
+          scroll={{ x: 1200 }}
         />
+        <Text type="secondary" style={{ marginTop: 8, display: 'block' }}>
+          Note: This table shows a sample of monthly data (Jan-Mar). The full dataset includes all 12 months for each metric.
+        </Text>
       </Card>
     </Card>
   );

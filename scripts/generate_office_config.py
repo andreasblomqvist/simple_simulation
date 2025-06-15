@@ -1,153 +1,118 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import sys
+import os
+import importlib
 
-# Define offices and their total FTE
-OFFICE_FTE = {
-    'Stockholm': 850,
-    'Munich': 450,
-    'Hamburg': 200,
-    'Helsinki': 120,
-    'Oslo': 120,
-    'Berlin': 100,
-    'Copenhagen': 100,
-    'Zurich': 50,
-    'Frankfurt': 50,
-    'Cologne': 30,
-    'Amsterdam': 30,
-    'Toronto': 10,
-    'London': 2
-}
+# Add the parent directory to the Python path to import from simple_simulation
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 
-ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment']
-FLAT_ROLE = 'Operations'
-CONSULTANT_LEVELS = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP']
+# Import and reload the default_config module
+from simple_simulation.config.default_config import (
+    OFFICE_HEADCOUNT,
+    ROLE_DISTRIBUTION,
+    CONSULTANT_LEVEL_DISTRIBUTION,
+    DEFAULT_RATES,
+    BASE_PRICING,
+    BASE_SALARIES,
+    get_monthly_pricing,
+    get_monthly_salaries,
+    get_monthly_rates,
+    CURRENCY_CONFIG,
+    ACTUAL_OFFICE_LEVEL_DATA
+)
 
-# Base values for levels
-base_price = {
-    'A': 106.09, 'AC': 127.31, 'C': 159.13, 'SrC': 190.96, 
-    'AM': 233.40, 'M': 297.05, 'SrM': 371.31, 'PiP': 477.41
-}
-base_salary = {
-    'A': 53.05, 'AC': 63.65, 'C': 79.57, 'SrC': 95.48, 
-    'AM': 116.70, 'M': 148.53, 'SrM': 185.66, 'PiP': 238.70
-}
+# Force reload the module to ensure we get the latest values
+importlib.reload(sys.modules['simple_simulation.config.default_config'])
 
-# Role percentages
-SALES_PCT = 0.06  # 6%
-RECRUITMENT_PCT = 0.04  # 4%
-OPERATIONS_PCT = 0.04  # 4%
-CONSULTANT_PCT = 0.86  # 86%
-
-# Generate data
-data = []
-
-for office, total_fte in OFFICE_FTE.items():
-    # Calculate role FTEs
-    sales_fte = round(total_fte * SALES_PCT)
-    recruitment_fte = round(total_fte * RECRUITMENT_PCT)
-    operations_fte = round(total_fte * OPERATIONS_PCT)
-    consultant_fte = total_fte - sales_fte - recruitment_fte - operations_fte
-
-    # Consultant levels (distribute remaining FTE)
-    consultant_per_level = round(consultant_fte / len(CONSULTANT_LEVELS))
-    remaining_consultant = consultant_fte - (consultant_per_level * len(CONSULTANT_LEVELS))
+def generate_office_config():
+    """
+    Generate office configuration using real headcount data from ACTUAL_OFFICE_LEVEL_DATA
+    All monetary values (prices and salaries) are in SEK (Swedish Krona)
+    """
+    data = []
     
-    # Sales and Recruitment levels (distribute evenly)
-    sales_per_level = round(sales_fte / len(CONSULTANT_LEVELS))
-    recruitment_per_level = round(recruitment_fte / len(CONSULTANT_LEVELS))
-    
-    # Add Consultant rows
-    for level in CONSULTANT_LEVELS:
-        fte = consultant_per_level + (1 if remaining_consultant > 0 else 0)
-        remaining_consultant -= 1 if remaining_consultant > 0 else 0
+    for office_name in OFFICE_HEADCOUNT.keys():
+        # Get actual office data
+        office_data = ACTUAL_OFFICE_LEVEL_DATA.get(office_name, {})
         
-        data.append({
-            'Office': office,
-            'Role': 'Consultant',
-            'Level': level,
-            'FTE': fte,
-            'Price_H1': base_price[level],
-            'Price_H2': base_price[level] * 1.03,  # 3% increase
-            'Salary_H1': base_salary[level],
-            'Salary_H2': base_salary[level] * 1.03,  # 3% increase
-            'Recruitment_H1': 0.1,
-            'Recruitment_H2': 0.1,
-            'Churn_H1': 0.05,
-            'Churn_H2': 0.05,
-            'Progression_H1': 0.15,
-            'Progression_H2': 0.15,
-            'UTR_H1': 0.85,
-            'UTR_H2': 0.85
-        })
+        # Get pricing and salary base values (already in SEK from default_config.py)
+        office_pricing = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
+        office_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
+        
+        # Get monthly rates
+        monthly_rates = get_monthly_rates()
+        
+        # Add roles with levels (Consultant, Sales, Recruitment)
+        for role_name in ['Consultant', 'Sales', 'Recruitment']:
+            role_levels = office_data.get(role_name, {})
+            
+            for level, fte in role_levels.items():
+                if fte > 0:  # Only add levels with actual FTE
+                    base_price = office_pricing.get(level, office_pricing.get('A', 1000))  # Default fallback
+                    base_salary = office_salaries.get(level, office_salaries.get('A', 40000))  # Default fallback
+                    
+                    row = {
+                        'Office': office_name,
+                        'Role': role_name,
+                        'Level': level,
+                        'FTE': fte,
+                        **get_monthly_pricing(base_price),
+                        **get_monthly_salaries(base_salary),
+                        **monthly_rates
+                    }
+                    
+                    # Adjust progression rates for M+ levels (only November)
+                    if level in ['M', 'SrM', 'PiP']:
+                        for i in range(1, 13):
+                            if i == 11:  # November only for senior levels
+                                row[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
+                            else:
+                                row[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                    
+                    data.append(row)
+        
+        # Add Operations (flat role) using real data
+        operations_fte = office_data.get('Operations', 0)
+        if operations_fte > 0:
+            # Operations base values in SEK
+            operations_base_price = 80.0 * CURRENCY_CONFIG['conversion_to_sek']['EUR']  # Convert EUR to SEK
+            operations_base_salary = 40000.0  # SEK per month
+            
+            row = {
+                'Office': office_name,
+                'Role': 'Operations',
+                'Level': None,
+                'FTE': operations_fte,
+                **get_monthly_pricing(operations_base_price),
+                **get_monthly_salaries(operations_base_salary),
+                **monthly_rates
+            }
+            
+            # Operations has no progression
+            for i in range(1, 13):
+                row[f'progression_{i}'] = 0.0
+            
+            data.append(row)
     
-    # Add Sales rows
-    for level in CONSULTANT_LEVELS:
-        data.append({
-            'Office': office,
-            'Role': 'Sales',
-            'Level': level,
-            'FTE': sales_per_level,
-            'Price_H1': base_price[level],
-            'Price_H2': base_price[level] * 1.03,
-            'Salary_H1': base_salary[level],
-            'Salary_H2': base_salary[level] * 1.03,
-            'Recruitment_H1': 0.1,
-            'Recruitment_H2': 0.1,
-            'Churn_H1': 0.05,
-            'Churn_H2': 0.05,
-            'Progression_H1': 0.15,
-            'Progression_H2': 0.15,
-            'UTR_H1': 0.85,
-            'UTR_H2': 0.85
-        })
-    
-    # Add Recruitment rows
-    for level in CONSULTANT_LEVELS:
-        data.append({
-            'Office': office,
-            'Role': 'Recruitment',
-            'Level': level,
-            'FTE': recruitment_per_level,
-            'Price_H1': base_price[level],
-            'Price_H2': base_price[level] * 1.03,
-            'Salary_H1': base_salary[level],
-            'Salary_H2': base_salary[level] * 1.03,
-            'Recruitment_H1': 0.1,
-            'Recruitment_H2': 0.1,
-            'Churn_H1': 0.05,
-            'Churn_H2': 0.05,
-            'Progression_H1': 0.15,
-            'Progression_H2': 0.15,
-            'UTR_H1': 0.85,
-            'UTR_H2': 0.85
-        })
-    
-    # Add Operations row (flat role)
-    data.append({
-        'Office': office,
-        'Role': 'Operations',
-        'Level': None,
-        'FTE': operations_fte,
-        'Price_H1': 80.0,
-        'Price_H2': 82.4,
-        'Salary_H1': 40.0,
-        'Salary_H2': 41.2,
-        'Recruitment_H1': 0.1,
-        'Recruitment_H2': 0.1,
-        'Churn_H1': 0.05,
-        'Churn_H2': 0.05,
-        'Progression_H1': 0.0,
-        'Progression_H2': 0.0,
-        'UTR_H1': 0.85,
-        'UTR_H2': 0.85
-    })
+    return data
 
-# Create DataFrame
-df = pd.DataFrame(data)
-
-# Save to Excel with timestamp
-timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-output_file = f'scripts/office_config_{timestamp}.xlsx'
-df.to_excel(output_file, index=False)
-print(f"Generated {output_file}") 
+if __name__ == "__main__":
+    # Generate configuration
+    config_data = generate_office_config()
+    
+    # Create DataFrame
+    df = pd.DataFrame(config_data)
+    
+    # Save to Excel with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_file = f'office_config_{timestamp}.xlsx'
+    df.to_excel(output_file, index=False)
+    print(f"Generated {output_file}")
+    print(f"Total rows: {len(config_data)}")
+    print(f"Offices: {len(OFFICE_HEADCOUNT)}")
+    print(f"Total FTE: {df['FTE'].sum()}")
+    print("Note: All monetary values (prices and salaries) are in SEK") 

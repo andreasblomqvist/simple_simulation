@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import sys
 sys.path.append('./simple_simulation/src')
-from services.simulation_engine import SimulationEngine, HalfYear
+from services.simulation_engine import SimulationEngine, Month
 from fastapi import UploadFile, File
 import pandas as pd
 
@@ -23,9 +23,9 @@ engine = SimulationEngine()
 
 class SimulationRequest(BaseModel):
     start_year: int
-    start_half: str  # "H1" or "H2"
+    start_month: int  # 1-12
     end_year: int
-    end_half: str    # "H1" or "H2"
+    end_month: int    # 1-12
     price_increase: float
     salary_increase: float
     # Advanced: office overrides for FTE, level, and operations params
@@ -37,7 +37,7 @@ class SimulationRequest(BaseModel):
 #     "total_fte": 120,
 #     "roles": {
 #       "Consultant": {
-#         "A": {"recruitment_h1": 0.2, "churn_h1": 0.05, ...},
+#         "A": {"recruitment_1": 0.2, "churn_1": 0.05, ...},
 #         ...
 #       },
 #       "Sales": {
@@ -48,7 +48,7 @@ class SimulationRequest(BaseModel):
 #       },
 #       ...
 #     },
-#     "operations": {"recruitment_h1": 0.1, "churn_h1": 0.02, ...}
+#     "operations": {"recruitment_1": 0.1, "churn_1": 0.02, ...}
 #   },
 #   ...
 # }
@@ -72,9 +72,9 @@ def run_simulation(req: SimulationRequest):
                         lever_plan[office_name][role_name][key.lower()] = value
     results = engine.run_simulation(
         start_year=req.start_year,
-        start_half=HalfYear[req.start_half],
+        start_month=req.start_month,
         end_year=req.end_year,
-        end_half=HalfYear[req.end_half],
+        end_month=req.end_month,
         price_increase=req.price_increase,
         salary_increase=req.salary_increase,
         lever_plan=lever_plan
@@ -96,18 +96,12 @@ def list_offices():
                 roles_out[role] = {
                     level_name: {
                         "total": level.total,
-                        "price_h1": level.price_h1,
-                        "price_h2": level.price_h2,
-                        "salary_h1": level.salary_h1,
-                        "salary_h2": level.salary_h2,
-                        "recruitment_h1": level.recruitment_h1,
-                        "recruitment_h2": level.recruitment_h2,
-                        "churn_h1": level.churn_h1,
-                        "churn_h2": level.churn_h2,
-                        "progression_h1": level.progression_h1,
-                        "progression_h2": level.progression_h2,
-                        "utr_h1": level.utr_h1,
-                        "utr_h2": level.utr_h2
+                        **{f"price_{i}": getattr(level, f'price_{i}') for i in range(1, 13)},
+                        **{f"salary_{i}": getattr(level, f'salary_{i}') for i in range(1, 13)},
+                        **{f"recruitment_{i}": getattr(level, f'recruitment_{i}') for i in range(1, 13)},
+                        **{f"churn_{i}": getattr(level, f'churn_{i}') for i in range(1, 13)},
+                        **{f"progression_{i}": getattr(level, f'progression_{i}') for i in range(1, 13)},
+                        **{f"utr_{i}": getattr(level, f'utr_{i}') for i in range(1, 13)}
                     }
                     for level_name, level in data.items()
                 }
@@ -115,18 +109,12 @@ def list_offices():
                 # Flat roles (Operations)
                 roles_out[role] = {
                     "total": data.total,
-                    "price_h1": data.price_h1,
-                    "price_h2": data.price_h2,
-                    "salary_h1": data.salary_h1,
-                    "salary_h2": data.salary_h2,
-                    "recruitment_h1": data.recruitment_h1,
-                    "recruitment_h2": data.recruitment_h2,
-                    "churn_h1": data.churn_h1,
-                    "churn_h2": data.churn_h2,
-                    "progression_h1": data.progression_h1,
-                    "progression_h2": data.progression_h2,
-                    "utr_h1": data.utr_h1,
-                    "utr_h2": data.utr_h2
+                    **{f"price_{i}": getattr(data, f'price_{i}') for i in range(1, 13)},
+                    **{f"salary_{i}": getattr(data, f'salary_{i}') for i in range(1, 13)},
+                    **{f"recruitment_{i}": getattr(data, f'recruitment_{i}') for i in range(1, 13)},
+                    **{f"churn_{i}": getattr(data, f'churn_{i}') for i in range(1, 13)},
+                    **{f"progression_{i}": getattr(data, f'progression_{i}', 0.0) for i in range(1, 13)},
+                    **{f"utr_{i}": getattr(data, f'utr_{i}') for i in range(1, 13)}
                 }
         offices_out.append({
             "name": office.name,
@@ -155,33 +143,26 @@ async def import_office_levers(file: UploadFile = File(...)):
                     level = office.roles[role_name][level_name]
                     print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
                     level.total = int(row["FTE"]) if not pd.isna(row["FTE"]) else level.total
-                    level.price_h1 = float(row["Price_H1"]) if not pd.isna(row["Price_H1"]) else level.price_h1
-                    level.price_h2 = float(row["Price_H2"]) if not pd.isna(row["Price_H2"]) else level.price_h2
-                    level.salary_h1 = float(row["Salary_H1"]) if not pd.isna(row["Salary_H1"]) else level.salary_h1
-                    level.salary_h2 = float(row["Salary_H2"]) if not pd.isna(row["Salary_H2"]) else level.salary_h2
-                    level.recruitment_h1 = float(row["Recruitment_H1"]) if not pd.isna(row["Recruitment_H1"]) else level.recruitment_h1
-                    level.recruitment_h2 = float(row["Recruitment_H2"]) if not pd.isna(row["Recruitment_H2"]) else level.recruitment_h2
-                    level.churn_h1 = float(row["Churn_H1"]) if not pd.isna(row["Churn_H1"]) else level.churn_h1
-                    level.churn_h2 = float(row["Churn_H2"]) if not pd.isna(row["Churn_H2"]) else level.churn_h2
-                    level.progression_h1 = float(row["Progression_H1"]) if not pd.isna(row["Progression_H1"]) else level.progression_h1
-                    level.progression_h2 = float(row["Progression_H2"]) if not pd.isna(row["Progression_H2"]) else level.progression_h2
-                    level.utr_h1 = float(row["UTR_H1"]) if not pd.isna(row["UTR_H1"]) else level.utr_h1
-                    level.utr_h2 = float(row["UTR_H2"]) if not pd.isna(row["UTR_H2"]) else level.utr_h2
-            elif isinstance(office.roles[role_name], type(office.roles["Operations"])) and not level_name:
-                # Flat role
+                    
+                    # Update monthly values (1-12)
+                    for i in range(1, 13):
+                        for attr in ["Price", "Salary", "Recruitment", "Churn", "Progression", "UTR"]:
+                            col_name = f"{attr}_{i}"
+                            if col_name in row and not pd.isna(row[col_name]):
+                                setattr(level, col_name.lower(), float(row[col_name]))
+                                
+            elif not isinstance(office.roles[role_name], dict) and not level_name:
+                # Flat role (Operations)
                 role = office.roles[role_name]
                 print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
                 role.total = int(row["FTE"]) if not pd.isna(row["FTE"]) else role.total
-                role.price_h1 = float(row["Price_H1"]) if not pd.isna(row["Price_H1"]) else role.price_h1
-                role.price_h2 = float(row["Price_H2"]) if not pd.isna(row["Price_H2"]) else role.price_h2
-                role.salary_h1 = float(row["Salary_H1"]) if not pd.isna(row["Salary_H1"]) else role.salary_h1
-                role.salary_h2 = float(row["Salary_H2"]) if not pd.isna(row["Salary_H2"]) else role.salary_h2
-                role.recruitment_h1 = float(row["Recruitment_H1"]) if not pd.isna(row["Recruitment_H1"]) else role.recruitment_h1
-                role.recruitment_h2 = float(row["Recruitment_H2"]) if not pd.isna(row["Recruitment_H2"]) else role.recruitment_h2
-                role.churn_h1 = float(row["Churn_H1"]) if not pd.isna(row["Churn_H1"]) else role.churn_h1
-                role.churn_h2 = float(row["Churn_H2"]) if not pd.isna(row["Churn_H2"]) else role.churn_h2
-                role.progression_h1 = float(row["Progression_H1"]) if not pd.isna(row["Progression_H1"]) else role.progression_h1
-                role.progression_h2 = float(row["Progression_H2"]) if not pd.isna(row["Progression_H2"]) else role.progression_h2
-                role.utr_h1 = float(row["UTR_H1"]) if not pd.isna(row["UTR_H1"]) else role.utr_h1
-                role.utr_h2 = float(row["UTR_H2"]) if not pd.isna(row["UTR_H2"]) else role.utr_h2
+                
+                # Update monthly values (1-12)
+                for i in range(1, 13):
+                    for attr in ["Price", "Salary", "Recruitment", "Churn", "UTR"]:
+                        col_name = f"{attr}_{i}"
+                        if col_name in row and not pd.isna(row[col_name]):
+                            if hasattr(role, col_name.lower()):
+                                setattr(role, col_name.lower(), float(row[col_name]))
+                            
     return {"status": "success", "rows": len(df)} 
