@@ -36,12 +36,21 @@ app.include_router(offices.router)
 @app.post("/simulate")
 def legacy_simulate(req: simulation.SimulationRequest):
     """Legacy simulation endpoint for backward compatibility"""
+    print(f"[DEBUG] Legacy /simulate endpoint called with: {req.start_year}-{req.start_month} to {req.end_year}-{req.end_month}")
+    print(f"[DEBUG] Office overrides provided: {req.office_overrides is not None}")
+    if req.office_overrides:
+        print(f"[DEBUG] Office override keys: {list(req.office_overrides.keys())}")
     return simulation.run_simulation(req)
 
 @app.get("/offices")
 def legacy_offices():
     """Legacy offices endpoint for backward compatibility"""
     return offices.list_offices()
+
+@app.get("/offices/config")
+def legacy_offices_config():
+    """Legacy offices config endpoint for backward compatibility"""
+    return offices.get_office_config()
 
 @app.post("/import-office-levers")
 async def legacy_import(file: UploadFile = File(...)):
