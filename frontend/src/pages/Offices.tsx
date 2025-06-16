@@ -11,7 +11,7 @@ const Offices: React.FC = () => {
   useEffect(() => {
     const fetchOffices = async () => {
       try {
-        const response = await fetch('/api/offices');
+        const response = await fetch('/api/offices/config');
         const data = await response.json();
         setOffices(data);
       } catch (error) {
