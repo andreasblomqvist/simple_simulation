@@ -1,0 +1,82 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Node modules (will be installed during build)
+frontend/node_modules
+
+# Python cache and virtual environment
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv
+.pytest_cache
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Test coverage
+.coverage
+.nyc_output
+coverage/
+
+# Build artifacts
+dist/
+build/
+*.egg-info
+
+# Excel files (temporary)
+*.xlsx
+*.xls
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes manifests
+k8s/
+
+# Scripts (except backend scripts if needed)
+scripts/build-and-push.sh
+scripts/deploy-k8s.sh
+
+# Development tools
+.editorconfig
+.eslintrc*
+.prettierrc*
+
+# Environment files
+.env*
+
+# Cursor specific
+.cursor/
+cursor_chats/ 

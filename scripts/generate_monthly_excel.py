@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 import os
+from datetime import datetime
 
 # Add parent directory to path to import config
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -126,8 +127,9 @@ for month in range(1, 13):
 
 df = df[basic_cols + monthly_cols]
 
-# Save to Excel
-filename = os.path.join(current_dir, 'office_config_monthly.xlsx')
+# Save to Excel with timestamp
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+filename = os.path.join(current_dir, f'office_config_monthly_{timestamp}.xlsx')
 df.to_excel(filename, index=False)
 print(f"Excel file '{filename}' has been created successfully!")
 print(f"Total rows: {len(df)}")
