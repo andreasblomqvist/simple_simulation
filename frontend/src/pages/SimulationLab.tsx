@@ -1744,6 +1744,11 @@ export default function SimulationLab() {
                 const currentIdx = periods.length - 1;
                 const prevIdx = periods.length - 2;
                 
+                // Debug logging for Journey 4
+                if (journey === 'Journey 4') {
+                  console.log(`[DEBUG] Journey 4 delta calc: periods=${periods.length}, currentIdx=${currentIdx}, prevIdx=${prevIdx}`);
+                }
+                
                 // Build history data for mini chart (last 6 periods)
                 const startIdx = Math.max(0, periods.length - 6);
                 for (let i = startIdx; i <= currentIdx; i++) {
@@ -1751,16 +1756,21 @@ export default function SimulationLab() {
                   Object.values(offices).forEach((officeData: any) => {
                     if (officeData.journeys && officeData.journeys[journey]) {
                       const journeyArray = officeData.journeys[journey];
-                      if (journeyArray && Array.isArray(journeyArray) && journeyArray[i]) {
+                      if (journeyArray && Array.isArray(journeyArray) && i < journeyArray.length && journeyArray[i]) {
                         periodTotal += journeyArray[i].total || 0;
                       }
                     }
                   });
                   historyData.push(periodTotal);
+                  
+                  // Debug logging for Journey 4
+                  if (journey === 'Journey 4') {
+                    console.log(`[DEBUG] Journey 4 period ${i}: total=${periodTotal}`);
+                  }
                 }
                 
-                // Calculate delta for trend indicator
-                if (prevIdx >= 0 && currentIdx >= 0) {
+                // Calculate delta for trend indicator with improved error handling
+                if (prevIdx >= 0 && currentIdx >= 0 && prevIdx < currentIdx) {
                   let currentTotal = 0;
                   let prevTotal = 0;
                   
@@ -1768,22 +1778,37 @@ export default function SimulationLab() {
                     if (officeData.journeys && officeData.journeys[journey]) {
                       const journeyArray = officeData.journeys[journey];
                       if (journeyArray && Array.isArray(journeyArray)) {
-                        if (journeyArray[currentIdx]) {
+                        // Safer array access with bounds checking
+                        if (currentIdx < journeyArray.length && journeyArray[currentIdx]) {
                           currentTotal += journeyArray[currentIdx].total || 0;
                         }
-                        if (journeyArray[prevIdx]) {
+                        if (prevIdx < journeyArray.length && journeyArray[prevIdx]) {
                           prevTotal += journeyArray[prevIdx].total || 0;
                         }
                       }
                     }
                   });
                   
-                  if (prevTotal > 0) {
+                  // Debug logging for Journey 4
+                  if (journey === 'Journey 4') {
+                    console.log(`[DEBUG] Journey 4 delta calc: currentTotal=${currentTotal}, prevTotal=${prevTotal}`);
+                  }
+                  
+                  // Calculate delta with better edge case handling
+                  if (prevTotal > 0 && currentTotal !== prevTotal) {
                     delta = ((currentTotal - prevTotal) / prevTotal) * 100;
-                  } else if (currentTotal > 0) {
-                    delta = 100;
-                  } else {
-                    delta = 0;
+                  } else if (prevTotal === 0 && currentTotal > 0) {
+                    delta = 100; // New entries (from 0 to something)
+                  } else if (prevTotal > 0 && currentTotal === 0) {
+                    delta = -100; // All entries removed
+                  } else if (prevTotal === currentTotal && currentTotal > 0) {
+                    delta = 0; // No change
+                  }
+                  // If both are 0, delta remains null (no meaningful change to show)
+                  
+                  // Debug logging for Journey 4
+                  if (journey === 'Journey 4') {
+                    console.log(`[DEBUG] Journey 4 final delta: ${delta}`);
                   }
                 }
               }
