@@ -55,28 +55,15 @@ export const MCPChatWidget: React.FC<MCPChatWidgetProps> = ({ simulationData }) 
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual MCP server call
-      const response = await fetch('/api/mcp/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context: simulationData ? {
-            hasSimulationData: true,
-            totalOffices: Object.keys(simulationData.offices || {}).length,
-            periods: simulationData.periods?.length || 0
-          } : null
-        }),
-      });
-
-      const data = await response.json();
+      // For now, provide mock responses until MCP server is set up
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      
+      const mockResponse = generateMockResponse(userMessage.content, simulationData);
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: data.response || 'I apologize, but I encountered an issue processing your request.',
+        content: mockResponse,
         timestamp: new Date()
       };
 
@@ -106,6 +93,32 @@ export const MCPChatWidget: React.FC<MCPChatWidgetProps> = ({ simulationData }) 
     }
   };
 
+  const generateMockResponse = (message: string, context: any): string => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('kpi') || lowerMessage.includes('metric')) {
+      return 'I can help you analyze KPIs from your simulation results. The main metrics include financial performance (Net Sales, EBITDA, Margin), growth indicators (Total Growth %, FTE changes), and career journey distribution. What specific KPI would you like to explore?';
+    }
+    
+    if (lowerMessage.includes('journey') || lowerMessage.includes('career')) {
+      return 'The career journey distribution shows how employees are distributed across different seniority levels (Journey 1-4). Journey 1 represents entry-level roles, while Journey 4 represents leadership positions. I can analyze trends and progression patterns from your simulation data.';
+    }
+    
+    if (lowerMessage.includes('growth') || lowerMessage.includes('headcount')) {
+      return 'Growth metrics track how your organization is expanding. This includes total FTE growth percentage, absolute headcount changes, and non-debit ratio (support vs. billable staff). I can help you understand what\'s driving growth patterns in your simulation.';
+    }
+    
+    if (lowerMessage.includes('financial') || lowerMessage.includes('revenue') || lowerMessage.includes('profit')) {
+      return 'Financial KPIs show the business impact of your simulation. Key metrics include Net Sales, EBITDA, profit margins, and average hourly rates. I can compare these against baseline values to show the financial impact of your organizational changes.';
+    }
+
+    if (lowerMessage.includes('m level') || lowerMessage.includes('manager')) {
+      return 'M level growth can be driven by several factors: 1) Direct recruitment (1.0% monthly), 2) Progression from AM level (15% twice yearly), and 3) Lower churn rates (0.71% monthly). The combination of these factors creates compounding growth effects. Would you like me to analyze specific progression patterns?';
+    }
+    
+    return 'I\'m here to help you analyze your simulation results! I can explain KPIs, growth patterns, financial metrics, career journey distributions, and organizational trends. What would you like to know about your simulation data?';
+  };
+
   const chatWidget = (
     <Card
       size="small"
@@ -113,8 +126,8 @@ export const MCPChatWidget: React.FC<MCPChatWidgetProps> = ({ simulationData }) 
         position: 'fixed',
         bottom: 24,
         right: 24,
-        width: 380,
-        height: 500,
+        width: 400,
+        height: 600,
         zIndex: 1000,
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         borderRadius: 16,
@@ -236,24 +249,49 @@ export const MCPChatWidget: React.FC<MCPChatWidgetProps> = ({ simulationData }) 
         <div style={{ 
           padding: '16px', 
           borderTop: `1px solid ${darkMode ? '#303030' : '#f0f0f0'}`,
-          backgroundColor: darkMode ? '#1f1f1f' : '#fafafa'
+          backgroundColor: darkMode ? '#1f1f1f' : '#fafafa',
+          minHeight: '80px'
         }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: 8,
+            alignItems: 'flex-end'
+          }}>
             <TextArea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask about your simulation results..."
-              autoSize={{ minRows: 1, maxRows: 3 }}
-              style={{ flex: 1 }}
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              style={{ 
+                flex: 1,
+                fontSize: '14px',
+                resize: 'none'
+              }}
             />
             <Button
               type="primary"
               icon={<SendOutlined />}
               onClick={sendMessage}
               disabled={!inputValue.trim() || isLoading}
-              style={{ alignSelf: 'flex-end' }}
+              size="large"
+              style={{ 
+                height: '40px',
+                width: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
             />
+          </div>
+          <div style={{ 
+            marginTop: '8px',
+            fontSize: '12px',
+            color: '#8c8c8c',
+            textAlign: 'center'
+          }}>
+            Press Enter to send, Shift+Enter for new line
           </div>
         </div>
       </div>
