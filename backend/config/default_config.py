@@ -82,6 +82,8 @@ EUR_TO_SEK = CURRENCY_CONFIG['conversion_to_sek']['EUR']
 
 # Base pricing per level - actual pricing data from avg_prices.xlsx
 # All prices converted to SEK using current exchange rates
+# Base pricing per level - actual pricing data from avg_prices.xlsx
+# All prices converted to SEK using current exchange rates
 BASE_PRICING = {
     'Amsterdam': {  # AMS - EUR -> SEK
         'A': round(105.00 * EUR_TO_SEK, 2),     # 1,151.17 SEK
@@ -181,7 +183,7 @@ BASE_PRICING = {
         'AM': 1247.87,
         'M': 1377.61,
         'SrM': 1461.70,
-        'PiP': 1382.60  # Using actual PI value
+        'PiP': 2000.00  # Updated to correct rate
     },
     'Toronto': {  # TOR - CAD -> SEK (limited levels available)
         'A': round(210.00 * 6.9887, 2),        # 1,467.63 SEK (using SrC value)
@@ -485,57 +487,89 @@ ACTUAL_OFFICE_LEVEL_DATA = {
     },
     'Toronto': {
         'Consultant': {
-            'SrC': 1, 'AM': 1, 'SrM': 1
+            'A': 1, 'AC': 1, 'C': 1, 'SrC': 1, 'AM': 1, 'M': 0, 'SrM': 0, 'PiP': 0
         },
         'Sales': {
-            'AM': 1
+            'A': 0, 'AC': 0, 'C': 0, 'SrC': 0, 'AM': 0, 'M': 0, 'SrM': 0, 'PiP': 0
         },
         'Recruitment': {
-            'AM': 1
+            'A': 0, 'AC': 0, 'C': 0, 'SrC': 0, 'AM': 0, 'M': 0, 'SrM': 0, 'PiP': 0
         },
-        'Operations': 0  # No operations in Toronto
+        'Operations': 0
     }
 }
 
-# Default rates for simulation (based on 5-year growth analysis)
+# Default rates for simulation (based on actual historical data 2020-2025)
 DEFAULT_RATES = {
     'recruitment': {
         'Consultant': {
-            'A': 0.025,      # 2.5% monthly for entry level (high intake)
-            'AC': 0.015,     # 1.5% monthly for associate level
-            'C': 0.008,      # 0.8% monthly for consultant level
-            'SrC': 0.005,    # 0.5% monthly for senior consultant
-            'AM': 0.003,     # 0.3% monthly for associate manager
-            'M': 0.001,      # 0.1% monthly for manager (mostly internal)
-            'SrM': 0.0005,   # 0.05% monthly for senior manager (rare external)
-            'PiP': 0.0002    # 0.02% monthly for partner (very rare)
+            'A': 0.040,      # 4.0% monthly - Sustainable growth rate (48% annually)
+            'AC': 0.025,     # 2.5% monthly - Balanced growth rate (30% annually)
+            'C': 0.020,      # 2.0% monthly - Positive growth rate (24% annually)
+            'SrC': 0.018,    # 1.8% monthly - Above churn rate (21.6% annually)
+            'AM': 0.015,     # 1.5% monthly - Match churn to maintain headcount (18% annually)
+            'M': 0.010,      # 1.0% monthly - Slight growth above churn (12% annually)
+            'SrM': 0.010,    # 1.0% monthly - Slight growth above churn (12% annually)
+            'PiP': 0.008     # 0.8% monthly - Slight growth above churn (9.6% annually)
         },
         'Sales': {
-            'A': 0.020,      # 2.0% monthly (smaller team, focused hiring)
-            'AC': 0.012,     # 1.2% monthly
-            'C': 0.008,      # 0.8% monthly
-            'SrC': 0.005,    # 0.5% monthly
-            'AM': 0.003,     # 0.3% monthly
-            'M': 0.001,      # 0.1% monthly
-            'SrM': 0.0005,   # 0.05% monthly
-            'PiP': 0.0002    # 0.02% monthly
+            'A': 0.025,      # 2.5% monthly - Positive growth rate (30% annually)
+            'AC': 0.022,     # 2.2% monthly - Above churn rate (26.4% annually)
+            'C': 0.022,      # 2.2% monthly - Above churn rate (26.4% annually)
+            'SrC': 0.022,    # 2.2% monthly - Above churn rate (26.4% annually)
+            'AM': 0.020,     # 2.0% monthly - Above churn rate (24% annually)
+            'M': 0.020,      # 2.0% monthly - Above churn rate (24% annually)
+            'SrM': 0.018,    # 1.8% monthly - Slight growth above churn (21.6% annually)
+            'PiP': 0.018     # 1.8% monthly - Slight growth above churn (21.6% annually)
         },
         'Recruitment': {
-            'A': 0.015,      # 1.5% monthly (specialized role)
-            'AC': 0.010,     # 1.0% monthly
-            'C': 0.006,      # 0.6% monthly
-            'SrC': 0.004,    # 0.4% monthly
-            'AM': 0.002,     # 0.2% monthly
-            'M': 0.001,      # 0.1% monthly
-            'SrM': 0.0005,   # 0.05% monthly
-            'PiP': 0.0002    # 0.02% monthly
+            'A': 0.020,      # 2.0% monthly - Positive growth rate (24% annually)
+            'AC': 0.018,     # 1.8% monthly - Balanced growth rate (21.6% annually)
+            'C': 0.018,      # 1.8% monthly - Above churn rate (21.6% annually)
+            'SrC': 0.016,    # 1.6% monthly - Above churn rate (19.2% annually)
+            'AM': 0.016,     # 1.6% monthly - Above churn rate (19.2% annually)
+            'M': 0.016,      # 1.6% monthly - Above churn rate (19.2% annually)
+            'SrM': 0.016,    # 1.6% monthly - Above churn rate (19.2% annually)
+            'PiP': 0.016     # 1.6% monthly - Above churn rate (19.2% annually)
         },
-        'Operations': 0.008  # 0.8% monthly (support function)
+        'Operations': 0.021  # 2.1% monthly - Historical rate (25.2% annually)
     },
-    'churn': 0.015,          # 1.5% monthly churn (more realistic)
+    'churn': {
+        'Consultant': {
+            'A': 0.0128,     # 1.28% monthly - Historical rate (14.3% annually)
+            'AC': 0.0153,    # 1.53% monthly - Historical rate (16.9% annually)
+            'C': 0.0173,     # 1.73% monthly - Historical rate (18.9% annually)
+            'SrC': 0.0173,   # 1.73% monthly - Use C rate for SrC
+            'AM': 0.0127,    # 1.27% monthly - Historical rate (14.2% annually)
+            'M': 0.0071,     # 0.71% monthly - Historical rate (8.2% annually)
+            'SrM': 0.0071,   # 0.71% monthly - Use M rate for SrM
+            'PiP': 0.0071    # 0.71% monthly - Use M rate for PiP
+        },
+        'Sales': {
+            'A': 0.0175,     # 1.75% monthly - Historical SRC rate (19.1% annually)
+            'AC': 0.0175,    # 1.75% monthly - Use SRC rate
+            'C': 0.0175,     # 1.75% monthly - Use SRC rate
+            'SrC': 0.0175,   # 1.75% monthly - Historical SRC rate
+            'AM': 0.0175,    # 1.75% monthly - Use SRC rate
+            'M': 0.0175,     # 1.75% monthly - Use SRC rate
+            'SrM': 0.0175,   # 1.75% monthly - Use SRC rate
+            'PiP': 0.0175    # 1.75% monthly - Use SRC rate
+        },
+        'Recruitment': {
+            'A': 0.0150,     # 1.50% monthly - Estimated rate
+            'AC': 0.0150,    # 1.50% monthly - Estimated rate
+            'C': 0.0150,     # 1.50% monthly - Estimated rate
+            'SrC': 0.0150,   # 1.50% monthly - Estimated rate
+            'AM': 0.0150,    # 1.50% monthly - Estimated rate
+            'M': 0.0150,     # 1.50% monthly - Estimated rate
+            'SrM': 0.0150,   # 1.50% monthly - Estimated rate
+            'PiP': 0.0150    # 1.50% monthly - Estimated rate
+        },
+        'Operations': 0.0149  # 1.49% monthly - Historical OPE rate (16.5% annually)
+    },
     'progression': {
         'evaluation_months': [5, 11],  # May and November
-        'A_AM_rate': 0.08,            # 8% for A-AM levels in evaluation months
+        'A_AM_rate': 0.15,            # 15% for A-AM levels in evaluation months
         'M_plus_rate': 0.05,          # 5% for M+ levels in November only
         'non_evaluation_rate': 0.0    # 0% in non-evaluation months
     },
@@ -579,7 +613,14 @@ def get_monthly_rates(role_name='Consultant', level_name='A'):
         else:
             rates[f'recruitment_{i}'] = 0.01  # Default fallback
             
-        rates[f'churn_{i}'] = DEFAULT_RATES['churn']
+        # Get churn rate based on role and level
+        if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
+            rates[f'churn_{i}'] = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
+        elif role_name in DEFAULT_RATES['churn']:
+            rates[f'churn_{i}'] = DEFAULT_RATES['churn'][role_name]
+        else:
+            rates[f'churn_{i}'] = 0.014  # Default fallback
+            
         rates[f'utr_{i}'] = DEFAULT_RATES['utr']
         
         # Progression rates based on evaluation timing and level

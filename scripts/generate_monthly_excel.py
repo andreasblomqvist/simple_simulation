@@ -58,12 +58,7 @@ for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
                     row[f'Recruitment_{month}'] = recruitment_rate
                     
                     # Get churn rate for this role and level
-                    if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                        churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                    elif role_name in DEFAULT_RATES['churn']:
-                        churn_rate = DEFAULT_RATES['churn'][role_name]
-                    else:
-                        churn_rate = 0.014  # Default fallback
+                    churn_rate = DEFAULT_RATES.get('churn', 0.015)
                     row[f'Churn_{month}'] = churn_rate
                     
                     row[f'UTR_{month}'] = DEFAULT_RATES['utr']
@@ -110,7 +105,7 @@ for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
                 
                 # Get Operations rates
                 operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.015)
-                operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.014)
+                operations_churn = DEFAULT_RATES.get('churn', 0.015)  # Use the single churn rate value
                 
                 row[f'Recruitment_{month}'] = operations_recruitment
                 row[f'Churn_{month}'] = operations_churn
