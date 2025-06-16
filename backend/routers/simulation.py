@@ -20,6 +20,9 @@ class SimulationRequest(BaseModel):
     end_month: int    # 1-12
     price_increase: float
     salary_increase: float
+    unplanned_absence: Optional[float] = 0.05  # 5% default
+    hy_working_hours: Optional[float] = 166.4  # Monthly working hours
+    other_expense: Optional[float] = 100000.0  # Monthly other expenses
     # Advanced: office overrides for FTE, level, and operations params
     office_overrides: Optional[Dict[str, Dict[str, Any]]] = None
 
@@ -47,6 +50,7 @@ def run_simulation(req: SimulationRequest):
     if req.office_overrides:
         lever_plan = _build_lever_plan(req.office_overrides)
     
+    # Run the simulation
     results = engine.run_simulation(
         start_year=req.start_year,
         start_month=req.start_month,
@@ -56,4 +60,16 @@ def run_simulation(req: SimulationRequest):
         salary_increase=req.salary_increase,
         lever_plan=lever_plan
     )
-    return results 
+    
+    # Calculate simulation duration in months
+    duration_months = (req.end_year - req.start_year) * 12 + (req.end_month - req.start_month) + 1
+    
+    # Calculate and add KPIs to results
+    results_with_kpis = engine.calculate_kpis_for_simulation(
+        results,
+        duration_months,
+        req.unplanned_absence,
+        req.other_expense
+    )
+    
+    return results_with_kpis 

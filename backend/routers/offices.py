@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
 from backend.src.services.simulation_engine import SimulationEngine
+from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES, OFFICE_HEADCOUNT
 
 router = APIRouter(prefix="/offices", tags=["offices"])
 
@@ -11,6 +12,99 @@ def set_engine(simulation_engine: SimulationEngine):
     """Set the global engine instance"""
     global engine
     engine = simulation_engine
+
+@router.get("/config")
+def get_office_config():
+    """Get raw office configuration data WITHOUT going through simulation engine"""
+    offices_out = []
+    
+    for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
+        total_fte = OFFICE_HEADCOUNT.get(office_name, 0)
+        
+        # Determine office journey based on total FTE
+        if total_fte >= 500:
+            journey = "Mature Office"
+        elif total_fte >= 200:
+            journey = "Established Office"
+        elif total_fte >= 25:
+            journey = "Emerging Office"
+        else:
+            journey = "New Office"
+        
+        roles_out = {}
+        
+        # Process roles with levels (Consultant, Sales, Recruitment)
+        for role_name in ["Consultant", "Sales", "Recruitment"]:
+            if role_name in office_data:
+                role_levels = office_data[role_name]
+                roles_out[role_name] = {}
+                
+                for level_name, fte in role_levels.items():
+                    if fte > 0:  # Only include levels with actual FTE
+                        # Get pricing and salary
+                        base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
+                        base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
+                        price = base_prices.get(level_name, 0.0)
+                        salary = base_salaries.get(level_name, 0.0)
+                        
+                        # Get rates
+                        if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
+                            recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
+                        else:
+                            recruitment_rate = 0.01
+                        
+                        if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
+                            churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
+                        elif role_name in DEFAULT_RATES['churn']:
+                            churn_rate = DEFAULT_RATES['churn'][role_name]
+                        else:
+                            churn_rate = 0.014
+                        
+                        # Set progression rate based on level
+                        if level_name in ['M', 'SrM', 'PiP']:
+                            progression_rate = DEFAULT_RATES['progression']['M_plus_rate']
+                        else:
+                            progression_rate = DEFAULT_RATES['progression']['A_AM_rate']
+                        
+                        roles_out[role_name][level_name] = {
+                            "total": fte,
+                            **{f"price_{i}": price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
+                            **{f"salary_{i}": salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
+                            **{f"recruitment_{i}": recruitment_rate for i in range(1, 13)},
+                            **{f"churn_{i}": churn_rate for i in range(1, 13)},
+                            **{f"progression_{i}": progression_rate if i in [5, 11] else 0.0 for i in range(1, 13)},
+                            **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
+                        }
+        
+        # Process Operations (flat role)
+        if "Operations" in office_data and office_data["Operations"] > 0:
+            operations_fte = office_data["Operations"]
+            base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
+            base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
+            op_price = base_prices.get('Operations', 80.0)
+            op_salary = base_salaries.get('Operations', 40000.0)
+            
+            operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.021)
+            operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.0149)
+            
+            roles_out["Operations"] = {
+                "total": operations_fte,
+                **{f"price_{i}": op_price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
+                **{f"salary_{i}": op_salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
+                **{f"recruitment_{i}": operations_recruitment for i in range(1, 13)},
+                **{f"churn_{i}": operations_churn for i in range(1, 13)},
+                **{f"progression_{i}": 0.0 for i in range(1, 13)},  # Operations has no progression
+                **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
+            }
+        
+        offices_out.append({
+            "name": office_name,
+            "total_fte": total_fte,
+            "journey": journey,
+            "roles": roles_out
+        })
+    
+    return offices_out
 
 def _serialize_monthly_attributes(obj, attributes: list) -> dict:
     """Helper to serialize monthly attributes (1-12) for an object"""
@@ -44,7 +138,7 @@ def _serialize_role_data(role_data) -> dict:
 
 @router.get("/")
 def list_offices():
-    """Get all offices with their current configuration"""
+    """Get offices from simulation engine (for simulation results, not configuration)"""
     offices_out = []
     for office in engine.offices.values():
         roles_out = {}
@@ -80,9 +174,13 @@ async def import_office_levers(file: UploadFile = File(...)):
                 level = office.roles[role_name][level_name]
                 print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
                 
-                # Update FTE
+                # Update FTE - Note: total is now read-only, calculated from people list
+                # Cannot directly set level.total anymore due to individual tracking system
                 if not pd.isna(row["FTE"]):
-                    level.total = int(row["FTE"])
+                    target_fte = int(row["FTE"])
+                    current_fte = level.total
+                    if target_fte != current_fte:
+                        print(f"[IMPORT] INFO: FTE for {office_name} {role_name} {level_name} is read-only (target: {target_fte}, current: {current_fte})")
                 
                 # Update monthly values (1-12)
                 _update_monthly_attributes(level, row)
@@ -93,9 +191,13 @@ async def import_office_levers(file: UploadFile = File(...)):
             role = office.roles[role_name]
             print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
             
-            # Update FTE
+            # Update FTE - Note: total is now read-only, calculated from people list
+            # Cannot directly set role.total anymore due to individual tracking system
             if not pd.isna(row["FTE"]):
-                role.total = int(row["FTE"])
+                target_fte = int(row["FTE"])
+                current_fte = role.total
+                if target_fte != current_fte:
+                    print(f"[IMPORT] INFO: FTE for {office_name} {role_name} is read-only (target: {target_fte}, current: {current_fte})")
             
             # Update monthly values (1-12)
             _update_monthly_attributes(role, row)
@@ -111,4 +213,11 @@ def _update_monthly_attributes(obj, row):
             if col_name in row and not pd.isna(row[col_name]):
                 attr_name = col_name.lower()
                 if hasattr(obj, attr_name):
-                    setattr(obj, attr_name, float(row[col_name])) 
+                    try:
+                        # Try to convert to float
+                        value = float(row[col_name])
+                        setattr(obj, attr_name, value)
+                    except (ValueError, TypeError):
+                        # Skip if it's not a valid float (e.g., nested dict data)
+                        print(f"[IMPORT] Skipping {col_name}: invalid value type ({type(row[col_name])})")
+                        continue 

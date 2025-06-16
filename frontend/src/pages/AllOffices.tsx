@@ -37,7 +37,7 @@ export default function AllOffices() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/offices')
+    fetch('/api/offices/config')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch offices');
         return res.json();

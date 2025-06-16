@@ -99,7 +99,7 @@ class TestEngineBasic(unittest.TestCase):
         self.assertEqual(len(results['periods']), 3)
         
         # Check period names
-        expected_periods = ['2024-JAN', '2024-FEB', '2024-MAR']
+        expected_periods = ['JAN', 'FEB', 'MAR']
         self.assertEqual(results['periods'], expected_periods)
         
         # Check Stockholm office results

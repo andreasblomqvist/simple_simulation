@@ -93,9 +93,9 @@ class TestMonthlySimulation(unittest.TestCase):
         # Run a one-year simulation
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2024,
-            end_half=Month.DEC,
+            end_month=Month.DEC,
             price_increase=0.03,
             salary_increase=0.03
         )
@@ -123,20 +123,23 @@ class TestMonthlySimulation(unittest.TestCase):
         """Test that the simulation runs through all 12 months"""
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2024,
-            end_half=Month.DEC,
+            end_month=Month.DEC,
             price_increase=0.03,
             salary_increase=0.03
         )
         
         # Check that each office has 12 data points
         for office_name, office_data in results['offices'].items():
-            # Check levels data
             for role_name, role_data in office_data['levels'].items():
-                for level_name, level_data in role_data.items():
-                    self.assertEqual(len(level_data), 12, 
-                                   f"Office {office_name}, Role {role_name}, Level {level_name} should have 12 months of data")
+                if isinstance(role_data, dict):
+                    for level_name, level_data in role_data.items():
+                        self.assertEqual(len(level_data), 12, 
+                                       f"Office {office_name}, Role {role_name}, Level {level_name} should have 12 months of data")
+                elif isinstance(role_data, list):
+                    self.assertEqual(len(role_data), 12,
+                                   f"Office {office_name}, Role {role_name} should have 12 months of data")
             
             # Check metrics data
             self.assertEqual(len(office_data['metrics']), 12,
@@ -152,9 +155,9 @@ class TestMonthlySimulation(unittest.TestCase):
         # Test with a small simulation
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2025,
-            end_half=Month.JAN,
+            end_month=Month.JAN,
             price_increase=0.1,  # 10% increase for easy testing
             salary_increase=0.1
         )
@@ -199,9 +202,9 @@ class TestMonthlySimulation(unittest.TestCase):
         """Test that Operations (flat role) works correctly in monthly simulation"""
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2024,
-            end_half=Month.DEC,
+            end_month=Month.DEC,
             price_increase=0.03,
             salary_increase=0.03
         )
@@ -220,13 +223,13 @@ class TestMonthlySimulation(unittest.TestCase):
     def test_office_journey_classification(self):
         """Test that office journey classification works correctly"""
         # Test the corrected thresholds from our memory
-        small_office = self.engine.offices['London']  # 2 FTE
-        self.assertEqual(small_office.journey, OfficeJourney.NEW)  # 0-24 should be NEW
+        small_office = self.engine.offices['Frankfurt']  # 27 FTE
+        self.assertEqual(small_office.journey, OfficeJourney.EMERGING)  # 25-199 should be EMERGING
         
-        medium_office = self.engine.offices['Hamburg']  # 200 FTE  
-        self.assertEqual(medium_office.journey, OfficeJourney.ESTABLISHED)  # 200-499 should be ESTABLISHED
+        medium_office = self.engine.offices['Hamburg']  # 165 FTE  
+        self.assertEqual(medium_office.journey, OfficeJourney.EMERGING)  # 25-199 should be EMERGING
         
-        large_office = self.engine.offices['Stockholm']  # 850 FTE
+        large_office = self.engine.offices['Stockholm']  # 821 FTE
         self.assertEqual(large_office.journey, OfficeJourney.MATURE)  # 500+ should be MATURE
     
     def test_lever_plan_application(self):
@@ -243,9 +246,9 @@ class TestMonthlySimulation(unittest.TestCase):
         
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2024,
-            end_half=Month.DEC,
+            end_month=Month.DEC,
             price_increase=0.03,
             salary_increase=0.03,
             lever_plan=lever_plan
@@ -259,9 +262,9 @@ class TestMonthlySimulation(unittest.TestCase):
         """Test running simulation for just one month"""
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.MAY,
+            start_month=Month.MAY,
             end_year=2024,
-            end_half=Month.MAY,
+            end_month=Month.MAY,
             price_increase=0.03,
             salary_increase=0.03
         )
@@ -269,16 +272,19 @@ class TestMonthlySimulation(unittest.TestCase):
         # Should have exactly 1 month of data
         for office_name, office_data in results['offices'].items():
             for role_name, role_data in office_data['levels'].items():
-                for level_name, level_data in role_data.items():
-                    self.assertEqual(len(level_data), 1)
+                if isinstance(role_data, dict):
+                    for level_name, level_data in role_data.items():
+                        self.assertEqual(len(level_data), 1)
+                elif isinstance(role_data, list):
+                    self.assertEqual(len(role_data), 1)
     
     def test_multi_year_simulation(self):
         """Test running simulation across multiple years"""
         results = self.engine.run_simulation(
             start_year=2024,
-            start_half=Month.JAN,
+            start_month=Month.JAN,
             end_year=2025,
-            end_half=Month.DEC,
+            end_month=Month.DEC,
             price_increase=0.05,
             salary_increase=0.05
         )

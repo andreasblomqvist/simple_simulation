@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox } from 'antd';
+import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox, Tabs } from 'antd';
 import { useConfig } from '../components/ConfigContext';
 import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined } from '@ant-design/icons';
 
@@ -31,6 +31,17 @@ const MONTHS = [
   { value: 11, label: 'November' },
   { value: 12, label: 'December' }
 ];
+const TIME_PERIODS = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'half-year', label: 'Half Year' },
+  { value: 'yearly', label: 'Yearly' }
+];
+const OFFICE_JOURNEYS = [
+  { value: 'New Office', label: 'New Office (0-24 FTE)' },
+  { value: 'Emerging Office', label: 'Emerging Office (25-199 FTE)' },
+  { value: 'Established Office', label: 'Established Office (200-499 FTE)' },
+  { value: 'Mature Office', label: 'Mature Office (500+ FTE)' }
+];
 type LeversState = Record<string, Record<string, Record<string, number>>>;
 const getDefaultLevers = (): LeversState => {
   const obj: LeversState = {};
@@ -39,9 +50,18 @@ const getDefaultLevers = (): LeversState => {
     LEVELS.forEach(level => {
       obj[office][level] = {};
       LEVERS.forEach(lv => {
-        // Initialize monthly values (1-12)
+        // Initialize monthly values (1-12) with realistic defaults
         for (let month = 1; month <= 12; month++) {
-          obj[office][level][`${lv.key}_${month}`] = 0.1;
+                  // Use realistic sustainable rates as defaults
+        if (lv.key === 'recruitment') {
+          obj[office][level][`${lv.key}_${month}`] = level === 'A' ? 0.025 : 0.015; // 2.5% for A level, 1.5% for others
+        } else if (lv.key === 'churn') {
+          obj[office][level][`${lv.key}_${month}`] = 0.014; // 1.4% historical churn
+        } else if (lv.key === 'progression') {
+          obj[office][level][`${lv.key}_${month}`] = month === 5 || month === 11 ? 0.08 : 0.0; // 8% in May/Nov only
+        } else {
+          obj[office][level][`${lv.key}_${month}`] = 0.9; // UTR default
+        }
         }
       });
     });
@@ -107,18 +127,32 @@ function transformResults(results: any, baseline: any) {
     // Flat role: Operations
     if (officeData.operations && Array.isArray(officeData.operations)) {
       const simArray = officeData.operations;
-      const current = simArray && simArray.length > 0 ? simArray[simArray.length - 1] : {};
+      const current = simArray && simArray.length > 0 ? simArray[simArray.length - 1] : null;
       const baselineRole = baselineRoles['Operations'] || {};
       const baselineTotal = baselineRole.total ?? 0;
-      officeCurrentTotal += current.total ?? 0;
-      officeBaselineTotal += baselineTotal;
-      rows.push({
-        key: `${officeName}-Operations`,
-        role: 'Operations',
-        total: `${current.total !== undefined ? current.total : ''} (${baselineTotal !== undefined ? baselineTotal : ''})`,
-        price: `${current.price !== undefined ? current.price.toFixed(2) : ''} (${baselineRole.price_1 !== undefined ? Number(baselineRole.price_1).toFixed(2) : ''})`,
-        salary: `${current.salary !== undefined ? current.salary.toFixed(2) : ''} (${baselineRole.salary_1 !== undefined ? Number(baselineRole.salary_1).toFixed(2) : ''})`,
-      });
+      
+      // Handle null operations data (offices without operations)
+      if (current && current !== null) {
+        officeCurrentTotal += current.total ?? 0;
+        officeBaselineTotal += baselineTotal;
+        rows.push({
+          key: `${officeName}-Operations`,
+          role: 'Operations',
+          total: `${current.total !== undefined ? current.total : ''} (${baselineTotal !== undefined ? baselineTotal : ''})`,
+          price: `${current.price !== undefined ? current.price.toFixed(2) : ''} (${baselineRole.price_1 !== undefined ? Number(baselineRole.price_1).toFixed(2) : ''})`,
+          salary: `${current.salary !== undefined ? current.salary.toFixed(2) : ''} (${baselineRole.salary_1 !== undefined ? Number(baselineRole.salary_1).toFixed(2) : ''})`,
+        });
+      } else {
+        // Office has no operations data
+        officeBaselineTotal += baselineTotal;
+        rows.push({
+          key: `${officeName}-Operations`,
+          role: 'Operations',
+          total: `0 (${baselineTotal !== undefined ? baselineTotal : ''})`,
+          price: `- (${baselineRole.price_1 !== undefined ? Number(baselineRole.price_1).toFixed(2) : ''})`,
+          salary: `- (${baselineRole.salary_1 !== undefined ? Number(baselineRole.salary_1).toFixed(2) : ''})`,
+        });
+      }
     }
     return {
       key: officeName,
@@ -294,7 +328,8 @@ const roleColumns = [
   { title: 'KPI', dataIndex: 'kpi', key: 'kpi' },
 ];
 
-// Add helper to calculate financial KPIs
+// DEPRECATED: Financial KPIs are now calculated in the backend via KPI service
+// This function is kept for backward compatibility but is no longer used
 function calculateFinancialKPIs({
   offices,
   unplannedAbsence,
@@ -319,65 +354,149 @@ function calculateFinancialKPIs({
       officesData.forEach((office: any) => {
         if (!office.roles) return;
         
+        // Only consultants generate revenue (billable to clients)
+        const consultantRole = office.roles && office.roles['Consultant'];
+        if (consultantRole && typeof consultantRole === 'object' && !Array.isArray(consultantRole)) {
+          Object.entries(consultantRole).forEach(([level, data]: any) => {
+            if (!data) return;
+            const fte = data.total ?? 0;
+            const price = data.price_1 ?? 0; // This is hourly rate
+            
+            totalFTE += fte;
+            totalWeightedPrice += fte * price;
+          });
+        }
+        
+        // Include all roles for salary costs (consultants, sales, recruitment, operations)
         ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
-          const roleData = office.roles[role];
+          const roleData = office.roles && office.roles[role];
           if (!roleData) return;
           
           if (typeof roleData === 'object' && !Array.isArray(roleData)) {
             // Role with levels
             Object.entries(roleData).forEach(([level, data]: any) => {
+              if (!data) return;
               const fte = data.total ?? 0;
-              const price = data.price_1 ?? 0;
               const salary = data.salary_1 ?? 0;
               
-              totalFTE += fte;
-              totalWeightedPrice += fte * price;
               totalWeightedSalary += fte * salary;
             });
           }
         });
+        
+        // Include operations in salary costs
+        const operationsRole = office.roles['Operations'];
+        if (operationsRole && typeof operationsRole === 'object') {
+          const opsFTE = operationsRole.total ?? 0;
+          const opsSalary = operationsRole.salary_1 ?? 0;
+          totalWeightedSalary += opsFTE * opsSalary;
+        }
       });
     } else {
       // Simulation results format
       Object.values(officesData).forEach((office: any) => {
         if (!office.levels) return;
         
-        // Process all billable roles: Consultant, Sales, Recruitment
+        // Only consultants generate revenue (billable to clients)
+        // Sales, Recruitment, and Operations are cost centers
+        if (office.levels && office.levels['Consultant']) {
+          Object.entries(office.levels['Consultant']).forEach(([level, arr]: any) => {
+            if (!Array.isArray(arr) || arr.length === 0) return;
+            const last = arr[arr.length - 1];
+            if (!last) return;
+            const fte = last.total ?? 0;
+            const price = last.price ?? 0; // This is hourly rate
+            
+            totalFTE += fte;
+            totalWeightedPrice += fte * price;
+          });
+        }
+        
+        // Include all roles for salary costs (consultants, sales, recruitment, operations)
         ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
-          if (!office.levels[role]) return;
+          if (!office.levels || !office.levels[role]) return;
           
           Object.entries(office.levels[role]).forEach(([level, arr]: any) => {
             if (!Array.isArray(arr) || arr.length === 0) return;
             const last = arr[arr.length - 1];
+            if (!last) return;
             const fte = last.total ?? 0;
-            const price = last.price ?? 0;
             const salary = last.salary ?? 0;
             
-            totalFTE += fte;
-            totalWeightedPrice += fte * price;
             totalWeightedSalary += fte * salary;
           });
         });
+        
+        // Include operations in salary costs
+        if (office.operations && Array.isArray(office.operations) && office.operations.length > 0) {
+          const lastOps = office.operations[office.operations.length - 1];
+          if (lastOps) {
+            const opsFTE = lastOps.total ?? 0;
+            const opsSalary = lastOps.salary ?? 0;
+            totalWeightedSalary += opsFTE * opsSalary;
+          }
+        }
       });
     }
     
-    // Calculate FTE-weighted averages
+    // Calculate consultant-weighted average price (only consultants generate revenue)
     const avgPrice = totalFTE > 0 ? totalWeightedPrice / totalFTE : 0;
-    const avgSalary = totalFTE > 0 ? totalWeightedSalary / totalFTE : 0;
     
-    // Use a default UTR since it's not returned in the simulation results
-    const avgUTR = 0.85; // Default 85% utilization
+    // FIXED: Handle baseline vs simulation calculation differently
+    let simulationMonths;
+    let workingHoursForCalculation;
     
-    // Calculate time-based metrics (assuming hyWorkingHours is for the simulation period)
-    const consultantTime = totalFTE * hyWorkingHours;
+    if (isBaseline) {
+      // For baseline: use monthly data (166.4 hours per month, 1 month)
+      simulationMonths = 1;
+      workingHoursForCalculation = 166.4; // Monthly working hours
+    } else {
+      // For simulation: use total hours for entire simulation period
+      simulationMonths = hyWorkingHours / 166.4; // hyWorkingHours is total hours, 166.4 is monthly hours
+      workingHoursForCalculation = hyWorkingHours;
+    }
+    
+    const totalMonthlySalaryCosts = totalWeightedSalary;
+    
+    // Add social costs (Swedish employer costs: ~25% social security + benefits)
+    const socialCostMultiplier = 1.25; // 25% on top of salary for social costs, benefits, etc.
+    const totalSalaryCosts = totalMonthlySalaryCosts * simulationMonths * socialCostMultiplier;
+    
+    // Use the UTR from simulation data if available, otherwise default
+    const avgUTR = 0.85; // Use the UTR provided in the simulation data
+    
+    // Calculate time-based metrics for consultants only (revenue generators)
+    const consultantTime = totalFTE * workingHoursForCalculation; // Only consultant FTE for revenue
     const availableConsultantTime = consultantTime * (1 - unplannedAbsence);
     const invoicedTime = availableConsultantTime * avgUTR;
     
     // Calculate financials
+    // Revenue: Only from consultants (hourly rate * hours * UTR)
     const netSales = invoicedTime * avgPrice;
-    const totalSalaries = totalFTE * avgSalary * hyWorkingHours; // Salary cost for the period
+    // Costs: All roles (consultants, sales, recruitment, operations) + social costs
+    const totalSalaries = totalSalaryCosts;
     const ebitda = netSales - totalSalaries - otherExpense;
     const margin = netSales > 0 ? (ebitda / netSales) * 100 : 0;
+    
+    // Debug logging
+    console.log(`[DEBUG] Financial calculation (${isBaseline ? 'BASELINE' : 'CURRENT'}):`, {
+      totalFTE,
+      avgPrice,
+      avgUTR,
+      workingHoursForCalculation,
+      simulationMonths,
+      totalMonthlySalaryCosts,
+      socialCostMultiplier,
+      totalSalaryCosts,
+      consultantTime,
+      availableConsultantTime,
+      invoicedTime,
+      netSales,
+      totalSalaries,
+      otherExpense,
+      ebitda,
+      margin
+    });
     
     return {
       totalFTE,
@@ -387,7 +506,6 @@ function calculateFinancialKPIs({
       avgUTR,
       avgPrice,
       netSales,
-      avgSalary,
       totalSalaries,
       otherExpense,
       ebitda,
@@ -418,27 +536,32 @@ function calculateFinancialKPIs({
   };
 }
 
+// Add helper to compute monthly rate from cumulative probability
+function getMonthlyRateFromCumulative(cumulative: number, months: number) {
+  if (cumulative >= 1) cumulative = 0.9999;
+  if (cumulative <= 0) return 0;
+  return 1 - Math.pow(1 - cumulative, 1 / months);
+}
+
 export default function SimulationLab() {
   const [formVals, setFormVals] = useState({
-    start_year: 2025,
-    start_month: 1,
-    end_year: 2026,
-    end_month: 12,
-    price_increase: 0.03,
-    salary_increase: 0.03,
-    unplanned_absence: 0.05,
-    hy_working_hours: 998.4,
+    duration_value: 24, // Duration amount
+    duration_unit: 'months', // 'months' or 'years'
+    price_increase: 3.0, // 3% as percentage
+    salary_increase: 3.0, // 3% as percentage
+    unplanned_absence: 5.0, // 5% as percentage
+    hy_working_hours: 166.4, // Monthly working hours
     other_expense: 100000,
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   // Lever manipulation state
-  const [selectedLever, setSelectedLever] = useState('recruitment');
+  const [selectedLevers, setSelectedLevers] = useState(['recruitment']);
+  const [selectedLevels, setSelectedLevels] = useState(['AM']);
   const [selectedMonth, setSelectedMonth] = useState(1);
-  const [selectedLevel, setSelectedLevel] = useState('AM');
   const [selectedOffices, setSelectedOffices] = useState([] as string[]);
-  const [leverValue, setLeverValue] = useState(0.1);
+  const [leverValue, setLeverValue] = useState(2.5); // Start with realistic A-level recruitment rate (2.5%)
   const { levers, setLevers } = useConfig();
   const [lastAppliedSummary, setLastAppliedSummary] = useState<string[] | null>(null);
   const [simulationResults, setSimulationResults] = useState<any>(null);
@@ -452,20 +575,71 @@ export default function SimulationLab() {
   const [selectedConfigOffice, setSelectedConfigOffice] = useState<string>('');
   // Add state for the checkbox
   const [applyToAllMonths, setApplyToAllMonths] = useState(false);
+  // Add new state variables for time period and office journey selection
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState('monthly');
+  const [selectedOfficeJourney, setSelectedOfficeJourney] = useState('');
+  const [applyToAllOffices, setApplyToAllOffices] = useState(false);
+  // Add new state for lever matrix UI
+  const [matrixOffice, setMatrixOffice] = useState(OFFICES[0]);
+  const [matrixMonth, setMatrixMonth] = useState(1);
+  const [matrixEditing, setMatrixEditing] = useState<null | { level: string, lever: string }>(null);
+  const [matrixDraftLevers, setMatrixDraftLevers] = useState<LeversState | null>(null);
 
   // Fetch config on mount
   useEffect(() => {
     setConfigLoading(true);
-    fetch('/api/offices')
+    fetch('/api/offices/config')
       .then(res => res.json())
       .then(data => {
         setConfigOffices(data);
         setConfigLoading(false);
         // Only set originalConfigOffices if it is empty
         setOriginalConfigOffices(prev => (prev && prev.length > 0 ? prev : data));
+        
+        // Initialize levers with imported data if available, otherwise use defaults
+        if (Object.keys(levers).length === 0) {
+          loadImportedData(data);
+        }
       })
       .catch(() => setConfigLoading(false));
   }, []);
+
+  // Function to load actual imported data from backend
+  const loadImportedData = (offices: any[]) => {
+    try {
+      // Convert office data to lever format
+      const importedLevers: LeversState = {};
+      offices.forEach((office: any) => {
+        importedLevers[office.name] = {};
+        
+        // Handle roles with levels (Consultant, Sales, Recruitment)
+        ['Consultant', 'Sales', 'Recruitment'].forEach(roleName => {
+          const roleData = office.roles[roleName];
+          if (roleData) {
+            Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+              if (!importedLevers[office.name][levelName]) {
+                importedLevers[office.name][levelName] = {};
+              }
+              
+              // Convert monthly data to lever format
+              for (let month = 1; month <= 12; month++) {
+                importedLevers[office.name][levelName][`recruitment_${month}`] = levelData[`recruitment_${month}`] || (levelName === 'A' ? 0.025 : 0.015);
+                importedLevers[office.name][levelName][`churn_${month}`] = levelData[`churn_${month}`] || 0.014;
+                importedLevers[office.name][levelName][`progression_${month}`] = levelData[`progression_${month}`] || (month === 5 || month === 11 ? 0.08 : 0.0);
+                importedLevers[office.name][levelName][`utr_${month}`] = levelData[`utr_${month}`] || 0.9;
+              }
+            });
+          }
+        });
+      });
+      
+      setLevers(importedLevers);
+      console.log('[DEBUG] Loaded imported configuration data:', importedLevers);
+    } catch (error) {
+      console.error('Failed to load imported data:', error);
+      setLevers(getDefaultLevers());
+    }
+  };
 
   // Update selectedConfigOffice when configOffices changes
   useEffect(() => {
@@ -502,21 +676,31 @@ export default function SimulationLab() {
       });
       // Add debug logging
       console.log('[DEBUG] office_overrides payload:', JSON.stringify(office_overrides, null, 2));
-      console.log('[DEBUG] Selected lever:', selectedLever);
-      console.log('[DEBUG] Selected month:', selectedMonth);
-      console.log('[DEBUG] Selected level:', selectedLevel);
+      console.log('[DEBUG] Selected lever:', selectedLevers);
+      console.log('[DEBUG] Selected level:', selectedLevels);
       console.log('[DEBUG] Selected offices:', selectedOffices);
       console.log('[DEBUG] Lever value:', leverValue);
+      
+      // Calculate start and end dates from duration
+      const startYear = 2025;
+      const startMonth = 1;
+      const durationMonths = formVals.duration_unit === 'years' ? formVals.duration_value * 12 : formVals.duration_value;
+      const endYear = startYear + Math.floor((startMonth + durationMonths - 2) / 12);
+      const endMonth = ((startMonth + durationMonths - 2) % 12) + 1;
       
       const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formVals,
-          start_year: Number(formVals.start_year),
-          end_year: Number(formVals.end_year),
-          price_increase: Number(formVals.price_increase),
-          salary_increase: Number(formVals.salary_increase),
+          start_year: startYear,
+          start_month: startMonth,
+          end_year: endYear,
+          end_month: endMonth,
+          price_increase: Number(formVals.price_increase) / 100, // Convert percentage to decimal
+          salary_increase: Number(formVals.salary_increase) / 100, // Convert percentage to decimal
+          unplanned_absence: Number(formVals.unplanned_absence) / 100, // Convert percentage to decimal
+          hy_working_hours: formVals.hy_working_hours,
+          other_expense: formVals.other_expense,
           office_overrides
         }),
       });
@@ -671,28 +855,92 @@ export default function SimulationLab() {
     });
     
     const totalJourney = Object.values(journeyTotals).reduce((a, b) => a + b, 0);
-    const overallNonDebitRatio = totalNonConsultants > 0 ? (totalConsultants / totalNonConsultants) : null;
+    const totalFTE = totalConsultants + totalNonConsultants;
+    // FIXED: Non-debit ratio should be (Non-Consultants / Total FTE) * 100
+    // This represents the percentage of people who are not billable consultants
+    const overallNonDebitRatio = totalFTE > 0 ? (totalNonConsultants / totalFTE) * 100 : null;
+    
+    // Debug logging for non-debit ratio
+    console.log('[DEBUG] Non-debit ratio calculation:', {
+      totalConsultants,
+      totalNonConsultants,
+      totalFTE,
+      overallNonDebitRatio: overallNonDebitRatio?.toFixed(1) + '%'
+    });
     
     // Calculate delta for non-debit ratio
     let nonDebitDelta = null;
-    if (prevIdx >= 0 && prevTotalNonConsultants > 0) {
-      const prevNonDebitRatio = prevTotalConsultants / prevTotalNonConsultants;
-      if (overallNonDebitRatio !== null) {
-        nonDebitDelta = overallNonDebitRatio - prevNonDebitRatio;
+    if (prevIdx >= 0) {
+      const prevTotalFTE = prevTotalConsultants + prevTotalNonConsultants;
+      if (prevTotalFTE > 0) {
+        const prevNonDebitRatio = (prevTotalNonConsultants / prevTotalFTE) * 100;
+        if (overallNonDebitRatio !== null) {
+          nonDebitDelta = overallNonDebitRatio - prevNonDebitRatio;
+        }
       }
     }
     
+    // Calculate total growth for period
+    let totalGrowth = null;
+    let totalGrowthPercent = null;
+    let baselineTotalFTE = null;
+    
+    if (originalConfigOffices && originalConfigOffices.length > 0) {
+      // Calculate baseline total FTE from original config
+      baselineTotalFTE = originalConfigOffices.reduce((sum: number, office: any) => {
+        let officeTotal = 0;
+        
+        // Add consultant, sales, recruitment roles
+        if (office.roles) {
+          ['Consultant', 'Sales', 'Recruitment'].forEach(roleName => {
+            const role = office.roles[roleName];
+            if (role && typeof role === 'object') {
+              // Role has levels
+              Object.values(role).forEach((levelData: any) => {
+                if (levelData && typeof levelData === 'object' && 'total' in levelData) {
+                  officeTotal += levelData.total || 0;
+                }
+              });
+            }
+          });
+        }
+        
+        // Add operations (single number, not levels)
+        if (office.operations && typeof office.operations === 'number') {
+          officeTotal += office.operations;
+        }
+        
+        return sum + officeTotal;
+      }, 0);
+      
+      // Calculate growth
+      totalGrowth = totalFTE - baselineTotalFTE;
+      totalGrowthPercent = baselineTotalFTE > 0 ? (totalGrowth / baselineTotalFTE) * 100 : 0;
+      
+      // Debug logging
+      console.log('[DEBUG] Total Growth calculation:', {
+        currentTotalFTE: totalFTE,
+        baselineTotalFTE,
+        totalGrowth,
+        totalGrowthPercent: totalGrowthPercent?.toFixed(1) + '%'
+      });
+    }
+
     return { 
       journeyTotals, 
       totalJourney, 
       overallNonDebitRatio, 
       totalConsultants, 
       totalNonConsultants, 
-      nonDebitDelta 
+      nonDebitDelta,
+      totalGrowth,
+      totalGrowthPercent,
+      baselineTotalFTE,
+      totalFTE
     };
   };
 
-  const aggregatedKPIs = getAggregatedKPIs();
+
 
   // Table columns for office KPIs
   const columns = [
@@ -732,40 +980,102 @@ export default function SimulationLab() {
   ];
 
   const handleApply = () => {
-    if (selectedOffices.length === 0) {
-      message.warning('Please select at least one office.');
+    let targetOffices: string[] = [];
+    if (applyToAllOffices) {
+      targetOffices = OFFICES;
+    } else if (selectedOfficeJourney) {
+      targetOffices = configOffices
+        .filter(office => {
+          const totalFTE = office.roles ? 
+            Object.values(office.roles).reduce((sum: number, role: any) => {
+              if (typeof role === 'object' && role !== null) {
+                if ('total' in role) {
+                  return sum + (role.total || 0);
+                } else {
+                  return sum + Object.values(role).reduce((levelSum: number, levelData: any) => 
+                    levelSum + (levelData?.total || 0), 0);
+                }
+              }
+              return sum;
+            }, 0) : 0;
+          let journey = '';
+          if (totalFTE >= 500) journey = 'Mature Office';
+          else if (totalFTE >= 200) journey = 'Established Office';
+          else if (totalFTE >= 25) journey = 'Emerging Office';
+          else journey = 'New Office';
+          return journey === selectedOfficeJourney;
+        })
+        .map(office => office.name);
+    } else {
+      targetOffices = selectedOffices;
+    }
+    if (targetOffices.length === 0) {
+      message.warning('Please select at least one office or office journey.');
       return;
     }
-    // Build the updated levers object first
-    const updatedLevers = { ...levers };
-    selectedOffices.forEach(office => {
-      updatedLevers[office] = { ...updatedLevers[office] };
-      updatedLevers[office][selectedLevel] = { ...updatedLevers[office][selectedLevel] };
-      if (applyToAllMonths) {
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].forEach(month => {
-          updatedLevers[office][selectedLevel][`${selectedLever}_${month}`] = leverValue;
-        });
+    let targetMonths: number[] = [];
+    if (selectedTimePeriod === 'yearly') {
+      targetMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    } else if (selectedTimePeriod === 'half-year') {
+      if (selectedMonth <= 6) {
+        targetMonths = [1, 2, 3, 4, 5, 6];
       } else {
-        updatedLevers[office][selectedLevel][`${selectedLever}_${selectedMonth}`] = leverValue;
+        targetMonths = [7, 8, 9, 10, 11, 12];
       }
-    });
-    setLevers(updatedLevers);
-
-    // Build summary array of all applied levers for selected offices
-    const defaultValue = 0.1;
-    const leverSummaries: string[] = [];
-    selectedOffices.forEach(office => {
-      if (!updatedLevers[office]) return;
-      Object.entries(updatedLevers[office]).forEach(([level, leverObj]) => {
-        Object.entries(leverObj as Record<string, number>).forEach(([leverMonth, value]) => {
-          if ((value as number) !== defaultValue) {
-            const [leverKey, month] = leverMonth.split('_');
-            const leverLabel = LEVERS.find(l => l.key === leverKey)?.label || leverKey;
-            const percent = `${((value as number) * 100).toFixed(0)}%`;
-            leverSummaries.push(`${leverLabel} for level ${level} (${month}) set to ${percent} for ${office}`);
-          }
+    } else if (applyToAllMonths) {
+      targetMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    } else {
+      targetMonths = [selectedMonth];
+    }
+    const updatedLevers = { ...levers };
+    targetOffices.forEach(office => {
+      updatedLevers[office] = { ...updatedLevers[office] };
+      selectedLevels.forEach(level => {
+        updatedLevers[office][level] = { ...updatedLevers[office][level] };
+        selectedLevers.forEach(leverKey => {
+          targetMonths.forEach(month => {
+            updatedLevers[office][level][`${leverKey}_${month}`] = effectiveMonthlyRate;
+          });
         });
       });
+    });
+    setLevers(updatedLevers);
+    // Build grouped summary
+    const leverSummaries: string[] = [];
+    // Group by lever, value, levels, months, offices
+    const groupKey = (leverKey: string, value: number) => `${leverKey}|${value}`;
+    const groupMap: Record<string, { leverKey: string, value: number, levels: Set<string>, months: Set<number>, offices: Set<string> }> = {};
+    targetOffices.forEach(office => {
+      selectedLevels.forEach(level => {
+        selectedLevers.forEach(leverKey => {
+          targetMonths.forEach(month => {
+            const key = groupKey(leverKey, effectiveMonthlyRate);
+            if (!groupMap[key]) {
+              groupMap[key] = { leverKey, value: effectiveMonthlyRate, levels: new Set(), months: new Set(), offices: new Set() };
+            }
+            groupMap[key].levels.add(level);
+            groupMap[key].months.add(month);
+            groupMap[key].offices.add(office);
+          });
+        });
+      });
+    });
+    Object.values(groupMap).forEach(group => {
+      const leverLabel = LEVERS.find(l => l.key === group.leverKey)?.label || group.leverKey;
+      const percent = `${(group.value * 100).toFixed(1)}%`;
+      const levelsStr = Array.from(group.levels).join(', ');
+      // Show month range or list
+      const monthsArr = Array.from(group.months).sort((a, b) => a - b);
+      let monthsStr = '';
+      if (monthsArr.length === 12 && monthsArr[0] === 1 && monthsArr[11] === 12) {
+        monthsStr = 'months 1–12';
+      } else if (monthsArr.length > 1) {
+        monthsStr = `months ${monthsArr[0]}–${monthsArr[monthsArr.length - 1]}`;
+      } else {
+        monthsStr = `month ${monthsArr[0]}`;
+      }
+      const officesStr = Array.from(group.offices).join(', ');
+      leverSummaries.push(`${leverLabel} for levels ${levelsStr} set to ${percent} for ${monthsStr} in ${officesStr}`);
     });
     if (leverSummaries.length > 0) {
       setLastAppliedSummary(leverSummaries);
@@ -774,31 +1084,48 @@ export default function SimulationLab() {
     }
   };
 
-  const handleReset = () => {
-    // Reset levers to default values
-    setLevers(getDefaultLevers());
-    // Clear ALL simulation results and state
-    setSimulationResults(null);
-    setBaselineResults(null);
-    setResult(null);
-    setConfig(null);
-    setShowConfig(false);
-    // Clear applied summary
-    setLastAppliedSummary(null);
-    // Reset form to default values
-    setFormVals({
-      start_year: 2025,
-      start_month: 1,
-      end_year: 2026,
-      end_month: 12,
-      price_increase: 0.03,
-      salary_increase: 0.03,
-      unplanned_absence: 0.05,
-      hy_working_hours: 998.4,
-      other_expense: 100000,
-    });
-    // Show success message
-    message.success('Simulation reset to original configuration');
+  const handleReset = async () => {
+    try {
+      // Reset levers to default values
+      setLevers(getDefaultLevers());
+      // Clear ALL simulation results and state
+      setSimulationResults(null);
+      setBaselineResults(null);
+      setResult(null);
+      setConfig(null);
+      setShowConfig(false);
+      // Clear applied summary
+      setLastAppliedSummary(null);
+      // Reset form to default values
+      setFormVals({
+        duration_value: 24, // Duration amount
+        duration_unit: 'months', // 'months' or 'years'
+        price_increase: 3.0, // 3% as percentage
+        salary_increase: 3.0, // 3% as percentage
+        unplanned_absence: 5.0, // 5% as percentage
+        hy_working_hours: 166.4, // Monthly working hours
+        other_expense: 100000,
+      });
+      
+      // Reload the original config data from backend to reset backend state
+      const res = await fetch('/api/offices/config');
+      if (res.ok) {
+        const configData = await res.json();
+        setConfigOffices(configData);
+        setOriginalConfigOffices(configData);
+        // Load the fresh config data into levers
+        loadImportedData(configData);
+        console.log('[DEBUG] Reset: Reloaded original config data from backend');
+      } else {
+        console.error('Failed to reload config data during reset');
+      }
+      
+      // Show success message
+      message.success('Simulation reset to original configuration');
+    } catch (error) {
+      console.error('Error during reset:', error);
+      message.error('Failed to reset simulation');
+    }
   };
 
   // Add debug log before transforming results
@@ -816,72 +1143,260 @@ export default function SimulationLab() {
     ? configOffices.find((o: any) => o.name === selectedConfigOffice)
     : null;
 
-  // After simulationResults are set, calculate KPIs
-  const financialKPIs = simulationResults && formVals && originalConfigOffices && originalConfigOffices.length > 0 ? calculateFinancialKPIs({
-    offices: simulationResults.offices,
-    unplannedAbsence: formVals.unplanned_absence,
-    hyWorkingHours: formVals.hy_working_hours,
-    otherExpense: formVals.other_expense,
-    baseline: originalConfigOffices
-  }) : null;
+  // Simulation duration calculation for reference
+  const simulationDurationMonths = formVals ? 
+    (formVals.duration_unit === 'years' ? formVals.duration_value * 12 : formVals.duration_value) : 1;
+
+  // After simulationResults are set, use KPIs from backend
+  const backendKPIs = simulationResults?.kpis || null;
+
+  // Use backend KPIs if available, otherwise fall back to frontend calculation
+  const aggregatedKPIs = backendKPIs ? {
+    journeyTotals: backendKPIs.journeys?.journey_totals || {} as Record<string, number>,
+    totalJourney: Object.values(backendKPIs.journeys?.journey_totals || {}).reduce((a, b) => (a as number) + (b as number), 0) as number,
+    overallNonDebitRatio: backendKPIs.growth?.non_debit_ratio || null as number | null,
+    totalConsultants: backendKPIs.financial?.total_consultants || 0 as number,
+    totalNonConsultants: (backendKPIs.growth?.current_total_fte || 0) - (backendKPIs.financial?.total_consultants || 0) as number,
+    nonDebitDelta: backendKPIs.growth?.non_debit_delta || null as number | null,
+    totalGrowth: backendKPIs.growth?.total_growth_absolute || null as number | null,
+    totalGrowthPercent: backendKPIs.growth?.total_growth_percent || null as number | null,
+    baselineTotalFTE: backendKPIs.growth?.baseline_total_fte || null as number | null,
+    totalFTE: backendKPIs.growth?.current_total_fte || 0 as number
+  } : getAggregatedKPIs();
+
+  // Helper to get lever value for matrix
+  const getMatrixLeverValue = (office: string, level: string, lever: string, month: number) => {
+    const source = matrixDraftLevers || levers;
+    return source?.[office]?.[level]?.[`${lever}_${month}`] ?? '';
+  };
+
+  // Helper to get default value for highlighting
+  const getMatrixDefaultValue = (level: string, lever: string, month: number) => {
+    if (lever === 'recruitment') return level === 'A' ? 0.025 : 0.015;
+    if (lever === 'churn') return 0.014;
+    if (lever === 'progression') return (month === 5 || month === 11) ? 0.08 : 0.0;
+    if (lever === 'utr') return 0.9;
+    return '';
+  };
+
+  // Handler for cell edit
+  const handleMatrixCellChange = (level: string, lever: string, value: number) => {
+    setMatrixDraftLevers(prev => {
+      const draft = prev ? { ...prev } : JSON.parse(JSON.stringify(levers));
+      if (!draft[matrixOffice]) draft[matrixOffice] = {};
+      if (!draft[matrixOffice][level]) draft[matrixOffice][level] = {};
+      draft[matrixOffice][level][`${lever}_${matrixMonth}`] = value;
+      return draft;
+    });
+  };
+
+  // Handler for Apply
+  const handleMatrixApply = () => {
+    if (matrixDraftLevers) {
+      setLevers(matrixDraftLevers);
+      setMatrixDraftLevers(null);
+      message.success('Levers updated for this office/month.');
+    }
+  };
+
+  // Handler for Reset
+  const handleMatrixReset = () => {
+    setMatrixDraftLevers(null);
+    message.info('Draft changes discarded.');
+  };
+
+  // Lever matrix columns
+  const leverMatrixColumns = LEVERS.map(lv => ({
+    title: lv.label,
+    dataIndex: lv.key,
+    key: lv.key,
+    render: (_: any, row: any) => {
+      const value = getMatrixLeverValue(matrixOffice, row.level, lv.key, matrixMonth);
+      const defaultValue = getMatrixDefaultValue(row.level, lv.key, matrixMonth);
+      const changed = value !== '' && value !== undefined && value !== null && Number(value) !== defaultValue;
+      return (
+        <InputNumber
+          min={0}
+          max={lv.key === 'utr' ? 1 : 1}
+          step={0.001}
+          value={value === '' ? undefined : Number(value)}
+          onChange={(v: string | number | null) => {
+            let num = typeof v === 'string' ? parseFloat(v) : v;
+            if (num === null || isNaN(Number(num))) num = 0;
+            handleMatrixCellChange(row.level, lv.key, Number(num));
+          }}
+          style={{ width: 80, background: changed ? '#ffe58f' : undefined }}
+          formatter={(val: string | number | undefined) => val !== undefined ? (lv.key === 'utr' ? `${(Number(val) * 100).toFixed(1)}%` : `${(Number(val) * 100).toFixed(1)}%`) : ''}
+          parser={(str: string | undefined) => {
+            if (!str) return '';
+            const num = Number(str.replace('%', ''));
+            return isNaN(num) ? '' : num / 100;
+          }}
+        />
+      );
+    }
+  }));
+
+  // Lever matrix data
+  const leverMatrixData = LEVELS.map(level => ({ key: level, level }));
+
+  // Compute the effective monthly rate if yearly or half-year is selected
+  let effectiveMonthlyRate = leverValue / 100;
+  let helperText = '';
+  if (selectedTimePeriod === 'yearly') {
+    effectiveMonthlyRate = getMonthlyRateFromCumulative(leverValue / 100, 12);
+    helperText = `Yearly: ${leverValue}% → Monthly: ${(effectiveMonthlyRate * 100).toFixed(2)}% (applied to all 12 months)`;
+  } else if (selectedTimePeriod === 'half-year') {
+    effectiveMonthlyRate = getMonthlyRateFromCumulative(leverValue / 100, 6);
+    helperText = `Half Year: ${leverValue}% → Monthly: ${(effectiveMonthlyRate * 100).toFixed(2)}% (applied to 6 months)`;
+  } else {
+    helperText = `Monthly: ${leverValue}%`;
+  }
 
   return (
     <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
       {/* Lever Manipulation Panel - always at the top */}
       <Row gutter={16} align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <span>Lever: </span>
-          <Select value={selectedLever} onChange={setSelectedLever} style={{ width: 130 }}>
+          <span>Levers: </span>
+          <Select
+            mode="multiple"
+            value={selectedLevers}
+            onChange={setSelectedLevers}
+            style={{ width: 180 }}
+          >
             {LEVERS.map(l => <Option key={l.key} value={l.key}>{l.label}</Option>)}
           </Select>
         </Col>
         <Col>
-          <span>Month: </span>
-          <Select value={selectedMonth} onChange={setSelectedMonth} style={{ width: 120 }}>
-            {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.value}</Option>)}
-          </Select>
-        </Col>
-        <Col>
-          <span>Level: </span>
-          <Select value={selectedLevel} onChange={setSelectedLevel} style={{ width: 90 }}>
-            {LEVELS.map(lv => <Option key={lv} value={lv}>{lv}</Option>)}
-          </Select>
-        </Col>
-        <Col>
-          <span>Offices: </span>
+          <span>Levels: </span>
           <Select
             mode="multiple"
-            value={selectedOffices}
-            onChange={setSelectedOffices}
-            style={{ minWidth: 200 }}
-            placeholder="Select offices"
+            value={selectedLevels}
+            onChange={setSelectedLevels}
+            style={{ width: 180 }}
           >
-            {OFFICES.map(ofc => <Option key={ofc} value={ofc}>{ofc}</Option>)}
+            {LEVELS.map(lv => <Option key={lv} value={lv}>{lv}</Option>)}
           </Select>
         </Col>
         <Col>
           <span>Value: </span>
           <InputNumber
             min={0}
-            max={selectedLever === 'utr' ? 1 : 1}
-            step={0.01}
+            max={selectedLevers.includes('utr') ? 100 : 100}
+            step={0.1}
             value={leverValue}
             onChange={v => setLeverValue(v ?? 0)}
             style={{ width: 90 }}
+            suffix="%"
           />
+          <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>{helperText}</div>
         </Col>
+      </Row>
+
+      {/* Time Period Selection Row */}
+      <Row gutter={16} align="middle" style={{ marginBottom: 16 }}>
+        <Col>
+          <span>Time Period: </span>
+          <Select value={selectedTimePeriod} onChange={setSelectedTimePeriod} style={{ width: 120 }}>
+            {TIME_PERIODS.map(tp => <Option key={tp.value} value={tp.value}>{tp.label}</Option>)}
+          </Select>
+        </Col>
+        {selectedTimePeriod === 'monthly' && (
+          <Col>
+            <span>Month: </span>
+            <Select value={selectedMonth} onChange={setSelectedMonth} style={{ width: 120 }}>
+              {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.value}</Option>)}
+            </Select>
+          </Col>
+        )}
+        {selectedTimePeriod === 'half-year' && (
+          <Col>
+            <span>Reference Month: </span>
+            <Select value={selectedMonth} onChange={setSelectedMonth} style={{ width: 120 }}>
+              {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.value}</Option>)}
+            </Select>
+            <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+              ({selectedMonth <= 6 ? 'First half (Jan-Jun)' : 'Second half (Jul-Dec)'})
+            </Text>
+          </Col>
+        )}
+        {selectedTimePeriod === 'monthly' && (
+          <Col>
+            <Checkbox
+              checked={applyToAllMonths}
+              onChange={e => setApplyToAllMonths(e.target.checked)}
+            >
+              Apply to all months
+            </Checkbox>
+          </Col>
+        )}
+      </Row>
+
+      {/* Office Selection Row */}
+      <Row gutter={16} align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Checkbox
-            checked={applyToAllMonths}
-            onChange={e => setApplyToAllMonths(e.target.checked)}
+            checked={applyToAllOffices}
+            onChange={e => {
+              setApplyToAllOffices(e.target.checked);
+              if (e.target.checked) {
+                setSelectedOfficeJourney('');
+                setSelectedOffices([]);
+              }
+            }}
           >
-            Apply to all months
+            Apply to all offices
           </Checkbox>
         </Col>
+        {!applyToAllOffices && (
+          <>
+            <Col>
+              <span>Office Journey: </span>
+              <Select
+                value={selectedOfficeJourney}
+                onChange={(value) => {
+                  setSelectedOfficeJourney(value);
+                  if (value) setSelectedOffices([]);
+                }}
+                style={{ width: 200 }}
+                placeholder="Select journey type"
+                allowClear
+              >
+                {OFFICE_JOURNEYS.map(oj => <Option key={oj.value} value={oj.value}>{oj.label}</Option>)}
+              </Select>
+            </Col>
+            {!selectedOfficeJourney && (
+              <Col>
+                <span>Specific Offices: </span>
+                <Select
+                  mode="multiple"
+                  value={selectedOffices}
+                  onChange={setSelectedOffices}
+                  style={{ minWidth: 200 }}
+                  placeholder="Select offices"
+                >
+                  {OFFICES.map(ofc => <Option key={ofc} value={ofc}>{ofc}</Option>)}
+                </Select>
+              </Col>
+            )}
+          </>
+        )}
+      </Row>
+
+      {/* Action Buttons Row */}
+      <Row gutter={16} align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Button type="primary" onClick={handleApply}>Apply</Button>
         </Col>
+        <Col>
+          <Button onClick={() => loadImportedData(configOffices)}>Load Config Data</Button>
+        </Col>
+        <Col>
+          <Button onClick={handleReset}>Reset</Button>
+        </Col>
       </Row>
+
       {lastAppliedSummary && (
         <div style={{ marginBottom: 16, fontWeight: 500, color: '#096dd9' }}>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
@@ -902,46 +1417,35 @@ export default function SimulationLab() {
       >
         <Row gutter={16}>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Form.Item label="Start Year" name="start_year" rules={[{ required: true }]}> 
-              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+            <Form.Item label="Simulation Duration" name="duration_value" rules={[{ required: true }]}> 
+              <InputNumber min={1} max={120} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Form.Item label="Start Month" name="start_month" rules={[{ required: true }]}> 
+            <Form.Item label="Duration Unit" name="duration_unit" rules={[{ required: true }]}> 
               <Select>
-                {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Form.Item label="End Year" name="end_year" rules={[{ required: true }]}> 
-              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Form.Item label="End Month" name="end_month" rules={[{ required: true }]}> 
-              <Select>
-                {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
+                <Option value="months">Months</Option>
+                <Option value="years">Years</Option>
               </Select>
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Form.Item label="Price Increase (%)" name="price_increase" rules={[{ required: true }]}> 
-              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+              <InputNumber min={0} max={100} step={0.1} style={{ width: '100%' }} suffix="%" />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Form.Item label="Salary Increase (%)" name="salary_increase" rules={[{ required: true }]}> 
-              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+              <InputNumber min={0} max={100} step={0.1} style={{ width: '100%' }} suffix="%" />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Form.Item label="Unplanned Absence (%)" name="unplanned_absence" rules={[{ required: true }]}> 
-              <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+              <InputNumber min={0} max={100} step={0.1} style={{ width: '100%' }} suffix="%" />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Form.Item label="HY Working Hours" name="hy_working_hours" rules={[{ required: true }]}> 
+            <Form.Item label="Monthly Working Hours" name="hy_working_hours" rules={[{ required: true }]}> 
               <InputNumber min={0} max={2000} step={0.1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -982,7 +1486,8 @@ export default function SimulationLab() {
         <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
           {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => {
             // Calculate percentage and delta
-            const percent = aggregatedKPIs.totalJourney > 0 ? ((value / aggregatedKPIs.totalJourney) * 100) : 0;
+            const numValue = Number(value);
+            const percent = aggregatedKPIs.totalJourney > 0 ? ((numValue / aggregatedKPIs.totalJourney) * 100) : 0;
             // Find delta: percentage change from previous period (if available)
             let delta = null;
             if (result && result.offices) {
@@ -1048,8 +1553,8 @@ export default function SimulationLab() {
                   }}
                 >
                   <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 2, color: '#40a9ff' }}>{percent.toFixed(1)}%</div>
-                  <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>{value}</div>
-                  {delta !== null && Math.abs(delta) > 0.01 && (
+                  <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>{numValue}</div>
+                  {delta !== null && delta !== undefined && Math.abs(delta) > 0.01 && (
                     <div style={{ fontSize: 18, fontWeight: 500, color: deltaColor }}>
                       Δ {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
                     </div>
@@ -1082,7 +1587,7 @@ export default function SimulationLab() {
                 <div>
                   <Text style={{ color: '#bfbfbf', fontSize: 12 }}>Non-Debit Ratio</Text>
                   <div style={{ fontWeight: 700, fontSize: 22, color: '#fff', lineHeight: 1 }}>
-                    {aggregatedKPIs.overallNonDebitRatio !== null ? aggregatedKPIs.overallNonDebitRatio.toFixed(2) : 'N/A'}
+                    {aggregatedKPIs.overallNonDebitRatio !== null && aggregatedKPIs.overallNonDebitRatio !== undefined ? `${aggregatedKPIs.overallNonDebitRatio.toFixed(1)}%` : 'N/A'}
                   </div>
                   {/* Show absolute numbers */}
                   <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
@@ -1092,30 +1597,74 @@ export default function SimulationLab() {
                     Sales+Rec+Ops: {aggregatedKPIs.totalNonConsultants || 0}
                   </div>
                   {/* Show delta if available */}
-                  {aggregatedKPIs.nonDebitDelta !== null && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
+                  {aggregatedKPIs.nonDebitDelta !== null && aggregatedKPIs.nonDebitDelta !== undefined && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
                     <div style={{ fontSize: 11, fontWeight: 500, color: aggregatedKPIs.nonDebitDelta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {aggregatedKPIs.nonDebitDelta > 0 ? '+' : ''}{aggregatedKPIs.nonDebitDelta.toFixed(2)}
+                      Δ {aggregatedKPIs.nonDebitDelta > 0 ? '+' : ''}{aggregatedKPIs.nonDebitDelta.toFixed(1)}%
                     </div>
                   )}
                 </div>
               </div>
             </Card>
           </Col>
-          {/* Financial KPIs */}
-          {financialKPIs && (
+          {/* Total Growth for Period KPI */}
+          <Col xs={24} sm={12} md={6} key="total-growth">
+            <Card
+              bordered={false}
+              style={{
+                background: '#1f1f1f',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
+                borderRadius: 12,
+                minHeight: 80,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                padding: 16,
+              }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                <div>
+                  <Text style={{ color: '#bfbfbf', fontSize: 12 }}>Total Growth for Period</Text>
+                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff', lineHeight: 1 }}>
+                    {aggregatedKPIs.totalGrowthPercent !== null && aggregatedKPIs.totalGrowthPercent !== undefined ? `${aggregatedKPIs.totalGrowthPercent > 0 ? '+' : ''}${aggregatedKPIs.totalGrowthPercent.toFixed(1)}%` : 'N/A'}
+                  </div>
+                  {/* Show absolute numbers */}
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
+                    Current: {aggregatedKPIs.totalFTE || 0} FTE
+                  </div>
+                  <div style={{ fontSize: 11, color: '#aaa' }}>
+                    Baseline: {aggregatedKPIs.baselineTotalFTE || 0} FTE
+                  </div>
+                  {/* Show absolute growth */}
+                  {aggregatedKPIs.totalGrowth !== null && aggregatedKPIs.totalGrowth !== undefined && (
+                    <div style={{ fontSize: 11, fontWeight: 500, color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : aggregatedKPIs.totalGrowth < 0 ? '#ff4d4f' : '#aaa', marginTop: 2 }}>
+                      {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth} FTE
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </Col>
+          {/* Financial KPIs - Using Backend Data */}
+          {backendKPIs && backendKPIs.financial && (
             <>
               <Col xs={24} sm={12} md={6} key="net-sales">
                 <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
                   <div style={{ fontSize: 12, color: '#bfbfbf' }}>Net Sales</div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.netSales.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                  {financialKPIs.baseline && (
+                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
+                    {backendKPIs.financial.current_net_sales !== null && backendKPIs.financial.current_net_sales !== undefined ? 
+                      backendKPIs.financial.current_net_sales.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A'}
+                  </div>
+                  {backendKPIs.financial.baseline_net_sales !== null && backendKPIs.financial.baseline_net_sales !== undefined && (
                     <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {financialKPIs.baseline.netSales.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      Baseline: {backendKPIs.financial.baseline_net_sales.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   )}
-                  {financialKPIs.deltas && Math.abs(financialKPIs.deltas.netSales) > 1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: financialKPIs.deltas.netSales > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {financialKPIs.deltas.netSales > 0 ? '+' : ''}{financialKPIs.deltas.netSales.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {backendKPIs.financial.net_sales_delta !== null && backendKPIs.financial.net_sales_delta !== undefined && Math.abs(backendKPIs.financial.net_sales_delta) > 1 && (
+                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.net_sales_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
+                      Δ {backendKPIs.financial.net_sales_delta > 0 ? '+' : ''}{backendKPIs.financial.net_sales_delta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   )}
                 </Card>
@@ -1123,15 +1672,18 @@ export default function SimulationLab() {
               <Col xs={24} sm={12} md={6} key="ebitda">
                 <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
                   <div style={{ fontSize: 12, color: '#bfbfbf' }}>EBITDA</div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>{financialKPIs.ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                  {financialKPIs.baseline && (
+                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
+                    {backendKPIs.financial.current_ebitda !== null && backendKPIs.financial.current_ebitda !== undefined ? 
+                      backendKPIs.financial.current_ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A'}
+                  </div>
+                  {backendKPIs.financial.baseline_ebitda !== null && backendKPIs.financial.baseline_ebitda !== undefined && (
                     <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {financialKPIs.baseline.ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      Baseline: {backendKPIs.financial.baseline_ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   )}
-                  {financialKPIs.deltas && Math.abs(financialKPIs.deltas.ebitda) > 1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: financialKPIs.deltas.ebitda > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {financialKPIs.deltas.ebitda > 0 ? '+' : ''}{financialKPIs.deltas.ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {backendKPIs.financial.ebitda_delta !== null && backendKPIs.financial.ebitda_delta !== undefined && Math.abs(backendKPIs.financial.ebitda_delta) > 1 && (
+                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.ebitda_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
+                      Δ {backendKPIs.financial.ebitda_delta > 0 ? '+' : ''}{backendKPIs.financial.ebitda_delta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   )}
                 </Card>
@@ -1140,16 +1692,17 @@ export default function SimulationLab() {
                 <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
                   <div style={{ fontSize: 12, color: '#bfbfbf' }}>Margin</div>
                   <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
-                    {financialKPIs.margin.toFixed(1)}%
+                    {backendKPIs.financial.current_margin !== null && backendKPIs.financial.current_margin !== undefined ? 
+                      `${backendKPIs.financial.current_margin.toFixed(1)}%` : 'N/A'}
                   </div>
-                  {financialKPIs.baseline && (
+                  {backendKPIs.financial.baseline_margin !== null && backendKPIs.financial.baseline_margin !== undefined && (
                     <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {financialKPIs.baseline.margin.toFixed(1)}%
+                      Baseline: {backendKPIs.financial.baseline_margin.toFixed(1)}%
                     </div>
                   )}
-                  {financialKPIs.deltas && Math.abs(financialKPIs.deltas.margin) > 0.1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: financialKPIs.deltas.margin > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {financialKPIs.deltas.margin > 0 ? '+' : ''}{financialKPIs.deltas.margin.toFixed(1)}%
+                  {backendKPIs.financial.margin_delta !== null && backendKPIs.financial.margin_delta !== undefined && Math.abs(backendKPIs.financial.margin_delta) > 0.1 && (
+                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.margin_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
+                      Δ {backendKPIs.financial.margin_delta > 0 ? '+' : ''}{backendKPIs.financial.margin_delta.toFixed(1)}%
                     </div>
                   )}
                 </Card>
@@ -1300,6 +1853,57 @@ export default function SimulationLab() {
           </pre>
         </Card>
       )}
+
+      {/* Levers Table (Matrix) */}
+      <Tabs defaultActiveKey="main" items={[{
+        key: 'main',
+        label: 'Simulation',
+        children: (
+          <>
+            {/* Existing content */}
+          </>
+        )
+      }, {
+        key: 'levers',
+        label: 'Levers Table',
+        children: (
+          <Card title={<span>Levers Table (Matrix)</span>} style={{ marginBottom: 24 }}>
+            <Row gutter={16} align="middle" style={{ marginBottom: 16 }}>
+              <Col>
+                <span>Office: </span>
+                <Select value={matrixOffice} onChange={setMatrixOffice} style={{ width: 180 }}>
+                  {OFFICES.map(ofc => <Option key={ofc} value={ofc}>{ofc}</Option>)}
+                </Select>
+              </Col>
+              <Col>
+                <span>Month: </span>
+                <Select value={matrixMonth} onChange={setMatrixMonth} style={{ width: 120 }}>
+                  {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
+                </Select>
+              </Col>
+              <Col>
+                <Button type="primary" onClick={handleMatrixApply} disabled={!matrixDraftLevers}>Apply</Button>
+              </Col>
+              <Col>
+                <Button onClick={handleMatrixReset} disabled={!matrixDraftLevers}>Reset</Button>
+              </Col>
+            </Row>
+            <Table
+              columns={[
+                { title: 'Level', dataIndex: 'level', key: 'level' },
+                ...leverMatrixColumns
+              ]}
+              dataSource={leverMatrixData}
+              pagination={false}
+              size="small"
+              bordered
+            />
+            <div style={{ marginTop: 12, color: '#888', fontSize: 13 }}>
+              <span>Yellow cells = changed from default. Values are in percent (e.g., 0.08 = 8%).</span>
+            </div>
+          </Card>
+        )
+      }]} />
     </Card>
   );
 } 

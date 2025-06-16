@@ -88,21 +88,31 @@ const LEVER_KEYS = [
 export default function Configuration() {
   const [offices, setOffices] = useState<string[]>([]);
   const [selectedOffice, setSelectedOffice] = useState<string>('');
-  const [rolesData, setRolesData] = useState<any>({});
+  const [officeData, setOfficeData] = useState<any>({});
   const { setLevers } = useConfig();
   const [loading, setLoading] = useState(false);
 
   const fetchOffices = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/offices');
-      const data = await res.json();
-      setRolesData(data);
+      const response = await fetch('/api/offices/config');
+      const data = await response.json();
+      
+      setOffices(data.map((office: any) => office.name));
+      if (data.length > 0) {
+        setSelectedOffice(data[0].name);
+      }
+      
+      // Convert to office data structure
+      const officeMap: any = {};
+      data.forEach((office: any) => {
+        officeMap[office.name] = office;
+      });
+      setOfficeData(officeMap);
       setLevers(data);
-      setOffices(data.map((o: any) => o.name));
-      setSelectedOffice(data[0]?.name || '');
-    } catch (err) {
-      message.error('Failed to fetch offices');
+    } catch (error) {
+      console.error('Failed to fetch offices:', error);
+      message.error('Failed to load office data');
     }
     setLoading(false);
   };
@@ -111,155 +121,176 @@ export default function Configuration() {
     fetchOffices();
   }, []);
 
-  // New table columns - showing only first 3 months for better UX
+  // Generate table data similar to Simulation page
+  const getTableData = () => {
+    if (!selectedOffice || !officeData[selectedOffice]) {
+      return [];
+    }
+
+    const office = officeData[selectedOffice];
+    const rows: any[] = [];
+
+    // Add roles with levels (Consultant, Sales, Recruitment)
+    ['Consultant', 'Sales', 'Recruitment'].forEach(roleName => {
+      const roleData = office.roles[roleName];
+      if (!roleData) return;
+
+      // Parent row for role
+      const roleRow: any = {
+        key: roleName,
+        role: roleName,
+        level: null,
+        fte: Object.values(roleData).reduce((sum: number, level: any) => sum + (level.total || 0), 0),
+        children: []
+      };
+
+      // Child rows for levels
+      Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+        if (levelData.total > 0) {
+          roleRow.children.push({
+            key: `${roleName}-${levelName}`,
+            role: roleName,
+            level: levelName,
+            fte: levelData.total,
+            // Monthly data (showing sample months)
+            price_1: levelData.price_1,
+            price_2: levelData.price_2,
+            price_3: levelData.price_3,
+            salary_1: levelData.salary_1,
+            salary_2: levelData.salary_2,
+            salary_3: levelData.salary_3,
+            recruitment_1: levelData.recruitment_1,
+            recruitment_2: levelData.recruitment_2,
+            recruitment_3: levelData.recruitment_3,
+            churn_1: levelData.churn_1,
+            churn_2: levelData.churn_2,
+            churn_3: levelData.churn_3,
+            progression_1: levelData.progression_1,
+            progression_2: levelData.progression_2,
+            progression_3: levelData.progression_3,
+          });
+        }
+      });
+
+      if (roleRow.children.length > 0) {
+        rows.push(roleRow);
+      }
+    });
+
+    // Add Operations (flat role)
+    if (office.roles.Operations && office.roles.Operations.total > 0) {
+      rows.push({
+        key: 'Operations',
+        role: 'Operations',
+        level: null,
+        fte: office.roles.Operations.total,
+        price_1: office.roles.Operations.price_1,
+        price_2: office.roles.Operations.price_2,
+        price_3: office.roles.Operations.price_3,
+        salary_1: office.roles.Operations.salary_1,
+        salary_2: office.roles.Operations.salary_2,
+        salary_3: office.roles.Operations.salary_3,
+        recruitment_1: office.roles.Operations.recruitment_1,
+        recruitment_2: office.roles.Operations.recruitment_2,
+        recruitment_3: office.roles.Operations.recruitment_3,
+        churn_1: office.roles.Operations.churn_1,
+        churn_2: office.roles.Operations.churn_2,
+        churn_3: office.roles.Operations.churn_3,
+        progression_1: office.roles.Operations.progression_1,
+        progression_2: office.roles.Operations.progression_2,
+        progression_3: office.roles.Operations.progression_3,
+      });
+    }
+
+    return rows;
+  };
+
+  // Table columns similar to Simulation page
   const columns = [
     {
-      title: 'Role',
-      dataIndex: 'role',
+      title: 'Role / Level',
       key: 'role',
-      render: (text: string, row: any) => (
-        <span>{row.level ? '' : row.role}</span>
+      width: 150,
+      render: (text: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: record.level ? 'normal' : 'bold' }}>
+            {record.level ? `${record.level}` : record.role}
+          </div>
+          {record.level && <Text type="secondary" style={{ fontSize: '12px' }}>{record.role}</Text>}
+        </div>
       ),
     },
     {
-      title: 'Level',
-      dataIndex: 'level',
-      key: 'level',
-      render: (text: string) => text || '-',
-    },
-    {
-      title: 'Total FTE',
+      title: 'FTE',
       dataIndex: 'fte',
       key: 'fte',
-      render: (text: any, row: any) => {
-        if (row.level) {
-          // Child row: show FTE for this level
-          return row.total ?? row.fte ?? 0;
-        } else if (row.children && row.children.length > 0) {
-          // Parent row: sum FTEs of all children
-          return row.children.reduce((sum: number, child: any) => sum + (child.total ?? child.fte ?? 0), 0);
-        } else {
-          // Flat role (Operations)
-          return row.total ?? row.fte ?? 0;
-        }
-      },
+      width: 80,
+      render: (val: number) => val?.toFixed(0) || '0',
     },
-    // Show a sample of monthly data (Jan-Mar)
-    { title: 'Price Jan', dataIndex: 'price_1', key: 'price_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Price Feb', dataIndex: 'price_2', key: 'price_2', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Price Mar', dataIndex: 'price_3', key: 'price_3', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Salary Jan', dataIndex: 'salary_1', key: 'salary_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Salary Feb', dataIndex: 'salary_2', key: 'salary_2', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Salary Mar', dataIndex: 'salary_3', key: 'salary_3', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Recruit Jan', dataIndex: 'recruitment_1', key: 'recruitment_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Churn Jan', dataIndex: 'churn_1', key: 'churn_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'Progress Jan', dataIndex: 'progression_1', key: 'progression_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
-    { title: 'UTR Jan', dataIndex: 'utr_1', key: 'utr_1', render: (val: any) => val ? Number(val).toFixed(2) : '-' },
+    {
+      title: 'Price (Jan)',
+      dataIndex: 'price_1',
+      key: 'price_1',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Price (Feb)',
+      dataIndex: 'price_2',
+      key: 'price_2',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Price (Mar)',
+      dataIndex: 'price_3',
+      key: 'price_3',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Salary (Jan)',
+      dataIndex: 'salary_1',
+      key: 'salary_1',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Salary (Feb)',
+      dataIndex: 'salary_2',
+      key: 'salary_2',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Salary (Mar)',
+      dataIndex: 'salary_3',
+      key: 'salary_3',
+      width: 100,
+      render: (val: number) => val ? `${val.toFixed(0)} SEK` : '-',
+    },
+    {
+      title: 'Recruitment (Jan)',
+      dataIndex: 'recruitment_1',
+      key: 'recruitment_1',
+      width: 120,
+      render: (val: number) => val ? `${(val * 100).toFixed(1)}%` : '-',
+    },
+    {
+      title: 'Churn (Jan)',
+      dataIndex: 'churn_1',
+      key: 'churn_1',
+      width: 100,
+      render: (val: number) => val ? `${(val * 100).toFixed(1)}%` : '-',
+    },
+    {
+      title: 'Progression (Jan)',
+      dataIndex: 'progression_1',
+      key: 'progression_1',
+      width: 120,
+      render: (val: number) => val ? `${(val * 100).toFixed(1)}%` : '-',
+    },
   ];
-
-  // New data transformation for table
-  const getTableData = () => {
-    if (!selectedOffice || !rolesData || !Array.isArray(rolesData)) return [];
-    const office = rolesData.find((o: any) => o.name === selectedOffice);
-    if (!office || !office.roles) return [];
-    let rows: any[] = [];
-    ROLES.forEach(role => {
-      const roleData = office.roles[role];
-      if (roleData) {
-        if (ROLES_WITH_LEVELS.includes(role)) {
-          // Role with levels
-          const children = LEVELS.map(level => {
-            const data = roleData[level] || {};
-            // Prepare monthly data for display
-            const monthlyData: any = {};
-            for (let i = 1; i <= 12; i++) {
-              monthlyData[`price_${i}`] = data[`price_${i}`] ?? data[`_${i}`] ?? 0;
-              monthlyData[`salary_${i}`] = data[`salary_${i}`] ?? 0;
-              monthlyData[`recruitment_${i}`] = data[`recruitment_${i}`] ?? 0;
-              monthlyData[`churn_${i}`] = data[`churn_${i}`] ?? 0;
-              monthlyData[`progression_${i}`] = data[`progression_${i}`] ?? 0;
-              monthlyData[`utr_${i}`] = data[`utr_${i}`] ?? 0;
-            }
-            return {
-              key: `${role}-${level}`,
-              role,
-              level,
-              total: data.total ?? 0,
-              ...monthlyData,
-            };
-          });
-
-          rows.push({
-            key: role,
-            role,
-            children,
-          });
-        } else {
-          // Flat role (Operations)
-          const data = roleData || {};
-          const monthlyData: any = {};
-          for (let i = 1; i <= 12; i++) {
-            monthlyData[`price_${i}`] = data[`price_${i}`] ?? data[`_${i}`] ?? 0;
-            monthlyData[`salary_${i}`] = data[`salary_${i}`] ?? 0;
-            monthlyData[`recruitment_${i}`] = data[`recruitment_${i}`] ?? 0;
-            monthlyData[`churn_${i}`] = data[`churn_${i}`] ?? 0;
-            monthlyData[`progression_${i}`] = data[`progression_${i}`] ?? 0;
-            monthlyData[`utr_${i}`] = data[`utr_${i}`] ?? 0;
-          }
-          rows.push({
-            key: role,
-            role,
-            total: data.total ?? 0,
-            ...monthlyData,
-          });
-        }
-      } else {
-        // Role missing in backend, show as zero
-        if (ROLES_WITH_LEVELS.includes(role)) {
-          const children = LEVELS.map(level => {
-            const monthlyData: any = {};
-            for (let i = 1; i <= 12; i++) {
-              monthlyData[`price_${i}`] = 0;
-              monthlyData[`salary_${i}`] = 0;
-              monthlyData[`recruitment_${i}`] = 0;
-              monthlyData[`churn_${i}`] = 0;
-              monthlyData[`progression_${i}`] = 0;
-              monthlyData[`utr_${i}`] = 0;
-            }
-            return {
-              key: `${role}-${level}`,
-              role,
-              level,
-              total: 0,
-              ...monthlyData,
-            };
-          });
-          rows.push({
-            key: role,
-            role,
-            children,
-          });
-        } else {
-          const monthlyData: any = {};
-          for (let i = 1; i <= 12; i++) {
-            monthlyData[`price_${i}`] = 0;
-            monthlyData[`salary_${i}`] = 0;
-            monthlyData[`recruitment_${i}`] = 0;
-            monthlyData[`churn_${i}`] = 0;
-            monthlyData[`progression_${i}`] = 0;
-            monthlyData[`utr_${i}`] = 0;
-          }
-          rows.push({
-            key: role,
-            role,
-            total: 0,
-            ...monthlyData,
-          });
-        }
-      }
-    });
-    return rows;
-  };
 
   const uploadProps = {
     name: 'file',
@@ -275,7 +306,7 @@ export default function Configuration() {
         });
         if (!res.ok) throw new Error('Upload failed');
         message.success('Office config imported successfully!');
-        fetchOffices();
+        fetchOffices(); // Refetch data after import
       } catch (err: any) {
         message.error('Import failed: ' + err.message);
       }
@@ -293,10 +324,11 @@ export default function Configuration() {
           </Upload>
         </Col>
       </Row>
-      {/* Office Lever Table */}
+      
+      {/* Office Configuration Table */}
       <Card style={{ marginBottom: 24 }}>
         <Row align="middle" gutter={16} style={{ marginBottom: 16 }}>
-          <Col><Title level={5} style={{ margin: 0 }}>Office Levers (Monthly Data - Showing Jan-Mar Sample)</Title></Col>
+          <Col><Title level={5} style={{ margin: 0 }}>Office Configuration (Sample: Jan-Mar)</Title></Col>
           <Col>
             <Select value={selectedOffice} onChange={setSelectedOffice} style={{ width: 200 }}>
               {offices.map(office => <Option key={office} value={office}>{office}</Option>)}
@@ -307,9 +339,12 @@ export default function Configuration() {
           columns={columns}
           dataSource={getTableData()}
           pagination={false}
-          rowKey={row => row.key}
+          rowKey={record => record.key}
           size="small"
-          expandable={{ defaultExpandAllRows: true }}
+          expandable={{ 
+            defaultExpandAllRows: true,
+            indentSize: 20
+          }}
           scroll={{ x: 1200 }}
         />
         <Text type="secondary" style={{ marginTop: 8, display: 'block' }}>
