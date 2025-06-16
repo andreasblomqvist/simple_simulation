@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox, Tabs, Statistic, Divider, Progress } from 'antd';
+import { Card, Row, Col, Typography, Table, Progress, Space, Statistic, Tag, Select, Button, Divider, Form, Input, InputNumber, Switch, Tooltip, theme, message, Checkbox, Spin, Tabs } from 'antd';
+import { UserOutlined, RiseOutlined, TrophyOutlined, TeamOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, FundOutlined, PercentageOutlined, PieChartOutlined, LineChartOutlined } from '@ant-design/icons';
 import { useConfig } from '../components/ConfigContext';
 import MCPChatWidget from '../components/MCPChatWidget';
-import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined, DollarOutlined, TrophyOutlined, ArrowUpOutlined, FundOutlined, ArrowDownOutlined, LineChartOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -585,6 +585,8 @@ export default function SimulationLab() {
   const [matrixMonth, setMatrixMonth] = useState(1);
   const [matrixEditing, setMatrixEditing] = useState<null | { level: string, lever: string }>(null);
   const [matrixDraftLevers, setMatrixDraftLevers] = useState<LeversState | null>(null);
+  const { token } = theme.useToken();
+  const isDarkMode = token.colorBgContainer === '#141414'; // Ant Design's dark mode background color
 
   // Fetch config on mount
   useEffect(() => {
@@ -1490,7 +1492,7 @@ export default function SimulationLab() {
             Key Performance Indicators
           </Title>
           
-          {/* Financial KPIs Section - Enhanced Dashboard Style */}
+          {/* Financial KPIs Section - Enhanced with colored backgrounds */}
           {backendKPIs && backendKPIs.financial && (
             <>
               <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>
@@ -1502,190 +1504,225 @@ export default function SimulationLab() {
                   <Card 
                     size="small" 
                     style={{ 
-                      background: 'var(--ant-layout-body-background)',
-                      border: '1px solid var(--ant-border-color-base)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                      background: isDarkMode ? '#18191c' : '#fafafa',
+                      border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                      borderRadius: '8px'
                     }}
                   >
                     <Statistic
                       title={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 500 }}>Net Sales</span>
-                          {backendKPIs.financial.net_sales_delta && Math.abs(backendKPIs.financial.net_sales_delta) > 1 && (
-                            <Tag 
-                              color={backendKPIs.financial.net_sales_delta > 0 ? 'green' : 'red'}
-                              style={{ margin: 0, fontSize: 11 }}
-                            >
-                              {backendKPIs.financial.net_sales_delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                              {((Math.abs(backendKPIs.financial.net_sales_delta) / (backendKPIs.financial.baseline_net_sales || 1)) * 100).toFixed(1)}%
-                            </Tag>
-                          )}
+                          <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>Net Sales</span>
+                          {backendKPIs.financial.baseline_net_sales && (() => {
+                            const delta = backendKPIs.financial.current_net_sales - backendKPIs.financial.baseline_net_sales;
+                            const deltaPercent = (delta / backendKPIs.financial.baseline_net_sales) * 100;
+                            if (Math.abs(deltaPercent) > 0.1) {
+                              return (
+                                <Tag 
+                                  color={delta > 0 ? 'green' : 'red'}
+                                  style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
+                                >
+                                  {delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                                  {Math.abs(deltaPercent).toFixed(1)}%
+                                </Tag>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       }
-                      value={(backendKPIs.financial.current_net_sales || 0) / 1000000}
-                      precision={1}
-                      suffix="M SEK"
-                      valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 600 }}
-                      prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
+                      value={backendKPIs.financial.current_net_sales || 0}
+                      precision={0}
+                      prefix={<DollarOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
+                      suffix="SEK"
+                      valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
                     />
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 8,
-                      paddingTop: 8,
-                      borderTop: '1px solid var(--ant-border-color-split)'
-                    }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>
-                          {((backendKPIs.financial.baseline_net_sales || 0) / 1000000).toFixed(1)}M
+                    {backendKPIs.financial.baseline_net_sales && (
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
+                      }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
+                          <div style={{ fontSize: 14, fontWeight: 500 }}>
+                            {(backendKPIs.financial.baseline_net_sales / 1000000).toFixed(1)}M
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Change</div>
+                          <div style={{ 
+                            fontSize: 14, 
+                            fontWeight: 600,
+                            color: (backendKPIs.financial.current_net_sales - backendKPIs.financial.baseline_net_sales) > 0 ? '#389e0d' : '#cf1322'
+                          }}>
+                            {((backendKPIs.financial.current_net_sales - backendKPIs.financial.baseline_net_sales) / 1000000).toFixed(1)}M
+                          </div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Change</div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: backendKPIs.financial.net_sales_delta > 0 ? '#52c41a' : '#ff4d4f' }}>
-                          {backendKPIs.financial.net_sales_delta > 0 ? '+' : ''}{((backendKPIs.financial.net_sales_delta || 0) / 1000000).toFixed(1)}M
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </Card>
                 </Col>
+
                 <Col xs={24} sm={8} md={6}>
                   <Card 
                     size="small" 
                     style={{ 
-                      background: 'var(--ant-layout-body-background)',
-                      border: '1px solid var(--ant-border-color-base)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                      background: isDarkMode ? '#18191c' : '#fafafa',
+                      border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                      borderRadius: '8px'
                     }}
                   >
                     <Statistic
                       title={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 500 }}>EBITDA</span>
-                          {backendKPIs.financial.ebitda_delta && Math.abs(backendKPIs.financial.ebitda_delta) > 1 && (
-                            <Tag 
-                              color={backendKPIs.financial.ebitda_delta > 0 ? 'green' : 'red'}
-                              style={{ margin: 0, fontSize: 11 }}
-                            >
-                              {backendKPIs.financial.ebitda_delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                              {((Math.abs(backendKPIs.financial.ebitda_delta) / (backendKPIs.financial.baseline_ebitda || 1)) * 100).toFixed(1)}%
-                            </Tag>
-                          )}
+                          <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>EBITDA</span>
+                          {backendKPIs.financial.baseline_ebitda && (() => {
+                            const delta = backendKPIs.financial.current_ebitda - backendKPIs.financial.baseline_ebitda;
+                            const deltaPercent = (delta / Math.abs(backendKPIs.financial.baseline_ebitda)) * 100;
+                            if (Math.abs(deltaPercent) > 0.1) {
+                              return (
+                                <Tag 
+                                  color={delta > 0 ? 'green' : 'red'}
+                                  style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
+                                >
+                                  {delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                                  {Math.abs(deltaPercent).toFixed(1)}%
+                                </Tag>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       }
-                      value={(backendKPIs.financial.current_ebitda || 0) / 1000000}
-                      precision={1}
-                      suffix="M SEK"
-                      valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 600 }}
-                      prefix={<FundOutlined style={{ color: '#1890ff' }} />}
+                      value={backendKPIs.financial.current_ebitda || 0}
+                      precision={0}
+                      prefix={<FundOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
+                      suffix="SEK"
+                      valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
                     />
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 8,
-                      paddingTop: 8,
-                      borderTop: '1px solid var(--ant-border-color-split)'
-                    }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>
-                          {((backendKPIs.financial.baseline_ebitda || 0) / 1000000).toFixed(1)}M
+                    {backendKPIs.financial.baseline_ebitda && (
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
+                      }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
+                          <div style={{ fontSize: 14, fontWeight: 500 }}>
+                            {(backendKPIs.financial.baseline_ebitda / 1000000).toFixed(1)}M
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Change</div>
+                          <div style={{ 
+                            fontSize: 14, 
+                            fontWeight: 600,
+                            color: (backendKPIs.financial.current_ebitda - backendKPIs.financial.baseline_ebitda) > 0 ? '#389e0d' : '#cf1322'
+                          }}>
+                            {((backendKPIs.financial.current_ebitda - backendKPIs.financial.baseline_ebitda) / 1000000).toFixed(1)}M
+                          </div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Change</div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: backendKPIs.financial.ebitda_delta > 0 ? '#52c41a' : '#ff4d4f' }}>
-                          {backendKPIs.financial.ebitda_delta > 0 ? '+' : ''}{((backendKPIs.financial.ebitda_delta || 0) / 1000000).toFixed(1)}M
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </Card>
                 </Col>
+
                 <Col xs={24} sm={8} md={6}>
                   <Card 
                     size="small" 
                     style={{ 
-                      background: 'var(--ant-layout-body-background)',
-                      border: '1px solid var(--ant-border-color-base)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                      background: isDarkMode ? '#18191c' : '#fafafa',
+                      border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                      borderRadius: '8px'
                     }}
                   >
                     <Statistic
                       title={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 500 }}>Margin</span>
-                          {backendKPIs.financial.margin_delta && Math.abs(backendKPIs.financial.margin_delta) > 0.1 && (
-                            <Tag 
-                              color={backendKPIs.financial.margin_delta > 0 ? 'green' : 'red'}
-                              style={{ margin: 0, fontSize: 11 }}
-                            >
-                              {backendKPIs.financial.margin_delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                              {Math.abs(backendKPIs.financial.margin_delta).toFixed(1)}pp
-                            </Tag>
-                          )}
+                          <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>Margin</span>
+                          {backendKPIs.financial.baseline_margin && (() => {
+                            const delta = backendKPIs.financial.current_margin - backendKPIs.financial.baseline_margin;
+                            if (Math.abs(delta) > 0.05) {
+                              return (
+                                <Tag 
+                                  color={delta > 0 ? 'green' : 'red'}
+                                  style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
+                                >
+                                  {delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                                  {Math.abs(delta).toFixed(1)}pp
+                                </Tag>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       }
                       value={backendKPIs.financial.current_margin || 0}
                       precision={1}
+                      prefix={<PercentageOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
                       suffix="%"
-                      valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 600 }}
-                      prefix={<PercentageOutlined style={{ color: '#fa8c16' }} />}
+                      valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
                     />
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 8,
-                      paddingTop: 8,
-                      borderTop: '1px solid var(--ant-border-color-split)'
-                    }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>
-                          {(backendKPIs.financial.baseline_margin || 0).toFixed(1)}%
+                    {backendKPIs.financial.baseline_margin && (
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
+                      }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
+                          <div style={{ fontSize: 14, fontWeight: 500 }}>
+                            {backendKPIs.financial.baseline_margin.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>Target</div>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: '#389e0d' }}>
+                            20.0%
+                          </div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Target</div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: '#52c41a' }}>
-                          20.0%
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </Card>
                 </Col>
               </Row>
-              <Divider />
             </>
           )}
-          
-          {/* Growth & Headcount KPIs Section - Enhanced Indicator Dashboard Style */}
+
+          {/* Growth & Headcount KPIs Section - Enhanced with colored backgrounds */}
           <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>
             <RiseOutlined style={{ marginRight: 8 }} />
             Growth & Headcount Performance
           </Title>
           <Row gutter={[24, 16]} style={{ marginBottom: 32 }}>
-            {/* Total Growth with Historical Chart */}
+            {/* Total Growth */}
             <Col xs={24} sm={12} md={8}>
               <Card 
                 size="small" 
                 style={{ 
-                  background: 'var(--ant-layout-body-background)',
-                  border: '1px solid var(--ant-border-color-base)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  background: isDarkMode ? '#18191c' : '#fafafa',
+                  border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                  borderRadius: '8px'
                 }}
               >
                 <Statistic
                   title={
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 500 }}>Total Growth</span>
-                      {aggregatedKPIs.totalGrowthPercent !== undefined && Math.abs(aggregatedKPIs.totalGrowthPercent) > 0.1 && (
+                      <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>Total Growth</span>
+                      {aggregatedKPIs.totalGrowthPercent && Math.abs(aggregatedKPIs.totalGrowthPercent) > 0.1 && (
                         <Tag 
                           color={aggregatedKPIs.totalGrowthPercent > 0 ? 'green' : 'red'}
-                          style={{ margin: 0, fontSize: 11 }}
+                          style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
                         >
                           {aggregatedKPIs.totalGrowthPercent > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                           {Math.abs(aggregatedKPIs.totalGrowthPercent).toFixed(1)}%
@@ -1696,12 +1733,8 @@ export default function SimulationLab() {
                   value={aggregatedKPIs.totalGrowthPercent || 0}
                   precision={1}
                   suffix="%"
-                  valueStyle={{ 
-                    color: aggregatedKPIs.totalGrowthPercent > 0 ? '#52c41a' : '#ff4d4f',
-                    fontSize: '24px',
-                    fontWeight: 600
-                  }}
-                  prefix={<RiseOutlined style={{ color: aggregatedKPIs.totalGrowthPercent > 0 ? '#52c41a' : '#ff4d4f' }} />}
+                  valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
+                  prefix={<ArrowUpOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
                 />
                 
                 {/* Sub metrics */}
@@ -1711,111 +1744,39 @@ export default function SimulationLab() {
                   alignItems: 'center',
                   marginTop: 8,
                   paddingTop: 8,
-                  borderTop: '1px solid var(--ant-border-color-split)'
+                  borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
                 }}>
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 12, color: '#8c8c8c' }}>Current FTE</div>
                     <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalFTE || 0}</div>
                   </div>
                   
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Growth</div>
-                    <div style={{ 
-                      fontSize: 14, 
-                      fontWeight: 500,
-                      color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : '#ff4d4f'
-                    }}>
-                      {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth || 0}
-                    </div>
-                  </div>
-                  
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.baselineTotalFTE || 0}</div>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Growth</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>+{aggregatedKPIs.totalGrowth || 0}</div>
                   </div>
                 </div>
-                
-                {/* Historical trend visualization for total FTE growth */}
-                {result && result.offices && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
-                    <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
-                      Total FTE Trend (last 6 periods)
-                    </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      height: 20, 
-                      alignItems: 'end',
-                      gap: 1
-                    }}>
-                      {(() => {
-                        const periods = result.periods || [];
-                        const startIdx = Math.max(0, periods.length - 6);
-                        const historyData = [];
-                        
-                        for (let i = startIdx; i < periods.length; i++) {
-                          let periodTotal = 0;
-                          Object.values(result.offices).forEach((officeData: any) => {
-                            // Sum all roles for total FTE
-                            if (officeData.levels) {
-                              Object.values(officeData.levels).forEach((roleData: any) => {
-                                if (typeof roleData === 'object') {
-                                  Object.values(roleData).forEach((levelData: any) => {
-                                    if (Array.isArray(levelData) && levelData[i]) {
-                                      periodTotal += levelData[i].total || 0;
-                                    }
-                                  });
-                                }
-                              });
-                            }
-                            // Add operations
-                            if (officeData.operations && Array.isArray(officeData.operations) && officeData.operations[i]) {
-                              periodTotal += officeData.operations[i].total || 0;
-                            }
-                          });
-                          historyData.push(periodTotal);
-                        }
-                        
-                        const maxVal = Math.max(...historyData);
-                        return historyData.map((val, idx) => {
-                          const height = maxVal > 0 ? (val / maxVal) * 18 : 2;
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                flex: 1,
-                                height: `${height}px`,
-                                backgroundColor: idx === historyData.length - 1 ? '#52c41a' : '#d9d9d9',
-                                borderRadius: '1px',
-                                opacity: idx === historyData.length - 1 ? 1 : 0.6
-                              }}
-                            />
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
               </Card>
             </Col>
-            
+
             {/* Non-Debit Ratio */}
             <Col xs={24} sm={12} md={8}>
               <Card 
                 size="small" 
                 style={{ 
-                  background: 'var(--ant-layout-body-background)',
-                  border: '1px solid var(--ant-border-color-base)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  background: isDarkMode ? '#18191c' : '#fafafa',
+                  border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                  borderRadius: '8px'
                 }}
               >
                 <Statistic
                   title={
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 500 }}>Non-Debit Ratio</span>
+                      <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>Non-Debit Ratio</span>
                       {aggregatedKPIs.nonDebitDelta && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
                         <Tag 
-                          color={aggregatedKPIs.nonDebitDelta > 0 ? 'red' : 'green'}  // Inverted: lower is better
-                          style={{ margin: 0, fontSize: 11 }}
+                          color={aggregatedKPIs.nonDebitDelta > 0 ? 'red' : 'green'}
+                          style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
                         >
                           {aggregatedKPIs.nonDebitDelta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                           {Math.abs(aggregatedKPIs.nonDebitDelta).toFixed(1)}pp
@@ -1826,8 +1787,8 @@ export default function SimulationLab() {
                   value={aggregatedKPIs.overallNonDebitRatio || 0}
                   precision={1}
                   suffix="%"
-                  valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 600 }}
-                  prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
+                  valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
+                  prefix={<TeamOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
                 />
                 
                 {/* Sub metrics */}
@@ -1837,7 +1798,7 @@ export default function SimulationLab() {
                   alignItems: 'center',
                   marginTop: 8,
                   paddingTop: 8,
-                  borderTop: '1px solid var(--ant-border-color-split)'
+                  borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
                 }}>
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 12, color: '#8c8c8c' }}>Consultants</div>
@@ -1849,22 +1810,6 @@ export default function SimulationLab() {
                     <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalNonConsultants || 0}</div>
                   </div>
                 </div>
-                
-                {/* Progress bar for ratio visualization */}
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
-                  <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
-                    Ratio Balance (Target: 15-20%)
-                  </div>
-                  <Progress 
-                    percent={Math.min(aggregatedKPIs.overallNonDebitRatio || 0, 30)} 
-                    showInfo={false}
-                    strokeColor={
-                      (aggregatedKPIs.overallNonDebitRatio || 0) > 20 ? '#ff4d4f' : 
-                      (aggregatedKPIs.overallNonDebitRatio || 0) < 15 ? '#fa8c16' : '#52c41a'
-                    }
-                    trailColor="var(--ant-border-color-split)"
-                  />
-                </div>
               </Card>
             </Col>
             
@@ -1873,15 +1818,15 @@ export default function SimulationLab() {
               <Card 
                 size="small" 
                 style={{ 
-                  background: 'var(--ant-layout-body-background)',
-                  border: '1px solid var(--ant-border-color-base)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  background: isDarkMode ? '#18191c' : '#fafafa',
+                  border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8',
+                  borderRadius: '8px'
                 }}
               >
                 <Statistic
                   title={
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 500 }}>Consultant Growth</span>
+                      <span style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#262626' }}>Consultant Growth</span>
                       {(() => {
                         const consultantGrowth = ((aggregatedKPIs.totalConsultants || 0) / ((aggregatedKPIs.totalFTE || 1) - (aggregatedKPIs.totalGrowth || 0)) * 100) - 
                                                ((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100);
@@ -1889,7 +1834,7 @@ export default function SimulationLab() {
                           return (
                             <Tag 
                               color={consultantGrowth > 0 ? 'green' : 'red'}
-                              style={{ margin: 0, fontSize: 11 }}
+                              style={{ margin: 0, fontSize: 11, borderRadius: '12px' }}
                             >
                               {consultantGrowth > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                               {Math.abs(consultantGrowth).toFixed(1)}%
@@ -1903,8 +1848,8 @@ export default function SimulationLab() {
                   value={((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100)}
                   precision={1}
                   suffix="%"
-                  valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 600 }}
-                  prefix={<UserOutlined style={{ color: '#1890ff' }} />}
+                  valueStyle={{ color: isDarkMode ? '#fff' : '#262626', fontSize: '24px', fontWeight: 600 }}
+                  prefix={<UserOutlined style={{ color: isDarkMode ? '#fff' : '#595959' }} />}
                 />
                 
                 {/* Sub metrics */}
@@ -1914,7 +1859,7 @@ export default function SimulationLab() {
                   alignItems: 'center',
                   marginTop: 8,
                   paddingTop: 8,
-                  borderTop: '1px solid var(--ant-border-color-split)'
+                  borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
                 }}>
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 12, color: '#8c8c8c' }}>Current</div>
@@ -1927,19 +1872,6 @@ export default function SimulationLab() {
                       {((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100).toFixed(1)}%
                     </div>
                   </div>
-                </div>
-                
-                {/* Mini trend for consultant percentage */}
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
-                  <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
-                    Consultant Ratio Trend
-                  </div>
-                  <div style={{ 
-                    height: 4, 
-                    background: 'linear-gradient(90deg, #1890ff 0%, #52c41a 100%)',
-                    borderRadius: 2,
-                    opacity: 0.7
-                  }} />
                 </div>
               </Card>
             </Col>
@@ -1958,7 +1890,6 @@ export default function SimulationLab() {
               
               // Enhanced delta calculation with better error handling
               let delta = null;
-              let historyData = [];
               
               if (result && result.offices) {
                 const offices = result.offices;
@@ -1969,26 +1900,6 @@ export default function SimulationLab() {
                 // Debug logging for Journey 4
                 if (journey === 'Journey 4') {
                   console.log(`[DEBUG] Journey 4 delta calc: periods=${periods.length}, currentIdx=${currentIdx}, prevIdx=${prevIdx}`);
-                }
-                
-                // Build history data for mini chart (last 6 periods)
-                const startIdx = Math.max(0, periods.length - 6);
-                for (let i = startIdx; i <= currentIdx; i++) {
-                  let periodTotal = 0;
-                  Object.values(offices).forEach((officeData: any) => {
-                    if (officeData.journeys && officeData.journeys[journey]) {
-                      const journeyArray = officeData.journeys[journey];
-                      if (journeyArray && Array.isArray(journeyArray) && i < journeyArray.length && journeyArray[i]) {
-                        periodTotal += journeyArray[i].total || 0;
-                      }
-                    }
-                  });
-                  historyData.push(periodTotal);
-                  
-                  // Debug logging for Journey 4
-                  if (journey === 'Journey 4') {
-                    console.log(`[DEBUG] Journey 4 period ${i}: total=${periodTotal}`);
-                  }
                 }
                 
                 // Calculate delta for trend indicator with improved error handling
@@ -2057,23 +1968,29 @@ export default function SimulationLab() {
               
               return (
                 <Col xs={24} sm={12} md={6} key={journey}>
-                  <Card 
-                    size="small" 
-                    style={{ 
-                      background: 'var(--ant-layout-body-background)',
-                      border: '1px solid var(--ant-border-color-base)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  <Card
+                    size="small"
+                    style={{
+                      background: isDarkMode ? '#18191c' : '#fafafa',
+                      borderRadius: '8px',
+                      border: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
                     }}
                   >
                     {/* Main Statistic */}
                     <Statistic
                       title={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 500 }}>{journey}</span>
+                          <span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : '#262626', fontSize: '14px' }}>
+                            {journey}
+                          </span>
                           {delta !== null && Math.abs(delta) > 0.01 && (
-                            <Tag 
-                              color={delta > 0 ? 'green' : 'red'}
-                              style={{ margin: 0, fontSize: 11 }}
+                            <Tag
+                              color="green"
+                              style={{
+                                margin: 0,
+                                fontSize: 11,
+                                borderRadius: '12px'
+                              }}
                             >
                               {delta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                               {Math.abs(delta).toFixed(1)}%
@@ -2084,72 +2001,61 @@ export default function SimulationLab() {
                       value={percent}
                       precision={1}
                       suffix="%"
-                      valueStyle={{ 
-                        fontSize: '24px', 
-                        fontWeight: 600,
-                        color: getJourneyColor(journey)
+                      valueStyle={{
+                        fontSize: '28px',
+                        fontWeight: 'bold',
+                        color: isDarkMode ? '#fff' : '#262626'
                       }}
-                      prefix={getJourneyIcon(journey)}
+                      prefix={
+                        <span style={{ color: isDarkMode ? '#fff' : '#595959' }}>
+                          {getJourneyIcon(journey)}
+                        </span>
+                      }
                     />
                     
                     {/* Sub metrics */}
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginTop: 8,
-                      paddingTop: 8,
-                      borderTop: '1px solid var(--ant-border-color-split)'
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTop: isDarkMode ? '1px solid #222' : '1px solid #e8e8e8'
                     }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Current FTE</div>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>{numValue}</div>
+                      <div style={{
+                        fontSize: 12,
+                        color: '#8c8c8c',
+                        fontWeight: '500'
+                      }}>
+                        Current FTE
                       </div>
-                      
-                      {/* Mini trend indicator / Progress bar for distribution */}
+                      <div style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: isDarkMode ? '#fff' : '#262626'
+                      }}>
+                        {numValue}
+                      </div>
+                      {/* Enhanced progress indicator */}
                       <div style={{ textAlign: 'right', minWidth: 60 }}>
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>Distribution</div>
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: '#8c8c8c',
+                          fontWeight: '500',
+                          marginBottom: 4
+                        }}>
+                          Distribution
+                        </div>
                         <Progress 
                           percent={percent} 
                           size="small" 
                           showInfo={false}
-                          strokeColor={getJourneyColor(journey)}
+                          strokeColor='#595959'
+                          trailColor='#f0f0f0'
                           style={{ width: 50 }}
                         />
                       </div>
                     </div>
-                    
-                    {/* Historical trend visualization (simplified) */}
-                    {historyData.length > 1 && (
-                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
-                        <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
-                          Trend (last {historyData.length} periods)
-                        </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          height: 20, 
-                          alignItems: 'end',
-                          gap: 1
-                        }}>
-                          {historyData.map((val, idx) => {
-                            const maxVal = Math.max(...historyData);
-                            const height = maxVal > 0 ? (val / maxVal) * 18 : 2;
-                            return (
-                              <div
-                                key={idx}
-                                style={{
-                                  flex: 1,
-                                  height: `${height}px`,
-                                  backgroundColor: idx === historyData.length - 1 ? getJourneyColor(journey) : '#d9d9d9',
-                                  borderRadius: '1px',
-                                  opacity: idx === historyData.length - 1 ? 1 : 0.6
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </Card>
                 </Col>
               );
