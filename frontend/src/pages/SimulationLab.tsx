@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox, Tabs, Statistic, Divider, Progress } from 'antd';
 import { useConfig } from '../components/ConfigContext';
+import MCPChatWidget from '../components/MCPChatWidget';
 import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined, DollarOutlined, TrophyOutlined, ArrowUpOutlined, FundOutlined, ArrowDownOutlined, LineChartOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -1661,64 +1662,285 @@ export default function SimulationLab() {
             </>
           )}
           
-          {/* Growth & Headcount KPIs Section */}
-          <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>Growth & Headcount</Title>
+          {/* Growth & Headcount KPIs Section - Enhanced Indicator Dashboard Style */}
+          <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>
+            <RiseOutlined style={{ marginRight: 8 }} />
+            Growth & Headcount Performance
+          </Title>
           <Row gutter={[24, 16]} style={{ marginBottom: 32 }}>
-            <Col xs={24} sm={8} md={6}>
-              <Card size="small" style={{ textAlign: 'center' }}>
+            {/* Total Growth with Historical Chart */}
+            <Col xs={24} sm={12} md={8}>
+              <Card 
+                size="small" 
+                style={{ 
+                  background: 'var(--ant-layout-body-background)',
+                  border: '1px solid var(--ant-border-color-base)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}
+              >
                 <Statistic
-                  title="Total Growth"
+                  title={
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 500 }}>Total Growth</span>
+                      {aggregatedKPIs.totalGrowthPercent !== undefined && Math.abs(aggregatedKPIs.totalGrowthPercent) > 0.1 && (
+                        <Tag 
+                          color={aggregatedKPIs.totalGrowthPercent > 0 ? 'green' : 'red'}
+                          style={{ margin: 0, fontSize: 11 }}
+                        >
+                          {aggregatedKPIs.totalGrowthPercent > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                          {Math.abs(aggregatedKPIs.totalGrowthPercent).toFixed(1)}%
+                        </Tag>
+                      )}
+                    </div>
+                  }
                   value={aggregatedKPIs.totalGrowthPercent || 0}
                   precision={1}
-                  prefix={<ArrowUpOutlined style={{ color: '#52c41a' }} />}
                   suffix="%"
                   valueStyle={{ 
                     color: aggregatedKPIs.totalGrowthPercent > 0 ? '#52c41a' : '#ff4d4f',
-                    fontSize: '20px'
+                    fontSize: '24px',
+                    fontWeight: 600
                   }}
+                  prefix={<RiseOutlined style={{ color: aggregatedKPIs.totalGrowthPercent > 0 ? '#52c41a' : '#ff4d4f' }} />}
                 />
-                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
-                  Current: {aggregatedKPIs.totalFTE || 0} FTE
+                
+                {/* Sub metrics */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 8,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--ant-border-color-split)'
+                }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Current FTE</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalFTE || 0}</div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Growth</div>
+                    <div style={{ 
+                      fontSize: 14, 
+                      fontWeight: 500,
+                      color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : '#ff4d4f'
+                    }}>
+                      {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth || 0}
+                    </div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Baseline</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.baselineTotalFTE || 0}</div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                  Baseline: {aggregatedKPIs.baselineTotalFTE || 0} FTE
-                </div>
-                {aggregatedKPIs.totalGrowth && (
-                  <div style={{ 
-                    fontSize: 12, 
-                    marginTop: 4,
-                    color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : '#ff4d4f'
-                  }}>
-                    {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth} FTE
+                
+                {/* Historical trend visualization for total FTE growth */}
+                {result && result.offices && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
+                    <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
+                      Total FTE Trend (last 6 periods)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      height: 20, 
+                      alignItems: 'end',
+                      gap: 1
+                    }}>
+                      {(() => {
+                        const periods = result.periods || [];
+                        const startIdx = Math.max(0, periods.length - 6);
+                        const historyData = [];
+                        
+                        for (let i = startIdx; i < periods.length; i++) {
+                          let periodTotal = 0;
+                          Object.values(result.offices).forEach((officeData: any) => {
+                            // Sum all roles for total FTE
+                            if (officeData.levels) {
+                              Object.values(officeData.levels).forEach((roleData: any) => {
+                                if (typeof roleData === 'object') {
+                                  Object.values(roleData).forEach((levelData: any) => {
+                                    if (Array.isArray(levelData) && levelData[i]) {
+                                      periodTotal += levelData[i].total || 0;
+                                    }
+                                  });
+                                }
+                              });
+                            }
+                            // Add operations
+                            if (officeData.operations && Array.isArray(officeData.operations) && officeData.operations[i]) {
+                              periodTotal += officeData.operations[i].total || 0;
+                            }
+                          });
+                          historyData.push(periodTotal);
+                        }
+                        
+                        const maxVal = Math.max(...historyData);
+                        return historyData.map((val, idx) => {
+                          const height = maxVal > 0 ? (val / maxVal) * 18 : 2;
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                flex: 1,
+                                height: `${height}px`,
+                                backgroundColor: idx === historyData.length - 1 ? '#52c41a' : '#d9d9d9',
+                                borderRadius: '1px',
+                                opacity: idx === historyData.length - 1 ? 1 : 0.6
+                              }}
+                            />
+                          );
+                        });
+                      })()}
+                    </div>
                   </div>
                 )}
               </Card>
             </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Card size="small" style={{ textAlign: 'center' }}>
+            
+            {/* Non-Debit Ratio */}
+            <Col xs={24} sm={12} md={8}>
+              <Card 
+                size="small" 
+                style={{ 
+                  background: 'var(--ant-layout-body-background)',
+                  border: '1px solid var(--ant-border-color-base)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}
+              >
                 <Statistic
-                  title="Non-Debit Ratio"
+                  title={
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 500 }}>Non-Debit Ratio</span>
+                      {aggregatedKPIs.nonDebitDelta && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
+                        <Tag 
+                          color={aggregatedKPIs.nonDebitDelta > 0 ? 'red' : 'green'}  // Inverted: lower is better
+                          style={{ margin: 0, fontSize: 11 }}
+                        >
+                          {aggregatedKPIs.nonDebitDelta > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                          {Math.abs(aggregatedKPIs.nonDebitDelta).toFixed(1)}pp
+                        </Tag>
+                      )}
+                    </div>
+                  }
                   value={aggregatedKPIs.overallNonDebitRatio || 0}
                   precision={1}
-                  prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
                   suffix="%"
-                  valueStyle={{ color: '#722ed1', fontSize: '20px' }}
+                  valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 600 }}
+                  prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
                 />
-                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
-                  Consultants: {aggregatedKPIs.totalConsultants || 0}
-                </div>
-                <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                  Sales+Rec+Ops: {aggregatedKPIs.totalNonConsultants || 0}
-                </div>
-                {aggregatedKPIs.nonDebitDelta && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
-                  <div style={{ 
-                    fontSize: 12, 
-                    marginTop: 4,
-                    color: aggregatedKPIs.nonDebitDelta > 0 ? '#ff4d4f' : '#52c41a' // Inverted colors as lower non-debit is better
-                  }}>
-                    {aggregatedKPIs.nonDebitDelta > 0 ? '↗' : '↘'} {Math.abs(aggregatedKPIs.nonDebitDelta).toFixed(1)}pp
+                
+                {/* Sub metrics */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 8,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--ant-border-color-split)'
+                }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Consultants</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalConsultants || 0}</div>
                   </div>
-                )}
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Support</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalNonConsultants || 0}</div>
+                  </div>
+                </div>
+                
+                {/* Progress bar for ratio visualization */}
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
+                    Ratio Balance (Target: 15-20%)
+                  </div>
+                  <Progress 
+                    percent={Math.min(aggregatedKPIs.overallNonDebitRatio || 0, 30)} 
+                    showInfo={false}
+                    strokeColor={
+                      (aggregatedKPIs.overallNonDebitRatio || 0) > 20 ? '#ff4d4f' : 
+                      (aggregatedKPIs.overallNonDebitRatio || 0) < 15 ? '#fa8c16' : '#52c41a'
+                    }
+                    trailColor="var(--ant-border-color-split)"
+                  />
+                </div>
+              </Card>
+            </Col>
+            
+            {/* Consultant Growth */}
+            <Col xs={24} sm={12} md={8}>
+              <Card 
+                size="small" 
+                style={{ 
+                  background: 'var(--ant-layout-body-background)',
+                  border: '1px solid var(--ant-border-color-base)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}
+              >
+                <Statistic
+                  title={
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 500 }}>Consultant Growth</span>
+                      {(() => {
+                        const consultantGrowth = ((aggregatedKPIs.totalConsultants || 0) / ((aggregatedKPIs.totalFTE || 1) - (aggregatedKPIs.totalGrowth || 0)) * 100) - 
+                                               ((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100);
+                        if (Math.abs(consultantGrowth) > 0.1) {
+                          return (
+                            <Tag 
+                              color={consultantGrowth > 0 ? 'green' : 'red'}
+                              style={{ margin: 0, fontSize: 11 }}
+                            >
+                              {consultantGrowth > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                              {Math.abs(consultantGrowth).toFixed(1)}%
+                            </Tag>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  }
+                  value={((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100)}
+                  precision={1}
+                  suffix="%"
+                  valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 600 }}
+                  prefix={<UserOutlined style={{ color: '#1890ff' }} />}
+                />
+                
+                {/* Sub metrics */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 8,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--ant-border-color-split)'
+                }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>Current</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{aggregatedKPIs.totalConsultants || 0}</div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>% of Total</div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>
+                      {((aggregatedKPIs.totalConsultants || 0) / (aggregatedKPIs.totalFTE || 1) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mini trend for consultant percentage */}
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--ant-border-color-split)' }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4 }}>
+                    Consultant Ratio Trend
+                  </div>
+                  <div style={{ 
+                    height: 4, 
+                    background: 'linear-gradient(90deg, #1890ff 0%, #52c41a 100%)',
+                    borderRadius: 2,
+                    opacity: 0.7
+                  }} />
+                </div>
               </Card>
             </Col>
           </Row>
@@ -2128,6 +2350,9 @@ export default function SimulationLab() {
           </Card>
         )
       }]} />
+      
+      {/* Global Chat Widget */}
+      <MCPChatWidget simulationData={result} />
     </Card>
   );
 } 
