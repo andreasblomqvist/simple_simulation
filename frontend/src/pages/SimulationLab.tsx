@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox, Tabs } from 'antd';
+import { Form, InputNumber, Select, Button, Card, Row, Col, Typography, Table, Tag, Spin, message, Space, Checkbox, Tabs, Statistic, Divider } from 'antd';
 import { useConfig } from '../components/ConfigContext';
-import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined } from '@ant-design/icons';
+import { TeamOutlined, PieChartOutlined, RiseOutlined, PercentageOutlined, UserOutlined, DollarOutlined, TrophyOutlined, ArrowUpOutlined, FundOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -1481,235 +1481,247 @@ export default function SimulationLab() {
         {error && <Text type="danger">{error}</Text>}
       </Form>
 
-      {/* KPI Cards - Modern Dashboard Style (now after the form, before the table) */}
+      {/* KPI Dashboard - Using Ant Design Statistic Components */}
       {aggregatedKPIs && (
-        <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
-          {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => {
-            // Calculate percentage and delta
-            const numValue = Number(value);
-            const percent = aggregatedKPIs.totalJourney > 0 ? ((numValue / aggregatedKPIs.totalJourney) * 100) : 0;
-            // Find delta: percentage change from previous period (if available)
-            let delta = null;
-            if (result && result.offices) {
-              const offices = result.offices;
-              const periods = result.periods || [];
-              const currentIdx = periods.length - 1;
-              const prevIdx = periods.length - 2;
-              
-              if (prevIdx >= 0 && currentIdx >= 0) {
-                let currentTotal = 0;
-                let prevTotal = 0;
-                
-                Object.values(offices).forEach((officeData: any) => {
-                  if (officeData.journeys && officeData.journeys[journey]) {
-                    const journeyArray = officeData.journeys[journey];
-                    if (journeyArray && Array.isArray(journeyArray)) {
-                      // Current period total
-                      if (journeyArray[currentIdx]) {
-                        currentTotal += journeyArray[currentIdx].total || 0;
-                      }
-                      // Previous period total
-                      if (journeyArray[prevIdx]) {
-                        prevTotal += journeyArray[prevIdx].total || 0;
-                      }
-                    }
-                  }
-                });
-                
-                // Calculate delta
-                if (prevTotal > 0) {
-                  delta = ((currentTotal - prevTotal) / prevTotal) * 100;
-                } else if (currentTotal > 0) {
-                  delta = 100; // 100% increase from 0
-                } else {
-                  delta = 0; // Both are 0
-                }
-                
-                // Debug logging
-                console.log(`[DEBUG] Journey ${journey}: Current=${currentTotal}, Previous=${prevTotal}, Delta=${delta}%`);
-              }
-            }
-            
-            let deltaColor = '#bfbfbf';
-            if (delta !== null) {
-              if (delta > 0) deltaColor = '#52c41a';
-              else if (delta < 0) deltaColor = '#ff4d4f';
-            }
-            return (
-              <Col xs={24} sm={12} md={6} key={journey}>
-                <Card
-                  bordered={false}
-                  style={{
-                    background: '#1f1f1f',
-                    color: '#fff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
-                    borderRadius: 12,
-                    minHeight: 80,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'flex-start',
-                    padding: 16,
-                  }}
-                >
-                  <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 2, color: '#40a9ff' }}>{percent.toFixed(1)}%</div>
-                  <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>{numValue}</div>
-                  {delta !== null && delta !== undefined && Math.abs(delta) > 0.01 && (
-                    <div style={{ fontSize: 18, fontWeight: 500, color: deltaColor }}>
-                      Δ {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
-                    </div>
-                  )}
-                  <div style={{ fontSize: 16, fontWeight: 400, marginTop: 4, color: '#aaa' }}>{journey}</div>
-                </Card>
-              </Col>
-            );
-          })}
-          {/* Non-Debit Ratio card in the same row */}
-          <Col xs={24} sm={12} md={6} key="non-debit-ratio">
-            <Card
-              bordered={false}
-              style={{
-                background: '#1f1f1f',
-                color: '#fff',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
-                borderRadius: 12,
-                minHeight: 80,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                padding: 16,
-              }}
-              bodyStyle={{ padding: 0 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                <PercentageOutlined style={{ fontSize: 20, color: '#ffa940', marginRight: 8 }} />
-                <div>
-                  <Text style={{ color: '#bfbfbf', fontSize: 12 }}>Non-Debit Ratio</Text>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff', lineHeight: 1 }}>
-                    {aggregatedKPIs.overallNonDebitRatio !== null && aggregatedKPIs.overallNonDebitRatio !== undefined ? `${aggregatedKPIs.overallNonDebitRatio.toFixed(1)}%` : 'N/A'}
-                  </div>
-                  {/* Show absolute numbers */}
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                    Consultants: {aggregatedKPIs.totalConsultants || 0}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#aaa' }}>
-                    Sales+Rec+Ops: {aggregatedKPIs.totalNonConsultants || 0}
-                  </div>
-                  {/* Show delta if available */}
-                  {aggregatedKPIs.nonDebitDelta !== null && aggregatedKPIs.nonDebitDelta !== undefined && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: aggregatedKPIs.nonDebitDelta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {aggregatedKPIs.nonDebitDelta > 0 ? '+' : ''}{aggregatedKPIs.nonDebitDelta.toFixed(1)}%
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </Col>
-          {/* Total Growth for Period KPI */}
-          <Col xs={24} sm={12} md={6} key="total-growth">
-            <Card
-              bordered={false}
-              style={{
-                background: '#1f1f1f',
-                color: '#fff',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
-                borderRadius: 12,
-                minHeight: 80,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                padding: 16,
-              }}
-              bodyStyle={{ padding: 0 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                <div>
-                  <Text style={{ color: '#bfbfbf', fontSize: 12 }}>Total Growth for Period</Text>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff', lineHeight: 1 }}>
-                    {aggregatedKPIs.totalGrowthPercent !== null && aggregatedKPIs.totalGrowthPercent !== undefined ? `${aggregatedKPIs.totalGrowthPercent > 0 ? '+' : ''}${aggregatedKPIs.totalGrowthPercent.toFixed(1)}%` : 'N/A'}
-                  </div>
-                  {/* Show absolute numbers */}
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                    Current: {aggregatedKPIs.totalFTE || 0} FTE
-                  </div>
-                  <div style={{ fontSize: 11, color: '#aaa' }}>
-                    Baseline: {aggregatedKPIs.baselineTotalFTE || 0} FTE
-                  </div>
-                  {/* Show absolute growth */}
-                  {aggregatedKPIs.totalGrowth !== null && aggregatedKPIs.totalGrowth !== undefined && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : aggregatedKPIs.totalGrowth < 0 ? '#ff4d4f' : '#aaa', marginTop: 2 }}>
-                      {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth} FTE
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </Col>
-          {/* Financial KPIs - Using Backend Data */}
+        <div style={{ marginBottom: 32 }}>
+          <Title level={4} style={{ marginBottom: 24, display: 'flex', alignItems: 'center' }}>
+            <PieChartOutlined style={{ marginRight: 8 }} />
+            Key Performance Indicators
+          </Title>
+          
+          {/* Financial KPIs Section */}
           {backendKPIs && backendKPIs.financial && (
             <>
-              <Col xs={24} sm={12} md={6} key="net-sales">
-                <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
-                  <div style={{ fontSize: 12, color: '#bfbfbf' }}>Net Sales</div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
-                    {backendKPIs.financial.current_net_sales !== null && backendKPIs.financial.current_net_sales !== undefined ? 
-                      backendKPIs.financial.current_net_sales.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A'}
-                  </div>
-                  {backendKPIs.financial.baseline_net_sales !== null && backendKPIs.financial.baseline_net_sales !== undefined && (
-                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {backendKPIs.financial.baseline_net_sales.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </div>
-                  )}
-                  {backendKPIs.financial.net_sales_delta !== null && backendKPIs.financial.net_sales_delta !== undefined && Math.abs(backendKPIs.financial.net_sales_delta) > 1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.net_sales_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {backendKPIs.financial.net_sales_delta > 0 ? '+' : ''}{backendKPIs.financial.net_sales_delta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </div>
-                  )}
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6} key="ebitda">
-                <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
-                  <div style={{ fontSize: 12, color: '#bfbfbf' }}>EBITDA</div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
-                    {backendKPIs.financial.current_ebitda !== null && backendKPIs.financial.current_ebitda !== undefined ? 
-                      backendKPIs.financial.current_ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 }) : 'N/A'}
-                  </div>
-                  {backendKPIs.financial.baseline_ebitda !== null && backendKPIs.financial.baseline_ebitda !== undefined && (
-                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {backendKPIs.financial.baseline_ebitda.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </div>
-                  )}
-                  {backendKPIs.financial.ebitda_delta !== null && backendKPIs.financial.ebitda_delta !== undefined && Math.abs(backendKPIs.financial.ebitda_delta) > 1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.ebitda_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {backendKPIs.financial.ebitda_delta > 0 ? '+' : ''}{backendKPIs.financial.ebitda_delta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </div>
-                  )}
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6} key="margin">
-                <Card bordered={false} style={{background: '#1f1f1f', color: '#fff', borderRadius: 12, minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 16}}>
-                  <div style={{ fontSize: 12, color: '#bfbfbf' }}>Margin</div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: '#fff' }}>
-                    {backendKPIs.financial.current_margin !== null && backendKPIs.financial.current_margin !== undefined ? 
-                      `${backendKPIs.financial.current_margin.toFixed(1)}%` : 'N/A'}
-                  </div>
-                  {backendKPIs.financial.baseline_margin !== null && backendKPIs.financial.baseline_margin !== undefined && (
-                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Baseline: {backendKPIs.financial.baseline_margin.toFixed(1)}%
-                    </div>
-                  )}
-                  {backendKPIs.financial.margin_delta !== null && backendKPIs.financial.margin_delta !== undefined && Math.abs(backendKPIs.financial.margin_delta) > 0.1 && (
-                    <div style={{ fontSize: 11, fontWeight: 500, color: backendKPIs.financial.margin_delta > 0 ? '#52c41a' : '#ff4d4f', marginTop: 2 }}>
-                      Δ {backendKPIs.financial.margin_delta > 0 ? '+' : ''}{backendKPIs.financial.margin_delta.toFixed(1)}%
-                    </div>
-                  )}
-                </Card>
-              </Col>
+              <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>Financial Performance</Title>
+              <Row gutter={[24, 16]} style={{ marginBottom: 32 }}>
+                <Col xs={24} sm={8} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="Net Sales"
+                      value={backendKPIs.financial.current_net_sales || 0}
+                      precision={0}
+                      prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
+                      suffix="SEK"
+                      valueStyle={{ color: '#52c41a', fontSize: '20px' }}
+                    />
+                    {backendKPIs.financial.baseline_net_sales && (
+                      <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                        Baseline: {backendKPIs.financial.baseline_net_sales.toLocaleString()} SEK
+                      </div>
+                    )}
+                    {backendKPIs.financial.net_sales_delta && Math.abs(backendKPIs.financial.net_sales_delta) > 1 && (
+                      <div style={{ 
+                        fontSize: 12, 
+                        marginTop: 4,
+                        color: backendKPIs.financial.net_sales_delta > 0 ? '#52c41a' : '#ff4d4f'
+                      }}>
+                        {backendKPIs.financial.net_sales_delta > 0 ? '↗' : '↘'} {Math.abs(backendKPIs.financial.net_sales_delta).toLocaleString()} SEK
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+                <Col xs={24} sm={8} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="EBITDA"
+                      value={backendKPIs.financial.current_ebitda || 0}
+                      precision={0}
+                      prefix={<FundOutlined style={{ color: '#1890ff' }} />}
+                      suffix="SEK"
+                      valueStyle={{ color: '#1890ff', fontSize: '20px' }}
+                    />
+                    {backendKPIs.financial.baseline_ebitda && (
+                      <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                        Baseline: {backendKPIs.financial.baseline_ebitda.toLocaleString()} SEK
+                      </div>
+                    )}
+                    {backendKPIs.financial.ebitda_delta && Math.abs(backendKPIs.financial.ebitda_delta) > 1 && (
+                      <div style={{ 
+                        fontSize: 12, 
+                        marginTop: 4,
+                        color: backendKPIs.financial.ebitda_delta > 0 ? '#52c41a' : '#ff4d4f'
+                      }}>
+                        {backendKPIs.financial.ebitda_delta > 0 ? '↗' : '↘'} {Math.abs(backendKPIs.financial.ebitda_delta).toLocaleString()} SEK
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+                <Col xs={24} sm={8} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="Margin"
+                      value={backendKPIs.financial.current_margin || 0}
+                      precision={1}
+                      prefix={<PercentageOutlined style={{ color: '#fa8c16' }} />}
+                      suffix="%"
+                      valueStyle={{ color: '#fa8c16', fontSize: '20px' }}
+                    />
+                    {backendKPIs.financial.baseline_margin && (
+                      <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                        Baseline: {backendKPIs.financial.baseline_margin.toFixed(1)}%
+                      </div>
+                    )}
+                    {backendKPIs.financial.margin_delta && Math.abs(backendKPIs.financial.margin_delta) > 0.1 && (
+                      <div style={{ 
+                        fontSize: 12, 
+                        marginTop: 4,
+                        color: backendKPIs.financial.margin_delta > 0 ? '#52c41a' : '#ff4d4f'
+                      }}>
+                        {backendKPIs.financial.margin_delta > 0 ? '↗' : '↘'} {Math.abs(backendKPIs.financial.margin_delta).toFixed(1)}pp
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+              </Row>
+              <Divider />
             </>
           )}
-        </Row>
+          
+          {/* Growth & Headcount KPIs Section */}
+          <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>Growth & Headcount</Title>
+          <Row gutter={[24, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8} md={6}>
+              <Card size="small" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="Total Growth"
+                  value={aggregatedKPIs.totalGrowthPercent || 0}
+                  precision={1}
+                  prefix={<ArrowUpOutlined style={{ color: '#52c41a' }} />}
+                  suffix="%"
+                  valueStyle={{ 
+                    color: aggregatedKPIs.totalGrowthPercent > 0 ? '#52c41a' : '#ff4d4f',
+                    fontSize: '20px'
+                  }}
+                />
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                  Current: {aggregatedKPIs.totalFTE || 0} FTE
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                  Baseline: {aggregatedKPIs.baselineTotalFTE || 0} FTE
+                </div>
+                {aggregatedKPIs.totalGrowth && (
+                  <div style={{ 
+                    fontSize: 12, 
+                    marginTop: 4,
+                    color: aggregatedKPIs.totalGrowth > 0 ? '#52c41a' : '#ff4d4f'
+                  }}>
+                    {aggregatedKPIs.totalGrowth > 0 ? '+' : ''}{aggregatedKPIs.totalGrowth} FTE
+                  </div>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <Card size="small" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="Non-Debit Ratio"
+                  value={aggregatedKPIs.overallNonDebitRatio || 0}
+                  precision={1}
+                  prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
+                  suffix="%"
+                  valueStyle={{ color: '#722ed1', fontSize: '20px' }}
+                />
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                  Consultants: {aggregatedKPIs.totalConsultants || 0}
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                  Sales+Rec+Ops: {aggregatedKPIs.totalNonConsultants || 0}
+                </div>
+                {aggregatedKPIs.nonDebitDelta && Math.abs(aggregatedKPIs.nonDebitDelta) > 0.01 && (
+                  <div style={{ 
+                    fontSize: 12, 
+                    marginTop: 4,
+                    color: aggregatedKPIs.nonDebitDelta > 0 ? '#ff4d4f' : '#52c41a' // Inverted colors as lower non-debit is better
+                  }}>
+                    {aggregatedKPIs.nonDebitDelta > 0 ? '↗' : '↘'} {Math.abs(aggregatedKPIs.nonDebitDelta).toFixed(1)}pp
+                  </div>
+                )}
+              </Card>
+            </Col>
+          </Row>
+          <Divider />
+          
+          {/* Journey Distribution Section */}
+          <Title level={5} style={{ marginBottom: 16, color: '#1890ff' }}>Career Journey Distribution</Title>
+          <Row gutter={[24, 16]} style={{ marginBottom: 16 }}>
+            {Object.entries(aggregatedKPIs.journeyTotals).map(([journey, value]) => {
+              const numValue = Number(value);
+              const percent = aggregatedKPIs.totalJourney > 0 ? ((numValue / aggregatedKPIs.totalJourney) * 100) : 0;
+              
+              // Calculate delta (same logic as before)
+              let delta = null;
+              if (result && result.offices) {
+                const offices = result.offices;
+                const periods = result.periods || [];
+                const currentIdx = periods.length - 1;
+                const prevIdx = periods.length - 2;
+                
+                if (prevIdx >= 0 && currentIdx >= 0) {
+                  let currentTotal = 0;
+                  let prevTotal = 0;
+                  
+                  Object.values(offices).forEach((officeData: any) => {
+                    if (officeData.journeys && officeData.journeys[journey]) {
+                      const journeyArray = officeData.journeys[journey];
+                      if (journeyArray && Array.isArray(journeyArray)) {
+                        if (journeyArray[currentIdx]) {
+                          currentTotal += journeyArray[currentIdx].total || 0;
+                        }
+                        if (journeyArray[prevIdx]) {
+                          prevTotal += journeyArray[prevIdx].total || 0;
+                        }
+                      }
+                    }
+                  });
+                  
+                  if (prevTotal > 0) {
+                    delta = ((currentTotal - prevTotal) / prevTotal) * 100;
+                  } else if (currentTotal > 0) {
+                    delta = 100;
+                  } else {
+                    delta = 0;
+                  }
+                }
+              }
+              
+              const getJourneyIcon = (journey: string) => {
+                switch (journey) {
+                  case 'Journey 1': return <UserOutlined style={{ color: '#52c41a' }} />;
+                  case 'Journey 2': return <RiseOutlined style={{ color: '#1890ff' }} />;
+                  case 'Journey 3': return <TrophyOutlined style={{ color: '#fa8c16' }} />;
+                  case 'Journey 4': return <TeamOutlined style={{ color: '#722ed1' }} />;
+                  default: return <UserOutlined style={{ color: '#8c8c8c' }} />;
+                }
+              };
+              
+              return (
+                <Col xs={24} sm={12} md={6} key={journey}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title={journey}
+                      value={percent}
+                      precision={1}
+                      prefix={getJourneyIcon(journey)}
+                      suffix="%"
+                      valueStyle={{ fontSize: '18px' }}
+                    />
+                    <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                      {numValue} FTE
+                    </div>
+                    {delta !== null && Math.abs(delta) > 0.01 && (
+                      <div style={{ 
+                        fontSize: 12, 
+                        marginTop: 4,
+                        color: delta > 0 ? '#52c41a' : '#ff4d4f'
+                      }}>
+                        {delta > 0 ? '↗' : '↘'} {Math.abs(delta).toFixed(1)}%
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
+        </div>
       )}
 
       {/* Table Section - after KPI cards */}

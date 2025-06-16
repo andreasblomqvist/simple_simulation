@@ -128,7 +128,7 @@ export default function AllOffices() {
               <Row gutter={16} style={{ marginBottom: 8 }}>
                 {Object.entries(office.levels).map(([level, data]) => (
                   <Col key={level} span={4}>
-                    <Card size="small" variant="borderless">
+                    <Card size="small" style={{ marginBottom: 8 }}>
                       <Text strong>{level}</Text>: <Text>{data.total} FTE</Text>
                     </Card>
                   </Col>
