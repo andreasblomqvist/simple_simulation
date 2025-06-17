@@ -8,4 +8,9 @@ include:
       opentofu_version: 1.9.1
       root_dir: infra
       job_name_prefix: "aws-"
+  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+    inputs:
+      tags: aws-edgez-prd-k8s
+      name: simplesim
+
 stages: [validate, test, build, deploy]
