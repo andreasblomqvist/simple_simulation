@@ -2,7 +2,7 @@ include:
   - component: gitlab.netlight.com/components/opentofu/validate-plan-apply@2.6.1
     inputs:
       version: 0.53.0 # component version
-      opentofu_version: v1.9.1
+      opentofu_version: 1.9.1
       root_dir: infra
       job_name_prefix: "aws-"
 stages: [validate, test, build, deploy]
