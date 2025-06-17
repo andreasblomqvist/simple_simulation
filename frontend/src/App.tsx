@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
-import { HomeOutlined, TeamOutlined } from '@ant-design/icons';
+import { HomeOutlined, TeamOutlined, ExperimentOutlined } from '@ant-design/icons';
 import Offices from './pages/Offices';
+import YearNavigationDemo from './components/v2/YearNavigationDemo';
 
 const { Header, Sider, Content } = Layout;
 
@@ -20,9 +21,12 @@ const App: React.FC = () => {
             <Menu.Item key="home" icon={<HomeOutlined />}>
               <Link to="/">Home</Link>
             </Menu.Item>
-            <Menu.Item key="offices" icon={<TeamOutlined />}>
-              <Link to="/offices">Offices</Link>
-            </Menu.Item>
+                          <Menu.Item key="offices" icon={<TeamOutlined />}>
+                <Link to="/offices">Offices</Link>
+              </Menu.Item>
+              <Menu.Item key="year-demo" icon={<ExperimentOutlined />}>
+                <Link to="/year-demo">Year Navigation Demo</Link>
+              </Menu.Item>
           </Menu>
         </Sider>
         <Layout style={{ padding: '0 24px 24px' }}>
@@ -38,6 +42,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<div>Home Page</div>} />
               <Route path="/offices" element={<Offices />} />
+              <Route path="/year-demo" element={<YearNavigationDemo />} />
             </Routes>
           </Content>
         </Layout>

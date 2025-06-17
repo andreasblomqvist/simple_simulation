@@ -10,7 +10,10 @@ import GrowthProjections from './pages/GrowthProjections';
 import SeniorityAnalysis from './pages/SeniorityAnalysis';
 import Configuration from './pages/Configuration';
 import SimulationLab from './pages/SimulationLab';
+import SimulationLabV2 from './pages/SimulationLabV2';
 import Settings from './pages/Settings';
+import YearNavigationDemo from './components/v2/YearNavigationDemo';
+import LayoutDemo from './components/v2/LayoutDemo';
 import { ThemeProvider } from './components/ThemeContext';
 import 'antd/dist/reset.css';
 import { ConfigProvider, theme, Button, App as AntdApp } from 'antd';
@@ -40,6 +43,9 @@ function MainApp() {
                 <Route path="/seniority" element={<SeniorityAnalysis />} />
                 <Route path="/config" element={<Configuration />} />
                 <Route path="/lab" element={<SimulationLab />} />
+                <Route path="/lab-v2" element={<SimulationLabV2 />} />
+                <Route path="/year-demo" element={<YearNavigationDemo />} />
+                <Route path="/layout-demo" element={<LayoutDemo />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>

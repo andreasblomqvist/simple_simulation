@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Table, Progress, Space, Statistic, Tag, Select, Button, Divider, Form, Input, InputNumber, Switch, Tooltip, theme, message, Checkbox, Spin, Tabs } from 'antd';
-import { UserOutlined, RiseOutlined, TrophyOutlined, TeamOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, FundOutlined, PercentageOutlined, PieChartOutlined, LineChartOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Typography, Table, Progress, Space, Statistic, Tag, Select, Button, Divider, Form, Input, InputNumber, Switch, Tooltip, theme, message, Checkbox, Spin, Tabs, Alert } from 'antd';
+import { UserOutlined, RiseOutlined, TrophyOutlined, TeamOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, FundOutlined, PercentageOutlined, PieChartOutlined, LineChartOutlined, ExperimentOutlined, RocketOutlined } from '@ant-design/icons';
 import { useConfig } from '../components/ConfigContext';
 import MCPChatWidget from '../components/MCPChatWidget';
+import { Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -448,9 +449,9 @@ function calculateFinancialKPIs({
     let workingHoursForCalculation;
     
     if (isBaseline) {
-      // For baseline: use monthly data (166.4 hours per month, 1 month)
-      simulationMonths = 1;
-      workingHoursForCalculation = 166.4; // Monthly working hours
+      // For baseline: use annual data (166.4 hours per month * 12 months)
+      simulationMonths = 12;  // Annualize baseline
+      workingHoursForCalculation = 166.4 * 12;  // Annual working hours
     } else {
       // For simulation: use total hours for entire simulation period
       simulationMonths = hyWorkingHours / 166.4; // hyWorkingHours is total hours, 166.4 is monthly hours
@@ -476,7 +477,7 @@ function calculateFinancialKPIs({
     const netSales = invoicedTime * avgPrice;
     // Costs: All roles (consultants, sales, recruitment, operations) + social costs
     const totalSalaries = totalSalaryCosts;
-    const ebitda = netSales - totalSalaries - otherExpense;
+    const ebitda = netSales - totalSalaries - (otherExpense * simulationMonths);  // Annualize other expenses
     const margin = netSales > 0 ? (ebitda / netSales) * 100 : 0;
     
     // Debug logging
@@ -1257,7 +1258,50 @@ export default function SimulationLab() {
   }
 
   return (
-    <Card title={<Title level={4} style={{ margin: 0 }}>Simulation Lab</Title>}>
+    <div>
+      {/* New SimulationLab v2 Promotion Alert */}
+      <Alert
+        message="Try the New SimulationLab v2!"
+        description={
+          <div>
+            Experience our next-generation simulation interface with enhanced year navigation, 
+            improved KPI visualizations, and advanced data tables.
+          </div>
+        }
+        type="info"
+        showIcon
+        action={
+          <Link to="/lab-v2">
+            <Button 
+              type="primary" 
+              icon={<RocketOutlined />}
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none'
+              }}
+            >
+              Try v2 Beta
+            </Button>
+          </Link>
+        }
+        closable
+        style={{ marginBottom: '16px' }}
+      />
+      
+      <Card title={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Title level={4} style={{ margin: 0 }}>Simulation Lab v1</Title>
+          <Link to="/lab-v2">
+            <Button 
+              type="text" 
+              icon={<ExperimentOutlined />}
+              style={{ color: '#1890ff' }}
+            >
+              Switch to v2
+            </Button>
+          </Link>
+        </div>
+      }>
       {/* Lever Manipulation Panel - always at the top */}
       <Row gutter={16} align="middle" style={{ marginBottom: 24 }}>
         <Col>
@@ -2260,5 +2304,6 @@ export default function SimulationLab() {
       {/* Global Chat Widget */}
       <MCPChatWidget simulationData={result} />
     </Card>
+    </div>
   );
 } 

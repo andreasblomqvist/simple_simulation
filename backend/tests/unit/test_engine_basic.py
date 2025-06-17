@@ -92,19 +92,16 @@ class TestEngineBasic(unittest.TestCase):
         )
         
         # Check basic structure
-        self.assertIn('periods', results)
-        self.assertIn('offices', results)
+        self.assertIn('years', results)
+        self.assertIn('2024', results['years'])
         
-        # Should have 3 periods (Jan, Feb, Mar)
-        self.assertEqual(len(results['periods']), 3)
-        
-        # Check period names
-        expected_periods = ['2024-JAN', '2024-FEB', '2024-MAR']
-        self.assertEqual(results['periods'], expected_periods)
+        # Get 2024 data
+        year_2024 = results['years']['2024']
+        self.assertIn('offices', year_2024)
         
         # Check Stockholm office results
-        self.assertIn('Stockholm', results['offices'])
-        stockholm_results = results['offices']['Stockholm']
+        self.assertIn('Stockholm', year_2024['offices'])
+        stockholm_results = year_2024['offices']['Stockholm']
         
         # Should have levels, operations, and metrics data
         self.assertIn('levels', stockholm_results)
@@ -134,7 +131,8 @@ class TestEngineBasic(unittest.TestCase):
             end_month=6,    # June
         )
         
-        stockholm_results = results['offices']['Stockholm']
+        year_2024 = results['years']['2024']
+        stockholm_results = year_2024['offices']['Stockholm']
         consultant_a_data = stockholm_results['levels']['Consultant']['A']
         
         # Get FTE values for April, May, June

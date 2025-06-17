@@ -1,0 +1,210 @@
+/* Year Navigation Header Styles */
+.year-navigation-header {
+  background: var(--ant-color-bg-container);
+  border-bottom: 1px solid var(--ant-color-border);
+  padding: 16px 24px 0;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.year-navigation-header__content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.year-navigation-header__title {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ant-color-text-secondary);
+}
+
+/* Year Selector Tabs */
+.year-selector-tabs {
+  min-height: 48px;
+}
+
+.year-selector-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.year-selector-tabs .ant-tabs-tab {
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.year-selector-tabs .ant-tabs-tab:hover {
+  color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg-hover);
+}
+
+.year-selector-tabs .ant-tabs-tab-active {
+  background: var(--ant-color-bg-container);
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Year Tab Content */
+.year-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.year-tab__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.year-tab__label {
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.year-tab--active .year-tab__label {
+  color: var(--ant-color-primary);
+  font-weight: 600;
+}
+
+.year-tab__indicators {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 16px;
+}
+
+.year-tab__spinner {
+  font-size: 12px;
+}
+
+.year-tab__badge {
+  margin: 0;
+}
+
+.year-tab__error {
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .year-navigation-header {
+    padding: 12px 16px 0;
+    margin-bottom: 16px;
+  }
+  
+  .year-selector-tabs .ant-tabs-tab {
+    padding: 8px 12px;
+    min-width: 80px;
+  }
+  
+  .year-tab__label {
+    font-size: 12px;
+  }
+  
+  .year-navigation-header__title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .year-selector-tabs .ant-tabs-tab {
+    padding: 6px 8px;
+    min-width: 60px;
+  }
+  
+  .year-tab__content {
+    gap: 4px;
+  }
+  
+  .year-tab__label {
+    font-size: 11px;
+  }
+}
+
+/* Dark Mode Support */
+.dark .year-navigation-header {
+  background: var(--ant-color-bg-container);
+  border-bottom-color: var(--ant-color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark .year-selector-tabs .ant-tabs-tab:hover {
+  background: var(--ant-color-fill-secondary);
+}
+
+.dark .year-selector-tabs .ant-tabs-tab-active {
+  background: var(--ant-color-bg-container);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading States */
+.year-tab--loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.year-tab--loading .year-tab__label {
+  color: var(--ant-color-text-secondary);
+}
+
+/* Error States */
+.year-tab--error .year-tab__label {
+  color: var(--ant-color-error);
+}
+
+.year-tab--error .year-tab__badge .ant-badge-status-dot {
+  background-color: var(--ant-color-error);
+}
+
+/* Focus states for accessibility */
+.year-selector-tabs .ant-tabs-tab:focus {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+
+/* Navigation hints */
+.year-navigation-header__hints {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  padding: 4px 8px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--ant-color-text-tertiary);
+  z-index: 10;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .year-selector-tabs .ant-tabs-tab {
+    border: 2px solid transparent;
+  }
+  
+  .year-selector-tabs .ant-tabs-tab-active {
+    border-color: var(--ant-color-primary);
+  }
+  
+  .year-tab__badge .ant-badge-status-dot {
+    border: 2px solid var(--ant-color-bg-container);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .year-selector-tabs .ant-tabs-tab,
+  .year-tab__spinner {
+    transition: none;
+  }
+} 

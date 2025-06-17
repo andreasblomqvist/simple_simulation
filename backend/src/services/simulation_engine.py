@@ -377,6 +377,7 @@ class SimulationEngine:
     def __init__(self):
         self.offices: Dict[str, Office] = {}
         self.kpi_service = KPIService()
+        self._last_simulation_results: Optional[Dict[str, Any]] = None
         self._initialize_offices()
         self._initialize_roles()
 
@@ -582,33 +583,10 @@ class SimulationEngine:
         start_month_enum = Month(start_month)
         end_month_enum = Month(end_month)
         
-        # Initialize results structure
+        # Initialize results structure with years
         results = {
-            "periods": [],
-            "offices": {}
+            "years": {}
         }
-        
-        # Initialize office results
-        for office_name, office in self.offices.items():
-            results["offices"][office_name] = {
-                "levels": {},
-                "metrics": [],
-                "operations": [],
-                "journeys": {
-                    "Journey 1": [],
-                    "Journey 2": [],
-                    "Journey 3": [],
-                    "Journey 4": []
-                }
-            }
-            # Initialize level results for both roles with levels and flat roles
-            for role_name, role_data in office.roles.items():
-                if isinstance(role_data, dict):
-                    results["offices"][office_name]["levels"][role_name] = {}
-                    for level_name in role_data:
-                        results["offices"][office_name]["levels"][role_name][level_name] = []
-                else:
-                    results["offices"][office_name]["levels"][role_name] = []
         
         # Simulation loop through months
         current_year = start_year
@@ -619,15 +597,52 @@ class SimulationEngine:
             
             print(f"[DEBUG] Period: {current_year} {current_month.name}")
             
+            # Initialize year if not exists
+            if str(current_year) not in results["years"]:
+                results["years"][str(current_year)] = {
+                    "months": [],
+                    "offices": {},
+                    "summary": {
+                        "total_fte": 0,
+                        "total_revenue": 0.0,
+                        "total_costs": 0.0,
+                        "total_profit": 0.0,
+                        "average_margin": 0.0,
+                        "growth_rate": 0.0
+                    }
+                }
+            
             # Record period
-            results["periods"].append(current_month.name)
+            results["years"][str(current_year)]["months"].append(current_month.name)
             
             # Current month key for individual tracking
             current_month_key = f"{current_year}-{current_month.value:02d}"
             
             # Process each office
             for office_name, office in self.offices.items():
-                office_results = results["offices"][office_name]
+                # Initialize office in year if not exists
+                if office_name not in results["years"][str(current_year)]["offices"]:
+                    results["years"][str(current_year)]["offices"][office_name] = {
+                        "levels": {},
+                        "metrics": [],
+                        "operations": [],
+                        "journeys": {
+                            "Journey 1": [],
+                            "Journey 2": [],
+                            "Journey 3": [],
+                            "Journey 4": []
+                        }
+                    }
+                    # Initialize level results for both roles with levels and flat roles
+                    for role_name, role_data in office.roles.items():
+                        if isinstance(role_data, dict):
+                            results["years"][str(current_year)]["offices"][office_name]["levels"][role_name] = {}
+                            for level_name in role_data:
+                                results["years"][str(current_year)]["offices"][office_name]["levels"][role_name][level_name] = []
+                        else:
+                            results["years"][str(current_year)]["offices"][office_name]["levels"][role_name] = []
+                
+                office_results = results["years"][str(current_year)]["offices"][office_name]
                 previous_total = sum(getattr(level, 'total', 0) for role_data in office.roles.values() 
                                    for level in (role_data.values() if isinstance(role_data, dict) else [role_data]))
                 
@@ -809,7 +824,7 @@ class SimulationEngine:
                 
                 # Store journey results
                 for journey_name, total in journey_totals.items():
-                    results["offices"][office_name]["journeys"][journey_name].append({
+                    results["years"][str(current_year)]["offices"][office_name]["journeys"][journey_name].append({
                         'total': total
                     })
                 
@@ -825,6 +840,20 @@ class SimulationEngine:
                     'profit': self.calculate_profit(office, current_month),
                     'profit_margin': self.calculate_profit_margin(office, current_month)
                 })
+                
+                # Update year summary
+                year_summary = results["years"][str(current_year)]["summary"]
+                year_summary["total_fte"] += sum(getattr(level, 'total', 0) for role_data in office.roles.values() 
+                                               for level in (role_data.values() if isinstance(role_data, dict) else [role_data]))
+                year_summary["total_revenue"] += self.calculate_revenue(office, current_month)
+                year_summary["total_costs"] += self.calculate_costs(office, current_month)
+                year_summary["total_profit"] = year_summary["total_revenue"] - year_summary["total_costs"]
+                year_summary["average_margin"] = year_summary["total_profit"] / year_summary["total_revenue"] if year_summary["total_revenue"] > 0 else 0.0
+                
+                # Calculate year-over-year growth rate
+                if current_year > start_year:
+                    previous_year_fte = results["years"][str(current_year - 1)]["summary"]["total_fte"]
+                    year_summary["growth_rate"] = (year_summary["total_fte"] - previous_year_fte) / previous_year_fte if previous_year_fte > 0 else 0.0
                 
                 # Update prices and salaries at the end of each year
                 if current_month == Month.DEC:
@@ -850,7 +879,14 @@ class SimulationEngine:
             else:
                 current_month = Month(current_month.value + 1)
         
+        # Store results for later retrieval
+        self._last_simulation_results = results
+        
         return results
+    
+    def get_simulation_results(self) -> Optional[Dict[str, Any]]:
+        """Get the last simulation results"""
+        return self._last_simulation_results
     
     def calculate_kpis_for_simulation(
         self, 

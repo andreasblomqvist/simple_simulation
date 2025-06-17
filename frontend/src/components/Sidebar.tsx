@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Typography, Button, Divider } from 'antd';
-import { HomeOutlined, ApartmentOutlined, SettingOutlined, BarChartOutlined, ExperimentOutlined, TeamOutlined, PlusOutlined } from '@ant-design/icons';
+import { Menu, Typography, Button, Divider, Badge } from 'antd';
+import type { MenuProps } from 'antd';
+import { HomeOutlined, ApartmentOutlined, SettingOutlined, BarChartOutlined, ExperimentOutlined, TeamOutlined, PlusOutlined, RocketOutlined } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
 
 const { Title } = Typography;
@@ -28,7 +29,7 @@ const officeCategories = [
   },
 ];
 
-const menuItems = [
+const menuItems: MenuProps['items'] = [
   {
     key: 'dashboard',
     icon: <HomeOutlined />,
@@ -57,7 +58,40 @@ const menuItems = [
   {
     key: 'lab',
     icon: <ExperimentOutlined />,
-    label: <Link to="/lab">Simulation Lab</Link>,
+    label: <Link to="/lab">Simulation Lab v1</Link>,
+  },
+  {
+    key: 'lab-v2',
+    icon: <RocketOutlined />,
+    label: (
+      <Link to="/lab-v2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>Simulation Lab v2</span>
+          <Badge 
+            status="processing" 
+            text="Beta" 
+            style={{ 
+              fontSize: '10px',
+              background: 'rgba(24, 144, 255, 0.1)',
+              color: '#1890ff',
+              border: '1px solid #1890ff',
+              borderRadius: '4px',
+              padding: '0 4px'
+            }} 
+          />
+        </div>
+      </Link>
+    ),
+  },
+  {
+    key: 'year-demo',
+    icon: <ExperimentOutlined />,
+    label: <Link to="/year-demo">Year Navigation Demo</Link>,
+  },
+  {
+    key: 'layout-demo',
+    icon: <ExperimentOutlined />,
+    label: <Link to="/layout-demo">Layout Demo</Link>,
   },
   {
     key: 'settings',
