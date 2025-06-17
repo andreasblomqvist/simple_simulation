@@ -1,4 +1,6 @@
 resource "aws_ecr_repository" "simplesim" {
-  name = "simplesim"
+  for_each = toset(["backend", "frontend"])
+  name     = "simplesim-${each.value}"
 }
+
 
