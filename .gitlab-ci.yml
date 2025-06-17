@@ -12,13 +12,13 @@ include:
     inputs:
       tags: aws-edgez-prd-k8s
       name: simplesim-backend
-      job_prefix: backend
+      job_prefix: backend-
       dockerfile: Dockerfile.backend
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
     inputs:
       tags: aws-edgez-prd-k8s
       name: simplesim-frontend
-      job_prefix: frontend
+      job_prefix: frontend-
       dockerfile: Dockerfile.frontend
 
 stages: [validate, test, build, deploy]
