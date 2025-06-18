@@ -4,6 +4,9 @@ import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, Contro
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
 import type { OfficeConfig, SimulationResults } from '../services/simulationApi';
+import { EnhancedKPICard } from '../components/v2/EnhancedKPICard';
+import WorkforcePyramidChart from '../components/v2/WorkforcePyramidChart';
+import WorkforceStackedBarChart from '../components/v2/WorkforceStackedBarChart';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -102,6 +105,7 @@ const SimulationLabV2: React.FC = () => {
   const [priceIncrease, setPriceIncrease] = useState(2.0);
   const [salaryIncrease, setSalaryIncrease] = useState(2.0);
   const [workingHours, setWorkingHours] = useState(166.4);
+  const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
   const [otherExpense, setOtherExpense] = useState(10000);
   
   // Simulation duration
@@ -190,8 +194,6 @@ const SimulationLabV2: React.FC = () => {
     ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, '2025')
     : null;
 
-
-
   // Seniority data updates when year changes
 
   const handleLeverChange = (value: string) => {
@@ -219,8 +221,8 @@ const SimulationLabV2: React.FC = () => {
         end_month: 12,
         price_increase: priceIncrease / 100,
         salary_increase: salaryIncrease / 100,
-        unplanned_absence: 0.05,
         hy_working_hours: workingHours,
+        unplanned_absence: unplannedAbsence / workingHours, // Convert absence hours to decimal percentage
         other_expense: otherExpense,
         office_overrides: {} // TODO: Add lever-specific overrides
       };
@@ -284,6 +286,107 @@ const SimulationLabV2: React.FC = () => {
       key: 'ytdChange',
     }
   ];
+
+  // Prepare data for WorkforcePyramidChart from simulation results
+  const journeyMap: Record<string, string> = {
+    A: 'Journey 1',
+    AC: 'Journey 1',
+    C: 'Journey 1',
+    SrC: 'Journey 2',
+    AM: 'Journey 2',
+    M: 'Journey 3',
+    SrM: 'Journey 3',
+    PiP: 'Journey 4',
+  };
+
+  let pyramidData = LEVELS.map(level => ({
+    level,
+    fte: 0,
+    journey: journeyMap[level],
+  }));
+
+  if (simulationResults && activeYear) {
+    // Use the first office (or aggregate all offices if needed)
+    const seniorityRows = simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig);
+    console.log('seniorityRows sample', seniorityRows[0]);
+    if (seniorityRows.length > 0) {
+      // Aggregate FTE by level across all offices
+      const fteByLevel: Record<string, number> = {};
+      LEVELS.forEach(level => { fteByLevel[level] = 0; });
+      seniorityRows.forEach(row => {
+        LEVELS.forEach(level => {
+          const key = `level${level}`;
+          let value = row[key];
+          if (typeof value === 'string' && value.includes('(')) {
+            value = value.split(' ')[0];
+          }
+          fteByLevel[level] += Number(value) || 0;
+        });
+      });
+      pyramidData = LEVELS.map(level => ({
+        level,
+        fte: fteByLevel[level],
+        journey: journeyMap[level],
+      }));
+    }
+  }
+
+  // Prepare data for WorkforceStackedBarChart from simulation results (movement data)
+  const MOVEMENT_TYPES = ['Churned', 'Recruited', 'Progressed In'];
+  let stackedBarData: { level: string; type: string; value: number }[] = [];
+  if (simulationResults && activeYear) {
+    // Get the year data
+    const yearData = simulationResults.years[activeYear];
+    if (yearData?.offices) {
+      // Aggregate movement data across all offices for each level
+      const movementByLevel: Record<string, Record<string, number>> = {};
+      LEVELS.forEach(level => {
+        movementByLevel[level] = {};
+        MOVEMENT_TYPES.forEach(type => { movementByLevel[level][type] = 0; });
+      });
+      
+      // Sum movement data across all offices
+      Object.values(yearData.offices).forEach((officeData: any) => {
+        if (officeData.levels) {
+          // Check all roles for movement data
+          ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
+            const roleData = officeData.levels[role];
+            if (roleData) {
+              LEVELS.forEach(level => {
+                const levelData = roleData[level];
+                                  if (levelData && levelData.length > 0) {
+                    // Get the latest period data (sum across all periods for the year)
+                    const totalMovement = levelData.reduce((sum: any, periodData: any) => {
+                      sum.churned += periodData.churned || 0;
+                      sum.recruited += periodData.recruited || 0;
+                      sum.progressed_in += periodData.progressed_in || 0;
+                      return sum;
+                    }, { churned: 0, recruited: 0, progressed_in: 0 });
+                    
+                    movementByLevel[level]['Churned'] += totalMovement.churned;
+                    movementByLevel[level]['Recruited'] += totalMovement.recruited;
+                    movementByLevel[level]['Progressed In'] += totalMovement.progressed_in;
+                  }
+              });
+            }
+          });
+        }
+      });
+      
+      // Convert to chart data format
+      stackedBarData = LEVELS.flatMap(level =>
+        MOVEMENT_TYPES.map(type => ({ 
+          level, 
+          type, 
+          value: movementByLevel[level][type] 
+        }))
+      ).filter(item => item.value > 0); // Only show levels with movement
+    }
+  }
+
+  // Debug logs
+  console.log('SimulationLabV2 rendered');
+  console.log('stackedBarData', stackedBarData);
 
   return (
     <div style={{ padding: '24px' }}>
@@ -480,6 +583,9 @@ const SimulationLabV2: React.FC = () => {
               min={0}
               max={100}
             />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Annual percentage increase in hourly prices for all offices
+            </div>
           </Col>
           <Col span={6}>
             <Text strong>Salary Increase (%)</Text>
@@ -492,6 +598,9 @@ const SimulationLabV2: React.FC = () => {
               min={0}
               max={100}
             />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Annual percentage increase in monthly salaries for all offices
+            </div>
           </Col>
           <Col span={6}>
             <Text strong>Working Hours</Text>
@@ -502,6 +611,23 @@ const SimulationLabV2: React.FC = () => {
               step={0.1}
               min={0}
             />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Standard working hours per FTE per month (before absence)
+            </div>
+          </Col>
+          <Col span={6}>
+            <Text strong>Unplanned Absence (hours/month)</Text>
+            <InputNumber
+              style={{ width: '100%', marginTop: '4px' }}
+              value={unplannedAbsence}
+              onChange={(value) => setUnplannedAbsence(value || 0)}
+              step={0.1}
+              min={0}
+              max={workingHours}
+            />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Average unplanned absence per FTE per month (hours)
+            </div>
           </Col>
           <Col span={6}>
             <Text strong>Other Expense</Text>
@@ -513,6 +639,9 @@ const SimulationLabV2: React.FC = () => {
               step={1000}
               min={0}
             />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Lump sum per <b>month</b> for <b>all offices combined</b> (not per person or per office), in <b>SEK</b>
+            </div>
           </Col>
         </Row>
       </Card>
@@ -562,518 +691,589 @@ const SimulationLabV2: React.FC = () => {
           </div>
         )}
 
-        {/* Financial Performance */}
-        {simulationResults && (
-          <div style={{ marginBottom: '32px' }}>
-            <Title level={4} style={{ marginBottom: '16px' }}>Financial Performance</Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} lg={8}>
-                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>Net Sales</Text>
-                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                    {simulationResults.kpis?.financial?.current_net_sales 
-                      ? `${(simulationResults.kpis.financial.current_net_sales / 1000000).toFixed(1)}M SEK`
-                      : 'N/A'}
-                  </div>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                    Total revenue from client services
-                  </Text>
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} lg={8}>
-                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA</Text>
-                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                    {simulationResults.kpis?.financial?.current_ebitda 
-                      ? `${(simulationResults.kpis.financial.current_ebitda / 1000000).toFixed(1)}M SEK`
-                      : 'N/A'}
-                  </div>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                    Earnings before interest, taxes, depreciation
-                  </Text>
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} lg={8}>
-                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA Margin</Text>
-                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                    {simulationResults.kpis?.financial?.current_ebitda_margin 
-                      ? `${(simulationResults.kpis.financial.current_ebitda_margin * 100).toFixed(1)}%`
-                      : 'N/A'}
-                  </div>
-                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                    EBITDA as percentage of net sales
-                  </Text>
-                </Card>
-              </Col>
-            </Row>
-          </div>
-        )}
+        {/* Data/Insights Tabs */}
+        <Tabs defaultActiveKey="data" style={{ marginBottom: 24 }}>
+          <TabPane tab="Data Tab" key="data">
+            {/* Financial Performance */}
+            {simulationResults && (
+              <div style={{ marginBottom: '32px' }}>
+                <Title level={4} style={{ marginBottom: '16px' }}>Financial Performance</Title>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Net Sales</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          // Get year-specific financial data
+                          const yearData = simulationResults.years?.[activeYear];
+                          const netSales = yearData?.kpis?.financial?.net_sales || 
+                                          simulationResults.kpis?.financial?.net_sales ||
+                                          simulationResults.kpis?.financial?.current_net_sales;
+                          return netSales ? `${(netSales / 1000000).toFixed(1)}M SEK` : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Total revenue from client services
+                      </Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          // Get year-specific financial data
+                          const yearData = simulationResults.years?.[activeYear];
+                          const ebitda = yearData?.kpis?.financial?.ebitda || 
+                                        simulationResults.kpis?.financial?.ebitda ||
+                                        simulationResults.kpis?.financial?.current_ebitda;
+                          return ebitda ? `${(ebitda / 1000000).toFixed(1)}M SEK` : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Earnings before interest, taxes, depreciation
+                      </Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA Margin</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          // Get year-specific financial data
+                          const yearData = simulationResults.years?.[activeYear];
+                          const margin = yearData?.kpis?.financial?.margin || 
+                                        simulationResults.kpis?.financial?.margin ||
+                                        simulationResults.kpis?.financial?.current_margin;
+                          return margin !== undefined && margin !== null ? `${margin.toFixed(1)}%` : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        EBITDA as percentage of net sales
+                      </Text>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            )}
 
-        {/* Seniority Analysis Panel */}
-        <Collapse style={{ marginBottom: '24px' }}>
-          <Collapse.Panel header="📊 Seniority Analysis" key="seniority">
-            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-              {/* Journey KPIs with Definitions and Baseline Comparison */}
-               <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 1</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.journey1Details?.percentage || 'N/A'}
-                   </div>
-                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                     {seniorityKPIs?.journey1Definition || 'A, AC, C'}
-                   </Text>
-                   {seniorityKPIs?.journey1Details && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
-                       <div>Current: {seniorityKPIs.journey1Details.current} FTE</div>
-                       <div>Baseline: {seniorityKPIs.journey1Details.baseline} FTE</div>
-                       <div style={{ 
-                         color: seniorityKPIs.journey1Details.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.journey1Details.absoluteDisplay}
+            {/* Seniority Analysis Panel */}
+            <Collapse style={{ marginBottom: '24px' }}>
+              <Collapse.Panel header="📊 Seniority Analysis" key="seniority">
+                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                  {/* Journey KPIs with Definitions and Baseline Comparison */}
+                   <Col xs={24} sm={12} lg={6}>
+                     <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Journey 1</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.journey1Details?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-               <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 2</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.journey2Details?.percentage || 'N/A'}
-                   </div>
-                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                     {seniorityKPIs?.journey2Definition || 'SrC, AM'}
-                   </Text>
-                   {seniorityKPIs?.journey2Details && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
-                       <div>Current: {seniorityKPIs.journey2Details.current} FTE</div>
-                       <div>Baseline: {seniorityKPIs.journey2Details.baseline} FTE</div>
-                       <div style={{ 
-                         color: seniorityKPIs.journey2Details.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.journey2Details.absoluteDisplay}
+                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                         {seniorityKPIs?.journey1Definition || 'A, AC, C'}
+                       </Text>
+                       {seniorityKPIs?.journey1Details && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                           <div>Current: {seniorityKPIs.journey1Details.current} FTE</div>
+                           <div>Baseline: {seniorityKPIs.journey1Details.baseline} FTE</div>
+                           <div style={{ 
+                             color: seniorityKPIs.journey1Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.journey1Details.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                   <Col xs={24} sm={12} lg={6}>
+                     <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Journey 2</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.journey2Details?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-               <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 3</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.journey3Details?.percentage || 'N/A'}
-                   </div>
-                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                     {seniorityKPIs?.journey3Definition || 'M, SrM'}
-                   </Text>
-                   {seniorityKPIs?.journey3Details && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
-                       <div>Current: {seniorityKPIs.journey3Details.current} FTE</div>
-                       <div>Baseline: {seniorityKPIs.journey3Details.baseline} FTE</div>
-                       <div style={{ 
-                         color: seniorityKPIs.journey3Details.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.journey3Details.absoluteDisplay}
+                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                         {seniorityKPIs?.journey2Definition || 'SrC, AM'}
+                       </Text>
+                       {seniorityKPIs?.journey2Details && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                           <div>Current: {seniorityKPIs.journey2Details.current} FTE</div>
+                           <div>Baseline: {seniorityKPIs.journey2Details.baseline} FTE</div>
+                           <div style={{ 
+                             color: seniorityKPIs.journey2Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.journey2Details.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                   <Col xs={24} sm={12} lg={6}>
+                     <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Journey 3</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.journey3Details?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-               <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 4</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.journey4Details?.percentage || 'N/A'}
-                   </div>
-                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
-                     {seniorityKPIs?.journey4Definition || 'PiP'}
-                   </Text>
-                   {seniorityKPIs?.journey4Details && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
-                       <div>Current: {seniorityKPIs.journey4Details.current} FTE</div>
-                       <div>Baseline: {seniorityKPIs.journey4Details.baseline} FTE</div>
-                       <div style={{ 
-                         color: seniorityKPIs.journey4Details.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.journey4Details.absoluteDisplay}
+                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                         {seniorityKPIs?.journey3Definition || 'M, SrM'}
+                       </Text>
+                       {seniorityKPIs?.journey3Details && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                           <div>Current: {seniorityKPIs.journey3Details.current} FTE</div>
+                           <div>Baseline: {seniorityKPIs.journey3Details.baseline} FTE</div>
+                           <div style={{ 
+                             color: seniorityKPIs.journey3Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.journey3Details.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                   <Col xs={24} sm={12} lg={6}>
+                     <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Journey 4</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.journey4Details?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-            </Row>
-            
-            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-              {/* Additional Seniority KPIs with Baseline Comparison */}
-               <Col xs={24} sm={12} lg={8}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Progression Rate (avg)</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.progressionRateDetails?.percentage || 'N/A'}
-                   </div>
-                   {seniorityKPIs?.progressionRateDetails && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
-                       <div style={{ color: '#1890ff', fontWeight: '500' }}>→ Stable</div>
-                       <div style={{ marginTop: '2px' }}>{seniorityKPIs.progressionRateDetails.description}</div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-               <Col xs={24} sm={12} lg={8}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Total Growth for Period</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.totalGrowthDetails?.percentage || 'N/A'}
-                   </div>
-                   {seniorityKPIs?.totalGrowthDetails && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
-                       <div>Current: {seniorityKPIs.totalGrowthDetails.current} FTE</div>
-                       <div>Baseline: {seniorityKPIs.totalGrowthDetails.baseline} FTE</div>
-                       <div style={{ 
-                         color: seniorityKPIs.totalGrowthDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.totalGrowthDetails.absoluteDisplay}
+                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                         {seniorityKPIs?.journey4Definition || 'PiP'}
+                       </Text>
+                       {seniorityKPIs?.journey4Details && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                           <div>Current: {seniorityKPIs.journey4Details.current} FTE</div>
+                           <div>Baseline: {seniorityKPIs.journey4Details.baseline} FTE</div>
+                           <div style={{ 
+                             color: seniorityKPIs.journey4Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.journey4Details.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                </Row>
+                
+                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                  {/* Additional Seniority KPIs with Baseline Comparison */}
+                   <Col xs={24} sm={12} lg={8}>
+                     <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Progression Rate (avg)</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.progressionRateDetails?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-               <Col xs={24} sm={12} lg={8}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Non-debit Ratio</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
-                     {seniorityKPIs?.nonDebitDetails?.percentage || 'N/A'}
-                   </div>
-                   {seniorityKPIs?.nonDebitDetails && (
-                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
-                       <div>Current: {seniorityKPIs.nonDebitDetails.current}%</div>
-                       <div>Baseline: {seniorityKPIs.nonDebitDetails.baseline}%</div>
-                       <div style={{ 
-                         color: seniorityKPIs.nonDebitDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
-                         fontWeight: '600'
-                       }}>
-                         {seniorityKPIs.nonDebitDetails.absoluteDisplay}
+                       {seniorityKPIs?.progressionRateDetails && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                           <div style={{ color: '#1890ff', fontWeight: '500' }}>→ Stable</div>
+                           <div style={{ marginTop: '2px' }}>{seniorityKPIs.progressionRateDetails.description}</div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                   <Col xs={24} sm={12} lg={8}>
+                     <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Total Growth for Period</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.totalGrowthDetails?.percentage || 'N/A'}
                        </div>
-                     </div>
-                   )}
-                 </Card>
-               </Col>
-            </Row>
+                       {seniorityKPIs?.totalGrowthDetails && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                           <div>Current: {seniorityKPIs.totalGrowthDetails.current} FTE</div>
+                           <div>Baseline: {seniorityKPIs.totalGrowthDetails.baseline} FTE</div>
+                           <div style={{ 
+                             color: seniorityKPIs.totalGrowthDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.totalGrowthDetails.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                   <Col xs={24} sm={12} lg={8}>
+                     <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                       <Text type="secondary" style={{ fontSize: '12px' }}>Non-debit Ratio</Text>
+                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                         {seniorityKPIs?.nonDebitDetails?.percentage || 'N/A'}
+                       </div>
+                       {seniorityKPIs?.nonDebitDetails && (
+                         <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                           <div>Current: {seniorityKPIs.nonDebitDetails.current}%</div>
+                           <div>Baseline: {seniorityKPIs.nonDebitDetails.baseline}%</div>
+                           <div style={{ 
+                             color: seniorityKPIs.nonDebitDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
+                             fontWeight: '600'
+                           }}>
+                             {seniorityKPIs.nonDebitDetails.absoluteDisplay}
+                           </div>
+                         </div>
+                       )}
+                     </Card>
+                   </Col>
+                </Row>
 
-            {/* Seniority Distribution Table */}
-            <div style={{ marginBottom: '16px' }}>
-              <Title level={5}>Seniority Distribution by Office</Title>
+                {/* Seniority Distribution Table */}
+                <div style={{ marginBottom: '16px' }}>
+                  <Title level={5}>Seniority Distribution by Office</Title>
+                  <Table
+                    size="small"
+                    pagination={false}
+                    columns={[
+                      { title: 'Office', dataIndex: 'office', key: 'office' },
+                      { 
+                        title: 'Total', 
+                        dataIndex: 'total', 
+                        key: 'total', 
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span style={{ fontWeight: '600' }}>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.9em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return <span style={{ fontWeight: '600' }}>{value}</span>;
+                        }
+                      },
+                      { 
+                        title: 'A Level', 
+                        dataIndex: 'levelA', 
+                        key: 'levelA',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'AC Level', 
+                        dataIndex: 'levelAC', 
+                        key: 'levelAC',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'C Level', 
+                        dataIndex: 'levelC', 
+                        key: 'levelC',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'SrC Level', 
+                        dataIndex: 'levelSrC', 
+                        key: 'levelSrC',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'AM Level', 
+                        dataIndex: 'levelAM', 
+                        key: 'levelAM',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'M Level', 
+                        dataIndex: 'levelM', 
+                        key: 'levelM',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'SrM Level', 
+                        dataIndex: 'levelSrM', 
+                        key: 'levelSrM',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'PiP Level', 
+                        dataIndex: 'levelPiP', 
+                        key: 'levelPiP',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { 
+                        title: 'Operations', 
+                        dataIndex: 'operations', 
+                        key: 'operations',
+                        render: (value) => {
+                          if (typeof value === 'string' && value.includes('(')) {
+                            const [base, delta] = value.split(' (');
+                            const deltaValue = delta.replace(')', '');
+                            const isPositive = deltaValue.startsWith('+');
+                            const isNegative = deltaValue.startsWith('-');
+                            return (
+                              <span>
+                                {base}{' '}
+                                <span style={{ 
+                                  color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                                  fontSize: '0.85em'
+                                }}>
+                                  ({deltaValue})
+                                </span>
+                              </span>
+                            );
+                          }
+                          return value;
+                        }
+                      },
+                      { title: 'Non-debit Ratio', dataIndex: 'nonDebitRatio', key: 'nonDebitRatio', render: (value) => <span style={{ fontWeight: '500' }}>{value}%</span> }
+                    ]}
+                                     dataSource={seniorityData}
+                  />
+                </div>
+              </Collapse.Panel>
+            </Collapse>
+
+            {/* Detailed Data Analysis Table */}
+            <div>
+              <Title level={4} style={{ marginBottom: '16px' }}>
+                <TableOutlined style={{ marginRight: '8px' }} />
+                Detailed Data Analysis
+              </Title>
               <Table
-                size="small"
+                columns={tableColumns}
+                dataSource={tableData}
                 pagination={false}
-                columns={[
-                  { title: 'Office', dataIndex: 'office', key: 'office' },
-                  { 
-                    title: 'Total', 
-                    dataIndex: 'total', 
-                    key: 'total', 
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span style={{ fontWeight: '600' }}>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.9em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return <span style={{ fontWeight: '600' }}>{value}</span>;
-                    }
-                  },
-                  { 
-                    title: 'A Level', 
-                    dataIndex: 'levelA', 
-                    key: 'levelA',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'AC Level', 
-                    dataIndex: 'levelAC', 
-                    key: 'levelAC',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'C Level', 
-                    dataIndex: 'levelC', 
-                    key: 'levelC',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'SrC Level', 
-                    dataIndex: 'levelSrC', 
-                    key: 'levelSrC',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'AM Level', 
-                    dataIndex: 'levelAM', 
-                    key: 'levelAM',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'M Level', 
-                    dataIndex: 'levelM', 
-                    key: 'levelM',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'SrM Level', 
-                    dataIndex: 'levelSrM', 
-                    key: 'levelSrM',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'PiP Level', 
-                    dataIndex: 'levelPiP', 
-                    key: 'levelPiP',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { 
-                    title: 'Operations', 
-                    dataIndex: 'operations', 
-                    key: 'operations',
-                    render: (value) => {
-                      if (typeof value === 'string' && value.includes('(')) {
-                        const [base, delta] = value.split(' (');
-                        const deltaValue = delta.replace(')', '');
-                        const isPositive = deltaValue.startsWith('+');
-                        const isNegative = deltaValue.startsWith('-');
-                        return (
-                          <span>
-                            {base}{' '}
-                            <span style={{ 
-                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
-                              fontSize: '0.85em'
-                            }}>
-                              ({deltaValue})
-                            </span>
-                          </span>
-                        );
-                      }
-                      return value;
-                    }
-                  },
-                  { title: 'Non-debit Ratio', dataIndex: 'nonDebitRatio', key: 'nonDebitRatio', render: (value) => <span style={{ fontWeight: '500' }}>{value}%</span> }
-                ]}
-                                 dataSource={seniorityData}
+                size="small"
+                bordered
+                expandable={{
+                  expandedRowRender: (record) => (
+                    <div style={{ padding: '16px' }}>
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Text strong>Role Breakdown:</Text>
+                          <div style={{ marginTop: '8px' }}>
+                            <Text type="secondary">Consultant: {record.consultantFTE || 0} FTE</Text><br/>
+                            <Text type="secondary">Sales: {record.salesFTE || 0} FTE</Text><br/>
+                            <Text type="secondary">Recruitment: {record.recruitmentFTE || 0} FTE</Text><br/>
+                            <Text type="secondary">Operations: {record.operationsFTE || 0} FTE</Text>
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <Text strong>Financial Details:</Text>
+                          <div style={{ marginTop: '8px' }}>
+                            <Text type="secondary">Revenue: {record.revenue || 'N/A'}</Text><br/>
+                            <Text type="secondary">Gross Margin: {record.grossMargin || 'N/A'}</Text><br/>
+                            <Text type="secondary">EBITDA: {record.ebitda || 'N/A'}</Text><br/>
+                            <Text type="secondary">Journey: {record.office_journey || 'N/A'}</Text>
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                  ),
+                  rowExpandable: (record) => record.office !== 'No data', // Only expand rows with data
+                }}
               />
             </div>
-          </Collapse.Panel>
-        </Collapse>
-
-        {/* Detailed Data Analysis Table */}
-        <div>
-          <Title level={4} style={{ marginBottom: '16px' }}>
-            <TableOutlined style={{ marginRight: '8px' }} />
-            Detailed Data Analysis
-          </Title>
-          <Table
-            columns={tableColumns}
-            dataSource={tableData}
-            pagination={false}
-            size="small"
-            bordered
-            expandable={{
-              expandedRowRender: (record) => (
-                <div style={{ padding: '16px' }}>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Text strong>Role Breakdown:</Text>
-                      <div style={{ marginTop: '8px' }}>
-                        <Text type="secondary">Consultant: {record.consultantFTE || 0} FTE</Text><br/>
-                        <Text type="secondary">Sales: {record.salesFTE || 0} FTE</Text><br/>
-                        <Text type="secondary">Recruitment: {record.recruitmentFTE || 0} FTE</Text><br/>
-                        <Text type="secondary">Operations: {record.operationsFTE || 0} FTE</Text>
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <Text strong>Financial Details:</Text>
-                      <div style={{ marginTop: '8px' }}>
-                        <Text type="secondary">Revenue: {record.revenue || 'N/A'}</Text><br/>
-                        <Text type="secondary">Gross Margin: {record.grossMargin || 'N/A'}</Text><br/>
-                        <Text type="secondary">EBITDA: {record.ebitda || 'N/A'}</Text><br/>
-                        <Text type="secondary">Journey: {record.office_journey || 'N/A'}</Text>
-                      </div>
-                    </Col>
-                  </Row>
+          </TabPane>
+          <TabPane tab="Insights Tab" key="insights">
+            {/* Year & Office Selectors (reuse existing logic) */}
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+              <Col span={8}>
+                <Text strong>Year:</Text> {activeYear}
+              </Col>
+              <Col span={8}>
+                <Text strong>Office:</Text> All Offices {/* (Add office selector if needed) */}
+              </Col>
+            </Row>
+            {/* KPI Cards Section */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+              {kpiData.map((kpi) => (
+                <Col xs={24} sm={12} md={8} lg={6} key={kpi.title}>
+                  <EnhancedKPICard
+                    title={kpi.title}
+                    currentValue={kpi.currentValue}
+                    previousValue={kpi.previousValue}
+                    unit={kpi.unit}
+                    description={kpi.description}
+                  />
+                </Col>
+              ))}
+            </Row>
+            {/* Workforce Charts */}
+            <Card title="Workforce Charts" style={{ marginBottom: 32 }}>
+              <Row gutter={24}>
+                <Col xs={24} md={12}>
+                  <WorkforcePyramidChart data={pyramidData} />
+                </Col>
+                <Col xs={24} md={12}>
+                  <WorkforceStackedBarChart data={stackedBarData} />
+                </Col>
+              </Row>
+              {/* Journey Distribution and Non-Debit Ratio Summary */}
+              {seniorityKPIs && (
+                <div style={{ marginTop: 24, textAlign: 'center', color: '#ccc', fontSize: 16 }}>
+                  <div>
+                    <b>Journey Distribution:</b>
+                    {` ${seniorityKPIs.journey1Details?.percentage || 'N/A'} Journey 1 (A, AC, C)`}
+                    {`, ${seniorityKPIs.journey2Details?.percentage || 'N/A'} Journey 2 (SrC, AM)`}
+                    {`, ${seniorityKPIs.journey3Details?.percentage || 'N/A'} Journey 3 (M, SrM)`}
+                    {`, ${seniorityKPIs.journey4Details?.percentage || 'N/A'} Journey 4 (PiP)`}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <b>Non-Debit Ratio:</b> {seniorityKPIs.nonDebitDetails?.percentage || 'N/A'}
+                  </div>
                 </div>
-              ),
-              rowExpandable: (record) => record.office !== 'No data', // Only expand rows with data
-            }}
-          />
-        </div>
+              )}
+            </Card>
+          </TabPane>
+        </Tabs>
       </Card>
     </div>
   );

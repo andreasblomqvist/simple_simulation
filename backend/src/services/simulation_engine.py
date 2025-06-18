@@ -818,12 +818,39 @@ class SimulationEngine:
                                   f"{result['from_baseline']}→{result['from_final']} (-{result['count']}) & "
                                   f"{result['to_baseline']}→{result['to_final']} (+{result['count']}) @ {result['rate']:.1%}")
                         
-                        # Store level results
+                        # Store level results with movement tracking
                         for level_name, level in role_data.items():
+                            # Calculate recruitment for this level
+                            recruitment_key = f'recruitment_{current_month.value}'
+                            recruitment_rate = getattr(level, recruitment_key)
+                            recruited_count = int(level.total * recruitment_rate) if level.total > 0 else 0
+                            
+                            # Calculate churn for this level
+                            churn_key = f'churn_{current_month.value}'
+                            churn_rate = getattr(level, churn_key)
+                            churned_count = int(level.total * churn_rate) if level.total > 0 else 0
+                            
+                            # Get progression count for this level
+                            progressed_out = 0
+                            progressed_in = 0
+                            
+                            # Check if this level had people progress out
+                            if level_name in progression_results:
+                                progressed_out = progression_results[level_name]['count']
+                            
+                            # Check if this level had people progress in
+                            for from_level, result in progression_results.items():
+                                if result['to_level'] == level_name:
+                                    progressed_in += result['count']
+                            
                             office_results['levels'][role_name][level_name].append({
                                 'total': level.total,
                                 'price': getattr(level, f'price_{current_month.value}'),
-                                'salary': getattr(level, f'salary_{current_month.value}')
+                                'salary': getattr(level, f'salary_{current_month.value}'),
+                                'recruited': recruited_count,
+                                'churned': churned_count,
+                                'progressed_out': progressed_out,
+                                'progressed_in': progressed_in
                             })
                     else:
                         # Flat roles (Operations)
@@ -877,20 +904,43 @@ class SimulationEngine:
                         if churn_count > 0:
                             print(f"[CHURN] {office_name} {role_name}: {baseline_fte} → {level.total} (-{churn_count} @ {churn_rate:.1%})")
                         
-                        # Store flat role results
+                        # Store flat role results with movement tracking
+                        recruitment_key = f'recruitment_{current_month.value}'
+                        recruitment_rate = getattr(level, recruitment_key)
+                        recruited_count = int(level.total * recruitment_rate) if level.total > 0 else 0
+                        
+                        churn_key = f'churn_{current_month.value}'
+                        churn_rate = getattr(level, churn_key)
+                        churned_count = int(level.total * churn_rate) if level.total > 0 else 0
+                        
                         office_results['levels'][role_name].append({
                             'total': level.total,
                             'price': getattr(level, f'price_{current_month.value}'),
-                            'salary': getattr(level, f'salary_{current_month.value}')
+                            'salary': getattr(level, f'salary_{current_month.value}'),
+                            'recruited': recruited_count,
+                            'churned': churned_count,
+                            'progressed_out': 0,  # Operations doesn't have progression
+                            'progressed_in': 0    # Operations doesn't have progression
                         })
                 
                 # Store operations results (for flat roles only)
                 if 'Operations' in office.roles:
                     op = office.roles['Operations']
+                    # Calculate operations movement
+                    recruitment_rate = getattr(op, f'recruitment_{current_month.value}')
+                    recruited_count = int(op.total * recruitment_rate) if op.total > 0 else 0
+                    
+                    churn_rate = getattr(op, f'churn_{current_month.value}')
+                    churned_count = int(op.total * churn_rate) if op.total > 0 else 0
+                    
                     office_results['operations'].append({
                         'total': op.total,
                         'price': getattr(op, f'price_{current_month.value}'),
-                        'salary': getattr(op, f'salary_{current_month.value}')
+                        'salary': getattr(op, f'salary_{current_month.value}'),
+                        'recruited': recruited_count,
+                        'churned': churned_count,
+                        'progressed_out': 0,  # Operations doesn't have progression
+                        'progressed_in': 0    # Operations doesn't have progression
                     })
                 else:
                     office_results['operations'].append(None)
@@ -1004,7 +1054,11 @@ class SimulationEngine:
                     'total_consultants_baseline': all_kpis.financial.total_consultants_baseline,
                     'avg_hourly_rate': all_kpis.financial.avg_hourly_rate,
                     'avg_hourly_rate_baseline': all_kpis.financial.avg_hourly_rate_baseline,
-                    'avg_utr': all_kpis.financial.avg_utr
+                    'avg_utr': all_kpis.financial.avg_utr,
+                    # Add direct access to financial KPIs for backwards compatibility
+                    'net_sales': all_kpis.financial.net_sales,
+                    'ebitda': all_kpis.financial.ebitda,
+                    'margin': all_kpis.financial.margin
                 },
                 'growth': {
                     'total_growth_percent': all_kpis.growth.total_growth_percent,
@@ -1021,6 +1075,41 @@ class SimulationEngine:
                     'journey_deltas': all_kpis.journeys.journey_deltas
                 }
             }
+            
+            # Add year-specific KPIs to each year's data
+            for year_str, yearly_kpi in all_kpis.yearly_kpis.items():
+                if year_str in results['years']:
+                    results['years'][year_str]['kpis'] = {
+                        'financial': {
+                            'net_sales': yearly_kpi.financial.net_sales,
+                            'net_sales_baseline': yearly_kpi.financial.net_sales_baseline,
+                            'ebitda': yearly_kpi.financial.ebitda,
+                            'ebitda_baseline': yearly_kpi.financial.ebitda_baseline,
+                            'margin': yearly_kpi.financial.margin,
+                            'margin_baseline': yearly_kpi.financial.margin_baseline,
+                            'total_consultants': yearly_kpi.financial.total_consultants,
+                            'avg_hourly_rate': yearly_kpi.financial.avg_hourly_rate,
+                            'avg_utr': yearly_kpi.financial.avg_utr
+                        },
+                        'growth': {
+                            'total_growth_percent': yearly_kpi.growth.total_growth_percent,
+                            'total_growth_absolute': yearly_kpi.growth.total_growth_absolute,
+                            'current_total_fte': yearly_kpi.growth.current_total_fte,
+                            'baseline_total_fte': yearly_kpi.growth.baseline_total_fte,
+                            'non_debit_ratio': yearly_kpi.growth.non_debit_ratio,
+                            'non_debit_ratio_baseline': yearly_kpi.growth.non_debit_ratio_baseline
+                        },
+                        'journeys': {
+                            'journey_totals': yearly_kpi.journeys.journey_totals,
+                            'journey_percentages': yearly_kpi.journeys.journey_percentages,
+                            'journey_deltas': yearly_kpi.journeys.journey_deltas
+                        },
+                        'year_over_year': {
+                            'growth_percent': yearly_kpi.year_over_year_growth,
+                            'margin_change': yearly_kpi.year_over_year_margin_change
+                        }
+                    }
+                    print(f"[DEBUG] Added KPIs for year {year_str}: Net Sales {yearly_kpi.financial.net_sales:,.0f}, EBITDA {yearly_kpi.financial.ebitda:,.0f}, Margin {yearly_kpi.financial.margin:.1f}%")
             
             print(f"[DEBUG] KPIs calculated successfully")
             print(f"[DEBUG] Financial - Net Sales: {all_kpis.financial.net_sales:,.0f} (Baseline: {all_kpis.financial.net_sales_baseline:,.0f})")
@@ -1134,7 +1223,7 @@ class SimulationEngine:
     def calculate_revenue(self, office: Office, current_month: Month) -> float:
         """Calculate revenue for an office - only consultants generate revenue"""
         total_revenue = 0
-        working_hours_per_month = 160  # Standard working hours per month (20 days * 8 hours)
+        working_hours_per_month = 166.4  # Actual working hours per month (matches real data)
         
         # Only consultants generate revenue (billable to clients)
         if 'Consultant' in office.roles:

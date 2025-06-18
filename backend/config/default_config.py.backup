@@ -243,15 +243,15 @@ BASE_SALARIES = {
         'SrM': round(8200 * EUR_TO_SEK, 2),   # 89,901 SEK/month
         'PiP': round(8832 * EUR_TO_SEK, 2)    # 96,833 SEK/month
     },
-    'Oslo': {  # Updated based on actual contribution margin calculations
-        'A': 53333,      # 53,333 SEK/month (from contribution margin data)
-        'AC': 59167,     # 59,167 SEK/month
-        'C': 70834,      # 70,834 SEK/month
-        'SrC': 80000,    # 80,000 SEK/month
-        'AM': 91667,     # 91,667 SEK/month
-        'M': 105000,     # 105,000 SEK/month
-        'SrM': 129166,   # 129,166 SEK/month
-        'PiP': 158333    # 158,333 SEK/month
+    'Oslo': {  # NOK/year -> SEK/month (divide by 12, then convert)
+        'A': round((640000 / 12) * 0.9580, 2),    # 51,093 SEK/month
+        'AC': round((670000 / 12) * 0.9580, 2),   # 53,483 SEK/month
+        'C': round((750000 / 12) * 0.9580, 2),    # 59,875 SEK/month
+        'SrC': round((800000 / 12) * 0.9580, 2),  # 63,867 SEK/month
+        'AM': round((860000 / 12) * 0.9580, 2),   # 68,660 SEK/month
+        'M': round((920000 / 12) * 0.9580, 2),    # 73,453 SEK/month
+        'SrM': round((1050000 / 12) * 0.9580, 2), # 83,825 SEK/month
+        'PiP': round((1240000 / 12) * 0.9580, 2)  # 98,987 SEK/month
     },
     'Berlin': {  # EUR/year -> SEK/month (same as Munich/Hamburg)
         'A': round((63000 / 12) * EUR_TO_SEK, 2),     
@@ -509,92 +509,163 @@ ACTUAL_OFFICE_LEVEL_DATA = {
     }
 }
 
-# Default rates for simulation (based on historical data 2022-2024 - DATA DRIVEN)
+# Default rates for simulation (based on actual historical data 2020-2025)
 DEFAULT_RATES = {
     'recruitment': {
         'Consultant': {
-            'A': 0.05,      # 5.0% monthly - emerging office baseline
-            'AC': 0.035,    # 3.5% monthly
-            'C': 0.02,      # 2.0% monthly  
-            'SRC': 0.015,   # 1.5% monthly
-            'AM': 0.01,     # 1.0% monthly
-            'M': 0.005,     # 0.5% monthly
-            'SrM': 0.003,   # 0.3% monthly
-            'PiP': 0.002    # 0.2% monthly
+            'A': 0.008,      # 0.8% monthly - Default rate, should be overridden by config
+            'AC': 0.007,     # 0.7% monthly - Default rate, should be overridden by config
+            'C': 0.006,      # 0.6% monthly - Default rate, should be overridden by config
+            'SrC': 0.005,    # 0.5% monthly - Default rate, should be overridden by config
+            'AM': 0.004,     # 0.4% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
         'Sales': {
-            'A': 0.045,     # 4.5% monthly - emerging office baseline
-            'AC': 0.035,    # 3.5% monthly
-            'C': 0.025,     # 2.5% monthly
-            'SRC': 0.020,   # 2.0% monthly
-            'AM': 0.015,    # 1.5% monthly
-            'M': 0.008,     # 0.8% monthly
-            'SrM': 0.005,   # 0.5% monthly
-            'PiP': 0.003    # 0.3% monthly
+            'A': 0.007,      # 0.7% monthly - Default rate, should be overridden by config
+            'AC': 0.006,     # 0.6% monthly - Default rate, should be overridden by config
+            'C': 0.005,      # 0.5% monthly - Default rate, should be overridden by config
+            'SrC': 0.004,    # 0.4% monthly - Default rate, should be overridden by config
+            'AM': 0.004,     # 0.4% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
         'Recruitment': {
-            'A': 0.045,     # 4.5% monthly - emerging office baseline
-            'AC': 0.035,    # 3.5% monthly
-            'C': 0.025,     # 2.5% monthly
-            'SRC': 0.020,   # 2.0% monthly
-            'AM': 0.015     # 1.5% monthly
+            'A': 0.006,      # 0.6% monthly - Default rate, should be overridden by config
+            'AC': 0.005,     # 0.5% monthly - Default rate, should be overridden by config
+            'C': 0.005,      # 0.5% monthly - Default rate, should be overridden by config
+            'SrC': 0.004,    # 0.4% monthly - Default rate, should be overridden by config
+            'AM': 0.003,     # 0.3% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
-        'Operations': 0.030   # 3.0% monthly - emerging office baseline
+        'Operations': 0.005  # 0.5% monthly - Default rate, should be overridden by config
     },
     'churn': {
         'Consultant': {
-            'A': 0.030,     # 3.0% monthly - emerging office baseline
-            'AC': 0.025,    # 2.5% monthly
-            'C': 0.020,     # 2.0% monthly
-            'SRC': 0.015,   # 1.5% monthly
-            'AM': 0.012,    # 1.2% monthly
-            'M': 0.010,     # 1.0% monthly
-            'SrM': 0.008,   # 0.8% monthly
-            'PiP': 0.006    # 0.6% monthly
+            'A': 0.0128,     # 1.28% monthly - Historical rate (14.3% annually)
+            'AC': 0.0153,    # 1.53% monthly - Historical rate (16.9% annually)
+            'C': 0.0173,     # 1.73% monthly - Historical rate (18.9% annually)
+            'SrC': 0.0173,   # 1.73% monthly - Use C rate for SrC
+            'AM': 0.0127,    # 1.27% monthly - Historical rate (14.2% annually)
+            'M': 0.0071,     # 0.71% monthly - Historical rate (8.2% annually)
+            'SrM': 0.0071,   # 0.71% monthly - Use M rate for SrM
+            'PiP': 0.0071    # 0.71% monthly - Use M rate for PiP
         },
         'Sales': {
-            'A': 0.035,     # 3.5% monthly - emerging office baseline
-            'AC': 0.030,    # 3.0% monthly
-            'C': 0.025,     # 2.5% monthly
-            'SRC': 0.020,   # 2.0% monthly
-            'AM': 0.015,    # 1.5% monthly
-            'M': 0.012,     # 1.2% monthly
-            'SrM': 0.010,   # 1.0% monthly
-            'PiP': 0.008    # 0.8% monthly
+            'A': 0.0175,     # 1.75% monthly - Historical SRC rate (19.1% annually)
+            'AC': 0.0175,    # 1.75% monthly - Use SRC rate
+            'C': 0.0175,     # 1.75% monthly - Use SRC rate
+            'SrC': 0.0175,   # 1.75% monthly - Historical SRC rate
+            'AM': 0.0175,    # 1.75% monthly - Use SRC rate
+            'M': 0.0175,     # 1.75% monthly - Use SRC rate
+            'SrM': 0.0175,   # 1.75% monthly - Use SRC rate
+            'PiP': 0.0175    # 1.75% monthly - Use SRC rate
         },
         'Recruitment': {
-            'A': 0.035,     # 3.5% monthly - emerging office baseline
-            'AC': 0.030,    # 3.0% monthly
-            'C': 0.025,     # 2.5% monthly
-            'SRC': 0.020,   # 2.0% monthly
-            'AM': 0.015     # 1.5% monthly
+            'A': 0.0150,     # 1.50% monthly - Estimated rate
+            'AC': 0.0150,    # 1.50% monthly - Estimated rate
+            'C': 0.0150,     # 1.50% monthly - Estimated rate
+            'SrC': 0.0150,   # 1.50% monthly - Estimated rate
+            'AM': 0.0150,    # 1.50% monthly - Estimated rate
+            'M': 0.0150,     # 1.50% monthly - Estimated rate
+            'SrM': 0.0150,   # 1.50% monthly - Estimated rate
+            'PiP': 0.0150    # 1.50% monthly - Estimated rate
         },
-        'Operations': 0.025   # 2.5% monthly - emerging office baseline
+        'Operations': 0.0149  # 1.49% monthly - Historical OPE rate (16.5% annually)
     },
     'progression': {
+        'evaluation_months': [1, 6],  # January and June (half-yearly)
+        'non_evaluation_rate': 0.0,   # 0% in non-evaluation months
+        
+        # Half-yearly base progression rates (converted from user data)
         'base_rates': {
-            'C->SrC': 0.20,      # 20% per year
-            'SrC->AM': 0.15,     # 15% per year  
-            'AM->M': 0.12,       # 12% per year
-            'M->SrM': 0.08,      # 8% per year
-            'SrM->PiP': 0.05     # 5% per year
+            'C->SrC': 0.26,    # 26% half-yearly base rate
+            'SrC->AM': 0.20,   # 20% half-yearly base rate
+            'AM->M': 0.07,     # 7% half-yearly base rate
+            'M->SrM': 0.12,    # 12% half-yearly base rate
+            'SrM->PiP': 0.14   # 14% half-yearly base rate
         },
-        'evaluation_months': [1, 6],  # January and June
-        'non_evaluation_rate': 0.0,
-        'minimum_tenure': {  # Minimum months on level before progression
-            'A': 6, 'AC': 12, 'C': 12, 'SrC': 12, 'AM': 24, 'M': 6, 'SrM': 6, 'PiP': 6
+        
+        # CAT progression curves (relative multipliers based on time on level)
+        # CAT0=0-6mo, CAT6=6-12mo, CAT12=12-18mo, CAT18=18-24mo, CAT24=24-30mo, CAT30+=30+mo
+        'cat_curves': {
+            'A': {      # Fast progression level (6 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 1.8,    # Peak promotion time (higher than base)
+                'CAT12': 1.2,   # Still good chance
+                'CAT18': 0.6,   # Declining
+                'CAT24': 0.3,   # Low chance
+                'CAT30': 0.1    # Very low
+            },
+            'AC': {     # Standard progression (6 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 1.5,    # Good promotion time
+                'CAT12': 1.8,   # Peak promotion time
+                'CAT18': 1.0,   # Standard chance
+                'CAT24': 0.4,   # Declining
+                'CAT30': 0.2    # Low chance
+            },
+            'C': {      # Standard progression (12 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.2,    # Low chance for exceptional performers
+                'CAT12': 1.2,   # First eligible period
+                'CAT18': 2.0,   # Peak promotion time
+                'CAT24': 1.5,   # Still good chance
+                'CAT30': 0.8    # Reasonable chance
+            },
+            'SrC': {    # Longer tenure expected (18 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.1,    # Very low chance for exceptional performers
+                'CAT12': 0.3,   # Low chance for exceptional performers
+                'CAT18': 1.5,   # First eligible period
+                'CAT24': 2.0,   # Peak promotion time
+                'CAT30': 1.2    # Still good chance
+            },
+            'AM': {     # Management track (24 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.05,   # Very low chance for exceptional performers
+                'CAT12': 0.1,   # Very low chance for exceptional performers
+                'CAT18': 0.3,   # Low chance for exceptional performers
+                'CAT24': 1.8,   # First eligible period
+                'CAT30': 2.0    # Peak promotion time
+            },
+            'M': {      # Senior management (24 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.05,   # Very low chance for exceptional performers
+                'CAT12': 0.1,   # Very low chance for exceptional performers
+                'CAT18': 0.2,   # Low chance for exceptional performers
+                'CAT24': 1.8,   # First eligible period
+                'CAT30': 2.0    # Peak promotion time
+            },
+            'SrM': {    # Executive track (36 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.02,   # Very low chance for exceptional performers
+                'CAT12': 0.05,  # Very low chance for exceptional performers
+                'CAT18': 0.1,   # Very low chance for exceptional performers
+                'CAT24': 0.2,   # Low chance for exceptional performers
+                'CAT30': 1.5    # First eligible period (36+ months)
+            }
         },
-        'cat_curves': {  # CAT progression multipliers by level
-            'A': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'AC': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'C': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'SrC': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'AM': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'M': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5},
-            'SrM': {'CAT0': 0.0, 'CAT6': 0.8, 'CAT12': 1.0, 'CAT18': 1.2, 'CAT24': 1.4, 'CAT30': 1.5}
+        
+        # Minimum tenure requirements by level (in months)
+        'minimum_tenure': {
+            'A': 6,      # 6 months minimum
+            'AC': 6,     # 6 months minimum  
+            'C': 12,     # 12 months minimum
+            'SrC': 18,   # 18 months minimum
+            'AM': 24,    # 24 months minimum
+            'M': 24,     # 24 months minimum
+            'SrM': 36    # 36 months minimum
         }
     },
-    'utr': 0.85  # Set to 85% based on real contribution margin data
+    'utr': 0.85,            # 85% utilization rate
+    'unplanned_absence': 0.05,  # 5% unplanned absence
+    'working_hours': 1800,      # Annual working hours
+    'other_expense': 10000      # Other expenses per office
 }
 
 # Journey classifications
@@ -728,10 +799,13 @@ def generate_default_config():
                         **monthly_rates
                     }
                 
-                # Senior levels (M+) don't get automatic progression - only through explicit promotion
+                # Adjust progression rates for M+ levels (only November)
                 if level in ['M', 'SrM', 'PiP']:
                     for i in range(1, 13):
-                        row[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                        if i == 11:  # November only for senior levels
+                            row[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
+                        else:
+                            row[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
                 
                 config_data.append(row)
         

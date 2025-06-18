@@ -58,7 +58,7 @@ class KPIService:
     
     def __init__(self):
         self.working_hours_per_month = 166.4  # Standard working hours per month
-        self.social_cost_rate = 0.25  # 25% social costs
+        self.total_employment_cost_rate = 0.40  # 40% total employment costs (includes social security, pensions, health insurance, vacation accruals, etc.)
     
     def calculate_all_kpis(
         self, 
@@ -238,9 +238,11 @@ class KPIService:
                     if isinstance(level_data, list) and len(level_data) > 0:
                         # Use the last month's data for the year
                         last_month_data = level_data[-1]
+                        print(f"[DEBUG] Using last month data from list: {last_month_data}")
                     elif isinstance(level_data, dict):
                         # Direct dict access
                         last_month_data = level_data
+                        print(f"[DEBUG] Using direct dict data: {last_month_data}")
                     elif isinstance(level_data, int):
                         # Fallback for integer values - create basic structure
                         print(f"[WARNING] Level data is integer, creating fallback structure for {office_name} {level_name}")
@@ -249,35 +251,70 @@ class KPIService:
                             'price': 1000.0,  # Default price
                             'salary': 50000.0  # Default salary
                         }
+                        print(f"[DEBUG] Created fallback data: {last_month_data}")
                     else:
                         print(f"[ERROR] Unexpected level_data type: {type(level_data)}")
                         continue
                     
-                    total_consultants += last_month_data['total']
-                    total_weighted_price += last_month_data['total'] * last_month_data['price']
-                    total_weighted_utr += last_month_data['total'] * 0.85  # Assuming 85% UTR
+                    # Extract values with detailed logging
+                    fte_count = last_month_data['total']
+                    hourly_price = last_month_data['price']
+                    monthly_salary = last_month_data['salary']
                     
-                    # Calculate revenue
+                    print(f"[DEBUG] {office_name} {level_name} - FTE: {fte_count}, Price: {hourly_price} SEK/hr, Salary: {monthly_salary} SEK/month")
+                    
+                    total_consultants += fte_count
+                    total_weighted_price += fte_count * hourly_price
+                    total_weighted_utr += fte_count * 0.85  # Assuming 85% UTR
+                    
+                    # Calculate revenue with detailed logging
+                    working_hours = self.working_hours_per_month
+                    # Convert unplanned_absence from hours to billable hours per month
+                    available_hours = working_hours - unplanned_absence  # Subtract absence hours
+                    billable_hours = available_hours * 0.85  # Apply UTR to available hours
+                    
+                    print(f"[DEBUG] REVENUE CALC {office_name} {level_name}:")
+                    print(f"  FTE: {fte_count}")
+                    print(f"  Price: {hourly_price} SEK/hr")
+                    print(f"  Total working hours/month: {working_hours}")
+                    print(f"  Unplanned absence hours: {unplanned_absence}")
+                    print(f"  Available hours: {available_hours}")
+                    print(f"  Billable hours (85% UTR): {billable_hours}")
+                    print(f"  Formula: {fte_count} * ({hourly_price} * {billable_hours}) * 12")
+                    
                     revenue = (
-                        last_month_data['total'] *
-                        last_month_data['price'] *
-                        self.working_hours_per_month *
-                        12 *  # Annualize
-                        (1 - unplanned_absence)
-                    )
-                    total_revenue += revenue
-                    
-                    # Calculate costs
-                    costs = (
-                        last_month_data['total'] *
-                        last_month_data['salary'] *
-                        (1 + self.social_cost_rate) *
+                        fte_count *
+                        hourly_price *
+                        billable_hours *
                         12  # Annualize
                     )
+                    
+                    print(f"  Result: {revenue:,.0f} SEK")
+                    
+                    # Calculate costs with detailed logging
+                    costs = (
+                        fte_count *
+                        monthly_salary *
+                        (1 + self.total_employment_cost_rate) *
+                        12  # Annualize
+                    )
+                    
+                    profit = revenue - costs
+                    
+                    print(f"[DEBUG] {office_name} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
+                    
+                    total_revenue += revenue
                     total_costs += costs
             
             # Add other expenses
-            total_costs += other_expense * 12  # Annualize
+            other_expense_annual = other_expense * 12  # Annualize
+            total_costs += other_expense_annual
+            print(f"[DEBUG] Added other expenses: {other_expense_annual:,.0f} SEK annually")
+        
+        print(f"[DEBUG] FINAL TOTALS:")
+        print(f"[DEBUG] Total Consultants: {total_consultants}")
+        print(f"[DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[DEBUG] Total Costs: {total_costs:,.0f} SEK")
         
         # Calculate averages
         avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
@@ -286,6 +323,11 @@ class KPIService:
         # Calculate EBITDA and margin
         ebitda = total_revenue - total_costs
         margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
+        
+        print(f"[DEBUG] EBITDA: {ebitda:,.0f} SEK")
+        print(f"[DEBUG] Margin: {margin:.2f}%")
+        print(f"[DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
+        print(f"[DEBUG] Avg UTR: {avg_utr:.2f}")
         
         return {
             'net_sales': total_revenue,
@@ -646,31 +688,59 @@ class KPIService:
                     price = BASE_PRICING[office['name']][level_name]
                     salary = BASE_SALARIES[office['name']][level_name]
                     
+                    print(f"[DEBUG] BASELINE {office['name']} {level_name} - FTE: {count}, Price: {price} SEK/hr, Salary: {salary} SEK/month")
+                    
                     total_consultants += count
                     total_weighted_price += count * price
                     total_weighted_utr += count * 0.85  # Assuming 85% UTR
                     
-                    # Calculate revenue (annualized)
+                    # Calculate revenue (annualized) with detailed debug
+                    working_hours = self.working_hours_per_month
+                    # Convert unplanned_absence from hours to billable hours per month
+                    available_hours = working_hours - unplanned_absence  # Subtract absence hours
+                    billable_hours = available_hours * 0.85  # Apply UTR to available hours
+                    
+                    print(f"[DEBUG] BASELINE REVENUE CALC {office['name']} {level_name}:")
+                    print(f"  FTE: {count}")
+                    print(f"  Price: {price} SEK/hr")
+                    print(f"  Total working hours/month: {working_hours}")
+                    print(f"  Unplanned absence hours: {unplanned_absence}")
+                    print(f"  Available hours: {available_hours}")
+                    print(f"  Billable hours (85% UTR): {billable_hours}")
+                    print(f"  Duration months: {duration_months}")
+                    print(f"  Formula: {count} * ({price} * {billable_hours}) * {duration_months}")
+                    
                     revenue = (
                         count *
                         price *
-                        self.working_hours_per_month *
-                        duration_months *  # Annualize by multiplying by 12 months
-                        (1 - unplanned_absence)
+                        billable_hours *
+                        duration_months  # Annualize by multiplying by 12 months
                     )
+                    
+                    print(f"  Result: {revenue:,.0f} SEK")
                     total_revenue += revenue
                     
-                    # Calculate costs (annualized)
+                    # Calculate costs (salary + total employment costs, annualized)
                     costs = (
                         count *
                         salary *
-                        (1 + self.social_cost_rate) *
+                        (1 + self.total_employment_cost_rate) *
                         duration_months  # Annualize by multiplying by 12 months
                     )
                     total_costs += costs
+                    
+                    profit = revenue - costs
+                    print(f"[DEBUG] BASELINE {office['name']} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
             
             # Add other expenses (annualized)
-            total_costs += other_expense * duration_months  # Annualize by multiplying by 12 months
+            other_expense_total = other_expense * duration_months  # Annualize by multiplying by 12 months
+            total_costs += other_expense_total
+            print(f"[DEBUG] BASELINE Added other expenses: {other_expense_total:,.0f} SEK")
+        
+        print(f"[DEBUG] BASELINE FINAL TOTALS:")
+        print(f"[DEBUG] BASELINE Total Consultants: {total_consultants}")
+        print(f"[DEBUG] BASELINE Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[DEBUG] BASELINE Total Costs: {total_costs:,.0f} SEK")
         
         # Calculate averages
         avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
@@ -679,6 +749,9 @@ class KPIService:
         # Calculate EBITDA and margin
         ebitda = total_revenue - total_costs
         margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
+        
+        print(f"[DEBUG] BASELINE EBITDA: {ebitda:,.0f} SEK")
+        print(f"[DEBUG] BASELINE Margin: {margin:.2f}%")
         
         return {
             'net_sales': total_revenue,

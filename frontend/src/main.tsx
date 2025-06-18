@@ -11,6 +11,7 @@ import SeniorityAnalysis from './pages/SeniorityAnalysis';
 import Configuration from './pages/Configuration';
 import SimulationLabV2 from './pages/SimulationLabV2';
 import Settings from './pages/Settings';
+import InsightsTab from './pages/InsightsTab';
 
 import { ThemeProvider } from './components/ThemeContext';
 import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
@@ -40,8 +41,9 @@ function MainApp() {
                   <Route path="/growth" element={<GrowthProjections />} />
                   <Route path="/seniority" element={<SeniorityAnalysis />} />
                   <Route path="/config" element={<Configuration />} />
-                              <Route path="/lab" element={<SimulationLabV2 />} />
+                  <Route path="/lab" element={<SimulationLabV2 />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/insights" element={<InsightsTab />} />
                 </Routes>
               </Layout>
             </YearNavigationProvider>
