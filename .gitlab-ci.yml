@@ -1,0 +1,24 @@
+default:
+  tags:
+    - aws-edgez-prd-k8s
+
+include:
+  - component: gitlab.netlight.com/components/opentofu/validate-plan-apply@2.6.1
+    inputs:
+      opentofu_version: 1.9.1
+      root_dir: infra
+      job_name_prefix: "aws-"
+  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+    inputs:
+      tags: aws-edgez-prd-k8s
+      name: simplesim-backend
+      job_prefix: backend-
+      dockerfile: Dockerfile.backend
+  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+    inputs:
+      tags: aws-edgez-prd-k8s
+      name: simplesim-frontend
+      job_prefix: frontend-
+      dockerfile: Dockerfile.frontend
+
+stages: [validate, test, build, deploy]
