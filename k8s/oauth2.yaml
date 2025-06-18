@@ -17,7 +17,6 @@ spec:
             provider="entra-id"
             oidc_issuer_url="https://login.microsoftonline.com/d4110288-bf1e-4337-97ab-a5c51371dcea/v2.0"
             scope="openid"
-            email_domains=["netlight.com"]
             upstreams = [
                 "http://simplesim-frontend:3000/"
             ]
