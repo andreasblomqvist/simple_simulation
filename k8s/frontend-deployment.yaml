@@ -17,6 +17,19 @@ spec:
         app: simplesim-frontend
         version: v1
     spec:
+      tolerations:
+        - key: "karpenter.sh/capacity-type"
+          operator: Equal
+          value: "spot"
+          effect: NoSchedule
+        - key: "kubernetes.io/arch"
+          operator: Equal
+          value: "amd64"
+          effect: NoSchedule
+        - key: "node-type"
+          operator: Equal
+          value: "x86-spot"
+          effect: NoSchedule
       containers:
         - name: frontend
           image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-frontend:d4b7c71a
