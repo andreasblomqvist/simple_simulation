@@ -17,6 +17,22 @@ spec:
         app: simplesim-backend
         version: v1
     spec:
+      nodeSelector:
+        node-type: "x86-spot"
+        capacity-type: "spot"
+      tolerations:
+        - key: "karpenter.sh/capacity-type"
+          operator: Equal
+          value: "spot"
+          effect: NoSchedule
+        - key: "kubernetes.io/arch"
+          operator: Equal
+          value: "amd64"
+          effect: NoSchedule
+        - key: "node-type"
+          operator: Equal
+          value: "x86-spot"
+          effect: NoSchedule
       containers:
         - name: backend
           image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-backend:d4b7c71a
