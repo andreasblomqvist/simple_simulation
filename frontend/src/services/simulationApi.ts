@@ -454,9 +454,9 @@ class SimulationApiService {
   }
 
   /**
-   * Extract seniority analysis data from simulation results
+   * Extract seniority analysis data from simulation results with baseline comparison
    */
-  extractSeniorityData(results: SimulationResults, year: string): any[] {
+  extractSeniorityData(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[]): any[] {
     const yearData = results.years?.[year];
     if (!yearData?.offices) return [];
 
@@ -492,19 +492,28 @@ class SimulationApiService {
       const nonConsultantFTE = salesFTE + recruitmentFTE + operationsFTE;
       const nonDebitRatio = totalFTE > 0 ? Math.round((nonConsultantFTE / totalFTE) * 100) : 0;
 
+      // Get baseline data for comparison if available
+      let baselineData = null;
+      if (baselineConfig) {
+        const baselineOffice = baselineConfig.find(office => office.name === officeName);
+        if (baselineOffice) {
+          baselineData = this.extractBaselineSeniorityLevels(baselineOffice);
+        }
+      }
+
       return {
         key: `${index + 1}`,
         office: `${officeName} Office`,
-        total: Math.round(total),
-        levelA,
-        levelAC,
-        levelC,
-        levelSrC,
-        levelAM,
-        levelM,
-        levelSrM,
-        levelPiP,
-        operations: Math.round(operationsFTE),
+        total: this.formatValueWithDelta(Math.round(total), baselineData?.total),
+        levelA: this.formatValueWithDelta(levelA, baselineData?.levelA),
+        levelAC: this.formatValueWithDelta(levelAC, baselineData?.levelAC),
+        levelC: this.formatValueWithDelta(levelC, baselineData?.levelC),
+        levelSrC: this.formatValueWithDelta(levelSrC, baselineData?.levelSrC),
+        levelAM: this.formatValueWithDelta(levelAM, baselineData?.levelAM),
+        levelM: this.formatValueWithDelta(levelM, baselineData?.levelM),
+        levelSrM: this.formatValueWithDelta(levelSrM, baselineData?.levelSrM),
+        levelPiP: this.formatValueWithDelta(levelPiP, baselineData?.levelPiP),
+        operations: this.formatValueWithDelta(Math.round(operationsFTE), baselineData?.operations),
         nonDebitRatio
       };
     });
@@ -528,47 +537,314 @@ class SimulationApiService {
   }
 
   /**
-   * Calculate seniority KPIs from simulation results
+   * Extract baseline seniority levels from office config
    */
-  extractSeniorityKPIs(results: SimulationResults, year: string): any {
+  private extractBaselineSeniorityLevels(officeConfig: OfficeConfig): any {
+    const roles = officeConfig.roles || {};
+    
+    // Calculate baseline level counts for each seniority level
+    const levelA = this.getBaselineLevelCount(roles, 'A');
+    const levelAC = this.getBaselineLevelCount(roles, 'AC');
+    const levelC = this.getBaselineLevelCount(roles, 'C');
+    const levelSrC = this.getBaselineLevelCount(roles, 'SrC');
+    const levelAM = this.getBaselineLevelCount(roles, 'AM');
+    const levelM = this.getBaselineLevelCount(roles, 'M');
+    const levelSrM = this.getBaselineLevelCount(roles, 'SrM');
+    const levelPiP = this.getBaselineLevelCount(roles, 'PiP');
+    
+    // Get Operations baseline FTE
+    const operations = roles.Operations?.total || 0;
+    
+    // Calculate total baseline FTE
+    const total = levelA + levelAC + levelC + levelSrC + levelAM + levelM + levelSrM + levelPiP + operations;
+    
+    return {
+      total: Math.round(total),
+      levelA: Math.round(levelA),
+      levelAC: Math.round(levelAC),
+      levelC: Math.round(levelC),
+      levelSrC: Math.round(levelSrC),
+      levelAM: Math.round(levelAM),
+      levelM: Math.round(levelM),
+      levelSrM: Math.round(levelSrM),
+      levelPiP: Math.round(levelPiP),
+      operations: Math.round(operations)
+    };
+  }
+
+  /**
+   * Get baseline level count from office config roles
+   */
+  private getBaselineLevelCount(roles: any, targetLevel: string): number {
+    let count = 0;
+    
+    // Check all role types (Consultant, Sales, Recruitment) for this level
+    ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
+      if (roles[role] && roles[role][targetLevel] && typeof roles[role][targetLevel] === 'object') {
+        count += roles[role][targetLevel].total || 0;
+      }
+    });
+    
+    return count;
+  }
+
+  /**
+   * Format value with delta in parentheses vs baseline
+   */
+  private formatValueWithDelta(currentValue: number, baselineValue?: number): string {
+    if (baselineValue === undefined || baselineValue === null) {
+      return currentValue.toString();
+    }
+    
+    const delta = currentValue - baselineValue;
+    if (delta === 0) {
+      return currentValue.toString();
+    }
+    
+    const deltaSign = delta > 0 ? '+' : '';
+    return `${currentValue} (${deltaSign}${delta})`;
+  }
+
+  /**
+   * Calculate seniority KPIs from simulation results with baseline comparison
+   */
+  extractSeniorityKPIs(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[], baselineYear: string = '2025'): any {
     const yearData = results.years?.[year];
     if (!yearData?.offices) return null;
 
-    let totalJunior = 0;
-    let totalSenior = 0;
-    let totalProgression = 0;
-    let officeCount = 0;
+    // Journey definitions (from backend config)
+    const journeyDefinitions = {
+      'Journey 1': ['A', 'AC', 'C'],    // A-C
+      'Journey 2': ['SrC', 'AM'],       // SrC-AM
+      'Journey 3': ['M', 'SrM'],        // M-SrM
+      'Journey 4': ['PiP']              // PiP
+    };
+
+    let totalJourney1 = 0;
+    let totalJourney2 = 0;
+    let totalJourney3 = 0;
+    let totalJourney4 = 0;
+    let totalFTE = 0;
+    let totalNonConsultant = 0;
+
+    // Calculate baseline values if config is provided
+    let baselineJourney1 = 0;
+    let baselineJourney2 = 0;
+    let baselineJourney3 = 0;
+    let baselineJourney4 = 0;
+    let baselineTotalFTE = 0;
+    let baselineNonConsultant = 0;
+
+    if (baselineConfig) {
+      baselineConfig.forEach(office => {
+        const roles = office.roles || {};
+        
+        // Calculate baseline journey totals based on definitions
+        Object.entries(journeyDefinitions).forEach(([journeyName, levels]) => {
+          let journeyTotal = 0;
+          levels.forEach(level => {
+            ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
+              if (roles[role] && roles[role][level]) {
+                journeyTotal += roles[role][level].total || 0;
+              }
+            });
+          });
+          
+          if (journeyName === 'Journey 1') baselineJourney1 += journeyTotal;
+          else if (journeyName === 'Journey 2') baselineJourney2 += journeyTotal;
+          else if (journeyName === 'Journey 3') baselineJourney3 += journeyTotal;
+          else if (journeyName === 'Journey 4') baselineJourney4 += journeyTotal;
+        });
+
+        // Calculate baseline FTE and non-consultant totals
+        let officeBaseline = 0;
+        let officeBaselineNonConsultant = 0;
+        
+        Object.entries(roles).forEach(([roleName, roleData]: [string, any]) => {
+          if (roleName === 'Operations') {
+            const fte = roleData.total || 0;
+            officeBaseline += fte;
+            officeBaselineNonConsultant += fte;
+          } else if (typeof roleData === 'object') {
+            Object.values(roleData).forEach((levelData: any) => {
+              const fte = levelData.total || 0;
+              officeBaseline += fte;
+              if (roleName !== 'Consultant') {
+                officeBaselineNonConsultant += fte;
+              }
+            });
+          }
+        });
+        
+        baselineTotalFTE += officeBaseline;
+        baselineNonConsultant += officeBaselineNonConsultant;
+      });
+    }
 
     Object.values(yearData.offices).forEach((officeData: any) => {
-      // Get data directly from levels (no nested months structure)
+      // Calculate journey totals directly from levels data
+      const officeLevels = officeData.levels || {};
+      
+      // Calculate current journey totals based on definitions
+      Object.entries(journeyDefinitions).forEach(([journeyName, levelsList]) => {
+        let journeyTotal = 0;
+        levelsList.forEach(level => {
+          journeyTotal += this.getLevelCount(officeLevels, level);
+        });
+        
+        if (journeyName === 'Journey 1') totalJourney1 += journeyTotal;
+        else if (journeyName === 'Journey 2') totalJourney2 += journeyTotal;
+        else if (journeyName === 'Journey 3') totalJourney3 += journeyTotal;
+        else if (journeyName === 'Journey 4') totalJourney4 += journeyTotal;
+      });
+
+      // Calculate non-debit ratio (non-consultant FTE / total FTE)
       const levels = officeData.levels || {};
-
-      // Count junior levels (A, AC, C)
-      const juniorCount = this.getLevelCount(levels, 'A') + 
-                         this.getLevelCount(levels, 'AC') + 
-                         this.getLevelCount(levels, 'C');
-
-      // Count senior levels (SrC, AM, M, SrM, PiP)
-      const seniorCount = this.getLevelCount(levels, 'SrC') + 
-                         this.getLevelCount(levels, 'AM') + 
-                         this.getLevelCount(levels, 'M') + 
-                         this.getLevelCount(levels, 'SrM') + 
-                         this.getLevelCount(levels, 'PiP');
-
-      totalJunior += juniorCount;
-      totalSenior += seniorCount;
-      officeCount++;
+      const consultantFTE = this.calculateRoleFTE(levels.Consultant || {});
+      const salesFTE = this.calculateRoleFTE(levels.Sales || {});
+      const recruitmentFTE = this.calculateRoleFTE(levels.Recruitment || {});
+      const operationsFTE = this.getFlatRoleFTE(levels.Operations || []);
+      
+      const officeTotalFTE = consultantFTE + salesFTE + recruitmentFTE + operationsFTE;
+      const officeNonConsultant = salesFTE + recruitmentFTE + operationsFTE;
+      
+      totalFTE += officeTotalFTE;
+      totalNonConsultant += officeNonConsultant;
     });
 
-    const totalHeadcount = totalJunior + totalSenior;
-    const juniorPercent = totalHeadcount > 0 ? Math.round((totalJunior / totalHeadcount) * 100) : 0;
-    const seniorPercent = totalHeadcount > 0 ? Math.round((totalSenior / totalHeadcount) * 100) : 0;
+    // Calculate totals and percentages
+    const grandTotal = totalJourney1 + totalJourney2 + totalJourney3 + totalJourney4;
+    const baselineGrandTotal = baselineJourney1 + baselineJourney2 + baselineJourney3 + baselineJourney4;
+    
+    // Calculate journey percentages
+    const journey1Percent = grandTotal > 0 ? Math.round((totalJourney1 / grandTotal) * 100) : 0;
+    const journey2Percent = grandTotal > 0 ? Math.round((totalJourney2 / grandTotal) * 100) : 0;
+    const journey3Percent = grandTotal > 0 ? Math.round((totalJourney3 / grandTotal) * 100) : 0;
+    const journey4Percent = grandTotal > 0 ? Math.round((totalJourney4 / grandTotal) * 100) : 0;
+    
+    // Calculate baseline percentages
+    const baselineJourney1Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney1 / baselineGrandTotal) * 100) : 0;
+    const baselineJourney2Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney2 / baselineGrandTotal) * 100) : 0;
+    const baselineJourney3Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney3 / baselineGrandTotal) * 100) : 0;
+    const baselineJourney4Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney4 / baselineGrandTotal) * 100) : 0;
+    
+    // Calculate non-debit ratios
+    const nonDebitRatio = totalFTE > 0 ? Math.round((totalNonConsultant / totalFTE) * 100) : 0;
+    const baselineNonDebitRatio = baselineTotalFTE > 0 ? Math.round((baselineNonConsultant / baselineTotalFTE) * 100) : 0;
+    
+    // Calculate average progression rate (estimated from journey distribution changes)
+    const progressionRateAvg = '12.5%'; // TODO: Calculate actual progression rate from historical data
+
+    // Helper function to format values with deltas
+    const formatWithDelta = (current: number, baseline: number, showPercent: boolean = false) => {
+      if (baseline === 0) return showPercent ? `${current}%` : current.toString();
+      const delta = current - baseline;
+      const deltaSign = delta > 0 ? '+' : '';
+      const currentStr = showPercent ? `${current}%` : current.toString();
+      const baselineStr = showPercent ? `${baseline}%` : baseline.toString();
+      return delta === 0 ? currentStr : `${currentStr} (baseline: ${baselineStr}, ${deltaSign}${delta}${showPercent ? 'pp' : ''})`;
+    };
+
+    // Calculate growth rates and metrics
+    const totalGrowthRate = baselineGrandTotal > 0 ? ((grandTotal - baselineGrandTotal) / baselineGrandTotal * 100) : 0;
+    const totalGrowthAbsolute = grandTotal - baselineGrandTotal;
+    const journey1GrowthRate = baselineJourney1 > 0 ? ((totalJourney1 - baselineJourney1) / baselineJourney1 * 100) : 0;
+    const journey2GrowthRate = baselineJourney2 > 0 ? ((totalJourney2 - baselineJourney2) / baselineJourney2 * 100) : 0;
+    const journey3GrowthRate = baselineJourney3 > 0 ? ((totalJourney3 - baselineJourney3) / baselineJourney3 * 100) : 0;
+    const journey4GrowthRate = baselineJourney4 > 0 ? ((totalJourney4 - baselineJourney4) / baselineJourney4 * 100) : 0;
 
     return {
-      juniorGrowth: '+15.2%', // TODO: Calculate from historical data
-      seniorGrowth: '+8.7%',  // TODO: Calculate from historical data  
-      progressionRate: '12.5%', // TODO: Calculate from progression data
-      seniorityRatio: `${juniorPercent}:${seniorPercent}`
+      // Journey data with detailed breakdown like Total Growth
+      journey1: formatWithDelta(totalJourney1, baselineJourney1),
+      journey1Percent: formatWithDelta(journey1Percent, baselineJourney1Percent, true),
+      journey1Definition: 'A, AC, C',
+      journey1BaselinePercent: baselineJourney1Percent,
+      journey1Details: {
+        percentage: `${journey1Percent}%`,
+        current: totalJourney1,
+        baseline: baselineJourney1,
+        absolute: totalJourney1 - baselineJourney1,
+        absoluteDisplay: `${totalJourney1 - baselineJourney1 >= 0 ? '+' : ''}${totalJourney1 - baselineJourney1} FTE`
+      },
+      
+      journey2: formatWithDelta(totalJourney2, baselineJourney2),
+      journey2Percent: formatWithDelta(journey2Percent, baselineJourney2Percent, true),
+      journey2Definition: 'SrC, AM',
+      journey2BaselinePercent: baselineJourney2Percent,
+      journey2Details: {
+        percentage: `${journey2Percent}%`,
+        current: totalJourney2,
+        baseline: baselineJourney2,
+        absolute: totalJourney2 - baselineJourney2,
+        absoluteDisplay: `${totalJourney2 - baselineJourney2 >= 0 ? '+' : ''}${totalJourney2 - baselineJourney2} FTE`
+      },
+      
+      journey3: formatWithDelta(totalJourney3, baselineJourney3),
+      journey3Percent: formatWithDelta(journey3Percent, baselineJourney3Percent, true),
+      journey3Definition: 'M, SrM',
+      journey3BaselinePercent: baselineJourney3Percent,
+      journey3Details: {
+        percentage: `${journey3Percent}%`,
+        current: totalJourney3,
+        baseline: baselineJourney3,
+        absolute: totalJourney3 - baselineJourney3,
+        absoluteDisplay: `${totalJourney3 - baselineJourney3 >= 0 ? '+' : ''}${totalJourney3 - baselineJourney3} FTE`
+      },
+      
+      journey4: formatWithDelta(totalJourney4, baselineJourney4),
+      journey4Percent: formatWithDelta(journey4Percent, baselineJourney4Percent, true),
+      journey4Definition: 'PiP',
+      journey4BaselinePercent: baselineJourney4Percent,
+      journey4Details: {
+        percentage: `${journey4Percent}%`,
+        current: totalJourney4,
+        baseline: baselineJourney4,
+        absolute: totalJourney4 - baselineJourney4,
+        absoluteDisplay: `${totalJourney4 - baselineJourney4 >= 0 ? '+' : ''}${totalJourney4 - baselineJourney4} FTE`
+      },
+      
+      // Growth KPIs
+      totalGrowthRate: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
+      totalGrowthDetails: {
+        percentage: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
+        current: grandTotal,
+        baseline: baselineGrandTotal,
+        absolute: totalGrowthAbsolute,
+        absoluteDisplay: `${totalGrowthAbsolute >= 0 ? '+' : ''}${totalGrowthAbsolute} FTE`
+      },
+      journey1GrowthRate: `${journey1GrowthRate >= 0 ? '+' : ''}${journey1GrowthRate.toFixed(1)}%`,
+      journey2GrowthRate: `${journey2GrowthRate >= 0 ? '+' : ''}${journey2GrowthRate.toFixed(1)}%`,
+      journey3GrowthRate: `${journey3GrowthRate >= 0 ? '+' : ''}${journey3GrowthRate.toFixed(1)}%`,
+      journey4GrowthRate: `${journey4GrowthRate >= 0 ? '+' : ''}${journey4GrowthRate.toFixed(1)}%`,
+      
+      // Other KPIs with detailed breakdown
+      progressionRateAvg: progressionRateAvg,
+      progressionRateDetails: {
+        percentage: `${progressionRateAvg}`,
+        current: progressionRateAvg,
+        baseline: progressionRateAvg, // TODO: Add baseline progression rate
+        description: "Monthly progression rate across all levels"
+      },
+      nonDebitRatio: formatWithDelta(nonDebitRatio, baselineNonDebitRatio, true),
+      nonDebitBaselinePercent: baselineNonDebitRatio,
+      nonDebitDetails: {
+        percentage: `${nonDebitRatio}%`,
+        current: nonDebitRatio,
+        baseline: baselineNonDebitRatio,
+        absolute: nonDebitRatio - baselineNonDebitRatio,
+        absoluteDisplay: `${nonDebitRatio - baselineNonDebitRatio >= 0 ? '+' : ''}${(nonDebitRatio - baselineNonDebitRatio).toFixed(1)}pp`
+      },
+      
+      // Baseline information
+      baselineYear: baselineYear,
+      hasBaseline: !!baselineConfig,
+      
+      // Summary values for display
+      journey1Display: `${totalJourney1} (${journey1Percent}%)`,
+      journey2Display: `${totalJourney2} (${journey2Percent}%)`,
+      journey3Display: `${totalJourney3} (${journey3Percent}%)`,
+      journey4Display: `${totalJourney4} (${journey4Percent}%)`,
+      nonDebitRatioDisplay: `${nonDebitRatio}%`
     };
   }
 }

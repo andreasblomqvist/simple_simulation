@@ -4,6 +4,7 @@ import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, Contro
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
 import type { OfficeConfig, SimulationResults } from '../services/simulationApi';
+import EnhancedKPICard from '../components/v2/EnhancedKPICard';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -51,6 +52,41 @@ function getMonthlyRateFromCumulative(cumulative: number, months: number) {
   if (cumulative >= 1) cumulative = 0.9999;
   if (cumulative <= 0) return 0;
   return 1 - Math.pow(1 - cumulative, 1 / months);
+}
+
+/**
+ * Parse baseline comparison string and return formatted diff display
+ * Input: comparisonString: "621 (baseline: 750, -129)", baselinePercent: 38
+ * Output: { text: "Diff vs baseline (750, 38%): -129", isPositive: false, isNegative: true }
+ */
+function parseBaselineComparison(comparisonString: string, baselinePercent?: number) {
+  if (!comparisonString || !comparisonString.includes('baseline:')) {
+    return null;
+  }
+  
+  // Extract baseline and difference from "621 (baseline: 750, -129)"
+  const baselineMatch = comparisonString.match(/baseline:\s*(\d+)/);
+  const diffMatch = comparisonString.match(/,\s*([-+]?\d+)\)/);
+  
+  if (baselineMatch && diffMatch) {
+    const baseline = baselineMatch[1];
+    const diff = diffMatch[1];
+    const isPositive = diff.startsWith('+') || (!diff.startsWith('-') && parseInt(diff) > 0);
+    const isNegative = diff.startsWith('-');
+    
+    // Include baseline percentage if available
+    const baselineDisplay = baselinePercent !== undefined ? `${baseline}, ${baselinePercent}%` : baseline;
+    
+    return {
+      text: `Diff vs baseline (${baselineDisplay}): ${diff}`,
+      isPositive,
+      isNegative,
+      diffValue: diff,
+      baseline: baselineDisplay
+    };
+  }
+  
+  return null;
 }
 
 const SimulationLabV2: React.FC = () => {
@@ -148,12 +184,70 @@ const SimulationLabV2: React.FC = () => {
     : [];
   
   const seniorityData = simulationResults && activeYear
-    ? simulationApi.extractSeniorityData(simulationResults, activeYear)
+    ? simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig)
     : [];
   
   const seniorityKPIs = simulationResults && activeYear
-    ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear)
+    ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, '2025')
     : null;
+
+  // Extract financial KPIs with sparkline data
+  const getFinancialKPIs = () => {
+    if (!simulationResults || !activeYear) return [];
+
+    const currentYearData = simulationResults.years?.[activeYear];
+    const previousYear = String(parseInt(activeYear) - 1);
+    const previousYearData = simulationResults.years?.[previousYear];
+
+    // Generate sparkline data for all available years
+    const generateSparklineData = (metric: string) => {
+      return availableYears.map(year => ({
+        year: parseInt(year),
+        value: simulationResults.years?.[year]?.[metric] || 0
+      }));
+    };
+
+    // Get baseline values (first year or from KPI service)
+    const baselineYear = availableYears[0] || '2025';
+    const baselineData = simulationResults.years?.[baselineYear];
+
+    const financialKPIs = [
+      {
+        title: 'Net Sales',
+        currentValue: currentYearData?.net_sales || 0,
+        previousValue: previousYearData?.net_sales,
+        baselineValue: baselineData?.net_sales || 0,
+        unit: ' SEK',
+        sparklineData: generateSparklineData('net_sales'),
+        precision: 0,
+        description: 'Total revenue from client services'
+      },
+      {
+        title: 'EBITDA',
+        currentValue: currentYearData?.ebitda || 0,
+        previousValue: previousYearData?.ebitda,
+        baselineValue: baselineData?.ebitda || 0,
+        unit: ' SEK',
+        sparklineData: generateSparklineData('ebitda'),
+        precision: 0,
+        description: 'Earnings before interest, taxes, depreciation, and amortization'
+      },
+      {
+        title: 'EBITDA Margin',
+        currentValue: currentYearData?.margin || 0,
+        previousValue: previousYearData?.margin,
+        baselineValue: baselineData?.margin || 0,
+        unit: '%',
+        sparklineData: generateSparklineData('margin'),
+        precision: 1,
+        description: 'EBITDA as percentage of net sales'
+      }
+    ];
+
+    return financialKPIs;
+  };
+
+  const financialKPIs = getFinancialKPIs();
 
   // Seniority data updates when year changes
 
@@ -249,7 +343,7 @@ const SimulationLabV2: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: '24px' }}>
       {/* Back Navigation */}
       <div style={{ marginBottom: '16px' }}>
         <Link to="/lab">
@@ -525,123 +619,181 @@ const SimulationLabV2: React.FC = () => {
           </div>
         )}
 
-        {/* KPI Cards Grid */}
-        <Row gutter={[16, 16]} style={{ marginBottom: '32px' }}>
-          {kpiData.map((kpi: any, index: number) => (
-            <Col xs={24} sm={12} lg={6} key={index}>
-              <Card 
-                size="small" 
-                style={{ 
-                  textAlign: 'center', 
-                  height: '140px',
-                  border: '1px solid #f0f0f0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between'
-                }}
-                bodyStyle={{ 
-                  padding: '16px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  height: '100%'
-                }}
-              >
-                {kpi.title && (
-                  <>
-                    <div>
-                      <Text 
-                        type="secondary" 
-                        style={{ 
-                          fontSize: '11px', 
-                          display: 'block',
-                          marginBottom: '8px',
-                          lineHeight: '1.2'
-                        }}
-                      >
-                        {kpi.title}
-                      </Text>
-                      <div style={{ 
-                        fontSize: '22px', 
-                        fontWeight: '600', 
-                        lineHeight: '1.1',
-                        marginBottom: '4px'
-                      }}>
-                        {kpi.value}
-                      </div>
-                      <div style={{ 
-                        fontSize: '11px', 
-                        color: '#8c8c8c',
-                        marginBottom: '8px'
-                      }}>
-                        {kpi.unit} <span style={{ color: '#52c41a', fontWeight: '500' }}>{kpi.trend}</span>
-                      </div>
-                    </div>
-                    {/* Simple sparkline placeholder */}
-                    <div style={{ 
-                      height: '16px', 
-                      background: 'linear-gradient(90deg, #f0f0f0 0%, #d9d9d9 100%)', 
-                      borderRadius: '2px',
-                      marginTop: 'auto'
-                    }}></div>
-                  </>
-                )}
-                {index === 7 && (
-                  <div style={{ 
-                    height: '100%', 
-                    background: '#f5f5f5', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    borderRadius: '4px'
-                  }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Chart Placeholder</Text>
-                  </div>
-                )}
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        {/* Financial KPI Cards */}
+        {financialKPIs.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <Title level={4} style={{ marginBottom: '16px' }}>Financial Performance</Title>
+            <Row gutter={[24, 24]}>
+              {financialKPIs.map((kpi, index) => (
+                <Col xs={24} sm={12} lg={8} key={index}>
+                                     <EnhancedKPICard
+                     title={kpi.title}
+                     currentValue={kpi.currentValue}
+                     previousValue={kpi.previousValue}
+                     unit={kpi.unit}
+                     sparklineData={kpi.sparklineData}
+                     description={kpi.description}
+                     precision={kpi.precision}
+                   />
+                </Col>
+              ))}
+            </Row>
+          </div>
+        )}
 
         {/* Seniority Analysis Panel */}
         <Collapse style={{ marginBottom: '24px' }}>
           <Collapse.Panel header="📊 Seniority Analysis" key="seniority">
             <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-              {/* Seniority KPIs */}
-                             <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Junior Level Growth</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '8px 0' }}>
-                     {seniorityKPIs?.juniorGrowth || 'N/A'}
+              {/* Journey KPIs with Definitions and Baseline Comparison */}
+               <Col xs={24} sm={12} lg={6}>
+                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 1</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.journey1Details?.percentage || 'N/A'}
                    </div>
-                   <Text type="secondary" style={{ fontSize: '11px', color: '#52c41a' }}>↗ YoY</Text>
+                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                     {seniorityKPIs?.journey1Definition || 'A, AC, C'}
+                   </Text>
+                   {seniorityKPIs?.journey1Details && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                       <div>Current: {seniorityKPIs.journey1Details.current} FTE</div>
+                       <div>Baseline: {seniorityKPIs.journey1Details.baseline} FTE</div>
+                       <div style={{ 
+                         color: seniorityKPIs.journey1Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.journey1Details.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
                  </Card>
                </Col>
                <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Senior Level Growth</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '8px 0' }}>
-                     {seniorityKPIs?.seniorGrowth || 'N/A'}
+                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 2</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.journey2Details?.percentage || 'N/A'}
                    </div>
-                   <Text type="secondary" style={{ fontSize: '11px', color: '#52c41a' }}>↗ YoY</Text>
+                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                     {seniorityKPIs?.journey2Definition || 'SrC, AM'}
+                   </Text>
+                   {seniorityKPIs?.journey2Details && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                       <div>Current: {seniorityKPIs.journey2Details.current} FTE</div>
+                       <div>Baseline: {seniorityKPIs.journey2Details.baseline} FTE</div>
+                       <div style={{ 
+                         color: seniorityKPIs.journey2Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.journey2Details.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
                  </Card>
                </Col>
                <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Progression Rate</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '8px 0' }}>
-                     {seniorityKPIs?.progressionRate || 'N/A'}
+                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 3</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.journey3Details?.percentage || 'N/A'}
                    </div>
-                   <Text type="secondary" style={{ fontSize: '11px', color: '#1890ff' }}>→ Stable</Text>
+                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                     {seniorityKPIs?.journey3Definition || 'M, SrM'}
+                   </Text>
+                   {seniorityKPIs?.journey3Details && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                       <div>Current: {seniorityKPIs.journey3Details.current} FTE</div>
+                       <div>Baseline: {seniorityKPIs.journey3Details.baseline} FTE</div>
+                       <div style={{ 
+                         color: seniorityKPIs.journey3Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.journey3Details.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
                  </Card>
                </Col>
                <Col xs={24} sm={12} lg={6}>
-                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
-                   <Text type="secondary" style={{ fontSize: '12px' }}>Seniority Ratio</Text>
-                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '8px 0' }}>
-                     {seniorityKPIs?.seniorityRatio || 'N/A'}
+                 <Card size="small" style={{ textAlign: 'center', height: '140px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Journey 4</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.journey4Details?.percentage || 'N/A'}
                    </div>
-                   <Text type="secondary" style={{ fontSize: '11px', color: '#faad14' }}>⚡ Jr:Sr</Text>
+                   <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                     {seniorityKPIs?.journey4Definition || 'PiP'}
+                   </Text>
+                   {seniorityKPIs?.journey4Details && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                       <div>Current: {seniorityKPIs.journey4Details.current} FTE</div>
+                       <div>Baseline: {seniorityKPIs.journey4Details.baseline} FTE</div>
+                       <div style={{ 
+                         color: seniorityKPIs.journey4Details.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.journey4Details.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
+                 </Card>
+               </Col>
+            </Row>
+            
+            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+              {/* Additional Seniority KPIs with Baseline Comparison */}
+               <Col xs={24} sm={12} lg={8}>
+                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Progression Rate (avg)</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.progressionRateDetails?.percentage || 'N/A'}
+                   </div>
+                   {seniorityKPIs?.progressionRateDetails && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                       <div style={{ color: '#1890ff', fontWeight: '500' }}>→ Stable</div>
+                       <div style={{ marginTop: '2px' }}>{seniorityKPIs.progressionRateDetails.description}</div>
+                     </div>
+                   )}
+                 </Card>
+               </Col>
+               <Col xs={24} sm={12} lg={8}>
+                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Total Growth for Period</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.totalGrowthDetails?.percentage || 'N/A'}
+                   </div>
+                   {seniorityKPIs?.totalGrowthDetails && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                       <div>Current: {seniorityKPIs.totalGrowthDetails.current} FTE</div>
+                       <div>Baseline: {seniorityKPIs.totalGrowthDetails.baseline} FTE</div>
+                       <div style={{ 
+                         color: seniorityKPIs.totalGrowthDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.totalGrowthDetails.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
+                 </Card>
+               </Col>
+               <Col xs={24} sm={12} lg={8}>
+                 <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                   <Text type="secondary" style={{ fontSize: '12px' }}>Non-debit Ratio</Text>
+                   <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                     {seniorityKPIs?.nonDebitDetails?.percentage || 'N/A'}
+                   </div>
+                   {seniorityKPIs?.nonDebitDetails && (
+                     <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.2' }}>
+                       <div>Current: {seniorityKPIs.nonDebitDetails.current}%</div>
+                       <div>Baseline: {seniorityKPIs.nonDebitDetails.baseline}%</div>
+                       <div style={{ 
+                         color: seniorityKPIs.nonDebitDetails.absolute >= 0 ? '#52c41a' : '#f5222d',
+                         fontWeight: '600'
+                       }}>
+                         {seniorityKPIs.nonDebitDetails.absoluteDisplay}
+                       </div>
+                     </div>
+                   )}
                  </Card>
                </Col>
             </Row>
@@ -654,16 +806,256 @@ const SimulationLabV2: React.FC = () => {
                 pagination={false}
                 columns={[
                   { title: 'Office', dataIndex: 'office', key: 'office' },
-                  { title: 'Total', dataIndex: 'total', key: 'total', render: (value) => <span style={{ fontWeight: '600' }}>{value}</span> },
-                  { title: 'A Level', dataIndex: 'levelA', key: 'levelA' },
-                  { title: 'AC Level', dataIndex: 'levelAC', key: 'levelAC' },
-                  { title: 'C Level', dataIndex: 'levelC', key: 'levelC' },
-                  { title: 'SrC Level', dataIndex: 'levelSrC', key: 'levelSrC' },
-                  { title: 'AM Level', dataIndex: 'levelAM', key: 'levelAM' },
-                  { title: 'M Level', dataIndex: 'levelM', key: 'levelM' },
-                  { title: 'SrM Level', dataIndex: 'levelSrM', key: 'levelSrM' },
-                  { title: 'PiP Level', dataIndex: 'levelPiP', key: 'levelPiP' },
-                  { title: 'Operations', dataIndex: 'operations', key: 'operations' },
+                  { 
+                    title: 'Total', 
+                    dataIndex: 'total', 
+                    key: 'total', 
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span style={{ fontWeight: '600' }}>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.9em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return <span style={{ fontWeight: '600' }}>{value}</span>;
+                    }
+                  },
+                  { 
+                    title: 'A Level', 
+                    dataIndex: 'levelA', 
+                    key: 'levelA',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'AC Level', 
+                    dataIndex: 'levelAC', 
+                    key: 'levelAC',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'C Level', 
+                    dataIndex: 'levelC', 
+                    key: 'levelC',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'SrC Level', 
+                    dataIndex: 'levelSrC', 
+                    key: 'levelSrC',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'AM Level', 
+                    dataIndex: 'levelAM', 
+                    key: 'levelAM',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'M Level', 
+                    dataIndex: 'levelM', 
+                    key: 'levelM',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'SrM Level', 
+                    dataIndex: 'levelSrM', 
+                    key: 'levelSrM',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'PiP Level', 
+                    dataIndex: 'levelPiP', 
+                    key: 'levelPiP',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
+                  { 
+                    title: 'Operations', 
+                    dataIndex: 'operations', 
+                    key: 'operations',
+                    render: (value) => {
+                      if (typeof value === 'string' && value.includes('(')) {
+                        const [base, delta] = value.split(' (');
+                        const deltaValue = delta.replace(')', '');
+                        const isPositive = deltaValue.startsWith('+');
+                        const isNegative = deltaValue.startsWith('-');
+                        return (
+                          <span>
+                            {base}{' '}
+                            <span style={{ 
+                              color: isPositive ? '#52c41a' : isNegative ? '#f5222d' : '#8c8c8c',
+                              fontSize: '0.85em'
+                            }}>
+                              ({deltaValue})
+                            </span>
+                          </span>
+                        );
+                      }
+                      return value;
+                    }
+                  },
                   { title: 'Non-debit Ratio', dataIndex: 'nonDebitRatio', key: 'nonDebitRatio', render: (value) => <span style={{ fontWeight: '500' }}>{value}%</span> }
                 ]}
                                  dataSource={seniorityData}
