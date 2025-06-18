@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oauth2-proxy-simplesim
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: oauth2-proxy
+    repoURL: https://oauth2-proxy.github.io/manifests
+    targetRevision: 7.12.9
+    helm:
+      values: |
+        config:
+          existingSecret: oauth2-proxy-azure-ad
+          configFile: |
+            provider="entra-id"
+            oidc_issuer_url="https://login.microsoftonline.com/d4110288-bf1e-4337-97ab-a5c51371dcea/v2.0"
+            scope="openid"
+            email_domains=["netlight.com"]
+            upstreams = [
+                "http://simplesim-frontend:3000/"
+            ]
+            proxy_prefix = "/ui/oauth2"
+        authenticatedEmailsFile:
+          enabled: true
+          persistence: configmap
+          restricted_access: |-
+            moritz.gnisia@netlight.com
+        service:
+          annotations:
+            k8s.grafana.com/metrics.portNumber: "44180"
+            k8s.grafana.com/job: "oauth2-proxy-simplesim"
+            k8s.grafana.com/scrape: "true"
+            k8s.grafana.com/metrics.scrapeInterval: "15s"
+  destination:
+    server: https://3150EB617F71A130106643976A27E606.gr7.eu-west-1.eks.amazonaws.com
+    namespace: simplesim
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
