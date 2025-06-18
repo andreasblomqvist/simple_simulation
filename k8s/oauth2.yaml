@@ -26,7 +26,6 @@ spec:
           enabled: true
           persistence: configmap
           restricted_access: |-
-            moritz.gnisia@netlight.com
             andreas.blomqvist@netlight.com
         service:
           annotations:
