@@ -329,7 +329,11 @@ class KPIService:
                     journey_data = office_data['journeys'][journey]
                     if isinstance(journey_data, list) and len(journey_data) > 0:
                         # Use the last entry if it's a list
-                        journey_total += journey_data[-1].get('total', 0)
+                        last_entry = journey_data[-1]
+                        if isinstance(last_entry, dict):
+                            journey_total += last_entry.get('total', 0)
+                        elif isinstance(last_entry, int):
+                            journey_total += last_entry
                     elif isinstance(journey_data, dict):
                         # Use total directly if it's a dict
                         journey_total += journey_data.get('total', 0)
@@ -543,7 +547,11 @@ class KPIService:
                     journey_data = office_data['journeys'][journey]
                     if isinstance(journey_data, list) and len(journey_data) > 0:
                         # Use the last entry if it's a list
-                        journey_total += journey_data[-1].get('total', 0)
+                        last_entry = journey_data[-1]
+                        if isinstance(last_entry, dict):
+                            journey_total += last_entry.get('total', 0)
+                        elif isinstance(last_entry, int):
+                            journey_total += last_entry
                     elif isinstance(journey_data, dict):
                         # Use total directly if it's a dict
                         journey_total += journey_data.get('total', 0)

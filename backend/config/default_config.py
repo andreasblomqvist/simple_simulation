@@ -568,10 +568,89 @@ DEFAULT_RATES = {
         'Operations': 0.0149  # 1.49% monthly - Historical OPE rate (16.5% annually)
     },
     'progression': {
-        'evaluation_months': [5, 11],  # May and November
-        'A_AM_rate': 0.15,            # 15% for A-AM levels in evaluation months
-        'M_plus_rate': 0.05,          # 5% for M+ levels in November only
-        'non_evaluation_rate': 0.0    # 0% in non-evaluation months
+        'evaluation_months': [1, 6],  # January and June (half-yearly)
+        'non_evaluation_rate': 0.0,   # 0% in non-evaluation months
+        
+        # Half-yearly base progression rates (converted from user data)
+        'base_rates': {
+            'C->SrC': 0.26,    # 26% half-yearly base rate
+            'SrC->AM': 0.20,   # 20% half-yearly base rate
+            'AM->M': 0.07,     # 7% half-yearly base rate
+            'M->SrM': 0.12,    # 12% half-yearly base rate
+            'SrM->PiP': 0.14   # 14% half-yearly base rate
+        },
+        
+        # CAT progression curves (relative multipliers based on time on level)
+        # CAT0=0-6mo, CAT6=6-12mo, CAT12=12-18mo, CAT18=18-24mo, CAT24=24-30mo, CAT30+=30+mo
+        'cat_curves': {
+            'A': {      # Fast progression level (6 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 1.8,    # Peak promotion time (higher than base)
+                'CAT12': 1.2,   # Still good chance
+                'CAT18': 0.6,   # Declining
+                'CAT24': 0.3,   # Low chance
+                'CAT30': 0.1    # Very low
+            },
+            'AC': {     # Standard progression (6 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 1.5,    # Good promotion time
+                'CAT12': 1.8,   # Peak promotion time
+                'CAT18': 1.0,   # Standard chance
+                'CAT24': 0.4,   # Declining
+                'CAT30': 0.2    # Low chance
+            },
+            'C': {      # Standard progression (12 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.2,    # Low chance for exceptional performers
+                'CAT12': 1.2,   # First eligible period
+                'CAT18': 2.0,   # Peak promotion time
+                'CAT24': 1.5,   # Still good chance
+                'CAT30': 0.8    # Reasonable chance
+            },
+            'SrC': {    # Longer tenure expected (18 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.1,    # Very low chance for exceptional performers
+                'CAT12': 0.3,   # Low chance for exceptional performers
+                'CAT18': 1.5,   # First eligible period
+                'CAT24': 2.0,   # Peak promotion time
+                'CAT30': 1.2    # Still good chance
+            },
+            'AM': {     # Management track (24 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.05,   # Very low chance for exceptional performers
+                'CAT12': 0.1,   # Very low chance for exceptional performers
+                'CAT18': 0.3,   # Low chance for exceptional performers
+                'CAT24': 1.8,   # First eligible period
+                'CAT30': 2.0    # Peak promotion time
+            },
+            'M': {      # Senior management (24 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.05,   # Very low chance for exceptional performers
+                'CAT12': 0.1,   # Very low chance for exceptional performers
+                'CAT18': 0.2,   # Low chance for exceptional performers
+                'CAT24': 1.8,   # First eligible period
+                'CAT30': 2.0    # Peak promotion time
+            },
+            'SrM': {    # Executive track (36 month minimum)
+                'CAT0': 0.0,    # Below minimum tenure
+                'CAT6': 0.02,   # Very low chance for exceptional performers
+                'CAT12': 0.05,  # Very low chance for exceptional performers
+                'CAT18': 0.1,   # Very low chance for exceptional performers
+                'CAT24': 0.2,   # Low chance for exceptional performers
+                'CAT30': 1.5    # First eligible period (36+ months)
+            }
+        },
+        
+        # Minimum tenure requirements by level (in months)
+        'minimum_tenure': {
+            'A': 6,      # 6 months minimum
+            'AC': 6,     # 6 months minimum  
+            'C': 12,     # 12 months minimum
+            'SrC': 18,   # 18 months minimum
+            'AM': 24,    # 24 months minimum
+            'M': 24,     # 24 months minimum
+            'SrM': 36    # 36 months minimum
+        }
     },
     'utr': 0.85,            # 85% utilization rate
     'unplanned_absence': 0.05,  # 5% unplanned absence
@@ -581,10 +660,10 @@ DEFAULT_RATES = {
 
 # Journey classifications
 JOURNEY_CLASSIFICATION = {
-    'Journey 1': ['A', 'AC'],           # Junior levels
-    'Journey 2': ['C', 'SrC'],         # Mid levels
-    'Journey 3': ['AM', 'M'],          # Senior levels
-    'Journey 4': ['SrM', 'PiP']        # Principal levels
+    'Journey 1': ['A', 'AC', 'C'],    # A-C
+    'Journey 2': ['SrC', 'AM'],       # SrC-AM
+    'Journey 3': ['M', 'SrM'],        # M-SrM
+    'Journey 4': ['PiP']              # PiP
 }
 
 def get_monthly_pricing(base_price, monthly_increase=0.0025):
@@ -623,19 +702,26 @@ def get_monthly_rates(role_name='Consultant', level_name='A'):
             
         rates[f'utr_{i}'] = DEFAULT_RATES['utr']
         
-        # Progression rates based on evaluation timing and level
+        # Progression rates based on evaluation timing (January and June only)
         if i in DEFAULT_RATES['progression']['evaluation_months']:
-            if level_name in ['M', 'SrM', 'PiP']:
-                # M+ levels only progress in November
-                if i == 11:
-                    rates[f'progression_{i}'] = DEFAULT_RATES['progression']['M_plus_rate']
-                else:
-                    rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+            # Get the appropriate base rate for this level
+            progression_rate = 0.0
+            if level_name == 'C':
+                progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2  # Half-yearly to semi-annual
+            elif level_name == 'SrC':
+                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
+            elif level_name == 'AM':
+                progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
+            elif level_name == 'M':
+                progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
+            elif level_name == 'SrM':
+                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
             else:
-                # A-AM levels progress in May and November
-                rates[f'progression_{i}'] = DEFAULT_RATES['progression']['A_AM_rate']
+                progression_rate = 0.10  # Default fallback for A/AC levels
+            
+            rates[f'progression_{i}'] = progression_rate
         else:
-            # Other months
+            # Other months have no progression
             rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
     
     return rates
