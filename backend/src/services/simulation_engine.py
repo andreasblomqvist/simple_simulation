@@ -1028,7 +1028,10 @@ class SimulationEngine:
             print(f"[DEBUG] Growth - Non-Debit Ratio: {all_kpis.growth.non_debit_ratio:.1f}% (Baseline: {all_kpis.growth.non_debit_ratio_baseline:.1f}%)")
             
         except Exception as e:
+            import traceback
             print(f"[ERROR] Failed to calculate KPIs: {e}")
+            print(f"[ERROR] Full traceback:")
+            traceback.print_exc()
             # Add empty KPIs structure to avoid frontend errors
             results['kpis'] = {
                 'financial': {},

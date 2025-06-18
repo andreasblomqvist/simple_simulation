@@ -4,7 +4,6 @@ import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, Contro
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
 import type { OfficeConfig, SimulationResults } from '../services/simulationApi';
-import EnhancedKPICard from '../components/v2/EnhancedKPICard';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -191,63 +190,7 @@ const SimulationLabV2: React.FC = () => {
     ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, '2025')
     : null;
 
-  // Extract financial KPIs with sparkline data
-  const getFinancialKPIs = () => {
-    if (!simulationResults || !activeYear) return [];
 
-    const currentYearData = simulationResults.years?.[activeYear];
-    const previousYear = String(parseInt(activeYear) - 1);
-    const previousYearData = simulationResults.years?.[previousYear];
-
-    // Generate sparkline data for all available years
-    const generateSparklineData = (metric: string) => {
-      return availableYears.map(year => ({
-        year: parseInt(year),
-        value: simulationResults.years?.[year]?.[metric] || 0
-      }));
-    };
-
-    // Get baseline values (first year or from KPI service)
-    const baselineYear = availableYears[0] || '2025';
-    const baselineData = simulationResults.years?.[baselineYear];
-
-    const financialKPIs = [
-      {
-        title: 'Net Sales',
-        currentValue: currentYearData?.net_sales || 0,
-        previousValue: previousYearData?.net_sales,
-        baselineValue: baselineData?.net_sales || 0,
-        unit: ' SEK',
-        sparklineData: generateSparklineData('net_sales'),
-        precision: 0,
-        description: 'Total revenue from client services'
-      },
-      {
-        title: 'EBITDA',
-        currentValue: currentYearData?.ebitda || 0,
-        previousValue: previousYearData?.ebitda,
-        baselineValue: baselineData?.ebitda || 0,
-        unit: ' SEK',
-        sparklineData: generateSparklineData('ebitda'),
-        precision: 0,
-        description: 'Earnings before interest, taxes, depreciation, and amortization'
-      },
-      {
-        title: 'EBITDA Margin',
-        currentValue: currentYearData?.margin || 0,
-        previousValue: previousYearData?.margin,
-        baselineValue: baselineData?.margin || 0,
-        unit: '%',
-        sparklineData: generateSparklineData('margin'),
-        precision: 1,
-        description: 'EBITDA as percentage of net sales'
-      }
-    ];
-
-    return financialKPIs;
-  };
-
-  const financialKPIs = getFinancialKPIs();
 
   // Seniority data updates when year changes
 
@@ -346,9 +289,9 @@ const SimulationLabV2: React.FC = () => {
     <div style={{ padding: '24px' }}>
       {/* Back Navigation */}
       <div style={{ marginBottom: '16px' }}>
-        <Link to="/lab">
+        <Link to="/">
           <Button type="link" style={{ padding: 0, fontSize: '14px' }}>
-            ← Back to Simulation Lab v1
+            ← Back to Dashboard
           </Button>
         </Link>
       </div>
@@ -619,24 +562,50 @@ const SimulationLabV2: React.FC = () => {
           </div>
         )}
 
-        {/* Financial KPI Cards */}
-        {financialKPIs.length > 0 && (
+        {/* Financial Performance */}
+        {simulationResults && (
           <div style={{ marginBottom: '32px' }}>
             <Title level={4} style={{ marginBottom: '16px' }}>Financial Performance</Title>
-            <Row gutter={[24, 24]}>
-              {financialKPIs.map((kpi, index) => (
-                <Col xs={24} sm={12} lg={8} key={index}>
-                                     <EnhancedKPICard
-                     title={kpi.title}
-                     currentValue={kpi.currentValue}
-                     previousValue={kpi.previousValue}
-                     unit={kpi.unit}
-                     sparklineData={kpi.sparklineData}
-                     description={kpi.description}
-                     precision={kpi.precision}
-                   />
-                </Col>
-              ))}
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} lg={8}>
+                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>Net Sales</Text>
+                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                    {simulationResults.kpis?.financial?.current_net_sales 
+                      ? `${(simulationResults.kpis.financial.current_net_sales / 1000000).toFixed(1)}M SEK`
+                      : 'N/A'}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                    Total revenue from client services
+                  </Text>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA</Text>
+                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                    {simulationResults.kpis?.financial?.current_ebitda 
+                      ? `${(simulationResults.kpis.financial.current_ebitda / 1000000).toFixed(1)}M SEK`
+                      : 'N/A'}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                    Earnings before interest, taxes, depreciation
+                  </Text>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA Margin</Text>
+                  <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                    {simulationResults.kpis?.financial?.current_ebitda_margin 
+                      ? `${(simulationResults.kpis.financial.current_ebitda_margin * 100).toFixed(1)}%`
+                      : 'N/A'}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                    EBITDA as percentage of net sales
+                  </Text>
+                </Card>
+              </Col>
             </Row>
           </div>
         )}

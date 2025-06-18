@@ -312,6 +312,16 @@ BASE_SALARIES = {
         'M': round(9500 * 6.9887, 2),      # 66,393 SEK/month
         'SrM': round(11000 * 6.9887, 2),   # 76,876 SEK/month
         'PiP': round(14000 * 6.9887, 2)    # 97,842 SEK/month
+    },
+    'Cologne': {  # EUR/year -> SEK/month (same as Munich/Hamburg/Berlin/Frankfurt)
+        'A': round((63000 / 12) * EUR_TO_SEK, 2),     
+        'AC': round((63000 / 12) * EUR_TO_SEK, 2),    
+        'C': round((65424 / 12) * EUR_TO_SEK, 2),     
+        'SrC': round((74544 / 12) * EUR_TO_SEK, 2),   
+        'AM': round((85656 / 12) * EUR_TO_SEK, 2),    
+        'M': round((99600 / 12) * EUR_TO_SEK, 2),     
+        'SrM': round((120780 / 12) * EUR_TO_SEK, 2),  
+        'PiP': round((148800 / 12) * EUR_TO_SEK, 2)   
     }
 }
 
@@ -503,36 +513,36 @@ ACTUAL_OFFICE_LEVEL_DATA = {
 DEFAULT_RATES = {
     'recruitment': {
         'Consultant': {
-            'A': 0.040,      # 4.0% monthly - Sustainable growth rate (48% annually)
-            'AC': 0.025,     # 2.5% monthly - Balanced growth rate (30% annually)
-            'C': 0.020,      # 2.0% monthly - Positive growth rate (24% annually)
-            'SrC': 0.018,    # 1.8% monthly - Above churn rate (21.6% annually)
-            'AM': 0.015,     # 1.5% monthly - Match churn to maintain headcount (18% annually)
-            'M': 0.010,      # 1.0% monthly - Slight growth above churn (12% annually)
-            'SrM': 0.010,    # 1.0% monthly - Slight growth above churn (12% annually)
-            'PiP': 0.008     # 0.8% monthly - Slight growth above churn (9.6% annually)
+            'A': 0.008,      # 0.8% monthly - Default rate, should be overridden by config
+            'AC': 0.007,     # 0.7% monthly - Default rate, should be overridden by config
+            'C': 0.006,      # 0.6% monthly - Default rate, should be overridden by config
+            'SrC': 0.005,    # 0.5% monthly - Default rate, should be overridden by config
+            'AM': 0.004,     # 0.4% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
         'Sales': {
-            'A': 0.025,      # 2.5% monthly - Positive growth rate (30% annually)
-            'AC': 0.022,     # 2.2% monthly - Above churn rate (26.4% annually)
-            'C': 0.022,      # 2.2% monthly - Above churn rate (26.4% annually)
-            'SrC': 0.022,    # 2.2% monthly - Above churn rate (26.4% annually)
-            'AM': 0.020,     # 2.0% monthly - Above churn rate (24% annually)
-            'M': 0.020,      # 2.0% monthly - Above churn rate (24% annually)
-            'SrM': 0.018,    # 1.8% monthly - Slight growth above churn (21.6% annually)
-            'PiP': 0.018     # 1.8% monthly - Slight growth above churn (21.6% annually)
+            'A': 0.007,      # 0.7% monthly - Default rate, should be overridden by config
+            'AC': 0.006,     # 0.6% monthly - Default rate, should be overridden by config
+            'C': 0.005,      # 0.5% monthly - Default rate, should be overridden by config
+            'SrC': 0.004,    # 0.4% monthly - Default rate, should be overridden by config
+            'AM': 0.004,     # 0.4% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
         'Recruitment': {
-            'A': 0.020,      # 2.0% monthly - Positive growth rate (24% annually)
-            'AC': 0.018,     # 1.8% monthly - Balanced growth rate (21.6% annually)
-            'C': 0.018,      # 1.8% monthly - Above churn rate (21.6% annually)
-            'SrC': 0.016,    # 1.6% monthly - Above churn rate (19.2% annually)
-            'AM': 0.016,     # 1.6% monthly - Above churn rate (19.2% annually)
-            'M': 0.016,      # 1.6% monthly - Above churn rate (19.2% annually)
-            'SrM': 0.016,    # 1.6% monthly - Above churn rate (19.2% annually)
-            'PiP': 0.016     # 1.6% monthly - Above churn rate (19.2% annually)
+            'A': 0.006,      # 0.6% monthly - Default rate, should be overridden by config
+            'AC': 0.005,     # 0.5% monthly - Default rate, should be overridden by config
+            'C': 0.005,      # 0.5% monthly - Default rate, should be overridden by config
+            'SrC': 0.004,    # 0.4% monthly - Default rate, should be overridden by config
+            'AM': 0.003,     # 0.3% monthly - Default rate, should be overridden by config
+            'M': 0.003,      # 0.3% monthly - Default rate, should be overridden by config
+            'SrM': 0.002,    # 0.2% monthly - Default rate, should be overridden by config
+            'PiP': 0.001     # 0.1% monthly - Default rate, should be overridden by config
         },
-        'Operations': 0.021  # 2.1% monthly - Historical rate (25.2% annually)
+        'Operations': 0.005  # 0.5% monthly - Default rate, should be overridden by config
     },
     'churn': {
         'Consultant': {

@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, JOURNEY_CLASSIFICATION
+from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, JOURNEY_CLASSIFICATION, BASE_PRICING, BASE_SALARIES
 
 @dataclass
 class FinancialKPIs:
@@ -383,16 +383,47 @@ class KPIService:
             # Add Sales
             if 'Sales' in office_data['levels']:
                 for level_name, level_data in office_data['levels']['Sales'].items():
-                    non_debit_fte += level_data[-1]['total']  # Last month
+                    # Handle both list and dict/int structures
+                    if isinstance(level_data, list) and len(level_data) > 0:
+                        last_month_data = level_data[-1]
+                        if isinstance(last_month_data, dict):
+                            non_debit_fte += last_month_data.get('total', 0)
+                        else:
+                            non_debit_fte += last_month_data
+                    elif isinstance(level_data, dict):
+                        non_debit_fte += level_data.get('total', 0)
+                    elif isinstance(level_data, int):
+                        non_debit_fte += level_data
             
             # Add Recruitment
             if 'Recruitment' in office_data['levels']:
                 for level_name, level_data in office_data['levels']['Recruitment'].items():
-                    non_debit_fte += level_data[-1]['total']  # Last month
+                    # Handle both list and dict/int structures
+                    if isinstance(level_data, list) and len(level_data) > 0:
+                        last_month_data = level_data[-1]
+                        if isinstance(last_month_data, dict):
+                            non_debit_fte += last_month_data.get('total', 0)
+                        else:
+                            non_debit_fte += last_month_data
+                    elif isinstance(level_data, dict):
+                        non_debit_fte += level_data.get('total', 0)
+                    elif isinstance(level_data, int):
+                        non_debit_fte += level_data
             
             # Add Operations
             if 'Operations' in office_data['levels']:
-                non_debit_fte += office_data['levels']['Operations'][-1]['total']  # Last month
+                operations_data = office_data['levels']['Operations']
+                # Handle both list and dict/int structures
+                if isinstance(operations_data, list) and len(operations_data) > 0:
+                    last_month_data = operations_data[-1]
+                    if isinstance(last_month_data, dict):
+                        non_debit_fte += last_month_data.get('total', 0)
+                    else:
+                        non_debit_fte += last_month_data
+                elif isinstance(operations_data, dict):
+                    non_debit_fte += operations_data.get('total', 0)
+                elif isinstance(operations_data, int):
+                    non_debit_fte += operations_data
         
         return (non_debit_fte / total_fte * 100) if total_fte > 0 else 0.0
     
@@ -611,9 +642,9 @@ class KPIService:
                 consultant_levels = office['roles']['Consultant']
                 
                 for level_name, count in consultant_levels.items():
-                    # Get price and salary from config
-                    price = ACTUAL_OFFICE_LEVEL_DATA[office['name']]['Consultant'][level_name]['price']
-                    salary = ACTUAL_OFFICE_LEVEL_DATA[office['name']]['Consultant'][level_name]['salary']
+                    # Get price and salary from BASE_PRICING and BASE_SALARIES
+                    price = BASE_PRICING[office['name']][level_name]
+                    salary = BASE_SALARIES[office['name']][level_name]
                     
                     total_consultants += count
                     total_weighted_price += count * price

@@ -82,7 +82,7 @@ export default function Configuration() {
   const [originalData, setOriginalData] = useState<any>({});
   const [draftChanges, setDraftChanges] = useState<any>({});
   const [hasChanges, setHasChanges] = useState(false);
-  const { setLevers } = useConfig();
+
   const [loading, setLoading] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['headcount', 'financial']);
   const [applyToAllMonths, setApplyToAllMonths] = useState(false);
@@ -114,7 +114,6 @@ export default function Configuration() {
       });
       setOfficeData(officeMap);
       setOriginalData(JSON.parse(JSON.stringify(officeMap)));
-      setLevers(data);
     } catch (error) {
       console.error('Failed to fetch offices:', error);
       message.error('Failed to load office data');
@@ -273,7 +272,7 @@ export default function Configuration() {
       const exportData = {
         metadata: {
           exportedAt: new Date().toISOString(),
-          exportedBy: 'SimulationLab Configuration Matrix',
+          exportedBy: 'Configuration Matrix',
           selectedOffice: selectedOffice,
           hasUnsavedChanges: hasChanges,
           unsavedChangeCount: Object.keys(draftChanges).length,
