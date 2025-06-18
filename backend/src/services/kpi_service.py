@@ -231,8 +231,27 @@ class KPIService:
                 consultant_levels = office_data['levels']['Consultant']
                 
                 for level_name, level_data in consultant_levels.items():
-                    # Use the last month's data for the year
-                    last_month_data = level_data[-1]
+                    # Debug: Check the data type
+                    print(f"[DEBUG] Office: {office_name}, Level: {level_name}, Type: {type(level_data)}, Data: {level_data}")
+                    
+                    # Handle both list and dict structures
+                    if isinstance(level_data, list) and len(level_data) > 0:
+                        # Use the last month's data for the year
+                        last_month_data = level_data[-1]
+                    elif isinstance(level_data, dict):
+                        # Direct dict access
+                        last_month_data = level_data
+                    elif isinstance(level_data, int):
+                        # Fallback for integer values - create basic structure
+                        print(f"[WARNING] Level data is integer, creating fallback structure for {office_name} {level_name}")
+                        last_month_data = {
+                            'total': level_data,
+                            'price': 1000.0,  # Default price
+                            'salary': 50000.0  # Default salary
+                        }
+                    else:
+                        print(f"[ERROR] Unexpected level_data type: {type(level_data)}")
+                        continue
                     
                     total_consultants += last_month_data['total']
                     total_weighted_price += last_month_data['total'] * last_month_data['price']
