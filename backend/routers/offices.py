@@ -60,11 +60,12 @@ def get_office_config():
                         else:
                             churn_rate = 0.014
                         
-                        # Set progression rate based on level
-                        if level_name in ['M', 'SrM', 'PiP']:
-                            progression_rate = DEFAULT_RATES['progression']['M_plus_rate']
-                        else:
-                            progression_rate = DEFAULT_RATES['progression']['A_AM_rate']
+                        # Set progression rate based on level using correct rates
+                        progression_map = {
+                            'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
+                            'A': 0.15, 'AC': 0.12, 'PiP': 0.0
+                        }
+                        progression_rate = progression_map.get(level_name, 0.10)
                         
                         roles_out[role_name][level_name] = {
                             "total": fte,
@@ -72,7 +73,7 @@ def get_office_config():
                             **{f"salary_{i}": salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
                             **{f"recruitment_{i}": recruitment_rate for i in range(1, 13)},
                             **{f"churn_{i}": churn_rate for i in range(1, 13)},
-                            **{f"progression_{i}": progression_rate if i in [5, 11] else 0.0 for i in range(1, 13)},
+                            **{f"progression_{i}": progression_rate if i in [1, 6] else 0.0 for i in range(1, 13)},
                             **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
                         }
         
@@ -176,13 +177,22 @@ async def import_office_levers(file: UploadFile = File(...)):
                 level = office.roles[role_name][level_name]
                 print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
                 
-                # Update FTE - Note: total is now read-only, calculated from people list
-                # Cannot directly set level.total anymore due to individual tracking system
+                # Update FTE by adjusting people list
                 if not pd.isna(row["FTE"]):
                     target_fte = int(row["FTE"])
                     current_fte = level.total
+                    
                     if target_fte != current_fte:
-                        print(f"[IMPORT] INFO: FTE for {office_name} {role_name} {level_name} is read-only (target: {target_fte}, current: {current_fte})")
+                        print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
+                        
+                        if target_fte > current_fte:
+                            # Add people
+                            for i in range(target_fte - current_fte):
+                                level.add_new_hire("2024-01", role_name, office_name)
+                        elif target_fte < current_fte:
+                            # Remove people (simple truncation)
+                            excess = current_fte - target_fte
+                            level.people = level.people[:-excess]
                 
                 # Update monthly values (1-12)
                 _update_monthly_attributes(level, row)
@@ -193,13 +203,22 @@ async def import_office_levers(file: UploadFile = File(...)):
             role = office.roles[role_name]
             print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
             
-            # Update FTE - Note: total is now read-only, calculated from people list
-            # Cannot directly set role.total anymore due to individual tracking system
+            # Update FTE by adjusting people list
             if not pd.isna(row["FTE"]):
                 target_fte = int(row["FTE"])
                 current_fte = role.total
+                
                 if target_fte != current_fte:
-                    print(f"[IMPORT] INFO: FTE for {office_name} {role_name} is read-only (target: {target_fte}, current: {current_fte})")
+                    print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
+                    
+                    if target_fte > current_fte:
+                        # Add people
+                        for i in range(target_fte - current_fte):
+                            role.add_new_hire("2024-01", role_name, office_name)
+                    elif target_fte < current_fte:
+                        # Remove people (simple truncation)
+                        excess = current_fte - target_fte
+                        role.people = role.people[:-excess]
             
             # Update monthly values (1-12)
             _update_monthly_attributes(role, row)

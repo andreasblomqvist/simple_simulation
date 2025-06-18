@@ -65,7 +65,7 @@ def generate_office_config():
                             row[f'Salary_{i}'] = salary * (1 + 0.0025 * (i - 1))
                             row[f'Recruitment_{i}'] = recruitment_rate
                             row[f'Churn_{i}'] = churn_rate
-                            row[f'Progression_{i}'] = progression_rate if i in [5, 11] else 0.0
+                            row[f'Progression_{i}'] = progression_rate if i in [1, 6] else 0.0
                             row[f'UTR_{i}'] = DEFAULT_RATES['utr']
                         
                         rows.append(row)
