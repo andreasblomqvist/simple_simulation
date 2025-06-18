@@ -5,13 +5,72 @@ alwaysApply: false
 ---
 ### Full Development Environment
 
+## Cursor Terminal Window Organization
+
+**IMPORTANT: Always run development servers in Cursor's Terminal windows for better workflow integration.**
+
+**Recommended Terminal Setup:**
+- **Terminal 1**: Backend Server (uvicorn)
+- **Terminal 2**: Frontend Server (npm/vite)  
+- **Terminal 3**: Commands, testing, git operations
+
+**To open Terminal windows in Cursor:**
+- Press `Cmd+Shift+` ` (backtick) or go to View → Terminal
+- Use `Cmd+Shift+5` to split terminal or click the `+` icon
+- Use `Cmd+1`, `Cmd+2`, etc. to switch between terminal tabs
+
+**Benefits of using Cursor Terminal:**
+- Server output visible alongside code
+- Integrated error handling and debugging
+- Easy server restart when code changes
+- Better context for AI assistance
+
+## Server Management & Troubleshooting
+
+**Before starting servers, check for existing instances:**
+```bash
+# Check if backend server is already running on port 8000
+lsof -i :8000
+# Or check for uvicorn processes
+ps aux | grep uvicorn | grep -v grep
+
+# Check if frontend server is running on port 3000
+lsof -i :3000
+# Or check for node/vite processes
+ps aux | grep "vite\|npm run dev" | grep -v grep
+```
+
+**Kill existing server instances if needed:**
+```bash
+# Kill backend server (uvicorn)
+pkill -f uvicorn
+# Or more aggressive:
+ps aux | grep uvicorn | grep -v grep | awk '{print $2}' | xargs kill -9
+
+# Kill frontend server (if needed)
+pkill -f "npm run dev"
+pkill -f vite
+```
+
+## Server Startup
+
 1. **Start the backend server (from project root):**
    ```bash
    # Terminal 1 - Backend
    source .venv/bin/activate
    uvicorn backend.main:app --reload
    ```
-   Backend will be available at `http://localhost:8000`
+   
+   **Verify backend startup:**
+   - Look for: `INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)`
+   - Look for: `INFO:     Started reloader process`
+   - Look for: `INFO:     Started server process`
+   - Test endpoint: `curl http://localhost:8000/health`
+   
+   **Common backend startup issues:**
+   - `Address already in use`: Kill existing uvicorn processes (see above)
+   - `ModuleNotFoundError`: Ensure virtual environment is activated
+   - Config errors: Check for syntax errors in `.py` files
 
 2. **Start the frontend server (from project root):**
    ```bash
@@ -19,7 +78,29 @@ alwaysApply: false
    cd frontend
    npm run dev
    ```
-   Frontend will be available at `http://localhost:3000`
+   
+   **Verify frontend startup:**
+   - Look for: `VITE v5.x.x ready in XXXms`
+   - Look for: `Local: http://localhost:3000/`
+   - Look for: `Network: use --host to expose`
+   - Test in browser: Open `http://localhost:3000`
+   
+   **Common frontend startup issues:**
+   - `EADDRINUSE :::3000`: Kill existing node/vite processes
+   - `npm: command not found`: Install Node.js and npm
+   - Dependencies issues: Run `npm install` in frontend directory
+
+## Quick Server Status Check
+
+```bash
+# Check both servers are running
+curl -s http://localhost:8000/health && echo "✅ Backend OK" || echo "❌ Backend DOWN"
+curl -s http://localhost:3000 && echo "✅ Frontend OK" || echo "❌ Frontend DOWN"
+
+# Check what's running on the ports
+echo "Port 8000 (Backend):" && lsof -i :8000
+echo "Port 3000 (Frontend):" && lsof -i :3000
+```
 
 ### Testing the Year Navigation Features
 
