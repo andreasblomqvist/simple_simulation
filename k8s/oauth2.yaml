@@ -27,6 +27,7 @@ spec:
           persistence: configmap
           restricted_access: |-
             moritz.gnisia@netlight.com
+            andreas.blomqvist@netlight.com
         service:
           annotations:
             k8s.grafana.com/metrics.portNumber: "44180"
