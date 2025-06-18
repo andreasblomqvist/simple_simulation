@@ -18,36 +18,37 @@ spec:
         version: v1
     spec:
       containers:
-      - name: backend
-        image: simplesim-backend:latest
-        ports:
-        - containerPort: 8000
-          name: http
-        env:
-        - name: PYTHONPATH
-          value: "/app"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+        - name: backend
+          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-backend:d4b7c71a
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: PYTHONPATH
+              value: "/app"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
       imagePullSecrets:
-      - name: aws-ecr-secret 
+        - name: aws-ecr-secret
+
