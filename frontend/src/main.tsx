@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import YearNavigationDemo from './components/v2/YearNavigationDemo';
 import LayoutDemo from './components/v2/LayoutDemo';
 import { ThemeProvider } from './components/ThemeContext';
+import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
 import 'antd/dist/reset.css';
 import { ConfigProvider, theme, Button, App as AntdApp } from 'antd';
 import { ConfigProvider as CustomConfigProvider } from './components/ConfigContext';
@@ -35,20 +36,22 @@ function MainApp() {
                 Switch to {isDark ? 'Light' : 'Dark'} Mode
               </Button>
             </div>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/offices" element={<AllOffices />} />
-                <Route path="/growth" element={<GrowthProjections />} />
-                <Route path="/seniority" element={<SeniorityAnalysis />} />
-                <Route path="/config" element={<Configuration />} />
-                <Route path="/lab" element={<SimulationLab />} />
-                <Route path="/lab-v2" element={<SimulationLabV2 />} />
-                <Route path="/year-demo" element={<YearNavigationDemo />} />
-                <Route path="/layout-demo" element={<LayoutDemo />} />
-                <Route path="/settings" element={<Settings />} />
-              </Routes>
-            </Layout>
+            <YearNavigationProvider>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/offices" element={<AllOffices />} />
+                  <Route path="/growth" element={<GrowthProjections />} />
+                  <Route path="/seniority" element={<SeniorityAnalysis />} />
+                  <Route path="/config" element={<Configuration />} />
+                  <Route path="/lab" element={<SimulationLab />} />
+                  <Route path="/lab-v2" element={<SimulationLabV2 />} />
+                  <Route path="/year-demo" element={<YearNavigationDemo />} />
+                  <Route path="/layout-demo" element={<LayoutDemo />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </Layout>
+            </YearNavigationProvider>
           </BrowserRouter>
         </CustomConfigProvider>
       </ThemeProvider>
