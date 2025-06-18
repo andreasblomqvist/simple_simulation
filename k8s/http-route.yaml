@@ -10,5 +10,5 @@ spec:
   hostnames: ["simplesim.edgez.live"]
   rules:
     - backendRefs:
-        - name: not-working
-          port: 3000
+        - name: oauth2-proxy-simplesim
+          port: 80
