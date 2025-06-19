@@ -8,19 +8,20 @@ include:
       opentofu_version: 1.9.1
       root_dir: infra
       job_name_prefix: "aws-"
-  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
-    inputs:
-      tags: aws-edgez-prd-k8s
-      name: simplesim-backend
-      job_prefix: backend-
-      dockerfile: Dockerfile.backend
-      environment: prod
-  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
-    inputs:
-      tags: aws-edgez-prd-k8s
-      name: simplesim-frontend
-      job_prefix: frontend-
-      dockerfile: Dockerfile.frontend
-      environment: prod
+  # Temporarily disabled due to buildkit issues - using pre-built local images
+  # - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+  #   inputs:
+  #     tags: aws-edgez-prd-k8s
+  #     name: simplesim-backend
+  #     job_prefix: backend-
+  #     dockerfile: Dockerfile.backend
+  #     environment: prod
+  # - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+  #   inputs:
+  #     tags: aws-edgez-prd-k8s
+  #     name: simplesim-frontend
+  #     job_prefix: frontend-
+  #     dockerfile: Dockerfile.frontend
+  #     environment: prod
 
-stages: [validate, test, build, deploy]
+stages: [validate, test, deploy]  # Removed 'build' stage since we're skipping Docker builds
