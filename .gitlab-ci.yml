@@ -40,7 +40,7 @@ deploy:
     - chmod +x kubectl
     - mv kubectl /usr/local/bin/
     - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-    - aws eks update-kubeconfig --name edgez-prd-k8s --region ${AWS_DEFAULT_REGION}
+    - aws eks update-kubeconfig --name aws-edgez-prd-k8s --region ${AWS_DEFAULT_REGION}
   script:
     - |
       # Replace CI_COMMIT_SHORT_SHA in deployment files
