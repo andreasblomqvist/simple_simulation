@@ -3,6 +3,7 @@ import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse,
 import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, ControlOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
+import { useTheme } from '../components/ThemeContext';
 import type { OfficeConfig, SimulationResults } from '../services/simulationApi';
 import { EnhancedKPICard } from '../components/v2/EnhancedKPICard';
 import WorkforcePyramidChart from '../components/v2/WorkforcePyramidChart';
@@ -92,6 +93,8 @@ function parseBaselineComparison(comparisonString: string, baselinePercent?: num
 }
 
 const SimulationLabV2: React.FC = () => {
+  const { darkMode } = useTheme();
+  
   // Form state
   const [selectedLever, setSelectedLever] = useState<string | undefined>();
   const [selectedLevel, setSelectedLevel] = useState<string | undefined>();
@@ -130,6 +133,9 @@ const SimulationLabV2: React.FC = () => {
   const [selectedLevels, setSelectedLevels] = useState(['AM']);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [selectedTimePeriod, setSelectedTimePeriod] = useState('monthly');
+  
+  // Logs filtering state
+  const [selectedOfficeFilter, setSelectedOfficeFilter] = useState<string | null>(null);
   const [selectedOfficeJourney, setSelectedOfficeJourney] = useState('');
 
   // Add state for applied levers
@@ -740,7 +746,11 @@ const SimulationLabV2: React.FC = () => {
       {/* Economic Parameters Card */}
       <Card 
         title="Economic Parameters" 
-        style={{ marginBottom: '24px' }}
+        style={{ 
+          marginBottom: '24px',
+          backgroundColor: darkMode ? '#1f1f1f' : undefined,
+          borderColor: darkMode ? '#303030' : undefined
+        }}
       >
         <Row gutter={[16, 16]}>
           <Col span={6}>
@@ -754,7 +764,7 @@ const SimulationLabV2: React.FC = () => {
               min={0}
               max={100}
             />
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
               Annual percentage increase in hourly prices for all offices
             </div>
           </Col>
@@ -769,7 +779,7 @@ const SimulationLabV2: React.FC = () => {
               min={0}
               max={100}
             />
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
               Annual percentage increase in monthly salaries for all offices
             </div>
           </Col>
@@ -782,7 +792,7 @@ const SimulationLabV2: React.FC = () => {
               step={0.1}
               min={0}
             />
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
               Standard working hours per FTE per month (before absence)
             </div>
           </Col>
@@ -796,7 +806,7 @@ const SimulationLabV2: React.FC = () => {
               min={0}
               max={workingHours}
             />
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
               Average unplanned absence per FTE per month (hours)
             </div>
           </Col>
@@ -810,7 +820,7 @@ const SimulationLabV2: React.FC = () => {
               step={1000}
               min={0}
             />
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
               Lump sum per <b>month</b> for <b>all offices combined</b> (not per person or per office), in <b>SEK</b>
             </div>
           </Col>
@@ -1434,9 +1444,393 @@ const SimulationLabV2: React.FC = () => {
                   ),
                   rowExpandable: (record) => record.office !== 'No data', // Only expand rows with data
                 }}
-              />
+                            />
             </div>
-          </TabPane>
+
+            {/* Logs Section */}
+            {simulationResults && activeYear && (() => {
+              const yearData = simulationResults.years[activeYear];
+              if (!yearData?.offices) return null;
+
+              // Process logs data
+              const processLogsData = () => {
+                const logs: any[] = [];
+                const offices = Object.keys(yearData.offices);
+                const roles = ['Consultant', 'Sales', 'Recruitment'];
+                const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
+
+                offices.forEach(officeName => {
+                  const officeData = yearData.offices[officeName];
+                  if (!officeData.levels) return;
+
+                  roles.forEach(role => {
+                    const roleData = officeData.levels[role];
+                    if (!roleData) return;
+
+                    levels.forEach(level => {
+                      const levelData = roleData[level];
+                      if (!levelData || !Array.isArray(levelData)) return;
+
+                      // Process each time period
+                      levelData.forEach((periodData: any, periodIndex: number) => {
+                        if (periodData.recruited > 0 || periodData.churned > 0 || periodData.progressed_out > 0 || periodData.progressed_in > 0) {
+                          logs.push({
+                            key: `${officeName}-${role}-${level}-${periodIndex}`,
+                            office: officeName,
+                            role: role,
+                            level: level,
+                            period: `Month ${periodIndex + 1}`,
+                            periodIndex: periodIndex,
+                            recruited: periodData.recruited || 0,
+                            churned: periodData.churned || 0,
+                            progressedOut: periodData.progressed_out || 0,
+                            progressedIn: periodData.progressed_in || 0,
+                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned + periodData.progressed_out - periodData.progressed_in),
+                            totalAfter: periodData.total || 0
+                          });
+                        }
+                      });
+                    });
+                  });
+
+                  // Add operations logs if they exist
+                  if (officeData.operations && Array.isArray(officeData.operations)) {
+                    officeData.operations.forEach((periodData: any, periodIndex: number) => {
+                      if (periodData && (periodData.recruited > 0 || periodData.churned > 0)) {
+                        logs.push({
+                          key: `${officeName}-Operations-Operations-${periodIndex}`,
+                          office: officeName,
+                          role: 'Operations',
+                          level: 'Operations',
+                          period: `Month ${periodIndex + 1}`,
+                          periodIndex: periodIndex,
+                          recruited: periodData.recruited || 0,
+                          churned: periodData.churned || 0,
+                          progressedOut: 0,
+                          progressedIn: 0,
+                          totalBefore: periodIndex > 0 ? (officeData.operations[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned),
+                          totalAfter: periodData.total || 0
+                        });
+                      }
+                    });
+                  }
+                });
+
+                return logs.sort((a, b) => {
+                  if (a.office !== b.office) return a.office.localeCompare(b.office);
+                  if (a.role !== b.role) return a.role.localeCompare(b.role);
+                  if (a.level !== b.level) return a.level.localeCompare(b.level);
+                  return a.periodIndex - b.periodIndex;
+                });
+              };
+
+              const allLogsData = processLogsData();
+              const uniqueOffices = [...new Set(allLogsData.map((log: any) => log.office))];
+              const uniqueRoles = [...new Set(allLogsData.map((log: any) => log.role))];
+              const uniqueLevels = [...new Set(allLogsData.map((log: any) => log.level))];
+              
+              // Filter logs based on selected office
+              const logsData = selectedOfficeFilter 
+                ? allLogsData.filter((log: any) => log.office === selectedOfficeFilter)
+                : allLogsData;
+
+              const logsColumns = [
+                { 
+                  title: 'Office', 
+                  dataIndex: 'office', 
+                  key: 'office',
+                  width: 120,
+                  filters: uniqueOffices.map((office: string) => ({ text: office, value: office })),
+                  onFilter: (value: any, record: any) => record.office === value,
+                },
+                { 
+                  title: 'Role', 
+                  dataIndex: 'role', 
+                  key: 'role',
+                  width: 100,
+                  filters: uniqueRoles.map((role: string) => ({ text: role, value: role })),
+                  onFilter: (value: any, record: any) => record.role === value,
+                },
+                { 
+                  title: 'Level', 
+                  dataIndex: 'level', 
+                  key: 'level',
+                  width: 80,
+                  filters: uniqueLevels.map((level: string) => ({ text: level, value: level })),
+                  onFilter: (value: any, record: any) => record.level === value,
+                },
+                { 
+                  title: 'Period', 
+                  dataIndex: 'period', 
+                  key: 'period',
+                  width: 100,
+                  sorter: (a: any, b: any) => a.periodIndex - b.periodIndex,
+                },
+                { 
+                  title: 'FTE Before', 
+                  dataIndex: 'totalBefore', 
+                  key: 'totalBefore',
+                  width: 90,
+                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
+                },
+                { 
+                  title: 'Recruited', 
+                  dataIndex: 'recruited', 
+                  key: 'recruited',
+                  width: 90,
+                  render: (value: any) => value > 0 ? <span style={{ color: '#52c41a', fontWeight: '600' }}>+{value}</span> : '-'
+                },
+                { 
+                  title: 'Churned', 
+                  dataIndex: 'churned', 
+                  key: 'churned',
+                  width: 90,
+                  render: (value: any) => value > 0 ? <span style={{ color: '#f5222d', fontWeight: '600' }}>-{value}</span> : '-'
+                },
+                { 
+                  title: 'Progressed Out', 
+                  dataIndex: 'progressedOut', 
+                  key: 'progressedOut',
+                  width: 110,
+                  render: (value: any) => value > 0 ? <span style={{ color: '#fa8c16', fontWeight: '600' }}>-{value}</span> : '-'
+                },
+                { 
+                  title: 'Progressed In', 
+                  dataIndex: 'progressedIn', 
+                  key: 'progressedIn',
+                  width: 110,
+                  render: (value: any) => value > 0 ? <span style={{ color: '#1890ff', fontWeight: '600' }}>+{value}</span> : '-'
+                },
+                { 
+                  title: 'FTE After', 
+                  dataIndex: 'totalAfter', 
+                  key: 'totalAfter',
+                  width: 90,
+                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
+                },
+                {
+                  title: 'Net Change',
+                  key: 'netChange',
+                  width: 100,
+                  render: (_: any, record: any) => {
+                    const netChange = record.totalAfter - record.totalBefore;
+                    const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
+                    const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
+                    return <span style={{ color: changeColor, fontWeight: '600' }}>{changeText}</span>;
+                  }
+                }
+              ];
+
+              // Summary stats
+              const summaryStats = {
+                totalRecruitment: logsData.reduce((sum: number, log: any) => sum + log.recruited, 0),
+                totalChurn: logsData.reduce((sum: number, log: any) => sum + log.churned, 0),
+                totalProgressedOut: logsData.reduce((sum: number, log: any) => sum + log.progressedOut, 0),
+                totalProgressedIn: logsData.reduce((sum: number, log: any) => sum + log.progressedIn, 0),
+                officesActive: new Set(logsData.map((log: any) => log.office)).size,
+                periodsActive: new Set(logsData.map((log: any) => log.period)).size
+              };
+
+              return (
+                <div style={{ marginTop: '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <Title level={4} style={{ margin: 0 }}>
+                      📋 Movement Logs - Year {activeYear}
+                    </Title>
+                    
+                    {/* Office Filter Selector */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text strong style={{ fontSize: '13px' }}>Filter by Office:</Text>
+                      <Select
+                        placeholder="All Offices"
+                        value={selectedOfficeFilter}
+                        onChange={setSelectedOfficeFilter}
+                        allowClear
+                        style={{ minWidth: '150px' }}
+                        size="small"
+                      >
+                        {uniqueOffices.map((office: string) => (
+                          <Select.Option key={office} value={office}>
+                            {office}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Filter Status */}
+                  {selectedOfficeFilter && (
+                    <div style={{ 
+                      marginBottom: '16px', 
+                      padding: '8px 12px', 
+                      backgroundColor: darkMode ? '#003a8c' : '#e6f7ff', 
+                      borderRadius: '4px',
+                      border: darkMode ? '1px solid #1890ff' : '1px solid #91d5ff'
+                    }}>
+                      <Text style={{ fontSize: '12px', color: darkMode ? '#91d5ff' : '#1890ff' }}>
+                        📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
+                        ({logsData.length} movement events)
+                      </Text>
+                    </div>
+                  )}
+
+                  {/* Summary Cards */}
+                  <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                    <Col xs={24} sm={12} lg={6}>
+                      <div 
+                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                        style={{ 
+                          textAlign: 'center', 
+                          height: '100px',
+                          borderRadius: '6px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Recruitment</Text>
+                        <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#52c41a' }}>
+                          +{summaryStats.totalRecruitment}
+                        </div>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                          New hires across all offices
+                        </Text>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} lg={6}>
+                      <div 
+                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                        style={{ 
+                          textAlign: 'center', 
+                          height: '100px',
+                          borderRadius: '6px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Churn</Text>
+                        <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#f5222d' }}>
+                          -{summaryStats.totalChurn}
+                        </div>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                          Departures across all offices
+                        </Text>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} lg={6}>
+                      <div 
+                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                        style={{ 
+                          textAlign: 'center', 
+                          height: '100px',
+                          borderRadius: '6px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Progression Moves</Text>
+                        <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#1890ff' }}>
+                          {summaryStats.totalProgressedOut}
+                        </div>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                          Level promotions & transitions
+                        </Text>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} lg={6}>
+                      <div 
+                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                        style={{ 
+                          textAlign: 'center', 
+                          height: '100px',
+                          borderRadius: '6px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Activity Scope</Text>
+                        <div style={{ fontSize: '14px', fontWeight: '600', margin: '4px 0' }}>
+                          {summaryStats.officesActive} offices
+                        </div>
+                        <div style={{ fontSize: '12px', margin: '2px 0' }}>
+                          {summaryStats.periodsActive} periods
+                        </div>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                          {logsData.length} movement events
+                        </Text>
+                      </div>
+                    </Col>
+                  </Row>
+
+                  {/* Legend */}
+                  <div style={{ 
+                    marginBottom: '16px', 
+                    padding: '12px 16px', 
+                    backgroundColor: darkMode ? '#1f1f1f' : '#fafafa', 
+                    borderRadius: '6px',
+                    border: darkMode ? '1px solid #303030' : '1px solid #f0f0f0'
+                  }}>
+                    <Text strong style={{ marginRight: '24px' }}>Legend:</Text>
+                    <span style={{ color: '#52c41a', fontWeight: '600', marginRight: '16px' }}>
+                      +Recruited (new hires)
+                    </span>
+                    <span style={{ color: '#f5222d', fontWeight: '600', marginRight: '16px' }}>
+                      -Churned (departures)
+                    </span>
+                    <span style={{ color: '#fa8c16', fontWeight: '600', marginRight: '16px' }}>
+                      -Progressed Out (promotions away)
+                    </span>
+                    <span style={{ color: '#1890ff', fontWeight: '600' }}>
+                      +Progressed In (promotions received)
+                    </span>
+                  </div>
+
+                  {/* Logs Table */}
+                  <Table
+                    columns={logsColumns}
+                    dataSource={logsData}
+                    pagination={{ 
+                      pageSize: 20, 
+                      showSizeChanger: true, 
+                      showQuickJumper: true,
+                      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} movements`
+                    }}
+                    size="small"
+                    bordered
+                    scroll={{ x: 1000 }}
+                    style={{ marginBottom: '16px' }}
+                  />
+
+                  {logsData.length === 0 && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px', 
+                      color: darkMode ? '#8c8c8c' : '#8c8c8c',
+                      backgroundColor: darkMode ? '#1f1f1f' : '#fafafa',
+                      borderRadius: '6px',
+                      border: darkMode ? '1px solid #303030' : '1px solid #f0f0f0'
+                    }}>
+                      <Text type="secondary">
+                        {selectedOfficeFilter 
+                          ? `No movement activities recorded for ${selectedOfficeFilter} in Year ${activeYear}.`
+                          : `No movement activities recorded for Year ${activeYear}.`
+                        }
+                        <br />
+                        This could indicate stable headcount or no simulation data available.
+                      </Text>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            </TabPane>
           <TabPane tab="Insights Tab" key="insights">
             {/* Year & Office Selectors (reuse existing logic) */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
