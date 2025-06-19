@@ -31,15 +31,17 @@ stages: [validate, build, test, deploy]
 deploy:
   stage: deploy
   image: 
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
-  before_script:
-    - export KUBECONFIG=/path/to/kubeconfig  # This should be set via CI/CD variables
+    name: amazon/aws-cli:latest
   script:
     - |
+      # Install kubectl
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      chmod +x kubectl
+      mv kubectl /usr/local/bin/
+      
       # Get the image digests from ECR
-      BACKEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-backend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --query 'imageDetails[0].imageDigest' --output text)
-      FRONTEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-frontend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --query 'imageDetails[0].imageDigest' --output text)
+      BACKEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-backend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --output text --query 'imageDetails[0].imageDigest')
+      FRONTEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-frontend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --output text --query 'imageDetails[0].imageDigest')
       
       # Update the deployment files with the new image digests
       sed -i "s|\${IMAGE_DIGEST}|$BACKEND_DIGEST|g" k8s/backend-deployment.yaml
@@ -49,9 +51,11 @@ deploy:
       kubectl apply -f k8s/backend-deployment.yaml
       kubectl apply -f k8s/frontend-deployment.yaml
       
-      # Rollout status
+      # Wait for rollouts to complete
       kubectl rollout status deployment/simplesim-backend -n simplesim
       kubectl rollout status deployment/simplesim-frontend -n simplesim
+  tags:
+    - aws-edgez-prd-k8s
   only:
     - main
     - master
