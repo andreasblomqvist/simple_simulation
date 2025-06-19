@@ -28,28 +28,4 @@ include:
       dockerfile: Dockerfile.frontend
       environment: prod
 
-stages: [validate, build, test, deploy]
-
-deploy:
-  stage: deploy
-  image: bitnami/kubectl:latest
-  script:
-    - |
-      # Apply deployments
-      echo "Applying backend deployment..."
-      kubectl apply -f k8s/backend-deployment.yaml
-      
-      echo "Applying frontend deployment..."
-      kubectl apply -f k8s/frontend-deployment.yaml
-      
-      # Check deployment status
-      echo "Checking backend deployment status..."
-      kubectl rollout status deployment/simplesim-backend -n simplesim
-      
-      echo "Checking frontend deployment status..."
-      kubectl rollout status deployment/simplesim-frontend -n simplesim
-  tags:
-    - aws-edgez-prd-k8s
-  only:
-    - main
-    - master
+stages: [validate, build, test]
