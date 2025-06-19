@@ -892,6 +892,12 @@ class SimulationEngine:
                         # PHASE 4: Apply all CAT-based progressions simultaneously
                         progression_results = {}  # Track progression results for debug
                         
+                        # Debug: Show progression plan before execution
+                        if progression_plan:
+                            print(f"[PROGRESSION PLAN] {office_name} {role_name}: {len(progression_plan)} levels with progression")
+                            for from_level, plan in progression_plan.items():
+                                print(f"  {from_level} → {plan['to_level']} @ {plan['rate']:.1%}")
+                        
                         for from_level_name, move in progression_plan.items():
                             from_level = role_data[from_level_name]
                             to_level = role_data[move['to_level']]
@@ -902,6 +908,17 @@ class SimulationEngine:
                             
                             # Apply CAT-based progression using individual probabilities
                             promoted_people = from_level.apply_cat_based_progression(move['rate'], current_month_key)
+                            
+                            # Debug: Show individual progression details
+                            if len(promoted_people) > 0:
+                                print(f"[PROGRESSION DETAIL] {office_name} {role_name} {from_level_name}:")
+                                print(f"  Eligible people: {len(from_level.get_eligible_for_progression(current_month_key))}")
+                                print(f"  Promoted people: {len(promoted_people)}")
+                                for person in promoted_people:
+                                    cat = person.get_cat_category(current_month_key)
+                                    tenure = person.get_level_tenure_months(current_month_key)
+                                    prob = person.get_progression_probability(current_month_key, move['rate'], from_level_name)
+                                    print(f"    {person.id[:8]}... - {cat} ({tenure}mo tenure) - prob: {prob:.1%}")
                             
                             # Add to target level
                             for person in promoted_people:
@@ -919,9 +936,9 @@ class SimulationEngine:
                                     'to_final': to_level.total
                                 }
                         
-                        # Debug: Show progression details
+                        # Debug: Show progression summary
                         for from_level_name, result in progression_results.items():
-                            print(f"[PROGRESSION] {office_name} {role_name} {from_level_name}→{result['to_level']}: "
+                            print(f"[PROGRESSION SUMMARY] {office_name} {role_name} {from_level_name}→{result['to_level']}: "
                                   f"{result['from_baseline']}→{result['from_final']} (-{result['count']}) & "
                                   f"{result['to_baseline']}→{result['to_final']} (+{result['count']}) @ {result['rate']:.1%}")
                         
@@ -949,6 +966,12 @@ class SimulationEngine:
                             for from_level, result in progression_results.items():
                                 if result['to_level'] == level_name:
                                     progressed_in += result['count']
+                            
+                            # Debug: Show movement tracking for each level
+                            if progressed_out > 0 or progressed_in > 0:
+                                print(f"[MOVEMENT TRACKING] {office_name} {role_name} {level_name}: "
+                                      f"Out={progressed_out}, In={progressed_in}, "
+                                      f"Net={(progressed_in - progressed_out):+d}, Final={level.total}")
                             
                             office_results['levels'][role_name][level_name].append({
                                 'total': level.total,
