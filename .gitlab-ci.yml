@@ -28,18 +28,30 @@ include:
 
 stages: [validate, build, test, deploy]
 
-# Add a deployment job that uses the commit SHA
 deploy:
   stage: deploy
-  image: alpine:latest
+  image: 
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
   before_script:
-    - apk add --no-cache curl
+    - export KUBECONFIG=/path/to/kubeconfig  # This should be set via CI/CD variables
   script:
     - |
-      echo "Deploying SimpleSim with commit SHA: $CI_COMMIT_SHORT_SHA"
-      echo "Backend image: simplesim-backend:$CI_COMMIT_SHORT_SHA"
-      echo "Frontend image: simplesim-frontend:$CI_COMMIT_SHORT_SHA"
-    # Add deployment logic here if needed
+      # Get the image digests from ECR
+      BACKEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-backend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --query 'imageDetails[0].imageDigest' --output text)
+      FRONTEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-frontend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --query 'imageDetails[0].imageDigest' --output text)
+      
+      # Update the deployment files with the new image digests
+      sed -i "s|\${IMAGE_DIGEST}|$BACKEND_DIGEST|g" k8s/backend-deployment.yaml
+      sed -i "s|\${IMAGE_DIGEST}|$FRONTEND_DIGEST|g" k8s/frontend-deployment.yaml
+      
+      # Apply the updated deployments
+      kubectl apply -f k8s/backend-deployment.yaml
+      kubectl apply -f k8s/frontend-deployment.yaml
+      
+      # Rollout status
+      kubectl rollout status deployment/simplesim-backend -n simplesim
+      kubectl rollout status deployment/simplesim-frontend -n simplesim
   only:
     - main
     - master

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/simplesim-backend@sha256:${IMAGE_DIGEST}
+          image: 123456789012.dkr.ecr.eu-central-1.amazonaws.com/simplesim-backend@sha256:${IMAGE_DIGEST}
           ports:
             - containerPort: 8000
           env:
