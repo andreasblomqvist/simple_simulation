@@ -25,16 +25,14 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
-  - component: gitlab.netlight.com/components/kubernetes/apply@1.0.0
-    inputs:
-      job_prefix: k8s-
-      manifests_dir: k8s
-      environment: prod
 
 stages: [validate, build, test, deploy]
 
-.deploy-template:
+deploy:
   stage: deploy
+  image: 
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
   script:
     - |
       # Replace CI_COMMIT_SHORT_SHA in deployment files
@@ -45,6 +43,30 @@ stages: [validate, build, test, deploy]
       cat k8s/backend-deployment.yaml
       echo "Updated frontend deployment:"
       cat k8s/frontend-deployment.yaml
+      
+      # Check kubectl access and context
+      echo "Current kubectl context:"
+      kubectl config current-context || echo "No current context"
+      
+      echo "Available contexts:"
+      kubectl config get-contexts || echo "No contexts available"
+      
+      echo "Cluster info:"
+      kubectl cluster-info || echo "Cannot get cluster info"
+      
+      # Try to apply deployments
+      echo "Applying backend deployment..."
+      kubectl apply -f k8s/backend-deployment.yaml
+      
+      echo "Applying frontend deployment..."
+      kubectl apply -f k8s/frontend-deployment.yaml
+      
+      # Check deployment status
+      echo "Checking backend deployment status..."
+      kubectl rollout status deployment/simplesim-backend -n simplesim
+      
+      echo "Checking frontend deployment status..."
+      kubectl rollout status deployment/simplesim-frontend -n simplesim
   tags:
     - aws-edgez-prd-k8s
   only:
