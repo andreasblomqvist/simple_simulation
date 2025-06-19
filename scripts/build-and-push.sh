@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Build and push Docker images to AWS ECR
-# Usage: ./scripts/build-and-push.sh [AWS_REGION] [AWS_ACCOUNT_ID] [IMAGE_TAG]
+# Usage: ./scripts/build-and-push.sh [AWS_REGION] [AWS_ACCOUNT_ID] [COMMIT_SHA]
 
 set -e
 
 # Default values
 AWS_REGION=${1:-"us-east-1"}
 AWS_ACCOUNT_ID=${2:-"123456789012"}
-IMAGE_TAG=${3:-"latest"}
+COMMIT_SHA=${3:-"latest"}
 
 # ECR repository URLs
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -17,7 +17,7 @@ FRONTEND_REPO="${ECR_REGISTRY}/simplesim-frontend"
 
 echo "Building and pushing SimpleSim Docker images..."
 echo "Registry: ${ECR_REGISTRY}"
-echo "Tag: ${IMAGE_TAG}"
+echo "Tag: ${COMMIT_SHA}"
 
 # Authenticate Docker to ECR
 echo "Authenticating Docker to ECR..."
@@ -33,23 +33,23 @@ aws ecr describe-repositories --repository-names simplesim-frontend --region ${A
 
 # Build backend image
 echo "Building backend Docker image..."
-docker build -f Dockerfile.backend -t simplesim-backend:${IMAGE_TAG} .
-docker tag simplesim-backend:${IMAGE_TAG} ${BACKEND_REPO}:${IMAGE_TAG}
+docker build -f Dockerfile.backend -t simplesim-backend:${COMMIT_SHA} .
+docker tag simplesim-backend:${COMMIT_SHA} ${BACKEND_REPO}:${COMMIT_SHA}
 
 # Build frontend image
 echo "Building frontend Docker image..."
-docker build -f Dockerfile.frontend -t simplesim-frontend:${IMAGE_TAG} .
-docker tag simplesim-frontend:${IMAGE_TAG} ${FRONTEND_REPO}:${IMAGE_TAG}
+docker build -f Dockerfile.frontend -t simplesim-frontend:${COMMIT_SHA} .
+docker tag simplesim-frontend:${COMMIT_SHA} ${FRONTEND_REPO}:${COMMIT_SHA}
 
 # Push images to ECR
 echo "Pushing backend image to ECR..."
-docker push ${BACKEND_REPO}:${IMAGE_TAG}
+docker push ${BACKEND_REPO}:${COMMIT_SHA}
 
 echo "Pushing frontend image to ECR..."
-docker push ${FRONTEND_REPO}:${IMAGE_TAG}
+docker push ${FRONTEND_REPO}:${COMMIT_SHA}
 
 echo "Successfully built and pushed images:"
-echo "  Backend: ${BACKEND_REPO}:${IMAGE_TAG}"
-echo "  Frontend: ${FRONTEND_REPO}:${IMAGE_TAG}"
+echo "  Backend: ${BACKEND_REPO}:${COMMIT_SHA}"
+echo "  Frontend: ${FRONTEND_REPO}:${COMMIT_SHA}"
 echo ""
 echo "Update your Kubernetes manifests with these image URLs before deploying." 
