@@ -10,9 +10,11 @@ default:
 include:
   - component: gitlab.netlight.com/components/opentofu/validate-plan-apply@2.6.1
     inputs:
-      opentofu_version: 1.9.1
+      version: 0.53.0
+      opentofu_version: v1.10.0-beta1
       root_dir: infra
       job_name_prefix: "aws-"
+      stages: [validate, test, build, deploy]
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -28,4 +30,4 @@ include:
       dockerfile: Dockerfile.frontend
       environment: prod
 
-stages: [validate, build, test, deploy]
+stages: [validate, test, build, deploy]
