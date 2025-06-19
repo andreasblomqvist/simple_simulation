@@ -18,7 +18,6 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
-      image_tags: ["$CI_COMMIT_SHORT_SHA"]
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -26,7 +25,6 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
-      image_tags: ["$CI_COMMIT_SHORT_SHA"]
 
 stages: [validate, build, test, deploy]
 
@@ -40,6 +38,12 @@ deploy:
       curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
       chmod +x kubectl
       mv kubectl /usr/local/bin/
+      
+      # List available images and tags
+      echo "Available backend images:"
+      aws ecr describe-images --repository-name simplesim-backend --output text
+      echo "Available frontend images:"
+      aws ecr describe-images --repository-name simplesim-frontend --output text
       
       # Get the image digests from ECR
       BACKEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-backend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --output text --query 'imageDetails[0].imageDigest')
