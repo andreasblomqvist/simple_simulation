@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-backend:latest
+          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-backend:2b30ede
           ports:
             - containerPort: 8000
               name: http
