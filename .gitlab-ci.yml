@@ -13,7 +13,6 @@ include:
       opentofu_version: 1.9.1
       root_dir: infra
       job_name_prefix: "aws-"
-      stages: [validate, test, build, deploy]
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
