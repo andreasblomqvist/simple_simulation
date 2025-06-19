@@ -32,26 +32,9 @@ stages: [validate, build, test, deploy]
 
 deploy:
   stage: deploy
-  image: 
-    name: docker:latest
-  before_script:
-    - apk add --no-cache curl aws-cli
-    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    - chmod +x kubectl
-    - mv kubectl /usr/local/bin/
-    - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-    - aws eks update-kubeconfig --name aws-edgez-prd-k8s --region ${AWS_DEFAULT_REGION}
+  image: bitnami/kubectl:latest
   script:
     - |
-      # Replace CI_COMMIT_SHORT_SHA in deployment files
-      sed -i "s/\${CI_COMMIT_SHORT_SHA}/$CI_COMMIT_SHORT_SHA/g" k8s/backend-deployment.yaml
-      sed -i "s/\${CI_COMMIT_SHORT_SHA}/$CI_COMMIT_SHORT_SHA/g" k8s/frontend-deployment.yaml
-      
-      echo "Updated backend deployment:"
-      cat k8s/backend-deployment.yaml
-      echo "Updated frontend deployment:"
-      cat k8s/frontend-deployment.yaml
-      
       # Apply deployments
       echo "Applying backend deployment..."
       kubectl apply -f k8s/backend-deployment.yaml
