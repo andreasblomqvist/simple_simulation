@@ -6,6 +6,8 @@ metadata:
   labels:
     app: simplesim-frontend
     version: v1
+  annotations:
+    kubectl.kubernetes.io/restartedAt: "2024-03-19T23:55:00Z"
 spec:
   replicas: 2
   selector:
@@ -16,6 +18,8 @@ spec:
       labels:
         app: simplesim-frontend
         version: v1
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2024-03-19T23:55:00Z"
     spec:
       containers:
         - name: frontend
