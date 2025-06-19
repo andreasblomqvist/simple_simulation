@@ -136,6 +136,9 @@ const SimulationLabV2: React.FC = () => {
   const [appliedLevers, setAppliedLevers] = useState<any[]>([]);
   const [leverApplying, setLeverApplying] = useState(false);
 
+  // Add state to track last simulation configuration
+  const [lastSimulationConfig, setLastSimulationConfig] = useState<any>(null);
+
   // Load office configuration on mount
   useEffect(() => {
     const loadOfficeConfig = async () => {
@@ -249,11 +252,12 @@ const SimulationLabV2: React.FC = () => {
       // Add to applied levers
       setAppliedLevers(prev => [...prev, leverConfig]);
       
-      // Reset form
+      // Only reset the value to allow quick application of similar levers
       setLeverValue(null);
-      setSelectedLevels(['AM']);
-      setSelectedOffices([]);
-      setSelectedOfficeJourney('');
+      // Keep lever type and levels for easy reuse
+      // setSelectedLevels(['AM']); // Don't reset levels
+      // setSelectedOffices([]); // Don't reset office selection
+      // setSelectedOfficeJourney(''); // Don't reset office journey
       
       message.success(`Lever applied successfully! (${leverConfig.leverType} for ${leverConfig.levels.join(', ')} levels)`);
       
@@ -310,8 +314,30 @@ const SimulationLabV2: React.FC = () => {
         office_overrides: buildOfficeOverrides(appliedLevers) // Include applied levers
       };
 
+      // Save simulation configuration for reference
+      const simulationConfig = {
+        timestamp: new Date().toISOString(),
+        duration: `${simulationDuration} ${selectedDurationUnit}`,
+        yearRange: totalMonths <= 12 ? '2025' : `2025-${endYear}`,
+        parameters: {
+          priceIncrease: `${priceIncrease}%`,
+          salaryIncrease: `${salaryIncrease}%`,
+          workingHours: workingHours,
+          unplannedAbsence: `${unplannedAbsence} hours/month`,
+          otherExpense: `${otherExpense.toLocaleString()} SEK`
+        },
+        appliedLevers: appliedLevers.map(lever => ({
+          type: lever.leverType.toUpperCase(),
+          levels: lever.levels.join(', '),
+          value: `${lever.value}%`,
+          scope: lever.officeJourney || `${lever.targetOffices.length} office(s)`,
+          timePeriod: lever.timePeriod
+        }))
+      };
+
       const results = await simulationApi.runSimulation(params);
       setSimulationResults(results);
+      setLastSimulationConfig(simulationConfig); // Save the configuration
       
       message.success('Simulation completed successfully!');
       
@@ -813,6 +839,50 @@ const SimulationLabV2: React.FC = () => {
           <Button size="large" block>Reset to Config</Button>
         </Col>
       </Row>
+
+      {/* Last Simulation Configuration Display */}
+      {lastSimulationConfig && (
+        <Card 
+          title="📊 Current Simulation Configuration" 
+          style={{ marginBottom: '16px', backgroundColor: '#f0f9ff', borderColor: '#0ea5e9' }}
+          size="small"
+        >
+          <Row gutter={16}>
+            <Col span={8}>
+              <Text strong style={{ color: '#0ea5e9' }}>Simulation Scope</Text>
+              <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                <div><Text strong>Duration:</Text> {lastSimulationConfig.duration}</div>
+                <div><Text strong>Years:</Text> {lastSimulationConfig.yearRange}</div>
+                <div><Text strong>Run at:</Text> {new Date(lastSimulationConfig.timestamp).toLocaleString()}</div>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text strong style={{ color: '#0ea5e9' }}>Economic Parameters</Text>
+              <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                <div><Text strong>Price Increase:</Text> {lastSimulationConfig.parameters.priceIncrease}</div>
+                <div><Text strong>Salary Increase:</Text> {lastSimulationConfig.parameters.salaryIncrease}</div>
+                <div><Text strong>Working Hours:</Text> {lastSimulationConfig.parameters.workingHours}</div>
+                <div><Text strong>Unplanned Absence:</Text> {lastSimulationConfig.parameters.unplannedAbsence}</div>
+                <div><Text strong>Other Expense:</Text> {lastSimulationConfig.parameters.otherExpense}</div>
+              </div>
+            </Col>
+            <Col span={8}>
+              <Text strong style={{ color: '#0ea5e9' }}>Applied Levers ({lastSimulationConfig.appliedLevers.length})</Text>
+              <div style={{ marginTop: '4px', fontSize: '12px', maxHeight: '120px', overflowY: 'auto' }}>
+                {lastSimulationConfig.appliedLevers.length > 0 ? (
+                  lastSimulationConfig.appliedLevers.map((lever: any, index: number) => (
+                    <div key={index} style={{ marginBottom: '2px', padding: '2px 4px', backgroundColor: '#e0f2fe', borderRadius: '3px' }}>
+                      <Text strong>{lever.type}</Text> {lever.levels} • {lever.value} • {lever.scope}
+                    </div>
+                  ))
+                ) : (
+                  <Text type="secondary">No levers applied</Text>
+                )}
+              </div>
+            </Col>
+          </Row>
+        </Card>
+      )}
 
       {/* Simulation Results Card */}
       <Card title="Simulation Results">
