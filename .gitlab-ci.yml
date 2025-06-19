@@ -10,15 +10,14 @@ include:
       opentofu_version: 1.9.1
       root_dir: infra
       job_name_prefix: "aws-"
-  # Temporarily disabled due to buildkit issues - using pre-built local images
-  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
       name: simplesim-backend
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
-  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@main
+  - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
       name: simplesim-frontend
