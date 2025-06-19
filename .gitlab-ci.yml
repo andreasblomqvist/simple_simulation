@@ -1,5 +1,8 @@
 variables:
   DOCKER_BUILDKIT: 0
+  # Use commit SHA for image tagging
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
 default:
   tags:
     - aws-edgez-prd-k8s
@@ -17,6 +20,8 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
+      # Explicitly set image tag to use commit SHA
+      image_tag: $IMAGE_TAG
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -24,5 +29,22 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
+      # Explicitly set image tag to use commit SHA
+      image_tag: $IMAGE_TAG
 
-stages: [validate, build, test, deploy] # Removed 'build' stage since we're skipping Docker builds
+stages: [validate, build, test, deploy]
+
+# Add a deployment job that uses the commit SHA
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying SimpleSim with commit SHA: $CI_COMMIT_SHORT_SHA"
+    - echo "Backend image: simplesim-backend:$CI_COMMIT_SHORT_SHA"
+    - echo "Frontend image: simplesim-frontend:$CI_COMMIT_SHORT_SHA"
+    # Add deployment logic here if needed
+  only:
+    - main
+    - master
