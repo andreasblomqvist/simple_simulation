@@ -35,9 +35,10 @@ deploy:
   before_script:
     - apk add --no-cache curl
   script:
-    - echo "Deploying SimpleSim with commit SHA: $CI_COMMIT_SHORT_SHA"
-    - echo "Backend image: simplesim-backend:$CI_COMMIT_SHORT_SHA"
-    - echo "Frontend image: simplesim-frontend:$CI_COMMIT_SHORT_SHA"
+    - |
+      echo "Deploying SimpleSim with commit SHA: $CI_COMMIT_SHORT_SHA"
+      echo "Backend image: simplesim-backend:$CI_COMMIT_SHORT_SHA"
+      echo "Frontend image: simplesim-frontend:$CI_COMMIT_SHORT_SHA"
     # Add deployment logic here if needed
   only:
     - main
