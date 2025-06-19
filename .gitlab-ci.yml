@@ -36,7 +36,9 @@ deploy:
     name: amazon/aws-cli:latest
     entrypoint: [""]
   before_script:
-    - yum install -y kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
     - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
     - aws eks update-kubeconfig --name edgez-prd-k8s --region ${AWS_DEFAULT_REGION}
   script:
