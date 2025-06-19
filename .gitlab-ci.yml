@@ -18,6 +18,7 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
+      image_tags: ["$CI_COMMIT_SHORT_SHA"]
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -25,6 +26,7 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
+      image_tags: ["$CI_COMMIT_SHORT_SHA"]
 
 stages: [validate, build, test, deploy]
 
@@ -43,9 +45,17 @@ deploy:
       BACKEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-backend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --output text --query 'imageDetails[0].imageDigest')
       FRONTEND_DIGEST=$(aws ecr describe-images --repository-name simplesim-frontend --image-ids imageTag=$CI_COMMIT_SHORT_SHA --output text --query 'imageDetails[0].imageDigest')
       
+      echo "Backend image digest: $BACKEND_DIGEST"
+      echo "Frontend image digest: $FRONTEND_DIGEST"
+      
       # Update the deployment files with the new image digests
       sed -i "s|\${IMAGE_DIGEST}|$BACKEND_DIGEST|g" k8s/backend-deployment.yaml
       sed -i "s|\${IMAGE_DIGEST}|$FRONTEND_DIGEST|g" k8s/frontend-deployment.yaml
+      
+      echo "Updated backend deployment:"
+      cat k8s/backend-deployment.yaml
+      echo "Updated frontend deployment:"
+      cat k8s/frontend-deployment.yaml
       
       # Apply the updated deployments
       kubectl apply -f k8s/backend-deployment.yaml
