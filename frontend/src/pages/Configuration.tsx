@@ -87,6 +87,10 @@ export default function Configuration() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['headcount', 'financial']);
   const [applyToAllMonths, setApplyToAllMonths] = useState(false);
   
+  // Add state for import/refresh feedback
+  const [importing, setImporting] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  
   // Month selection state per group
   const [selectedMonths, setSelectedMonths] = useState<Record<string, number>>(() => {
     const initialMonths: Record<string, number> = {};
@@ -99,8 +103,18 @@ export default function Configuration() {
   const fetchOffices = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/offices/config');
-      const data = await response.json();
+      // First try to get data from simulation engine (which has imported changes)
+      let response = await fetch('/api/offices/');
+      let data = await response.json();
+      
+      // If simulation engine is empty, fall back to default config
+      if (!data || data.length === 0) {
+        console.log('[DEBUG] Simulation engine empty, using default config');
+        response = await fetch('/api/offices/config');
+        data = await response.json();
+      } else {
+        console.log('[DEBUG] Using simulation engine data');
+      }
       
       setOffices(data.map((office: any) => office.name));
       if (data.length > 0) {
@@ -114,6 +128,10 @@ export default function Configuration() {
       });
       setOfficeData(officeMap);
       setOriginalData(JSON.parse(JSON.stringify(officeMap)));
+      
+      // Update last refresh time
+      setLastRefreshTime(new Date());
+      
     } catch (error) {
       console.error('Failed to fetch offices:', error);
       message.error('Failed to load office data');
@@ -660,6 +678,7 @@ export default function Configuration() {
     accept: '.xlsx,.xls,.csv,.json',
     showUploadList: false,
     customRequest: async (options: any) => {
+      setImporting(true);
       const formData = new FormData();
       formData.append('file', options.file);
       try {
@@ -668,12 +687,33 @@ export default function Configuration() {
           body: formData,
         });
         if (!res.ok) throw new Error('Upload failed');
-        message.success('Office config imported successfully!');
-        fetchOffices(); // Refetch data after import
+        
+        // Show success message with file info
+        const fileName = options.file.name;
+        message.success({
+          content: `✅ Configuration imported successfully! File: ${fileName}`,
+          duration: 4
+        });
+        
+        // Clear any draft changes since we're importing new data
+        setDraftChanges({});
+        setHasChanges(false);
+        
+        // Refresh data with visual feedback
+        await fetchOffices();
+        
+        // Show refresh completion message
+        message.success({
+          content: `🔄 Configuration matrix refreshed at ${new Date().toLocaleTimeString()}`,
+          duration: 3
+        });
+        
       } catch (err: any) {
         message.error('Import failed: ' + err.message);
+      } finally {
+        setImporting(false);
+        options.onSuccess();
       }
-      options.onSuccess();
     },
   };
 
@@ -684,13 +724,20 @@ export default function Configuration() {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col>
             <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>📤 Import Config</Button>
+              <Button 
+                icon={<UploadOutlined />} 
+                loading={importing}
+                disabled={importing}
+              >
+                {importing ? '📤 Importing...' : '📤 Import Config'}
+              </Button>
             </Upload>
           </Col>
           <Col>
             <Button 
               icon={<DownloadOutlined />} 
               onClick={handleExportConfig}
+              disabled={importing}
             >
               📥 Export Config
             </Button>
@@ -704,12 +751,14 @@ export default function Configuration() {
                     type="primary" 
                     icon={<SaveOutlined />}
                     onClick={handleApplyChanges}
+                    disabled={importing}
                   >
                     💾 Apply Changes
                   </Button>
                   <Button 
                     icon={<ReloadOutlined />}
                     onClick={handleResetChanges}
+                    disabled={importing}
                   >
                     🔄 Discard Changes
                   </Button>
@@ -718,6 +767,7 @@ export default function Configuration() {
               <Button 
                 onClick={handleResetToOriginal}
                 danger
+                disabled={importing}
               >
                 ⚠️ Reset to Original
               </Button>
@@ -734,6 +784,7 @@ export default function Configuration() {
               onChange={setSelectedOffice} 
               style={{ width: 200 }}
               loading={loading}
+              disabled={importing}
             >
               {offices.map(office => (
                 <Option key={office} value={office}>{office}</Option>
@@ -745,6 +796,7 @@ export default function Configuration() {
               checked={applyToAllMonths}
               onChange={(e) => setApplyToAllMonths(e.target.checked)}
               style={{ fontWeight: applyToAllMonths ? 'bold' : 'normal' }}
+              disabled={importing}
             >
               🔄 Apply to All Months
             </Checkbox>
@@ -758,6 +810,16 @@ export default function Configuration() {
             {loading && (
               <Tag color="blue">
                 📊 Loading office data...
+              </Tag>
+            )}
+            {importing && (
+              <Tag color="green">
+                📤 Importing configuration...
+              </Tag>
+            )}
+            {lastRefreshTime && !loading && !importing && (
+              <Tag color="default">
+                ✅ Last updated: {lastRefreshTime.toLocaleTimeString()}
               </Tag>
             )}
           </Col>
@@ -813,7 +875,7 @@ export default function Configuration() {
               defaultExpandAllRows: true,
               indentSize: 20
             }}
-            loading={loading}
+            loading={loading || importing}
           />
         </Card>
 

@@ -235,10 +235,26 @@ def _update_monthly_attributes(obj, row):
                 attr_name = col_name.lower()
                 if hasattr(obj, attr_name):
                     try:
-                        # Try to convert to float
-                        value = float(row[col_name])
-                        setattr(obj, attr_name, value)
-                    except (ValueError, TypeError):
-                        # Skip if it's not a valid float (e.g., nested dict data)
-                        print(f"[IMPORT] Skipping {col_name}: invalid value type ({type(row[col_name])})")
+                        # Handle different value types from Excel
+                        value = row[col_name]
+                        
+                        # If it's already a number, use it directly
+                        if isinstance(value, (int, float)):
+                            setattr(obj, attr_name, float(value))
+                        elif isinstance(value, str):
+                            # Handle string values - remove spaces and replace comma with dot
+                            cleaned_value = value.strip().replace(',', '.')
+                            # Remove any non-numeric characters except dots and minus signs
+                            cleaned_value = ''.join(c for c in cleaned_value if c.isdigit() or c in '.-')
+                            if cleaned_value:
+                                setattr(obj, attr_name, float(cleaned_value))
+                            else:
+                                print(f"[IMPORT] Skipping {col_name}: empty string after cleaning")
+                        else:
+                            # Try direct conversion for other types
+                            setattr(obj, attr_name, float(value))
+                            
+                    except (ValueError, TypeError) as e:
+                        # Skip if it's not a valid float
+                        print(f"[IMPORT] Skipping {col_name}: invalid value type ({type(row[col_name])}) - {row[col_name]}")
                         continue 
