@@ -430,8 +430,14 @@ class SimulationEngine:
         self.offices: Dict[str, Office] = {}
         self.kpi_service = KPIService()
         self._last_simulation_results: Optional[Dict[str, Any]] = None
-        self._initialize_offices()
-        self._initialize_roles()
+        # Don't auto-initialize offices - let run_simulation handle it with levers
+
+    def reset_simulation_state(self):
+        """Reset simulation state for fresh simulation runs"""
+        print("[RESET] Clearing simulation state for fresh run...")
+        self.offices.clear()
+        self._last_simulation_results = None
+        print("[RESET] ✓ Simulation state cleared")
 
     def _initialize_offices(self):
         """Initialize offices with their journeys based on real FTE data"""
@@ -453,8 +459,13 @@ class SimulationEngine:
             )
 
     def _initialize_roles(self):
-        """Initialize roles with real headcount data"""
-        print("[INFO] Initializing roles with real headcount data")
+        """DEPRECATED: Use _initialize_roles_with_levers instead"""
+        print("[WARNING] Using deprecated _initialize_roles method - use _initialize_roles_with_levers for lever support")
+        self._initialize_roles_with_levers(None)
+
+    def _initialize_roles_with_levers(self, lever_plan: Optional[Dict] = None):
+        """Initialize roles with real headcount data and apply lever overrides"""
+        print("[INFO] Initializing roles with real headcount data and lever support")
         print(f"[DEBUG] DEFAULT_RATES churn: {DEFAULT_RATES['churn']}")
         print(f"[DEBUG] DEFAULT_RATES Consultant A recruitment: {DEFAULT_RATES['recruitment']['Consultant']['A']}")
         print(f"[DEBUG] DEFAULT_RATES Operations recruitment: {DEFAULT_RATES['recruitment']['Operations']}")
@@ -523,43 +534,75 @@ class SimulationEngine:
                             )
                             office.roles[role_name][level_name].people.append(person)
                         
-                        # Set default rates with monthly variations
+                        # Apply rates with lever overrides
                         for month in range(1, 13):
                             # Add slight monthly increase (0.25% per month)
                             monthly_price = price * (1 + 0.0025 * (month - 1))
                             monthly_salary = salary * (1 + 0.0025 * (month - 1))
                             setattr(office.roles[role_name][level_name], f'price_{month}', monthly_price)
                             setattr(office.roles[role_name][level_name], f'salary_{month}', monthly_salary)
-                            # Get recruitment rate for this role and level
-                            if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                                recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
+                            
+                            # Check for lever overrides first, then use defaults
+                            level_levers = {}
+                            if (lever_plan and office_name in lever_plan and 
+                                role_name in lever_plan[office_name] and 
+                                level_name in lever_plan[office_name][role_name]):
+                                level_levers = lever_plan[office_name][role_name][level_name]
+                            
+                            # Apply recruitment rate (lever override or default)
+                            recruitment_key = f'recruitment_{month}'
+                            if recruitment_key in level_levers:
+                                recruitment_rate = level_levers[recruitment_key]
+                                print(f"[LEVER] {office_name} {role_name} {level_name} {recruitment_key}: {recruitment_rate}")
                             else:
-                                recruitment_rate = 0.01  # Default fallback
+                                if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
+                                    recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
+                                else:
+                                    recruitment_rate = 0.01  # Default fallback
                             setattr(office.roles[role_name][level_name], f'recruitment_{month}', recruitment_rate)
-                            # Get churn rate for this role and level
-                            if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                                churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                            elif role_name in DEFAULT_RATES['churn']:
-                                churn_rate = DEFAULT_RATES['churn'][role_name]
+                            
+                            # Apply churn rate (lever override or default)
+                            churn_key = f'churn_{month}'
+                            if churn_key in level_levers:
+                                churn_rate = level_levers[churn_key]
+                                print(f"[LEVER] {office_name} {role_name} {level_name} {churn_key}: {churn_rate}")
                             else:
-                                churn_rate = 0.014  # Default fallback
+                                if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
+                                    churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
+                                elif role_name in DEFAULT_RATES['churn']:
+                                    churn_rate = DEFAULT_RATES['churn'][role_name]
+                                else:
+                                    churn_rate = 0.014  # Default fallback
                             setattr(office.roles[role_name][level_name], f'churn_{month}', churn_rate)
                             
-                            # Set progression rate based on evaluation months (January and June)
-                            if month in DEFAULT_RATES['progression']['evaluation_months']:
-                                # Use default progression rates from config (will be overridden by Excel upload)
-                                progression_map = {
-                                    'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
-                                    'A': 0.15, 'AC': 0.12, 'PiP': 0.0
-                                }
-                                progression_rate = progression_map.get(level_name, 0.10)
+                            # Apply progression rate (lever override or default)
+                            progression_key = f'progression_{month}'
+                            if progression_key in level_levers:
+                                progression_rate = level_levers[progression_key]
+                                print(f"[LEVER] {office_name} {role_name} {level_name} {progression_key}: {progression_rate}")
                             else:
-                                progression_rate = DEFAULT_RATES['progression']['non_evaluation_rate']
-                            
+                                # Set progression rate based on evaluation months (January and June)
+                                if month in DEFAULT_RATES['progression']['evaluation_months']:
+                                    # Use default progression rates from config (will be overridden by Excel upload)
+                                    progression_map = {
+                                        'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
+                                        'A': 0.15, 'AC': 0.12, 'PiP': 0.0
+                                    }
+                                    progression_rate = progression_map.get(level_name, 0.10)
+                                else:
+                                    progression_rate = DEFAULT_RATES['progression']['non_evaluation_rate']
                             setattr(office.roles[role_name][level_name], f'progression_{month}', progression_rate)
-                            setattr(office.roles[role_name][level_name], f'utr_{month}', DEFAULT_RATES['utr'])
+                            
+                            # Apply UTR (lever override or default)
+                            utr_key = f'utr_{month}'
+                            if utr_key in level_levers:
+                                utr_rate = level_levers[utr_key]
+                                print(f"[LEVER] {office_name} {role_name} {level_name} {utr_key}: {utr_rate}")
+                            else:
+                                utr_rate = DEFAULT_RATES['utr']
+                            setattr(office.roles[role_name][level_name], f'utr_{month}', utr_rate)
             
-            # Initialize Operations role using real data
+            # Initialize Operations role using real data with lever support
             operations_fte = office_data.get('Operations', 0)
             if operations_fte > 0:
                 base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
@@ -567,11 +610,23 @@ class SimulationEngine:
                 op_price = base_prices.get('Operations', 80.0)  # Default fallback
                 op_salary = base_salaries.get('Operations', 40000.0)  # Default fallback
                 
-                # Get Operations recruitment rate
-                operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.008)
+                # Check for Operations lever overrides
+                operations_levers = {}
+                if (lever_plan and office_name in lever_plan and 
+                    'Operations' in lever_plan[office_name]):
+                    operations_levers = lever_plan[office_name]['Operations']
                 
-                # Get Operations churn rate
+                # Get Operations recruitment rate (lever override or default)
+                operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.008)
+                if 'recruitment_1' in operations_levers:
+                    operations_recruitment = operations_levers['recruitment_1']
+                    print(f"[LEVER] {office_name} Operations recruitment: {operations_recruitment}")
+                
+                # Get Operations churn rate (lever override or default)
                 operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.014)
+                if 'churn_1' in operations_levers:
+                    operations_churn = operations_levers['churn_1']
+                    print(f"[LEVER] {office_name} Operations churn: {operations_churn}")
                 
                 office.roles["Operations"] = RoleData(
                     recruitment_1=operations_recruitment, recruitment_2=operations_recruitment, recruitment_3=operations_recruitment, recruitment_4=operations_recruitment, recruitment_5=operations_recruitment, recruitment_6=operations_recruitment, recruitment_7=operations_recruitment, recruitment_8=operations_recruitment, recruitment_9=operations_recruitment, recruitment_10=operations_recruitment, recruitment_11=operations_recruitment, recruitment_12=operations_recruitment,
@@ -593,6 +648,53 @@ class SimulationEngine:
                         office=office_name
                     )
                     office.roles["Operations"].people.append(person)
+
+    def _apply_levers_to_existing_offices(self, lever_plan: Optional[Dict] = None):
+        """Apply lever overrides to existing offices without full reinitialization"""
+        if not lever_plan:
+            return
+            
+        print("[LEVER] Applying lever overrides to existing offices...")
+        
+        for office_name, office in self.offices.items():
+            if office_name not in lever_plan:
+                continue
+                
+            office_levers = lever_plan[office_name]
+            print(f"[LEVER] Processing {office_name} with {len(office_levers)} role lever sets")
+            
+            for role_name, role_data in office.roles.items():
+                if role_name not in office_levers:
+                    continue
+                    
+                role_levers = office_levers[role_name]
+                
+                if isinstance(role_data, dict):  # Roles with levels
+                    for level_name, level in role_data.items():
+                        if level_name not in role_levers:
+                            continue
+                            
+                        level_levers = role_levers[level_name]
+                        print(f"[LEVER] Applying {len(level_levers)} levers to {office_name} {role_name} {level_name}")
+                        
+                        # Apply each lever override
+                        for lever_key, lever_value in level_levers.items():
+                            if hasattr(level, lever_key):
+                                setattr(level, lever_key, lever_value)
+                                print(f"[LEVER] Set {office_name} {role_name} {level_name} {lever_key} = {lever_value}")
+                            else:
+                                print(f"[LEVER] Warning: Unknown lever {lever_key} for {office_name} {role_name} {level_name}")
+                else:  # Flat roles (Operations)
+                    if isinstance(role_levers, dict):
+                        print(f"[LEVER] Applying {len(role_levers)} levers to {office_name} {role_name}")
+                        
+                        # Apply each lever override
+                        for lever_key, lever_value in role_levers.items():
+                            if hasattr(role_data, lever_key):
+                                setattr(role_data, lever_key, lever_value)
+                                print(f"[LEVER] Set {office_name} {role_name} {lever_key} = {lever_value}")
+                            else:
+                                print(f"[LEVER] Warning: Unknown lever {lever_key} for {office_name} {role_name}")
 
     def get_offices_by_journey(self, journey: OfficeJourney) -> List[Office]:
         """Get all offices in a specific journey"""
@@ -623,11 +725,16 @@ class SimulationEngine:
                         a_levers = lever_plan['Stockholm']['Consultant']['A']
                         print(f"[DEBUG] Stockholm Consultant A levers: {a_levers}")
         
-        # CRITICAL FIX: Reset/reinitialize offices to start fresh
-        print("[RESET] Reinitializing offices for fresh simulation...")
-        self._initialize_offices()
-        self._initialize_roles()
-        print("[RESET] ✓ Offices reset to baseline state")
+        # Initialize offices with lever-aware initialization (only if not already initialized)
+        if not self.offices:
+            print("[INIT] Initializing offices for first time...")
+            self._initialize_offices()
+            self._initialize_roles_with_levers(lever_plan)
+            print("[INIT] ✓ Offices initialized with lever support")
+        else:
+            print("[LEVER] Applying levers to existing offices...")
+            self._apply_levers_to_existing_offices(lever_plan)
+            print("[LEVER] ✓ Levers applied to existing offices")
         
         # Convert month numbers to Month enum
         start_month_enum = Month(start_month)

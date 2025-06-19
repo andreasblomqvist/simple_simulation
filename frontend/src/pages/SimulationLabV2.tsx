@@ -132,6 +132,10 @@ const SimulationLabV2: React.FC = () => {
   const [selectedTimePeriod, setSelectedTimePeriod] = useState('monthly');
   const [selectedOfficeJourney, setSelectedOfficeJourney] = useState('');
 
+  // Add state for applied levers
+  const [appliedLevers, setAppliedLevers] = useState<any[]>([]);
+  const [leverApplying, setLeverApplying] = useState(false);
+
   // Load office configuration on mount
   useEffect(() => {
     const loadOfficeConfig = async () => {
@@ -202,6 +206,85 @@ const SimulationLabV2: React.FC = () => {
     setLeverValue(null);
   };
 
+  const handleApplyLevers = async () => {
+    try {
+      setLeverApplying(true);
+      
+      // Validate inputs
+      if (!selectedLevers.length || !selectedLevels.length || leverValue === null) {
+        message.error('Please select lever type, levels, and enter a value');
+        return;
+      }
+      
+      // Determine target offices
+      let targetOffices: string[] = [];
+      if (applyToAllOffices) {
+        targetOffices = officeOptions.map(office => office.value);
+      } else if (selectedOfficeJourney) {
+        // Filter offices by journey type using the office configuration
+        targetOffices = officeConfig
+          .filter(office => office.journey === selectedOfficeJourney)
+          .map(office => office.name.toLowerCase().replace(' ', '_'));
+      } else {
+        targetOffices = selectedOffices;
+      }
+      
+      if (targetOffices.length === 0) {
+        message.error('Please select at least one office or office journey');
+        return;
+      }
+      
+      // Create lever configuration
+      const leverConfig = {
+        id: Date.now(), // Simple ID for tracking
+        leverType: selectedLevers[0],
+        levels: selectedLevels,
+        value: leverValue,
+        timePeriod: selectedTimePeriod,
+        targetOffices: targetOffices,
+        officeJourney: selectedOfficeJourney,
+        appliedAt: new Date().toISOString()
+      };
+      
+      // Add to applied levers
+      setAppliedLevers(prev => [...prev, leverConfig]);
+      
+      // Reset form
+      setLeverValue(null);
+      setSelectedLevels(['AM']);
+      setSelectedOffices([]);
+      setSelectedOfficeJourney('');
+      
+      message.success(`Lever applied successfully! (${leverConfig.leverType} for ${leverConfig.levels.join(', ')} levels)`);
+      
+    } catch (err) {
+      message.error('Failed to apply lever');
+      console.error('Lever application error:', err);
+    } finally {
+      setLeverApplying(false);
+    }
+  };
+
+  const buildOfficeOverrides = (levers: any[]) => {
+    const overrides: Record<string, any> = {};
+    
+    levers.forEach(lever => {
+      lever.targetOffices.forEach((office: string) => {
+        if (!overrides[office]) {
+          overrides[office] = {};
+        }
+        
+        // Add lever configuration to office overrides
+        lever.levels.forEach((level: string) => {
+          const leverKey = `${lever.leverType}_${level}`;
+          overrides[office][leverKey] = lever.value / 100; // Convert percentage to decimal
+        });
+      });
+    });
+    
+    return overrides;
+  };
+
   const handleRunSimulation = async () => {
     try {
       setSimulationRunning(true);
@@ -224,7 +307,7 @@ const SimulationLabV2: React.FC = () => {
         hy_working_hours: workingHours,
         unplanned_absence: unplannedAbsence / workingHours, // Convert absence hours to decimal percentage
         other_expense: otherExpense,
-        office_overrides: {} // TODO: Add lever-specific overrides
+        office_overrides: buildOfficeOverrides(appliedLevers) // Include applied levers
       };
 
       const results = await simulationApi.runSimulation(params);
@@ -521,6 +604,68 @@ const SimulationLabV2: React.FC = () => {
             </>
           )}
         </Row>
+        
+        {/* Apply Levers Button and Applied Levers Display */}
+        <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
+          <Col span={8}>
+            <Button 
+              type="primary"
+              icon={leverApplying ? <LoadingOutlined /> : <ControlOutlined />}
+              loading={leverApplying}
+              onClick={handleApplyLevers}
+              disabled={!selectedLevers.length || !selectedLevels.length || leverValue === null || configLoading}
+              style={{ width: '100%' }}
+            >
+              {leverApplying ? 'Applying...' : 'Apply Lever'}
+            </Button>
+          </Col>
+          <Col span={16}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Configure lever settings above, then click "Apply Lever" to add to simulation. 
+              Applied levers will be used when running simulations.
+            </Text>
+          </Col>
+        </Row>
+
+        {/* Applied Levers Display */}
+        {appliedLevers.length > 0 && (
+          <Collapse style={{ marginTop: 16 }}>
+            <Collapse.Panel header={`📊 Applied Levers (${appliedLevers.length})`} key="applied-levers">
+              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {appliedLevers.map((lever, index) => (
+                  <Card key={lever.id} size="small" style={{ marginBottom: 8 }}>
+                    <Row align="middle">
+                      <Col span={18}>
+                        <Text strong>{lever.leverType.toUpperCase()}</Text>
+                        <Text style={{ marginLeft: 8, color: '#666' }}>
+                          {lever.levels.join(', ')} levels • {lever.value}% • {lever.timePeriod}
+                        </Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: '11px' }}>
+                          {lever.officeJourney ? `${lever.officeJourney}` : `${lever.targetOffices.length} office(s)`}
+                          {' • Applied: '}{new Date(lever.appliedAt).toLocaleTimeString()}
+                        </Text>
+                      </Col>
+                      <Col span={6} style={{ textAlign: 'right' }}>
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          danger
+                          onClick={() => {
+                            setAppliedLevers(prev => prev.filter(l => l.id !== lever.id));
+                            message.success('Lever removed');
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))}
+              </div>
+            </Collapse.Panel>
+          </Collapse>
+        )}
       </Card>
 
       {/* Simulation Scope Card */}

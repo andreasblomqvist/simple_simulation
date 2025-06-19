@@ -238,4 +238,18 @@ def get_available_years():
         raise HTTPException(status_code=404, detail="No simulation results found")
     
     # Return sorted list of years
-    return sorted(results['years'].keys(), key=int) 
+    return sorted(results['years'].keys(), key=int)
+
+@router.post("/reset")
+def reset_simulation():
+    """Reset the simulation engine state for fresh simulation runs"""
+    if not engine:
+        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
+    
+    # Reset the simulation state
+    engine.reset_simulation_state()
+    
+    # Clear all cached data
+    simulation_cache.clear_all()
+    
+    return {"message": "Simulation state reset successfully"} 
