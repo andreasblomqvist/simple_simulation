@@ -1,5 +1,7 @@
 variables:
   DOCKER_BUILDKIT: 0
+  AWS_DEFAULT_REGION: eu-west-1
+  ECR_REGISTRY: 723216754178.dkr.ecr.eu-west-1.amazonaws.com
 
 default:
   tags:
@@ -18,6 +20,7 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
+      registry: $ECR_REGISTRY
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -25,14 +28,19 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
+      registry: $ECR_REGISTRY
 
 stages: [validate, build, test, deploy]
 
 deploy:
   stage: deploy
   image: 
-    name: bitnami/kubectl:latest
+    name: amazon/aws-cli:latest
     entrypoint: [""]
+  before_script:
+    - yum install -y kubectl
+    - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+    - aws eks update-kubeconfig --name edgez-prd-k8s --region ${AWS_DEFAULT_REGION}
   script:
     - |
       # Replace CI_COMMIT_SHORT_SHA in deployment files
@@ -44,17 +52,7 @@ deploy:
       echo "Updated frontend deployment:"
       cat k8s/frontend-deployment.yaml
       
-      # Check kubectl access and context
-      echo "Current kubectl context:"
-      kubectl config current-context || echo "No current context"
-      
-      echo "Available contexts:"
-      kubectl config get-contexts || echo "No contexts available"
-      
-      echo "Cluster info:"
-      kubectl cluster-info || echo "Cannot get cluster info"
-      
-      # Try to apply deployments
+      # Apply deployments
       echo "Applying backend deployment..."
       kubectl apply -f k8s/backend-deployment.yaml
       
