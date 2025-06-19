@@ -20,8 +20,8 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
-      # Explicitly set image tag to use commit SHA
-      image_tag: $IMAGE_TAG
+      # Use tag parameter instead of image_tag
+      tag: $CI_COMMIT_SHORT_SHA
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
@@ -29,8 +29,8 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
-      # Explicitly set image tag to use commit SHA
-      image_tag: $IMAGE_TAG
+      # Use tag parameter instead of image_tag
+      tag: $CI_COMMIT_SHORT_SHA
 
 stages: [validate, build, test, deploy]
 
