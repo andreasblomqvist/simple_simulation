@@ -39,6 +39,15 @@ deploy:
       chmod +x kubectl
       mv kubectl /usr/local/bin/
       
+      # Replace CI_COMMIT_SHORT_SHA in deployment files
+      sed -i "s/\${CI_COMMIT_SHORT_SHA}/$CI_COMMIT_SHORT_SHA/g" k8s/backend-deployment.yaml
+      sed -i "s/\${CI_COMMIT_SHORT_SHA}/$CI_COMMIT_SHORT_SHA/g" k8s/frontend-deployment.yaml
+      
+      echo "Updated backend deployment:"
+      cat k8s/backend-deployment.yaml
+      echo "Updated frontend deployment:"
+      cat k8s/frontend-deployment.yaml
+      
       # Apply the deployments
       kubectl apply -f k8s/backend-deployment.yaml
       kubectl apply -f k8s/frontend-deployment.yaml
