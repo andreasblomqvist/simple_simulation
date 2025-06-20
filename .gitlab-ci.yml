@@ -32,7 +32,6 @@ include:
 update-k8s-image-tags:
   stage: deploy
   image: alpine/git:latest
-  when: manual
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
