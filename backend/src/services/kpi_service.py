@@ -225,7 +225,15 @@ class KPIService:
         total_weighted_price = 0.0
         total_weighted_utr = 0.0
         
+        # Track office-level totals
+        office_summaries = {}
+        
         for office_name, office_data in year_data['offices'].items():
+            # Initialize office totals
+            office_revenue = 0.0
+            office_costs = 0.0
+            office_consultants = 0
+            
             # Only consultants generate revenue
             if 'Consultant' in office_data['levels']:
                 consultant_levels = office_data['levels']['Consultant']
@@ -263,21 +271,22 @@ class KPIService:
                     
                     print(f"[DEBUG] {office_name} {level_name} - FTE: {fte_count}, Price: {hourly_price} SEK/hr, Salary: {monthly_salary} SEK/month")
                     
+                    office_consultants += fte_count
                     total_consultants += fte_count
                     total_weighted_price += fte_count * hourly_price
                     total_weighted_utr += fte_count * 0.85  # Assuming 85% UTR
                     
                     # Calculate revenue with detailed logging
                     working_hours = self.working_hours_per_month
-                    # Convert unplanned_absence from hours to billable hours per month
-                    available_hours = working_hours - unplanned_absence  # Subtract absence hours
+                    # Apply unplanned_absence as a percentage (it's already a decimal fraction)
+                    available_hours = working_hours * (1 - unplanned_absence)  # Apply absence percentage
                     billable_hours = available_hours * 0.85  # Apply UTR to available hours
                     
                     print(f"[DEBUG] REVENUE CALC {office_name} {level_name}:")
                     print(f"  FTE: {fte_count}")
                     print(f"  Price: {hourly_price} SEK/hr")
                     print(f"  Total working hours/month: {working_hours}")
-                    print(f"  Unplanned absence hours: {unplanned_absence}")
+                    print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
                     print(f"  Available hours: {available_hours}")
                     print(f"  Billable hours (85% UTR): {billable_hours}")
                     print(f"  Formula: {fte_count} * ({hourly_price} * {billable_hours}) * 12")
@@ -301,17 +310,51 @@ class KPIService:
                     
                     profit = revenue - costs
                     
-                    print(f"[DEBUG] {office_name} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
+                    # Calculate detailed salary cost breakdown
+                    base_salary_cost = fte_count * monthly_salary * 12  # Annual base salary
+                    employment_cost_addition = base_salary_cost * self.total_employment_cost_rate  # Additional employment costs
+                    total_employment_cost = base_salary_cost + employment_cost_addition  # Total employment cost
                     
-                    total_revenue += revenue
-                    total_costs += costs
+                    print(f"[DEBUG] {office_name} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
+                    print(f"[DEBUG] {office_name} {level_name} COST BREAKDOWN:")
+                    print(f"  Base salary cost (annual): {base_salary_cost:,.0f} SEK")
+                    print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {employment_cost_addition:,.0f} SEK")
+                    print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
+                    
+                    office_revenue += revenue
+                    office_costs += costs
             
-            # Add other expenses
-            other_expense_annual = other_expense * 12  # Annualize
-            total_costs += other_expense_annual
-            print(f"[DEBUG] Added other expenses: {other_expense_annual:,.0f} SEK annually")
+            # Store office summary for logging
+            office_summaries[office_name] = {
+                'revenue': office_revenue,
+                'costs': office_costs,  # Costs before other expenses
+                'consultants': office_consultants,
+                'profit': office_revenue - office_costs
+            }
+            
+            # Add office totals to overall totals
+            total_revenue += office_revenue
+            total_costs += office_costs
         
-        print(f"[DEBUG] FINAL TOTALS:")
+        # Add other expenses once for all offices combined
+        other_expense_annual = other_expense * 12  # Annualize
+        total_costs += other_expense_annual
+        
+        # Log office summaries
+        print(f"\n[DEBUG] OFFICE SUMMARIES:")
+        print(f"[DEBUG] " + "="*50)
+        for office_name, summary in office_summaries.items():
+            margin = (summary['profit'] / summary['revenue'] * 100) if summary['revenue'] > 0 else 0.0
+            print(f"[DEBUG] {office_name}:")
+            print(f"  Consultants: {summary['consultants']}")
+            print(f"  Revenue: {summary['revenue']:,.0f} SEK")
+            print(f"  Costs: {summary['costs']:,.0f} SEK")
+            print(f"  Profit: {summary['profit']:,.0f} SEK")
+            print(f"  Margin: {margin:.1f}%")
+        
+        print(f"[DEBUG] OTHER EXPENSES (all offices): {other_expense_annual:,.0f} SEK annually")
+        
+        print(f"\n[DEBUG] FINAL TOTALS:")
         print(f"[DEBUG] Total Consultants: {total_consultants}")
         print(f"[DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
         print(f"[DEBUG] Total Costs: {total_costs:,.0f} SEK")
@@ -696,15 +739,15 @@ class KPIService:
                     
                     # Calculate revenue (annualized) with detailed debug
                     working_hours = self.working_hours_per_month
-                    # Convert unplanned_absence from hours to billable hours per month
-                    available_hours = working_hours - unplanned_absence  # Subtract absence hours
+                    # Apply unplanned_absence as a percentage (it's already a decimal fraction)
+                    available_hours = working_hours * (1 - unplanned_absence)  # Apply absence percentage
                     billable_hours = available_hours * 0.85  # Apply UTR to available hours
                     
                     print(f"[DEBUG] BASELINE REVENUE CALC {office['name']} {level_name}:")
                     print(f"  FTE: {count}")
                     print(f"  Price: {price} SEK/hr")
                     print(f"  Total working hours/month: {working_hours}")
-                    print(f"  Unplanned absence hours: {unplanned_absence}")
+                    print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
                     print(f"  Available hours: {available_hours}")
                     print(f"  Billable hours (85% UTR): {billable_hours}")
                     print(f"  Duration months: {duration_months}")
@@ -729,8 +772,17 @@ class KPIService:
                     )
                     total_costs += costs
                     
+                    # Calculate detailed salary cost breakdown for baseline
+                    base_salary_cost = count * salary * duration_months  # Base salary cost
+                    employment_cost_addition = base_salary_cost * self.total_employment_cost_rate  # Additional employment costs
+                    total_employment_cost = base_salary_cost + employment_cost_addition  # Total employment cost
+                    
                     profit = revenue - costs
                     print(f"[DEBUG] BASELINE {office['name']} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
+                    print(f"[DEBUG] BASELINE {office['name']} {level_name} COST BREAKDOWN:")
+                    print(f"  Base salary cost ({duration_months} months): {base_salary_cost:,.0f} SEK")
+                    print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {employment_cost_addition:,.0f} SEK")
+                    print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
             
             # Add other expenses (annualized)
             other_expense_total = other_expense * duration_months  # Annualize by multiplying by 12 months

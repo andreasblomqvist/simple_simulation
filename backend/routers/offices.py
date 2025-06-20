@@ -139,7 +139,14 @@ def _serialize_role_data(role_data) -> dict:
 
 @router.get("/")
 def list_offices():
-    """Get offices from simulation engine (for simulation results, not configuration)"""
+    """Get offices from simulation engine (includes imported changes)"""
+    # Initialize engine offices if not already done
+    if not engine.offices:
+        print("[API] Initializing simulation engine offices for first time...")
+        engine._initialize_offices()
+        engine._initialize_roles_with_levers(None)
+        print(f"[API] ✓ Initialized {len(engine.offices)} offices")
+    
     offices_out = []
     for office in engine.offices.values():
         roles_out = {}
@@ -152,78 +159,50 @@ def list_offices():
             "journey": office.journey.value,
             "roles": roles_out
         })
+    
+    print(f"[API] Returning {len(offices_out)} offices with live simulation engine data")
     return offices_out
 
 @router.post("/import")
 async def import_office_levers(file: UploadFile = File(...)):
     """Import office configuration from Excel file"""
+    # Initialize engine offices if not already done
+    if not engine.offices:
+        print("[IMPORT] Initializing simulation engine offices before import...")
+        engine._initialize_offices()
+        engine._initialize_roles_with_levers(None)
+        print(f"[IMPORT] ✓ Initialized {len(engine.offices)} offices")
+    
     # Read file content into memory to avoid SpooledTemporaryFile issues
     content = await file.read()
     df = pd.read_excel(content)
     updated_count = 0
     
-    for _, row in df.iterrows():
-        office_name = row["Office"]
-        role_name = row["Role"]
-        level_name = row["Level"] if not pd.isna(row["Level"]) else None
-        
-        office = engine.offices.get(office_name)
-        if not office or role_name not in office.roles:
-            continue
-            
-        if isinstance(office.roles[role_name], dict) and level_name:
-            # Roles with levels (Consultant, Sales, Recruitment)
-            if level_name in office.roles[role_name]:
-                level = office.roles[role_name][level_name]
-                print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
-                
-                # Update FTE by adjusting people list
-                if not pd.isna(row["FTE"]):
-                    target_fte = int(row["FTE"])
-                    current_fte = level.total
-                    
-                    if target_fte != current_fte:
-                        print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
-                        
-                        if target_fte > current_fte:
-                            # Add people
-                            for i in range(target_fte - current_fte):
-                                level.add_new_hire("2024-01", role_name, office_name)
-                        elif target_fte < current_fte:
-                            # Remove people (simple truncation)
-                            excess = current_fte - target_fte
-                            level.people = level.people[:-excess]
-                
-                # Update monthly values (1-12)
-                _update_monthly_attributes(level, row)
-                updated_count += 1
-                
-        elif not isinstance(office.roles[role_name], dict) and not level_name:
-            # Flat role (Operations)
-            role = office.roles[role_name]
-            print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
-            
-            # Update FTE by adjusting people list
-            if not pd.isna(row["FTE"]):
-                target_fte = int(row["FTE"])
-                current_fte = role.total
-                
-                if target_fte != current_fte:
-                    print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
-                    
-                    if target_fte > current_fte:
-                        # Add people
-                        for i in range(target_fte - current_fte):
-                            role.add_new_hire("2024-01", role_name, office_name)
-                    elif target_fte < current_fte:
-                        # Remove people (simple truncation)
-                        excess = current_fte - target_fte
-                        role.people = role.people[:-excess]
-            
-            # Update monthly values (1-12)
-            _update_monthly_attributes(role, row)
-            updated_count += 1
+    print(f"[IMPORT] Processing {len(df)} rows from Excel file...")
     
+    for _, row in df.iterrows():
+        office_name = row.get("Office")
+        role_type = row.get("Role")
+        role_level = row.get("Level")
+        
+        if office_name and role_type and role_level:
+            office = engine.offices.get(office_name)
+            if office and role_type in office.roles:
+                role_data = office.roles[role_type]
+                
+                # Check if this role has levels (dict) or is flat (RoleData)
+                if isinstance(role_data, dict):
+                    # Role with levels (Consultant, Sales, Recruitment)
+                    if role_level in role_data:
+                        level_obj = role_data[role_level]
+                        _update_monthly_attributes(level_obj, row)
+                        updated_count += 1
+                else:
+                    # Flat role (Operations) - ignore level, update directly
+                    _update_monthly_attributes(role_data, row)
+                    updated_count += 1
+    
+    print(f"[IMPORT] ✅ Import complete: {updated_count} rows updated")
     return {"status": "success", "rows": len(df), "updated": updated_count}
 
 def _update_monthly_attributes(obj, row):
@@ -240,21 +219,19 @@ def _update_monthly_attributes(obj, row):
                         
                         # If it's already a number, use it directly
                         if isinstance(value, (int, float)):
-                            setattr(obj, attr_name, float(value))
+                            converted_value = float(value)
+                        # If it's a string, handle European decimal format (comma separator)
                         elif isinstance(value, str):
-                            # Handle string values - remove spaces and replace comma with dot
-                            cleaned_value = value.strip().replace(',', '.')
-                            # Remove any non-numeric characters except dots and minus signs
-                            cleaned_value = ''.join(c for c in cleaned_value if c.isdigit() or c in '.-')
-                            if cleaned_value:
-                                setattr(obj, attr_name, float(cleaned_value))
-                            else:
-                                print(f"[IMPORT] Skipping {col_name}: empty string after cleaning")
+                            # Replace comma with dot for European decimal format
+                            cleaned_value = value.replace(',', '.')
+                            converted_value = float(cleaned_value)
                         else:
                             # Try direct conversion for other types
-                            setattr(obj, attr_name, float(value))
-                            
+                            converted_value = float(value)
+                        
+                        # Set the converted value
+                        setattr(obj, attr_name, converted_value)
+                        
                     except (ValueError, TypeError) as e:
-                        # Skip if it's not a valid float
-                        print(f"[IMPORT] Skipping {col_name}: invalid value type ({type(row[col_name])}) - {row[col_name]}")
+                        print(f"[IMPORT] Error converting {col_name}='{row[col_name]}': {e}")
                         continue 
