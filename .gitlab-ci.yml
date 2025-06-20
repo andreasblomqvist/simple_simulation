@@ -72,7 +72,8 @@ update-k8s-image-tags:
     - |
       if ! git diff --staged --exit-code; then
         git commit -m "Update K8s image tags to $CI_COMMIT_SHORT_SHA [skip ci]"
-        git push HEAD:$CI_COMMIT_REF_NAME
+        git status  
+        git push origin "${CI_DEFAULT_BRANCH}" -o ci.skip
         echo "Changes committed and pushed successfully"
       else
         echo "No changes to commit"
