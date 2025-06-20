@@ -90,7 +90,7 @@ update-k8s-image-tags:
     # Update backend deployment file
     - echo "Updating backend deployment..."
     - |
-      sed -i -E 's|(723216754178\.dkr\.ecr\.eu-west-1\.amazonaws\.com/simplesim-frontend:)[^[:space:]]*|\1'$CI_COMMIT_SHORT_SHA'|g' $BACKEND_DEPLOYMENT_FILE
+      sed -i -E 's|(723216754178\.dkr\.ecr\.eu-west-1\.amazonaws\.com/simplesim-backend:)[^[:space:]]*|\1'$CI_COMMIT_SHORT_SHA'|g' $BACKEND_DEPLOYMENT_FILE
 
     # Show the changes
     - echo "=== Updated Frontend Deployment ==="
