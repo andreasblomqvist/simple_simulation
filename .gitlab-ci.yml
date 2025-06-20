@@ -29,9 +29,44 @@ include:
       dockerfile: Dockerfile.frontend
       environment: prod
 
+.git:push:
+  after_script:
+    # Go to the new directory
+    - cd "${CI_COMMIT_SHA}"
+
+    # Add all generated files to Git
+    - git add .
+
+    - |-
+      # Check if we have modifications to commit
+      CHANGES=$(git status --porcelain | wc -l)
+
+      if [ "$CHANGES" -gt "0" ]; then
+        # Show the status of files that are about to be created, updated or deleted
+        git status
+
+        # Commit all changes
+        git commit -m "${COMMIT_MESSAGE}"
+
+        # Update the repository and make sure to skip the pipeline create for this commit
+        git push origin "${CI_DEFAULT_BRANCH}" -o ci.skip
+      fi
+  before_script:
+    # Clone the repository via HTTPS inside a new directory
+    - git clone "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "${CI_COMMIT_SHA}"
+
+    # Set the displayed user with the commits that are about to be made
+    - git config --global user.email "${GIT_USER_EMAIL:-$GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GIT_USER_NAME:-$GITLAB_USER_NAME}"
+  image:
+    entrypoint: [""]
+    name: alpine/git:${GIT_VERSION}
+  stage: deploy
+
 update-k8s-image-tags:
   stage: deploy
   image: alpine/git:latest
+  extends: .git:push
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       when: never
@@ -39,10 +74,6 @@ update-k8s-image-tags:
       when: always
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: manual
-  before_script:
-    - apk add --no-cache sed
-    - git config --global user.email "gitlab-ci@example.com"
-    - git config --global user.name "GitLab CI"
   script:
     - |
       echo "Current commit SHA: $CI_COMMIT_SHA"
@@ -65,20 +96,6 @@ update-k8s-image-tags:
     - echo ""
     - echo "=== Updated Backend Deployment ==="
     - cat $BACKEND_DEPLOYMENT_FILE
-
-    # Commit and push the changes back to the repository
-    - git config --global --add safe.directory /builds/open-production/simplesim
-    - git add $FRONTEND_DEPLOYMENT_FILE $BACKEND_DEPLOYMENT_FILE
-    - |
-      if ! git diff --staged --exit-code; then
-        git commit -m "Update K8s image tags to $CI_COMMIT_SHORT_SHA [skip ci]"
-        git status  
-        git push origin "${CI_DEFAULT_BRANCH}" -o ci.skip
-        echo "Changes committed and pushed successfully"
-      else
-        echo "No changes to commit"
-      fi
-
   artifacts:
     paths:
       - $FRONTEND_DEPLOYMENT_FILE
