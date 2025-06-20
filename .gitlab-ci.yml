@@ -35,7 +35,7 @@ include:
     - cd "${CI_COMMIT_SHA}"
 
     # Add all generated files to Git
-    - git add .
+    - git add k8s
 
     - |-
       # Check if we have modifications to commit
