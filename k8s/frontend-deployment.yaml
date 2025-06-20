@@ -39,7 +39,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: frontend
-          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-frontend:8781e5a0
+          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-frontend:bb869ac6
           ports:
             - containerPort: 3000
               name: http
