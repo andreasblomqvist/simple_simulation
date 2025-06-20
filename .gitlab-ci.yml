@@ -30,5 +30,8 @@ include:
       job_prefix: frontend-
       dockerfile: Dockerfile.frontend
       environment: prod
+    rules:
+      - changes:
+        - frontend/**
 
 stages: [validate, test, build, deploy]
