@@ -20,6 +20,9 @@ include:
       job_prefix: backend-
       dockerfile: Dockerfile.backend
       environment: prod
+    rules:
+      - changes:
+        - *.py
   - component: $CI_SERVER_FQDN/components/docker-build/buildkit@1.2.0
     inputs:
       tags: aws-edgez-prd-k8s
