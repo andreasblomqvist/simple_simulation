@@ -67,6 +67,7 @@ update-k8s-image-tags:
     - cat $BACKEND_DEPLOYMENT_FILE
 
     # Commit and push the changes back to the repository
+    - git config --global --add safe.directory /builds/open-production/simplesim
     - git add $FRONTEND_DEPLOYMENT_FILE $BACKEND_DEPLOYMENT_FILE
     - |
       if ! git diff --staged --exit-code; then
