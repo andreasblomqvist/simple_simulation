@@ -36,6 +36,7 @@ include:
 
     # Add all generated files to Git
     - git add k8s
+    - git status
 
     - |-
       # Check if we have modifications to commit
@@ -75,6 +76,7 @@ update-k8s-image-tags:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: manual
   script:
+    - cd "${CI_COMMIT_SHA}"
     - |
       echo "Current commit SHA: $CI_COMMIT_SHA"
     - |
