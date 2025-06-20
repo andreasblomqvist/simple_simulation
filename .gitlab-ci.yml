@@ -98,6 +98,7 @@ update-k8s-image-tags:
     - echo ""
     - echo "=== Updated Backend Deployment ==="
     - cat $BACKEND_DEPLOYMENT_FILE
+    - git status
   artifacts:
     paths:
       - $FRONTEND_DEPLOYMENT_FILE
