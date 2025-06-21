@@ -1660,7 +1660,20 @@ const SimulationLabV2: React.FC = () => {
 
                     levels.forEach(level => {
                       const levelData = roleData[level];
-                      if (!levelData || !Array.isArray(levelData)) return;
+                      if (!levelData || !Array.isArray(levelData)) {
+                        // Ensure a row is still created for levels with no data
+                        logs.push({
+                          key: `${officeName}-${role}-${level}-yearly`,
+                          office: officeName,
+                          role: role,
+                          level: level,
+                          period: `${activeYear} Total`,
+                          recruited: 0, churned: 0, progressedOut: 0, progressedIn: 0,
+                          totalBefore: 0, totalAfter: 0,
+                          isYearlyTotal: true, monthlyData: []
+                        });
+                        return;
+                      }
 
                       // Calculate yearly aggregated values
                       const yearlyTotals = {
@@ -1668,7 +1681,7 @@ const SimulationLabV2: React.FC = () => {
                         churned: 0,
                         progressedOut: 0,
                         progressedIn: 0,
-                        totalBefore: levelData[0] ? (levelData[0].total - levelData[0].recruited + levelData[0].churned + levelData[0].progressed_out - levelData[0].progressed_in) : 0,
+                        totalBefore: levelData[0] ? (levelData[0].total - (levelData[0].recruited || 0) + (levelData[0].churned || 0) + (levelData[0].progressed_out || 0) - (levelData[0].progressed_in || 0)) : 0,
                         totalAfter: levelData[levelData.length - 1]?.total || 0
                       };
 
@@ -1676,7 +1689,7 @@ const SimulationLabV2: React.FC = () => {
 
                       // Process each time period for monthly breakdown
                       levelData.forEach((periodData: any, periodIndex: number) => {
-                        if (!periodData) return; // Guard against null/undefined periodData
+                        if (!periodData) return;
                         
                         yearlyTotals.recruited += periodData.recruited || 0;
                         yearlyTotals.churned += periodData.churned || 0;
@@ -1701,25 +1714,23 @@ const SimulationLabV2: React.FC = () => {
                         }
                       });
 
-                      // Only add if there's activity
-                      if (yearlyTotals.recruited > 0 || yearlyTotals.churned > 0 || yearlyTotals.progressedOut > 0 || yearlyTotals.progressedIn > 0) {
-                        logs.push({
-                          key: `${officeName}-${role}-${level}-yearly`,
-                          office: officeName,
-                          role: role,
-                          level: level,
-                          period: `${activeYear} Total`,
-                          periodIndex: -1, // Special value for yearly aggregation
-                          recruited: yearlyTotals.recruited,
-                          churned: yearlyTotals.churned,
-                          progressedOut: yearlyTotals.progressedOut,
-                          progressedIn: yearlyTotals.progressedIn,
-                          totalBefore: yearlyTotals.totalBefore,
-                          totalAfter: yearlyTotals.totalAfter,
-                          isYearlyTotal: true,
-                          monthlyData: monthlyData
-                        });
-                      }
+                      // Always add a yearly total row to ensure visibility
+                      logs.push({
+                        key: `${officeName}-${role}-${level}-yearly`,
+                        office: officeName,
+                        role: role,
+                        level: level,
+                        period: `${activeYear} Total`,
+                        periodIndex: -1,
+                        recruited: yearlyTotals.recruited,
+                        churned: yearlyTotals.churned,
+                        progressedOut: yearlyTotals.progressedOut,
+                        progressedIn: yearlyTotals.progressedIn,
+                        totalBefore: yearlyTotals.totalBefore,
+                        totalAfter: yearlyTotals.totalAfter,
+                        isYearlyTotal: true,
+                        monthlyData: monthlyData
+                      });
                     });
                   });
 
@@ -1739,7 +1750,7 @@ const SimulationLabV2: React.FC = () => {
                     const monthlyData: any[] = [];
 
                     officeData.operations.forEach((periodData: any, periodIndex: number) => {
-                      if (!periodData) return; // Guard against null/undefined periodData
+                      if (!periodData) return;
                       
                       yearlyTotals.recruited += periodData.recruited || 0;
                       yearlyTotals.churned += periodData.churned || 0;
@@ -1762,24 +1773,33 @@ const SimulationLabV2: React.FC = () => {
                       }
                     });
 
-                    if (yearlyTotals.recruited > 0 || yearlyTotals.churned > 0) {
-                      logs.push({
+                    // Always add a yearly total row for operations.
+                    logs.push({
+                      key: `${officeName}-Operations-Operations-yearly`,
+                      office: officeName,
+                      role: 'Operations',
+                      level: 'Operations',
+                      period: `${activeYear} Total`,
+                      periodIndex: -1,
+                      recruited: yearlyTotals.recruited,
+                      churned: yearlyTotals.churned,
+                      progressedOut: 0,
+                      progressedIn: 0,
+                      totalBefore: yearlyTotals.totalBefore,
+                      totalAfter: yearlyTotals.totalAfter,
+                      isYearlyTotal: true,
+                      monthlyData: monthlyData
+                    });
+                  } else {
+                     // Ensure Operations row is created even if there's no data
+                     logs.push({
                         key: `${officeName}-Operations-Operations-yearly`,
-                        office: officeName,
-                        role: 'Operations',
-                        level: 'Operations',
+                        office: officeName, role: 'Operations', level: 'Operations',
                         period: `${activeYear} Total`,
-                        periodIndex: -1,
-                        recruited: yearlyTotals.recruited,
-                        churned: yearlyTotals.churned,
-                        progressedOut: 0,
-                        progressedIn: 0,
-                        totalBefore: yearlyTotals.totalBefore,
-                        totalAfter: yearlyTotals.totalAfter,
-                        isYearlyTotal: true,
-                        monthlyData: monthlyData
+                        recruited: 0, churned: 0, progressedOut: 0, progressedIn: 0,
+                        totalBefore: 0, totalAfter: 0,
+                        isYearlyTotal: true, monthlyData: []
                       });
-                    }
                   }
                 });
 
