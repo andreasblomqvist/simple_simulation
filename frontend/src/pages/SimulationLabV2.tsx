@@ -112,8 +112,8 @@ const SimulationLabV2: React.FC = () => {
   const [otherExpense, setOtherExpense] = useState(19000000);
   
   // Simulation duration
-  const [simulationDuration, setSimulationDuration] = useState(3); // Default 3 years
-  const [selectedDurationUnit, setSelectedDurationUnit] = useState('years');
+  const [simulationDuration, setSimulationDuration] = useState(12); // Default 12 months
+  const [selectedDurationUnit, setSelectedDurationUnit] = useState('months');
   
   // API data
   const [officeConfig, setOfficeConfig] = useState<OfficeConfig[]>([]);
@@ -204,20 +204,22 @@ const SimulationLabV2: React.FC = () => {
       setError(null);
   
       // --- Build the correct simulation request payload ---
-      const current_date = new Date();
-      const start_year = current_date.getFullYear();
-      const start_month = current_date.getMonth() + 1;
+      const start_year = parseInt(activeYear, 10) || new Date().getFullYear();
+      const start_month = 1;
 
-      let end_year = start_year;
-      let end_month = start_month;
-
+      let totalMonths = 0;
       if (selectedDurationUnit === 'years') {
-        end_year += simulationDuration;
+        totalMonths = simulationDuration * 12;
+      } else if (selectedDurationUnit === 'half-years') {
+        totalMonths = simulationDuration * 6;
       } else { // months
-        end_month += simulationDuration;
-        end_year += Math.floor((end_month - 1) / 12);
-        end_month = ((end_month - 1) % 12) + 1;
+        totalMonths = simulationDuration;
       }
+
+      // Calculate end date based on start date and duration
+      const endDate = new Date(start_year, start_month - 1 + totalMonths -1, 1);
+      const end_year = endDate.getFullYear();
+      const end_month = endDate.getMonth() + 1;
 
       const simulationConfig = {
         start_year,
