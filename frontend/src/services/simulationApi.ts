@@ -742,19 +742,60 @@ class SimulationApiService {
   /**
    * Calculate seniority KPIs from simulation results with baseline comparison
    */
-  extractSeniorityKPIs(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[], baselineYear: string = '2025'): any {
+  extractSeniorityKPIs(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[], baselineYear?: string): any {
     const yearData = results.years?.[year];
-    if (!yearData?.offices) return null;
+    const resolvedBaselineYear = baselineYear || year;
+    const baselineYearData = results.years?.[resolvedBaselineYear];
 
-    // Get journey data from backend KPIs (includes baseline values)
-    const journeyKPIs = results.kpis?.journeys;
-    if (!journeyKPIs) return null;
+    if (!yearData?.offices || !baselineYearData?.offices) return null;
 
-    // Extract current and baseline journey data from backend
-    const currentJourneyTotals = journeyKPIs.journey_totals || {};
-    const baselineJourneyTotals = journeyKPIs.journey_totals_baseline || {};
-    const currentJourneyPercentages = journeyKPIs.journey_percentages || {};
-    const baselineJourneyPercentages = journeyKPIs.journey_percentages_baseline || {};
+    const calculateJourneyMetricsForYear = (data: any) => {
+      const journeyTotals: Record<string, number> = { 'Journey 1': 0, 'Journey 2': 0, 'Journey 3': 0, 'Journey 4': 0 };
+
+      if (!data?.offices) {
+        return { 
+          totals: journeyTotals,
+          percentages: { 'Journey 1': 0, 'Journey 2': 0, 'Journey 3': 0, 'Journey 4': 0 },
+          grandTotal: 0
+        };
+      }
+
+      const journeyMap: Record<string, string> = {
+        'A': 'Journey 1', 'AC': 'Journey 1', 'C': 'Journey 1',
+        'SrC': 'Journey 2', 'AM': 'Journey 2',
+        'M': 'Journey 3', 'SrM': 'Journey 3',
+        'PiP': 'Journey 4',
+      };
+
+      // Aggregate FTEs from all offices for each journey
+      Object.values(data.offices).forEach((officeData: any) => {
+        const levels = officeData.levels || {};
+        Object.keys(journeyMap).forEach(level => {
+          const journeyName = journeyMap[level];
+          const count = this.getLevelCount(levels, level); // getLevelCount sums FTE for a level
+          if (journeyTotals[journeyName] !== undefined) {
+            journeyTotals[journeyName] += count;
+          }
+        });
+      });
+
+      const grandTotal = Object.values(journeyTotals).reduce((sum, current) => sum + current, 0);
+      
+      const percentages = {
+        'Journey 1': grandTotal > 0 ? (journeyTotals['Journey 1'] / grandTotal) * 100 : 0,
+        'Journey 2': grandTotal > 0 ? (journeyTotals['Journey 2'] / grandTotal) * 100 : 0,
+        'Journey 3': grandTotal > 0 ? (journeyTotals['Journey 3'] / grandTotal) * 100 : 0,
+        'Journey 4': grandTotal > 0 ? (journeyTotals['Journey 4'] / grandTotal) * 100 : 0,
+      };
+
+      return { totals: journeyTotals, percentages, grandTotal };
+    };
+
+    const currentMetrics = calculateJourneyMetricsForYear(yearData);
+    const baselineMetrics = calculateJourneyMetricsForYear(baselineYearData);
+
+    const { totals: currentJourneyTotals, percentages: currentJourneyPercentages, grandTotal: grandTotalCurrent } = currentMetrics;
+    const { totals: baselineJourneyTotals, percentages: baselineJourneyPercentages, grandTotal: grandTotalBaseline } = baselineMetrics;
 
     // Extract values with fallbacks
     const totalJourney1 = currentJourneyTotals['Journey 1'] || 0;
@@ -930,7 +971,7 @@ class SimulationApiService {
       },
       
       // Baseline information
-      baselineYear: baselineYear,
+      baselineYear: resolvedBaselineYear,
       hasBaseline: true, // We now have backend baseline data
       
       // Summary values for display
