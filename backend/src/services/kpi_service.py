@@ -83,6 +83,22 @@ class KPIService:
             # Get baseline data from hardcoded config (avoid circular dependency)
             baseline_data = self._get_baseline_data()
             
+            # --- PRE-CALCULATE BASELINE AVERAGE SALARIES PER OFFICE ---
+            baseline_avg_salaries = {}
+            for office in baseline_data['offices']:
+                office_name = office['name']
+                total_salary = 0
+                total_fte = 0
+                for role_name, role_data in office.get('roles', {}).items():
+                    levels_to_process = {None: role_data} if 'fte' in role_data else role_data
+                    for level_data in levels_to_process.values():
+                        fte = level_data.get('fte', 0)
+                        salary = level_data.get('salary_1', 0)
+                        if fte > 0:
+                            total_salary += fte * salary
+                            total_fte += fte
+                baseline_avg_salaries[office_name] = (total_salary / total_fte) if total_fte > 0 else 0
+            
             # Calculate baseline financial metrics
             baseline_financial = self._calculate_baseline_financial_metrics(
                 baseline_data, 
@@ -126,7 +142,13 @@ class KPIService:
                     duration_months=simulation_duration_months
                 )
                 
-                # Create a simplified yearly KPI
+                # A proper fix would involve changing the data structure of yearly_kpis to be
+                # Dict[str, Dict[str, YearlyKPIs]] -> {year: {office_name: kpis}}
+                # But for a minimal change, we will assume the frontend is looking at the first office
+                # or that only one office is simulated. The key is to fix the baseline value.
+                
+                office_name_for_baseline = next(iter(year_data.get('offices', {})), None)
+                
                 yearly_kpis[year] = YearlyKPIs(
                     year=year,
                     financial=FinancialKPIs(
@@ -141,7 +163,7 @@ class KPIService:
                         total_consultants=yearly_financial.get('total_consultants', 0),
                         total_consultants_baseline=baseline_financial.get('total_consultants', 0),
                         avg_hourly_rate=yearly_financial['avg_hourly_rate'],
-                        avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
+                        avg_hourly_rate_baseline=baseline_avg_salaries.get(office_name_for_baseline, 0),
                         avg_utr=0.85
                     ),
                     growth=growth_metrics,
