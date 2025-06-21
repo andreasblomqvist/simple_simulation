@@ -229,12 +229,32 @@ const SimulationLabV2: React.FC = () => {
         hy_working_hours: workingHours,
         unplanned_absence: unplannedAbsence / 100, // Convert percentage to float
         other_expense: otherExpense,
-        office_overrides: appliedLevers.reduce((acc, lever) => {
-          if (!acc[lever.office]) {
-            acc[lever.office] = {};
+        office_overrides: appliedLevers.reduce((acc: Record<string, any>, lever: any) => {
+          // Determine which offices to apply to
+          let targetOffices: string[] = [];
+          if (lever.targetOffices.includes('all')) {
+            targetOffices = officeConfig.map((office: any) => office.name);
+          } else if (lever.officeJourney) {
+            targetOffices = officeConfig
+              .filter((office: any) => office.journey === lever.officeJourney)
+              .map((office: any) => office.name);
+          } else {
+            targetOffices = lever.targetOffices.map((officeName: string) => 
+              officeConfig.find((office: any) => office.name.toLowerCase().replace(' ', '_') === officeName)?.name
+            ).filter(Boolean);
           }
-          const key = `${lever.lever}_${lever.level}`;
-          acc[lever.office][key] = Number(lever.value) / 100; // Convert percentage to float
+          
+          // Apply lever to each target office and level
+          targetOffices.forEach((officeName: string) => {
+            if (!acc[officeName]) {
+              acc[officeName] = {};
+            }
+            lever.levels.forEach((level: string) => {
+              const key = `${lever.leverType}_${level}`;
+              acc[officeName][key] = Number(lever.value) / 100; // Convert percentage to float
+            });
+          });
+          
           return acc;
         }, {})
       };
@@ -262,7 +282,25 @@ const SimulationLabV2: React.FC = () => {
   };
 
   const handleApplyLevers = async () => {
-    // Re-use the main simulation running logic
+    // First, add the current lever configuration to applied levers
+    if (selectedLevers.length > 0 && selectedLevels.length > 0 && leverValue !== null) {
+      const newLever = {
+        id: Date.now().toString(), // Simple ID generation
+        leverType: selectedLevers[0],
+        levels: [...selectedLevels],
+        value: leverValue,
+        timePeriod: selectedTimePeriod,
+        officeJourney: selectedOfficeJourney,
+        targetOffices: applyToAllOffices ? ['all'] : selectedOffices,
+        appliedAt: new Date().toISOString()
+      };
+      
+      setAppliedLevers(prev => [...prev, newLever]);
+      console.log('[SIMULATION] 🎛️ Added new lever:', newLever);
+      message.success(`Applied ${selectedLevers[0]} lever to ${selectedLevels.join(', ')} levels`);
+    }
+    
+    // Then run the simulation with all applied levers
     await handleRunSimulation();
   };
 
