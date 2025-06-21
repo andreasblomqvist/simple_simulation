@@ -12,6 +12,19 @@ interface OfficeConfig {
   };
 }
 
+interface ConfigStatus {
+  checksum: string;
+  status: 'complete' | 'incomplete';
+  summary?: {
+    total_offices: number;
+    total_roles: number;
+    total_levels: number;
+    total_fte: number;
+    missing_data_count: number;
+  };
+  timestamp?: string;
+}
+
 interface ConfigContextType {
   // Configuration data from Excel/backend
   offices: OfficeConfig[];
@@ -21,6 +34,11 @@ interface ConfigContextType {
   leverOverrides: Record<string, any>;
   setLeverOverrides: (overrides: Record<string, any>) => void;
   updateLeverOverride: (officeName: string, roleName: string, levelName: string, key: string, value: any) => void;
+  
+  // Configuration status
+  configStatus: ConfigStatus | null;
+  setConfigStatus: (status: ConfigStatus | null) => void;
+  refreshConfigStatus: () => Promise<void>;
   
   // Loading states
   isLoading: boolean;
@@ -38,6 +56,7 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [offices, setOffices] = useState<OfficeConfig[]>([]);
   const [leverOverrides, setLeverOverrides] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [configStatus, setConfigStatus] = useState<ConfigStatus | null>(null);
 
   // Helper function to get specific office data
   const getOfficeData = (officeName: string): OfficeConfig | undefined => {
@@ -84,6 +103,45 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return leverOverrides;
   };
 
+  // Fetch configuration status from API
+  const refreshConfigStatus = async () => {
+    try {
+      const response = await fetch('/api/simulation/config/validation');
+      if (response.ok) {
+        const data = await response.json();
+        setConfigStatus({
+          checksum: data.checksum,
+          status: data.status,
+          summary: data.summary,
+          timestamp: data.timestamp
+        });
+      } else {
+        console.error('Failed to fetch config status:', response.statusText);
+        setConfigStatus(null);
+      }
+    } catch (error) {
+      console.error('Error fetching config status:', error);
+      setConfigStatus(null);
+    }
+  };
+
+  // Auto-refresh configuration status
+  useEffect(() => {
+    refreshConfigStatus();
+    // Refresh every 30 seconds
+    const interval = setInterval(refreshConfigStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Refresh config status when offices change
+  useEffect(() => {
+    if (offices.length > 0) {
+      console.log('[CONFIG] Office data loaded:', offices.length, 'offices');
+      // Refresh status after a short delay to let the backend process the changes
+      setTimeout(refreshConfigStatus, 1000);
+    }
+  }, [offices]);
+
   // Log state changes for debugging
   useEffect(() => {
     if (offices.length > 0) {
@@ -103,6 +161,9 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     leverOverrides,
     setLeverOverrides,
     updateLeverOverride,
+    configStatus,
+    setConfigStatus,
+    refreshConfigStatus,
     isLoading,
     setIsLoading,
     getOfficeData,

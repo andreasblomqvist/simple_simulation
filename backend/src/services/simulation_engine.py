@@ -1332,18 +1332,26 @@ class SimulationEngine:
         total_revenue = 0
         working_hours_per_month = 166.4  # Actual working hours per month (matches real data)
         
+        print(f"[REVENUE DEBUG] {office.name} - Month {current_month.value}")
+        
         # Only consultants generate revenue (billable to clients)
         if 'Consultant' in office.roles:
             consultant_roles = office.roles['Consultant']
             if isinstance(consultant_roles, dict):
-                for level in consultant_roles.values():
+                for level_name, level in consultant_roles.items():
                     hourly_rate = getattr(level, f'price_{current_month.value}')
                     utr = getattr(level, f'utr_{current_month.value}')
+                    fte_count = level.total
+                    
                     # Convert hourly rate to monthly revenue
                     monthly_revenue_per_person = hourly_rate * working_hours_per_month * utr
-                    total_revenue += level.total * monthly_revenue_per_person
+                    level_total_revenue = fte_count * monthly_revenue_per_person
+                    total_revenue += level_total_revenue
+                    
+                    if fte_count > 0:  # Only log if there are people
+                        print(f"[REVENUE DEBUG]   {level_name}: {fte_count} FTE × {hourly_rate:.2f} SEK/hr × {utr:.3f} UTR = {level_total_revenue:,.0f} SEK")
         
-        # Sales, Recruitment, and Operations are cost centers (no revenue)
+        print(f"[REVENUE DEBUG] Total office revenue: {total_revenue:,.0f} SEK")
         return total_revenue
 
     def calculate_costs(self, office: Office, current_month: Month) -> float:

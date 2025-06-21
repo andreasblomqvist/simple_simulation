@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag, Space, Tooltip, Divider, Checkbox } from 'antd';
 import { UploadOutlined, DownloadOutlined, SaveOutlined, ReloadOutlined, EditOutlined, CalendarOutlined } from '@ant-design/icons';
-import { useConfig } from '../components/ConfigContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -100,48 +99,83 @@ export default function Configuration() {
     return initialMonths;
   });
 
-  const fetchOffices = async () => {
-    setLoading(true);
-    try {
-      // First try to get data from simulation engine (which has imported changes)
-      let response = await fetch('/api/offices/');
-      let data = await response.json();
-      
-      // If simulation engine is empty, fall back to default config
-      if (!data || data.length === 0) {
-        console.log('[DEBUG] Simulation engine empty, using default config');
-        response = await fetch('/api/offices/config');
-        data = await response.json();
-      } else {
-        console.log('[DEBUG] Using simulation engine data');
-      }
-      
-      setOffices(data.map((office: any) => office.name));
-      if (data.length > 0) {
-        setSelectedOffice(data[0].name);
-      }
-      
-      // Convert to office data structure
-      const officeMap: any = {};
-      data.forEach((office: any) => {
-        officeMap[office.name] = office;
-      });
-      setOfficeData(officeMap);
-      setOriginalData(JSON.parse(JSON.stringify(officeMap)));
-      
-      // Update last refresh time
-      setLastRefreshTime(new Date());
-      
-    } catch (error) {
-      console.error('Failed to fetch offices:', error);
-      message.error('Failed to load office data');
-    }
-    setLoading(false);
+  // Transform office data structure for UI consumption
+  const transformOfficeDataForUI = (office: any) => {
+    return {
+      name: office.name,
+      total_fte: office.total_fte,
+      journey: office.journey,
+      roles: office.roles || {}
+    };
   };
 
+  const fetchOffices = useCallback(async () => {
+    setLoading(true);
+    try {
+      // ALWAYS use pure configuration data (engine should never modify config)
+      const response = await fetch('/api/offices/config');
+      const data = await response.json();
+      
+      console.log('[CONFIG] 🎛️  Using pure configuration service (engine never modifies config)');
+      
+      // Validate data structure
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Invalid office data structure received');
+      }
+      
+      // Extract office names
+      const officeNames = data.map((office: any) => office.name).sort();
+      setOffices(officeNames);
+      
+      // Set the selected office to the first one if none selected
+      if (!selectedOffice && officeNames.length > 0) {
+        setSelectedOffice(officeNames[0]);
+      }
+      
+      // Transform data for the selected office
+      if (selectedOffice && data.find((office: any) => office.name === selectedOffice)) {
+        const selectedOfficeData = data.find((office: any) => office.name === selectedOffice);
+        
+        const transformedData = transformOfficeDataForUI(selectedOfficeData);
+        
+        // Store as a dictionary keyed by office name
+        setOfficeData({
+          [selectedOffice]: transformedData
+        });
+        setOriginalData({
+          [selectedOffice]: JSON.parse(JSON.stringify(transformedData))
+        }); // Deep copy
+        
+        // Clear any draft changes since we're loading fresh data
+        setDraftChanges({});
+        setHasChanges(false);
+        
+        console.log(`[CONFIG] 📊 Loaded data for ${selectedOffice}: ${Object.keys(transformedData.roles || {}).length} roles`);
+        
+        // Update refresh timestamp
+        setLastRefreshTime(new Date());
+      }
+      
+    } catch (error) {
+      console.error('[CONFIG] ❌ Error fetching offices:', error);
+      message.error('Failed to load office data. Please check the server connection.');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedOffice]);
+
+  // Fetch offices on mount
   useEffect(() => {
     fetchOffices();
-  }, []);
+  }, [fetchOffices]);
+
+  // Re-fetch data when selectedOffice changes to load the selected office's data
+  useEffect(() => {
+    if (selectedOffice && offices.length > 0) {
+      console.log(`[CONFIG] 🔄 Office changed to: ${selectedOffice}, re-fetching data...`);
+      fetchOffices();
+    }
+  }, [selectedOffice, fetchOffices]);
 
   // Helper to get value from either draft changes or original data
   const getValue = (role: string, level: string | null, field: string, month: number) => {
@@ -207,38 +241,71 @@ export default function Configuration() {
     return draftChanges[draftPath] !== undefined;
   };
 
-  // Apply changes to office data
-  const handleApplyChanges = () => {
-    const updatedOfficeData = JSON.parse(JSON.stringify(officeData));
-    
-    Object.entries(draftChanges).forEach(([path, value]) => {
-      const pathParts = path.split('.');
-      const [office, role, ...rest] = pathParts;
+  // Apply changes to configuration service
+  const handleApplyChanges = async () => {
+    try {
+      setLoading(true);
       
-      if (rest.length === 1) {
-        // Operations: office.role.field
-        const field = rest[0];
-        if (!updatedOfficeData[office].roles[role]) {
-          updatedOfficeData[office].roles[role] = {};
-        }
-        updatedOfficeData[office].roles[role][field] = value;
-      } else {
-        // Has level: office.role.level.field
-        const [level, field] = rest;
-        if (!updatedOfficeData[office].roles[role]) {
-          updatedOfficeData[office].roles[role] = {};
-        }
-        if (!updatedOfficeData[office].roles[role][level]) {
-          updatedOfficeData[office].roles[role][level] = {};
-        }
-        updatedOfficeData[office].roles[role][level][field] = value;
+      const response = await fetch('/api/offices/config/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(draftChanges),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to apply configuration changes');
       }
-    });
+      
+      const result = await response.json();
+      
+      message.success(`✅ Changes applied successfully! Updated ${result.updated_count} configuration values.`);
+      console.log(`[CONFIG] 🎯 Applied ${result.updated_count} changes to configuration service`);
+      
+      // Clear draft changes and refresh data
+      setDraftChanges({});
+      await fetchOffices();
+      
+    } catch (error) {
+      console.error('[CONFIG] ❌ Error applying changes:', error);
+      message.error('Failed to apply configuration changes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setOfficeData(updatedOfficeData);
-    setDraftChanges({});
-    setHasChanges(false);
-    message.success('Changes applied successfully');
+  // Handle file upload to configuration service
+  const handleFileUpload = async (file: File) => {
+    try {
+      setLoading(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/offices/config/import', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to import configuration file');
+      }
+      
+      const result = await response.json();
+      
+      message.success(`✅ Import successful! Updated ${result.updated} configuration values from ${result.rows} rows.`);
+      console.log(`[CONFIG] 📁 Imported ${result.updated} changes from Excel file`);
+      
+      // Refresh data after import
+      await fetchOffices();
+      
+    } catch (error) {
+      console.error('[CONFIG] ❌ Error importing file:', error);
+      message.error('Failed to import configuration file');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Reset changes
@@ -396,11 +463,25 @@ export default function Configuration() {
 
   // Generate table data with grouped structure
   const getTableData = () => {
+    console.log('[CONFIG] 🔍 getTableData called:', {
+      selectedOffice,
+      hasOfficeData: !!officeData[selectedOffice],
+      officeDataKeys: Object.keys(officeData),
+      officeDataStructure: officeData[selectedOffice] ? Object.keys(officeData[selectedOffice]) : null
+    });
+    
     if (!selectedOffice || !officeData[selectedOffice]) {
+      console.log('[CONFIG] ⚠️ No data found, returning empty array');
       return [];
     }
 
     const office = officeData[selectedOffice];
+    console.log('[CONFIG] 📊 Processing office data:', {
+      officeName: office.name,
+      totalFTE: office.total_fte,
+      rolesAvailable: Object.keys(office.roles || {})
+    });
+    
     const rows: any[] = [];
 
     // Add roles with levels (Consultant, Sales, Recruitment)
@@ -535,7 +616,7 @@ export default function Configuration() {
                   value={month}
                   onChange={(value) => handleMonthChange(group.key, value)}
                   style={{ width: '60px' }}
-                  dropdownMatchSelectWidth={80}
+                  popupMatchSelectWidth={80}
                 >
                   {MONTHS.map(m => (
                     <Option key={m.value} value={m.value}>{m.short}</Option>
@@ -655,7 +736,7 @@ export default function Configuration() {
                   value={month}
                   onChange={(value) => handleMonthChange(group.key, value)}
                   style={{ width: '60px' }}
-                  dropdownMatchSelectWidth={80}
+                  popupMatchSelectWidth={80}
                 >
                   {MONTHS.map(m => (
                     <Option key={m.value} value={m.value}>{m.short}</Option>
@@ -673,63 +754,22 @@ export default function Configuration() {
     return columns;
   };
 
-  const uploadProps = {
-    name: 'file',
-    accept: '.xlsx,.xls,.csv,.json',
-    showUploadList: false,
-    customRequest: async (options: any) => {
-      setImporting(true);
-      const formData = new FormData();
-      formData.append('file', options.file);
-      try {
-        const res = await fetch('/api/import-office-levers', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Upload failed');
-        
-        // Show success message with file info
-        const fileName = options.file.name;
-        message.success({
-          content: `✅ Configuration imported successfully! File: ${fileName}`,
-          duration: 4
-        });
-        
-        // Clear any draft changes since we're importing new data
-        setDraftChanges({});
-        setHasChanges(false);
-        
-        // Refresh data with visual feedback
-        await fetchOffices();
-        
-        // Show refresh completion message
-        message.success({
-          content: `🔄 Configuration matrix refreshed at ${new Date().toLocaleTimeString()}`,
-          duration: 3
-        });
-        
-      } catch (err: any) {
-        message.error('Import failed: ' + err.message);
-      } finally {
-        setImporting(false);
-        options.onSuccess();
-      }
-    },
-  };
-
   return (
     <div>
       <Card title={<Title level={4} style={{ margin: 0 }}>🔧 Lever Configuration Matrix</Title>}>
         {/* Header Controls */}
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col>
-            <Upload {...uploadProps}>
-              <Button 
-                icon={<UploadOutlined />} 
-                loading={importing}
-                disabled={importing}
-              >
-                {importing ? '📤 Importing...' : '📤 Import Config'}
+            <Upload
+              beforeUpload={(file) => {
+                handleFileUpload(file);
+                return false; // Prevent default upload
+              }}
+              accept=".xlsx,.xls"
+              showUploadList={false}
+            >
+              <Button icon={<UploadOutlined />} loading={loading}>
+                Import Excel Configuration
               </Button>
             </Upload>
           </Col>

@@ -89,7 +89,7 @@ async def run_simulation(params):
             "salary_increase": params.get("salary_increase", 0.03),
             "unplanned_absence": params.get("unplanned_absence", 0.05),
             "hy_working_hours": params.get("hy_working_hours", 166.4),
-            "other_expense": params.get("other_expense", 100000.0)
+            "other_expense": params.get("other_expense", 19000000.0)
         }
         
         # Add office overrides if provided

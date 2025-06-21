@@ -240,7 +240,7 @@ export const EconomicParametersPanel: React.FC<EconomicParametersProps> = ({
                   ]}
                 >
                   <InputNumber 
-                    placeholder="100000"
+                    placeholder="19000000"
                     style={{ width: '100%' }}
                     min={0}
                     step={1000}
