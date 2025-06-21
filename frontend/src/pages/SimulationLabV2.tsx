@@ -190,6 +190,82 @@ const SimulationLabV2: React.FC = () => {
     }
   }, [appliedLevers]);
 
+  const handleClearAllLevers = () => {
+    setAppliedLevers([]);
+    console.log('[SIMULATION] 🗑️ All applied levers have been cleared.');
+  };
+
+  const handleRunSimulation = async (isRetry?: boolean | React.MouseEvent<HTMLElement>) => {
+    // Check if the call is a retry, not just a mouse event
+    const isRetryRun = typeof isRetry === 'boolean' && isRetry;
+
+    try {
+      setSimulationRunning(true);
+      setError(null);
+  
+      // --- Build the correct simulation request payload ---
+      const current_date = new Date();
+      const start_year = current_date.getFullYear();
+      const start_month = current_date.getMonth() + 1;
+
+      let end_year = start_year;
+      let end_month = start_month;
+
+      if (selectedDurationUnit === 'years') {
+        end_year += simulationDuration;
+      } else { // months
+        end_month += simulationDuration;
+        end_year += Math.floor((end_month - 1) / 12);
+        end_month = ((end_month - 1) % 12) + 1;
+      }
+
+      const simulationConfig = {
+        start_year,
+        start_month,
+        end_year,
+        end_month,
+        price_increase: priceIncrease / 100, // Convert percentage to float
+        salary_increase: salaryIncrease / 100, // Convert percentage to float
+        hy_working_hours: workingHours,
+        unplanned_absence: unplannedAbsence / 100, // Convert percentage to float
+        other_expense: otherExpense,
+        office_overrides: appliedLevers.reduce((acc, lever) => {
+          if (!acc[lever.office]) {
+            acc[lever.office] = {};
+          }
+          const key = `${lever.lever}_${lever.level}`;
+          acc[lever.office][key] = Number(lever.value) / 100; // Convert percentage to float
+          return acc;
+        }, {})
+      };
+  
+      console.log('[SIMULATION] 🚀 Running simulation with config:', simulationConfig);
+      
+      // Save the configuration for potential retries
+      setLastSimulationConfig(simulationConfig);
+  
+      const results = await simulationApi.runSimulation(simulationConfig);
+      
+      // --- RAW RESULTS DEBUG ---
+      console.log('%c[DEBUG] Raw Simulation Results from Backend:', 'color: #FF6347; font-weight: bold;', results);
+      // --- END RAW RESULTS DEBUG ---
+
+      setSimulationResults(results);
+      console.log('[SIMULATION] ✅ Simulation run successful.');
+  
+    } catch (err) {
+      console.error('[SIMULATION] ❌ Simulation run failed:', err);
+      setError('Simulation run failed. Check console for details.');
+    } finally {
+      setSimulationRunning(false);
+    }
+  };
+
+  const handleApplyLevers = async () => {
+    // Re-use the main simulation running logic
+    await handleRunSimulation();
+  };
+
   // Load available years when simulation results exist
   useEffect(() => {
     if (simulationResults && simulationResults.years) {
@@ -212,14 +288,108 @@ const SimulationLabV2: React.FC = () => {
     : [];
   const officeOptions = officeConfig.length > 0 ? simulationApi.extractOfficeOptions(officeConfig) : [];
   
-  const kpiData = simulationResults && activeYear 
-    ? simulationApi.extractKPIData(simulationResults, activeYear)
-    : [];
+  // Enhanced kpiData that includes both financial and growth KPIs
+  const enhancedKpiData = (() => {
+    if (!simulationResults || !activeYear) return { kpis: [], seniorityKPIs: null };
+    
+    // Get base financial KPIs
+    const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear);
+    
+    // Get seniority KPIs to extract growth data
+    // Use the first available year as baseline for proper comparison
+    const baselineYear = availableYears.length > 0 ? availableYears[0] : activeYear;
+    const seniorityKPIs = simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, baselineYear);
+    
+    // Add growth KPIs from seniorityKPIs
+    const growthKPIs = [];
+    if (seniorityKPIs) {
+      // Total Growth Rate KPI
+      if (seniorityKPIs.totalGrowthDetails) {
+        growthKPIs.push({
+          title: 'Total Growth',
+          currentValue: seniorityKPIs.totalGrowthDetails.percentage,
+          previousValue: '0.0%', // Baseline is always 0% growth
+          unit: '',
+          description: 'Total workforce growth compared to baseline',
+          change: seniorityKPIs.totalGrowthDetails.absolute,
+          changePercent: parseFloat(seniorityKPIs.totalGrowthDetails.percentage.replace(/[+%]/g, '')),
+          rawValue: seniorityKPIs.totalGrowthDetails.current
+        });
+      }
+      
+      // Non-Debit Ratio KPI
+      if (seniorityKPIs.nonDebitDetails) {
+        growthKPIs.push({
+          title: 'Non-Debit Ratio',
+          currentValue: seniorityKPIs.nonDebitDetails.percentage,
+          previousValue: `${seniorityKPIs.nonDebitDetails.baseline}%`,
+          unit: '',
+          description: 'Percentage of non-consultant roles (Sales, Recruitment, Operations)',
+          change: seniorityKPIs.nonDebitDetails.absolute,
+          changePercent: seniorityKPIs.nonDebitDetails.absolute,
+          rawValue: seniorityKPIs.nonDebitDetails.current
+        });
+      }
+      
+      // Journey Distribution KPIs
+      ['journey1', 'journey2', 'journey3', 'journey4'].forEach((journey, index) => {
+        const journeyDetails = seniorityKPIs[`${journey}Details`];
+        if (journeyDetails) {
+          const journeyDefinitions = ['A, AC, C', 'SrC, AM', 'M, SrM', 'PiP'];
+          growthKPIs.push({
+            title: `Journey ${index + 1} (${journeyDefinitions[index]})`,
+            currentValue: journeyDetails.percentage,
+            previousValue: `${journeyDetails.baseline} FTE`,
+            unit: '',
+            description: `Workforce distribution in Journey ${index + 1}: ${journeyDefinitions[index]}`,
+            change: journeyDetails.absolute,
+            changePercent: journeyDetails.baseline > 0 ? (journeyDetails.absolute / journeyDetails.baseline) * 100 : 0,
+            rawValue: journeyDetails.current
+          });
+        }
+      });
+    }
+    
+    // Store seniorityKPIs for use in other parts of the component
+    return {
+      kpis: [...financialKPIs, ...growthKPIs],
+      seniorityKPIs
+    };
+  })();
+
+  // --- START ENHANCED DEBUG LOGGING ---
+  useEffect(() => {
+    if (simulationResults && activeYear) {
+      console.log(`%c[DEBUG] Year Changed: ${activeYear}`, 'color: #7B68EE; font-weight: bold;');
+      
+      const yearData = simulationResults.years?.[activeYear];
+      console.log('[DEBUG] Data for active year:', yearData);
+      
+      const extractedKPIs = enhancedKpiData.seniorityKPIs;
+      console.log('[DEBUG] Extracted Seniority KPIs for the year:', extractedKPIs);
+
+      if (extractedKPIs) {
+        console.log('[DEBUG] Baseline year used for comparison:', extractedKPIs.baselineYear);
+        console.log({
+          journey1: extractedKPIs.journey1Details,
+          journey2: extractedKPIs.journey2Details,
+          journey3: extractedKPIs.journey3Details,
+          journey4: extractedKPIs.journey4Details,
+        });
+      }
+    }
+  }, [activeYear, simulationResults, enhancedKpiData]);
+  // --- END ENHANCED DEBUG LOGGING ---
+
+  // Extract kpiData and seniorityKPIs from the enhanced calculation
+  const kpiData = enhancedKpiData.kpis;
+  const seniorityKPIs = enhancedKpiData.seniorityKPIs;
   
   // Debug log for year switching
   console.log('[YEAR DEBUG] Current activeYear:', activeYear);
   console.log('[YEAR DEBUG] Available years:', availableYears);
   console.log('[YEAR DEBUG] Simulation results years:', simulationResults ? Object.keys(simulationResults.years || {}) : 'No results');
+  console.log('[KPI DEBUG] Enhanced kpiData length:', kpiData.length);
   
   const tableData = simulationResults && activeYear
     ? simulationApi.extractTableData(simulationResults, activeYear, officeConfig)
@@ -243,199 +413,6 @@ const SimulationLabV2: React.FC = () => {
   const seniorityData = simulationResults && activeYear
     ? simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig)
     : [];
-  
-  const seniorityKPIs = simulationResults && activeYear
-    ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, '2025')
-    : null;
-
-  // Seniority data updates when year changes
-
-  const handleLeverChange = (value: string) => {
-    setSelectedLever(value);
-    setSelectedLevel(undefined);
-    setLeverValue(null);
-  };
-
-  const handleApplyLevers = async () => {
-    try {
-      setLeverApplying(true);
-      
-      // Validate inputs
-      if (!selectedLevers.length || !selectedLevels.length || leverValue === null) {
-        message.error('Please select lever type, levels, and enter a value');
-        return;
-      }
-      
-      // Determine target offices
-      let targetOffices: string[] = [];
-      if (applyToAllOffices) {
-        targetOffices = officeOptions.map(office => office.value);
-      } else if (selectedOfficeJourney) {
-        // Filter offices by journey type using the office configuration
-        targetOffices = officeConfig
-          .filter(office => office.journey === selectedOfficeJourney)
-          .map(office => office.name.toLowerCase().replace(' ', '_'));
-      } else {
-        targetOffices = selectedOffices;
-      }
-      
-      if (targetOffices.length === 0) {
-        message.error('Please select at least one office or office journey');
-        return;
-      }
-      
-      // Create lever configuration
-      const leverConfig = {
-        id: Date.now(), // Simple ID for tracking
-        leverType: selectedLevers[0],
-        levels: selectedLevels,
-        value: leverValue,
-        timePeriod: selectedTimePeriod,
-        targetOffices: targetOffices,
-        officeJourney: selectedOfficeJourney,
-        appliedAt: new Date().toISOString()
-      };
-      
-      // Add to applied levers
-      setAppliedLevers(prev => [...prev, leverConfig]);
-      
-      // Only reset the value to allow quick application of similar levers
-      setLeverValue(null);
-      // Keep lever type and levels for easy reuse
-      // setSelectedLevels(['AM']); // Don't reset levels
-      // setSelectedOffices([]); // Don't reset office selection
-      // setSelectedOfficeJourney(''); // Don't reset office journey
-      
-      message.success(`Lever applied successfully! (${leverConfig.leverType} for ${leverConfig.levels.join(', ')} levels)`);
-      
-    } catch (err) {
-      message.error('Failed to apply lever');
-      console.error('Lever application error:', err);
-    } finally {
-      setLeverApplying(false);
-    }
-  };
-
-  const handleClearAllLevers = () => {
-    setAppliedLevers([]);
-    sessionStorage.removeItem('simulation-applied-levers');
-    message.info('All applied levers cleared');
-    console.log('[SIMULATION] 🗑️  Cleared all applied levers');
-  };
-
-  const buildOfficeOverrides = (levers: any[]) => {
-    const overrides: Record<string, any> = {};
-    
-    levers.forEach(lever => {
-      lever.targetOffices.forEach((office: string) => {
-        if (!overrides[office]) {
-          overrides[office] = {};
-        }
-        
-        // Add lever configuration to office overrides
-        lever.levels.forEach((level: string) => {
-          const leverKey = `${lever.leverType}_${level}`;
-          overrides[office][leverKey] = lever.value / 100; // Convert percentage to decimal
-        });
-      });
-    });
-    
-    return overrides;
-  };
-
-  const handleRunSimulation = async () => {
-    try {
-      setSimulationRunning(true);
-      setError(null);
-      
-      // Prepare simulation parameters
-      const startYear = 2025;
-      const totalMonths = selectedDurationUnit === 'years' ? simulationDuration * 12 : 
-                          selectedDurationUnit === 'half-years' ? simulationDuration * 6 : 
-                          simulationDuration;
-      const endYear = startYear + Math.ceil(totalMonths / 12) - 1;
-      
-      const params = {
-        start_year: startYear,
-        start_month: 1,
-        end_year: endYear,
-        end_month: 12,
-        price_increase: priceIncrease / 100,
-        salary_increase: salaryIncrease / 100,
-        hy_working_hours: workingHours,
-        unplanned_absence: unplannedAbsence / workingHours, // Convert absence hours to decimal percentage
-        other_expense: otherExpense,
-        office_overrides: buildOfficeOverrides(appliedLevers) // Include applied levers
-      };
-
-      // DEBUG: Show exact values being sent
-      console.log('🔍 [FRONTEND DEBUG] RAW STATE VALUES:');
-      console.log('[FRONTEND DEBUG] Raw priceIncrease state:', priceIncrease, '(type:', typeof priceIncrease, ')');
-      console.log('[FRONTEND DEBUG] Raw salaryIncrease state:', salaryIncrease, '(type:', typeof salaryIncrease, ')');
-      console.log('[FRONTEND DEBUG] CONVERTED PARAMETER VALUES:');
-      console.log('[FRONTEND DEBUG] Converted price_increase:', params.price_increase, '(type:', typeof params.price_increase, ')');
-      console.log('[FRONTEND DEBUG] Converted salary_increase:', params.salary_increase, '(type:', typeof params.salary_increase, ')');
-      console.log('[FRONTEND DEBUG] Expected for 2%: 0.02');
-
-      // Log detailed parameters for debugging
-      console.log('🚀 [FRONTEND] =================== SIMULATION PARAMETERS ===================');
-      console.log('[FRONTEND] 📅 Duration:', `${simulationDuration} ${selectedDurationUnit} (${totalMonths} months)`);
-      console.log('[FRONTEND] 📊 Economic Parameters:');
-      console.log('[FRONTEND]   💰 Price Increase:', `${priceIncrease}% (${params.price_increase})`);
-      console.log('[FRONTEND]   💵 Salary Increase:', `${salaryIncrease}% (${params.salary_increase})`);
-      console.log('[FRONTEND]   🕒 Working Hours:', `${workingHours} hours/month`);
-      console.log('[FRONTEND]   😴 Unplanned Absence:', `${unplannedAbsence} hours/month (${(params.unplanned_absence * 100).toFixed(1)}%)`);
-      console.log('[FRONTEND]   📋 Other Expense:', `${otherExpense.toLocaleString()} SEK/month`);
-      console.log('[FRONTEND] 🎛️  Applied Levers:', appliedLevers.length);
-      appliedLevers.forEach((lever, idx) => {
-        console.log(`[FRONTEND]   ${idx + 1}. ${lever.leverType.toUpperCase()} ${lever.levels.join(',')} → ${lever.value}% (${lever.officeJourney || `${lever.targetOffices.length} offices`})`);
-      });
-      console.log('[FRONTEND] ================================================================');
-
-      // Save simulation configuration for reference
-      const simulationConfig = {
-        timestamp: new Date().toISOString(),
-        duration: `${simulationDuration} ${selectedDurationUnit}`,
-        yearRange: totalMonths <= 12 ? '2025' : `2025-${endYear}`,
-        parameters: {
-          priceIncrease: `${priceIncrease}%`,
-          salaryIncrease: `${salaryIncrease}%`,
-          workingHours: workingHours,
-          unplannedAbsence: `${unplannedAbsence} hours/month`,
-          otherExpense: `${otherExpense.toLocaleString()} SEK`
-        },
-        appliedLevers: appliedLevers.map(lever => ({
-          type: lever.leverType.toUpperCase(),
-          levels: lever.levels.join(', '),
-          value: `${lever.value}%`,
-          scope: lever.officeJourney || `${lever.targetOffices.length} office(s)`,
-          timePeriod: lever.timePeriod
-        }))
-      };
-
-      const results = await simulationApi.runSimulation(params);
-      setSimulationResults(results);
-      setLastSimulationConfig(simulationConfig); // Save the configuration
-      
-      message.success('Simulation completed successfully!');
-      console.log('✅ [FRONTEND] Simulation completed successfully');
-      
-      // Set active year to first year if not set
-      if (!activeYear && results.years) {
-        const firstYear = Object.keys(results.years)[0];
-        if (firstYear) {
-          setActiveYear(firstYear);
-        }
-      }
-      
-    } catch (err) {
-      setError('Simulation failed');
-      message.error('Failed to run simulation');
-      console.error('❌ [FRONTEND] Simulation error:', err);
-    } finally {
-      setSimulationRunning(false);
-    }
-  };
 
   const tableColumns = [
     {
