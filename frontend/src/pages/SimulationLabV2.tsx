@@ -1645,12 +1645,14 @@ const SimulationLabV2: React.FC = () => {
               const processLogsData = () => {
                 const logs: any[] = [];
                 const offices = Object.keys(yearData.offices);
-                const roles = ['Consultant', 'Sales', 'Recruitment'];
                 const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
 
                 offices.forEach(officeName => {
                   const officeData = yearData.offices[officeName];
                   if (!officeData.levels) return;
+
+                  // Dynamically get roles from the data instead of hardcoding
+                  const roles = Object.keys(officeData.levels);
 
                   roles.forEach(role => {
                     const roleData = officeData.levels[role];
