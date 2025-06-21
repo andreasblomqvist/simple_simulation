@@ -1,246 +1,331 @@
 """
-Configuration Service - Manages configuration data separately from simulation engine
+Configuration Service - Manages configuration data from Excel imports only
 """
-import copy
 import pandas as pd
-from typing import Dict, Any
-from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES, OFFICE_HEADCOUNT
+import json
+import os
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
 
-class ConfigurationService:
-    """Service to manage configuration data independently of simulation engine"""
+@dataclass
+class OfficeConfig:
+    name: str
+    total_fte: float
+    journey: str
+    roles: Dict[str, Any]
+
+class ConfigService:
+    def __init__(self, config_file_path: str = "config/office_configuration.json"):
+        self.config_file_path = config_file_path
+        self.ensure_config_directory()
+        self._cached_config: Optional[Dict[str, Any]] = None
+        self._file_mtime: Optional[float] = None
     
-    def __init__(self):
-        # Store the current configuration (starts with defaults, can be modified)
-        self._config_data = None
-        self._initialize_config()
+    def ensure_config_directory(self):
+        """Ensure the config directory exists"""
+        config_dir = os.path.dirname(self.config_file_path)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir)
     
-    def _initialize_config(self):
-        """Initialize configuration from default config files"""
-        self._config_data = {}
+    def _is_cache_valid(self) -> bool:
+        """Check if the cached config is still valid"""
+        if self._cached_config is None:
+            return False
         
-        for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
-            total_fte = OFFICE_HEADCOUNT.get(office_name, 0)
-            
-            # Determine office journey based on total FTE
-            if total_fte >= 500:
-                journey = "Mature Office"
-            elif total_fte >= 200:
-                journey = "Established Office"
-            elif total_fte >= 25:
-                journey = "Emerging Office"
-            else:
-                journey = "New Office"
-            
-            roles_data = {}
-            
-            # Process roles with levels (Consultant, Sales, Recruitment)
-            for role_name in ["Consultant", "Sales", "Recruitment"]:
-                if role_name in office_data:
-                    role_levels = office_data[role_name]
-                    roles_data[role_name] = {}
-                    
-                    for level_name, fte in role_levels.items():
-                        if fte > 0:  # Only include levels with actual FTE
-                            # Get pricing and salary
-                            base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-                            base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-                            price = base_prices.get(level_name, 0.0)
-                            salary = base_salaries.get(level_name, 0.0)
-                            
-                            # Get rates
-                            if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                                recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
-                            else:
-                                recruitment_rate = 0.01
-                            
-                            if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                                churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                            elif role_name in DEFAULT_RATES['churn']:
-                                churn_rate = DEFAULT_RATES['churn'][role_name]
-                            else:
-                                churn_rate = 0.014
-                            
-                            # Set progression rate based on level
-                            progression_map = {
-                                'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
-                                'A': 0.15, 'AC': 0.12, 'PiP': 0.0
-                            }
-                            progression_rate = progression_map.get(level_name, 0.10)
-                            
-                            roles_data[role_name][level_name] = {
-                                "total": fte,
-                                **{f"price_{i}": price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                                **{f"salary_{i}": salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                                **{f"recruitment_{i}": recruitment_rate for i in range(1, 13)},
-                                **{f"churn_{i}": churn_rate for i in range(1, 13)},
-                                **{f"progression_{i}": progression_rate if i in [1, 6] else 0.0 for i in range(1, 13)},
-                                **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
-                            }
-            
-            # Process Operations (flat role)
-            if "Operations" in office_data and office_data["Operations"] > 0:
-                operations_fte = office_data["Operations"]
-                base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-                base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-                op_price = base_prices.get('Operations', 80.0)
-                op_salary = base_salaries.get('Operations', 40000.0)
-                
-                operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.021)
-                operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.0149)
-                
-                roles_data["Operations"] = {
-                    "total": operations_fte,
-                    **{f"price_{i}": op_price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                    **{f"salary_{i}": op_salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                    **{f"recruitment_{i}": operations_recruitment for i in range(1, 13)},
-                    **{f"churn_{i}": operations_churn for i in range(1, 13)},
-                    **{f"progression_{i}": 0.0 for i in range(1, 13)},  # Operations has no progression
-                    **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
-                }
-            
-            self._config_data[office_name] = {
-                "name": office_name,
-                "total_fte": total_fte,
-                "journey": journey,
-                "roles": roles_data
-            }
+        if not os.path.exists(self.config_file_path):
+            return False
+        
+        current_mtime = os.path.getmtime(self.config_file_path)
+        return self._file_mtime == current_mtime
     
-    def get_configuration(self) -> list:
-        """Get current configuration as list of offices"""
-        return list(self._config_data.values())
+    def _load_from_file(self) -> Dict[str, Any]:
+        """Load configuration from JSON file and cache it"""
+        if self._is_cache_valid():
+            print(f"✅ [CONFIG] Using cached configuration ({len(self._cached_config)} offices)")
+            return self._cached_config
+        
+        if not os.path.exists(self.config_file_path):
+            print(f"⚠️ [CONFIG] Configuration file not found: {self.config_file_path}")
+            self._cached_config = {}
+            self._file_mtime = None
+            return {}
+        
+        try:
+            print(f"📖 [CONFIG] Loading configuration from {self.config_file_path}")
+            with open(self.config_file_path, 'r') as f:
+                self._cached_config = json.load(f)
+            
+            self._file_mtime = os.path.getmtime(self.config_file_path)
+            print(f"✅ [CONFIG] Loaded {len(self._cached_config)} offices from file")
+            return self._cached_config
+            
+        except Exception as e:
+            print(f"❌ [CONFIG] Error loading configuration: {e}")
+            self._cached_config = {}
+            self._file_mtime = None
+            return {}
     
-    def update_configuration(self, changes: Dict[str, Any]) -> int:
-        """Update configuration with changes. Returns number of updates applied."""
+    def _save_to_file(self, config: Dict[str, Any]):
+        """Save configuration to JSON file and update cache"""
+        try:
+            print(f"💾 [CONFIG] Saving configuration to {self.config_file_path}")
+            with open(self.config_file_path, 'w') as f:
+                json.dump(config, f, indent=2, default=str)
+            
+            self._cached_config = config
+            self._file_mtime = os.path.getmtime(self.config_file_path)
+            print(f"✅ [CONFIG] Saved {len(config)} offices to file")
+            
+        except Exception as e:
+            print(f"❌ [CONFIG] Error saving configuration: {e}")
+    
+    def get_configuration(self) -> Dict[str, Any]:
+        """Get the current configuration (from cache if valid, otherwise from file)"""
+        return self._load_from_file()
+    
+    def update_configuration(self, updates: Dict[str, Any]) -> int:
+        """Update the configuration with provided changes and save to file
+        
+        Handles both nested format and flat dot-notation format from frontend:
+        Nested: {"Stockholm": {"roles": {"Consultant": {"A": {"progression_1": 0.225}}}}}
+        Flat: {"Stockholm.Consultant.A.progression_1": 0.225}
+        """
+        # Load current configuration
+        current_config = self._load_from_file()
         updated_count = 0
         
-        print(f"[CONFIG_SERVICE] Applying {len(changes)} configuration changes...")
+        # Check if this is flat format (dot-notation keys)
+        is_flat_format = any('.' in key for key in updates.keys())
         
-        for path, value in changes.items():
+        if is_flat_format:
+            # Handle flat format from frontend
+            print(f"[CONFIG_SERVICE] Processing {len(updates)} flat format updates")
+            
+            for flat_key, value in updates.items():
+                parts = flat_key.split('.')
+                if len(parts) < 4:
+                    print(f"[CONFIG_SERVICE] Skipping invalid key format: {flat_key}")
+                    continue
+                
+                office_name, role_name, level_name, field_name = parts[0], parts[1], parts[2], parts[3]
+                
+                # Initialize nested structure if needed
+                if office_name not in current_config:
+                    current_config[office_name] = {
+                        "name": office_name,
+                        "total_fte": 0,
+                        "journey": "New Office",
+                        "roles": {}
+                    }
+                
+                if "roles" not in current_config[office_name]:
+                    current_config[office_name]["roles"] = {}
+                
+                if role_name not in current_config[office_name]["roles"]:
+                    current_config[office_name]["roles"][role_name] = {}
+                
+                if level_name not in current_config[office_name]["roles"][role_name]:
+                    current_config[office_name]["roles"][role_name][level_name] = {}
+                
+                # Update the field
+                current_value = current_config[office_name]["roles"][role_name][level_name].get(field_name)
+                if current_value != value:
+                    current_config[office_name]["roles"][role_name][level_name][field_name] = value
+                    updated_count += 1
+                    print(f"[CONFIG_SERVICE] Updated {flat_key} = {value}")
+        else:
+            # Handle nested format (original logic)
+            print(f"[CONFIG_SERVICE] Processing {len(updates)} nested format updates")
+            
+            for office_name, office_updates in updates.items():
+                if office_name not in current_config:
+                    current_config[office_name] = {
+                        "name": office_name,
+                        "total_fte": 0,
+                        "journey": "New Office",
+                        "roles": {}
+                    }
+                
+                # Update office-level fields
+                for key, value in office_updates.items():
+                    if key != "roles":  # Handle roles separately
+                        if current_config[office_name].get(key) != value:
+                            current_config[office_name][key] = value
+                            updated_count += 1
+                            print(f"[CONFIG_SERVICE] Updated {office_name}.{key} = {value}")
+                    
+                    # Handle roles updates if provided
+                    elif key == "roles" and isinstance(value, dict):
+                        if "roles" not in current_config[office_name]:
+                            current_config[office_name]["roles"] = {}
+                        
+                        for role_name, role_updates in value.items():
+                            if role_name not in current_config[office_name]["roles"]:
+                                current_config[office_name]["roles"][role_name] = {}
+                            
+                            # Handle role-level updates
+                            if isinstance(role_updates, dict):
+                                for level_name, level_updates in role_updates.items():
+                                    if level_name not in current_config[office_name]["roles"][role_name]:
+                                        current_config[office_name]["roles"][role_name][level_name] = {}
+                                    
+                                    # Update level fields
+                                    if isinstance(level_updates, dict):
+                                        for field, field_value in level_updates.items():
+                                            if current_config[office_name]["roles"][role_name][level_name].get(field) != field_value:
+                                                current_config[office_name]["roles"][role_name][level_name][field] = field_value
+                                                updated_count += 1
+                                                print(f"[CONFIG_SERVICE] Updated {office_name}.{role_name}.{level_name}.{field} = {field_value}")
+        
+        # Save updated configuration
+        self._save_to_file(current_config)
+        
+        return updated_count
+    
+    def set_value(self, office: str, role: str, level: str, attribute: str, value: Any):
+        """Set a specific configuration value and save to file"""
+        config = self._load_from_file()
+        
+        # Initialize nested structure if needed
+        if office not in config:
+            config[office] = {"name": office, "total_fte": 0, "journey": "New Office", "roles": {}}
+        if role not in config[office]["roles"]:
+            config[office]["roles"][role] = {}
+        if level not in config[office]["roles"][role]:
+            config[office]["roles"][role][level] = {}
+        
+        # Set the value
+        config[office]["roles"][role][level][attribute] = value
+        
+        # Save to file
+        self._save_to_file(config)
+        
+        print(f"[CONFIG_SERVICE] Set {office}.{role}.{level}.{attribute} = {value}")
+    
+    def import_from_excel(self, df: pd.DataFrame) -> int:
+        """Import configuration from Excel DataFrame and merge with existing configuration"""
+        print(f"[CONFIG_SERVICE] Starting Excel import with {len(df)} rows...")
+        
+        # Load existing configuration instead of starting with empty dict
+        config = self._load_from_file()
+        updated_count = 0
+        
+        # Track which offices are being updated from Excel
+        updated_offices = set()
+        
+        for index, row in df.iterrows():
             try:
-                # Parse the path: office.role.level.field or office.role.field
-                path_parts = path.split('.')
-                if len(path_parts) < 3:
-                    print(f"[CONFIG_SERVICE] ⚠️ Skipping invalid path: {path}")
-                    continue
-                    
-                office_name = path_parts[0]
-                role_type = path_parts[1]
+                office = str(row['Office'])
+                role = str(row['Role'])
+                level = str(row['Level'])
                 
-                # Find the office
-                if office_name not in self._config_data:
-                    print(f"[CONFIG_SERVICE] ⚠️ Office not found: {office_name}")
-                    continue
+                # Initialize nested structure if office doesn't exist
+                if office not in config:
+                    config[office] = {
+                        "name": office,
+                        "total_fte": 0,
+                        "journey": "New Office",
+                        "roles": {}
+                    }
+                    print(f"[CONFIG_SERVICE] Created new office: {office}")
                 
-                office_config = self._config_data[office_name]
+                if role not in config[office]["roles"]:
+                    config[office]["roles"][role] = {}
                 
-                # Handle Operations (flat structure) vs other roles (level-based)
-                if role_type == "Operations":
-                    # Operations: office.role.field
-                    if len(path_parts) != 3:
-                        print(f"[CONFIG_SERVICE] ⚠️ Invalid Operations path: {path}")
+                if level not in config[office]["roles"][role]:
+                    config[office]["roles"][role][level] = {}
+                
+                # Import all attributes from the row
+                level_config = config[office]["roles"][role][level]
+                
+                for col in df.columns:
+                    if col in ['Office', 'Role', 'Level']:
                         continue
-                        
-                    field = path_parts[2]
-                    if role_type in office_config["roles"] and field in office_config["roles"][role_type]:
-                        office_config["roles"][role_type][field] = value
-                        print(f"[CONFIG_SERVICE] ✓ Updated {path} = {value}")
-                        updated_count += 1
-                    else:
-                        print(f"[CONFIG_SERVICE] ⚠️ Field not found: {field} in {role_type}")
-                        
-                else:
-                    # Other roles: office.role.level.field
-                    if len(path_parts) != 4:
-                        print(f"[CONFIG_SERVICE] ⚠️ Invalid role path: {path}")
-                        continue
-                        
-                    level = path_parts[2]
-                    field = path_parts[3]
                     
-                    # Check if role and level exist
-                    if (role_type in office_config["roles"] and 
-                        level in office_config["roles"][role_type] and
-                        field in office_config["roles"][role_type][level]):
-                        
-                        office_config["roles"][role_type][level][field] = value
-                        print(f"[CONFIG_SERVICE] ✓ Updated {path} = {value}")
+                    value = row[col]
+                    if pd.isna(value):
+                        continue
+                    
+                    # Convert string numbers with commas to float
+                    if isinstance(value, str):
+                        if ',' in value:
+                            try:
+                                value = float(value.replace(',', '.'))
+                            except ValueError:
+                                pass
+                        elif value.replace('.', '').replace('-', '').isdigit():
+                            try:
+                                value = float(value)
+                            except ValueError:
+                                pass
+                    
+                    # Only update if value is different
+                    current_value = level_config.get(col.lower())
+                    if current_value != value:
+                        level_config[col.lower()] = value
                         updated_count += 1
-                    else:
-                        print(f"[CONFIG_SERVICE] ⚠️ Path not found: {path}")
-                        
+                        print(f"[CONFIG_SERVICE] Updated {office}.{role}.{level}.{col.lower()} = {value}")
+                
+                updated_offices.add(office)
+                
             except Exception as e:
-                print(f"[CONFIG_SERVICE] ❌ Error updating {path}: {str(e)}")
+                print(f"[CONFIG_SERVICE] Error processing row {index}: {e}")
+                continue
         
-        print(f"[CONFIG_SERVICE] ✅ Applied {updated_count} configuration changes")
-        return updated_count
-    
-    def import_from_excel(self, df) -> int:
-        """Import configuration changes from Excel DataFrame"""
-        updated_count = 0
-        
-        print(f"[CONFIG_SERVICE] Processing {len(df)} rows from Excel file...")
-        
-        for _, row in df.iterrows():
-            office_name = row.get("Office")
-            role_type = row.get("Role")
-            role_level = row.get("Level")
-            
-            if office_name and role_type and office_name in self._config_data:
-                office_config = self._config_data[office_name]
+        # Recalculate total FTE only for offices that were updated
+        for office_name in updated_offices:
+            if office_name in config:
+                total_fte = 0
+                for role_name, role_data in config[office_name]["roles"].items():
+                    for level_name, level_data in role_data.items():
+                        fte = level_data.get("fte", 0)
+                        if isinstance(fte, (int, float)):
+                            total_fte += fte
                 
-                # Check if role exists
-                if role_type in office_config["roles"]:
-                    
-                    # Handle Operations (flat) vs other roles (level-based)
-                    if role_type == "Operations":
-                        target_config = office_config["roles"][role_type]
-                    else:
-                        # Role with levels
-                        if role_level in office_config["roles"][role_type]:
-                            target_config = office_config["roles"][role_type][role_level]
-                        else:
-                            continue
-                    
-                    # Update monthly attributes
-                    for i in range(1, 13):
-                        for attr in ["Price", "Salary", "Recruitment", "Churn", "Progression", "UTR"]:
-                            col_name = f"{attr}_{i}"
-                            if col_name in row and not pd.isna(row[col_name]):
-                                field_name = col_name.lower()
-                                
-                                try:
-                                    # Handle different value types from Excel
-                                    value = row[col_name]
-                                    
-                                    # If it's already a number, use it directly
-                                    if isinstance(value, (int, float)):
-                                        converted_value = float(value)
-                                    # If it's a string, handle European decimal format (comma separator)
-                                    elif isinstance(value, str):
-                                        # Replace comma with dot for European decimal format
-                                        cleaned_value = value.replace(',', '.')
-                                        converted_value = float(cleaned_value)
-                                    else:
-                                        # Try direct conversion for other types
-                                        converted_value = float(value)
-                                    
-                                    # Set the converted value
-                                    target_config[field_name] = converted_value
-                                    print(f"[CONFIG_SERVICE] Set {field_name} = {converted_value} (from '{value}')")
-                                    updated_count += 1
-                                    
-                                except (ValueError, TypeError) as e:
-                                    print(f"[CONFIG_SERVICE] Error converting {col_name}='{row[col_name]}': {e}")
-                                    continue
+                config[office_name]["total_fte"] = total_fte
+                
+                # Update journey based on new FTE
+                if total_fte >= 500:
+                    config[office_name]["journey"] = "Mature Office"
+                elif total_fte >= 200:
+                    config[office_name]["journey"] = "Established Office"
+                elif total_fte >= 25:
+                    config[office_name]["journey"] = "Emerging Office"
+                else:
+                    config[office_name]["journey"] = "New Office"
+                
+                print(f"[CONFIG_SERVICE] Updated {office_name}: {total_fte} FTE, {config[office_name]['journey']}")
         
-        print(f"[CONFIG_SERVICE] ✅ Import complete: {updated_count} rows updated")
+        # Save the merged configuration to file
+        self._save_to_file(config)
+        
+        print(f"[CONFIG_SERVICE] ✅ Import complete: {updated_count} values updated")
+        print(f"[CONFIG_SERVICE] Updated {len(updated_offices)} offices: {', '.join(updated_offices)}")
+        print(f"[CONFIG_SERVICE] Total configuration now has {len(config)} offices")
+        
         return updated_count
     
-    def reset_to_defaults(self):
-        """Reset configuration back to defaults"""
-        print("[CONFIG_SERVICE] 🔄 Resetting configuration to defaults...")
-        self._initialize_config()
-        print("[CONFIG_SERVICE] ✅ Configuration reset to defaults")
+    def get_office_names(self) -> List[str]:
+        """Get list of office names"""
+        config = self._load_from_file()
+        return list(config.keys())
+    
+    def get_office_config(self, office_name: str) -> Optional[Dict[str, Any]]:
+        """Get configuration for a specific office"""
+        config = self._load_from_file()
+        return config.get(office_name)
+    
+    def clear_configuration(self):
+        """Clear all configuration data"""
+        if os.path.exists(self.config_file_path):
+            os.remove(self.config_file_path)
+        print("[CONFIG_SERVICE] Configuration cleared")
+    
+    def clear_cache(self):
+        """Clear the cached configuration (forces reload from file)"""
+        print("🗑️ [CONFIG] Clearing configuration cache")
+        self._cached_config = None
+        self._file_mtime = None
 
-# Global configuration service instance
-config_service = ConfigurationService() 
+# Global instance
+config_service = ConfigService() 

@@ -4,16 +4,12 @@ from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
 from backend.src.services.cache_service import simulation_cache
 from datetime import datetime
+from backend.src.services.config_service import config_service
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
-# Global engine instance - will be injected from main
-engine: SimulationEngine = None
-
-def set_engine(simulation_engine: SimulationEngine):
-    """Set the global engine instance"""
-    global engine
-    engine = simulation_engine
+# Create engine instance (no injection needed with JSON file approach)
+engine = SimulationEngine()
 
 class SimulationRequest(BaseModel):
     start_year: int
@@ -308,6 +304,43 @@ def get_available_years():
     # Return sorted list of years
     return sorted(results['years'].keys(), key=int)
 
+@router.get("/years/{year}/kpis")
+def get_year_kpis(year: int, unplanned_absence: float = 0.05, other_expense: float = 19000000.0):
+    """Get KPIs for a specific year"""
+    if not engine:
+        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
+    
+    # Get the simulation results
+    results = engine.get_simulation_results()
+    if not results or 'years' not in results:
+        raise HTTPException(status_code=404, detail="No simulation results found")
+    
+    # Check if the year exists
+    year_str = str(year)
+    if year_str not in results['years']:
+        raise HTTPException(status_code=404, detail=f"No data found for year {year}")
+    
+    try:
+        # Calculate KPIs for the specific year
+        year_kpis = engine.kpi_service.calculate_kpis_for_year(
+            results,
+            year_str,
+            12,  # Always use 12 months for annual comparison
+            unplanned_absence,
+            other_expense
+        )
+        
+        return {
+            "financial": year_kpis.financial.__dict__,
+            "growth": year_kpis.growth.__dict__,
+            "journeys": year_kpis.journeys.__dict__,
+            "year": year_str
+        }
+        
+    except Exception as e:
+        print(f"❌ [KPI] Failed to calculate KPIs for year {year}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"KPI calculation failed: {str(e)}")
+
 @router.post("/reset")
 def reset_simulation():
     """Reset the simulation engine state for fresh simulation runs"""
@@ -320,75 +353,4 @@ def reset_simulation():
     # Clear all cached data
     simulation_cache.clear_all()
     
-    return {"message": "Simulation state reset successfully"}
-
-@router.get("/config/validation")
-def validate_configuration():
-    """Validate configuration integrity and return checksum and completeness report"""
-    if not engine:
-        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
-    
-    # Check if offices are initialized
-    if not engine.offices:
-        # Initialize offices temporarily for validation
-        engine._initialize_offices()
-        engine._initialize_roles_with_levers(None)
-    
-    from backend.src.services.simulation_engine import calculate_configuration_checksum, validate_configuration_completeness
-    
-    try:
-        # Calculate checksum and validation report
-        config_checksum = calculate_configuration_checksum(engine.offices)
-        config_report = validate_configuration_completeness(engine.offices)
-        
-        return {
-            "checksum": config_checksum,
-            "validation": config_report,
-            "timestamp": datetime.now().isoformat(),
-            "status": "valid" if not config_report['missing_data'] else "incomplete",
-            "summary": {
-                "total_offices": config_report['total_offices'],
-                "total_roles": config_report['total_roles'],
-                "total_levels": config_report['total_levels'],
-                "total_fte": config_report['total_fte'],
-                "missing_data_count": len(config_report['missing_data'])
-            }
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Configuration validation failed: {str(e)}")
-
-@router.get("/config/checksum")
-def get_configuration_checksum():
-    """Get just the configuration checksum for quick integrity checks"""
-    if not engine:
-        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
-    
-    # Check if offices are initialized
-    if not engine.offices:
-        # Initialize offices temporarily for checksum
-        engine._initialize_offices()
-        engine._initialize_roles_with_levers(None)
-    
-    from backend.src.services.simulation_engine import calculate_configuration_checksum
-    
-    try:
-        config_checksum = calculate_configuration_checksum(engine.offices)
-        total_fte = sum(
-            sum(
-                getattr(level, 'total', 0) 
-                for role_data in office.roles.values() 
-                for level in (role_data.values() if isinstance(role_data, dict) else [role_data])
-            )
-            for office in engine.offices.values()
-        )
-        
-        return {
-            "checksum": config_checksum,
-            "total_offices": len(engine.offices),
-            "total_fte": total_fte,
-            "timestamp": datetime.now().isoformat()
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Checksum calculation failed: {str(e)}") 
+    return {"message": "Simulation state reset successfully"} 

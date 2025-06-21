@@ -145,85 +145,175 @@ class SimulationApiService {
     const yearData = results.years?.[year];
     if (!yearData) return [];
 
-    const summary = yearData.summary || {};
-    const kpis = results.kpis || {};
+    // Use year-specific summary data instead of global KPIs
+    const yearSummary = yearData.summary || {};
+    const globalKpis = results.kpis || {};
+    const financialKpis = globalKpis.financial || {};
+    
+    // Year-specific values from summary
+    const currentNetSales = yearSummary.total_revenue || 0;
+    const currentTotalCosts = yearSummary.total_costs || 0;
+    const currentEbitda = yearSummary.total_profit || 0; // total_profit is EBITDA
+    const currentMargin = yearSummary.average_margin || 0;
+    
+    // Calculate salary costs and hourly rate from year data
+    const { currentSalaryCosts, currentAvgHourlyRate } = this.calculateYearSpecificMetrics(yearData);
+    
+    // Baseline values (these remain global)
+    const baselineNetSales = financialKpis.net_sales_baseline || 0;
+    const baselineEbitda = financialKpis.ebitda_baseline || 0;
+    const baselineMargin = financialKpis.margin_baseline || 0;
+    const baselineSalaryCosts = financialKpis.total_salary_costs_baseline || 0;
+    const baselineAvgHourlyRate = financialKpis.avg_hourly_rate_baseline || 0;
+    const baselineTotalCosts = baselineNetSales - baselineEbitda;
 
-    // Calculate derived metrics from available data
-    const totalRevenue = summary.total_revenue || 0;
-    const totalCosts = summary.total_costs || 0;
-    const totalProfit = summary.total_profit || 0;
-    const averageMargin = summary.average_margin || 0;
-    
-    // Calculate gross margin (revenue - costs)
-    const grossMargin = totalRevenue - totalCosts;
-    
-    // Calculate staff costs percentage
-    const staffCostsPct = totalRevenue > 0 ? (totalCosts / totalRevenue) * 100 : 0;
-    
-    // Use KPI data if available (from successful KPI calculation)
-    const financialKpis = kpis.financial || {};
-    const currentEbitda = financialKpis.current_ebitda || totalProfit;
-    const currentMargin = financialKpis.current_margin || (averageMargin * 100);
+    const netSalesChange = currentNetSales - baselineNetSales;
+    const ebitdaChange = currentEbitda - baselineEbitda;
+    const marginChange = currentMargin - baselineMargin;
+    const salaryCostsChange = currentSalaryCosts - baselineSalaryCosts;
+    const hourlyRateChange = currentAvgHourlyRate - baselineAvgHourlyRate;
 
+    const grossMargin = currentNetSales - currentTotalCosts;
+    const baselineGrossMargin = baselineNetSales - baselineTotalCosts;
+    const grossMarginChange = grossMargin - baselineGrossMargin;
+    
+    console.log(`[KPI YEAR DEBUG] Year ${year}:`, {
+      currentNetSales,
+      currentEbitda,
+      currentMargin,
+      currentSalaryCosts,
+      currentAvgHourlyRate
+    });
+    
     return [
       {
         title: 'Net Sales',
-        value: this.formatValue(totalRevenue, 'revenue'),
+        currentValue: this.formatValue(currentNetSales, 'revenue'),
+        previousValue: this.formatValue(baselineNetSales, 'revenue'),
         unit: 'mSEK',
-        trend: '↗',
-        rawValue: totalRevenue
+        description: 'Total revenue from client services',
+        change: netSalesChange,
+        changePercent: baselineNetSales > 0 ? (netSalesChange / baselineNetSales) * 100 : (currentNetSales > 0 ? 100 : 0),
+        rawValue: currentNetSales
       },
       {
-        title: 'Gross Margin',
-        value: this.formatValue(grossMargin, 'revenue'),
+        title: 'Total Salary Costs',
+        currentValue: this.formatValue(currentSalaryCosts, 'revenue'),
+        previousValue: this.formatValue(baselineSalaryCosts, 'revenue'),
         unit: 'mSEK',
-        trend: '↗',
-        rawValue: grossMargin
+        description: 'Total salary costs including employment overhead',
+        change: salaryCostsChange,
+        changePercent: baselineSalaryCosts > 0 ? (salaryCostsChange / baselineSalaryCosts) * 100 : (currentSalaryCosts > 0 ? 100 : 0),
+        rawValue: currentSalaryCosts
       },
       {
         title: 'EBITDA',
-        value: this.formatValue(currentMargin, 'percentage'),
-        unit: '%',
-        trend: '↗',
-        rawValue: currentMargin
-      },
-      {
-        title: 'Total EBITDA',
-        value: this.formatValue(currentEbitda, 'revenue'),
+        currentValue: this.formatValue(currentEbitda, 'revenue'),
+        previousValue: this.formatValue(baselineEbitda, 'revenue'),
         unit: 'mSEK',
-        trend: '↗',
+        description: 'Earnings before interest, taxes, depreciation & amortization',
+        change: ebitdaChange,
+        changePercent: baselineEbitda > 0 ? (ebitdaChange / baselineEbitda) * 100 : (currentEbitda > 0 ? 100 : 0),
         rawValue: currentEbitda
       },
       {
-        title: 'Staff Costs',
-        value: this.formatValue(staffCostsPct, 'percentage'),
+        title: 'EBITDA Margin',
+        currentValue: this.formatValue(currentMargin, 'percentage'),
+        previousValue: this.formatValue(baselineMargin, 'percentage'),
         unit: '%',
-        trend: '↗',
-        rawValue: staffCostsPct
+        description: 'EBITDA as percentage of net sales',
+        change: marginChange,
+        changePercent: baselineMargin > 0 ? (marginChange / baselineMargin) * 100 : (currentMargin > 0 ? 100 : 0),
+        rawValue: currentMargin
       },
       {
-        title: 'Other Costs',
-        value: this.formatValue(0, 'percentage'), // TODO: Add other costs calculation
-        unit: '%',
-        trend: '↗',
-        rawValue: 0
+        title: 'Gross Margin',
+        currentValue: this.formatValue(grossMargin, 'revenue'),
+        previousValue: this.formatValue(baselineGrossMargin, 'revenue'),
+        unit: 'mSEK',
+        description: 'Net sales minus total costs',
+        change: grossMarginChange,
+        changePercent: baselineGrossMargin > 0 ? (grossMarginChange / baselineGrossMargin) * 100 : (grossMargin > 0 ? 100 : 0),
+        rawValue: grossMargin
       },
       {
-        title: 'Commission EBITDA',
-        value: this.formatValue(0, 'percentage'), // TODO: Add commission EBITDA calculation
-        unit: '%',
-        trend: '↗',
-        rawValue: 0
+        title: 'Avg Hourly Rate',
+        currentValue: this.formatValue(currentAvgHourlyRate, 'rate'),
+        previousValue: this.formatValue(baselineAvgHourlyRate, 'rate'),
+        unit: 'SEK',
+        description: 'Average hourly rate for consultant services',
+        change: hourlyRateChange,
+        changePercent: baselineAvgHourlyRate > 0 ? (hourlyRateChange / baselineAvgHourlyRate) * 100 : (currentAvgHourlyRate > 0 ? 100 : 0),
+        rawValue: currentAvgHourlyRate
       }
     ];
   }
 
   /**
+   * Calculate year-specific salary costs and hourly rate from year data
+   */
+  private calculateYearSpecificMetrics(yearData: any): { currentSalaryCosts: number; currentAvgHourlyRate: number } {
+    let totalSalaryCosts = 0;
+    let totalConsultants = 0;
+    let totalRevenue = 0;
+
+    const offices = yearData.offices || {};
+    
+    Object.values(offices).forEach((officeData: any) => {
+      const levels = officeData.levels || {};
+      
+      // Calculate for each role and level
+      Object.entries(levels).forEach(([roleName, roleData]: [string, any]) => {
+        if (Array.isArray(roleData)) {
+          // Flat role (Operations) - get last month's data
+          const lastEntry = roleData[roleData.length - 1];
+          if (lastEntry) {
+            const fte = lastEntry.total || 0;
+            const salary = lastEntry.salary || 0;
+            totalSalaryCosts += fte * salary * 12 * 1.5; // Annual salary with 50% overhead
+          }
+        } else if (typeof roleData === 'object') {
+          // Role with levels
+          Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+            if (Array.isArray(levelData) && levelData.length > 0) {
+              const lastEntry = levelData[levelData.length - 1];
+              const fte = lastEntry?.total || 0;
+              const salary = lastEntry?.salary || 0;
+              const price = lastEntry?.price || 0;
+              
+              totalSalaryCosts += fte * salary * 12 * 1.5; // Annual salary with 50% overhead
+              
+              // Only count Consultant prices for hourly rate
+              if (roleName === 'Consultant' && fte > 0) {
+                totalConsultants += fte;
+                totalRevenue += fte * price * 166.4 * 12; // Annual revenue
+              }
+            }
+          });
+        }
+      });
+    });
+
+    const currentAvgHourlyRate = totalConsultants > 0 ? totalRevenue / (totalConsultants * 166.4 * 12) : 0;
+    
+    return {
+      currentSalaryCosts: totalSalaryCosts,
+      currentAvgHourlyRate: currentAvgHourlyRate
+    };
+  }
+
+  /**
    * Extract table data from simulation results for display
    */
-  extractTableData(results: SimulationResults, year: string): any[] {
+  extractTableData(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[]): any[] {
     const yearData = results.years?.[year];
     if (!yearData?.offices) return [];
+
+    // Debug log for baseline data
+    console.log('[DEBUG] extractTableData called with baselineConfig:', baselineConfig ? `${baselineConfig.length} offices` : 'null');
+    if (baselineConfig && baselineConfig.length > 0) {
+      console.log('[DEBUG] First baseline office:', baselineConfig[0].name, 'FTE:', baselineConfig[0].total_fte);
+    }
 
     return Object.entries(yearData.offices).map(([officeName, officeData]: [string, any], index) => {
       // Calculate total FTE from all levels
@@ -285,14 +375,54 @@ class SimulationApiService {
       const ebitda = grossMargin * 0.17 || 0; // Estimated 17% EBITDA margin
       const journey = this.determineOfficeJourney(currentFTE);
 
+      // Get baseline data for comparison if available
+      let baselineFTE = 0;
+      let baselinePrice = 0;
+      let baselineSalary = 0;
+      
+      if (baselineConfig) {
+        const baselineOffice = baselineConfig.find(office => office.name === officeName);
+        if (baselineOffice) {
+          baselineFTE = baselineOffice.total_fte || 0;
+          
+          // Calculate baseline averages from configuration
+          let baselineTotalPrice = 0;
+          let baselineTotalSalary = 0;
+          let baselineConsultantCount = 0;
+          let baselineTotalFTEForSalary = 0;
+          
+          Object.entries(baselineOffice.roles || {}).forEach(([roleName, roleData]: [string, any]) => {
+            if (roleName === 'Operations' && roleData.total) {
+              baselineTotalFTEForSalary += roleData.total;
+              baselineTotalSalary += roleData.total * (roleData.salary || 0);
+            } else if (typeof roleData === 'object') {
+              Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+                const levelFTE = levelData.total || 0;
+                baselineTotalFTEForSalary += levelFTE;
+                
+                if (roleName === 'Consultant' && levelFTE > 0) {
+                  baselineTotalPrice += levelFTE * (levelData.price || 0);
+                  baselineConsultantCount += levelFTE;
+                }
+                
+                baselineTotalSalary += levelFTE * (levelData.salary || 0);
+              });
+            }
+          });
+          
+          baselinePrice = baselineConsultantCount > 0 ? Math.round(baselineTotalPrice / baselineConsultantCount) : 0;
+          baselineSalary = baselineTotalFTEForSalary > 0 ? Math.round(baselineTotalSalary / baselineTotalFTEForSalary) : 0;
+        }
+      }
+
       return {
         key: `${index + 1}`,
         office: `${officeName} Office`,
         monthlyRate: this.determineGrowthStatus(delta),
-        fte: currentFTE,
+        fte: this.formatValueWithDelta(Math.round(currentFTE), baselineFTE),
         delta: delta,
-        price: avgPrice,
-        salary: avgSalary,
+        price: this.formatValueWithDelta(avgPrice, baselinePrice),
+        salary: this.formatValueWithDelta(avgSalary, baselineSalary),
         ytdChange: ytdChange,
         // Additional fields for expanded view
         consultantFTE: Math.round(consultantFTE),
@@ -357,11 +487,15 @@ class SimulationApiService {
     }));
   }
 
-  private formatValue(value: number, type: 'revenue' | 'percentage'): string {
+  private formatValue(value: number, type: 'revenue' | 'percentage' | 'rate'): string {
+    if (value === null || value === undefined) return '0.0';
+    
     if (type === 'revenue') {
       return (value / 1000000).toFixed(1); // Convert to millions
     } else if (type === 'percentage') {
-      return value.toFixed(1);
+      return (value * 100).toFixed(1); // Convert to percentage
+    } else if (type === 'rate') {
+      return Math.round(value).toString();
     }
     return value.toString();
   }
@@ -612,51 +746,66 @@ class SimulationApiService {
     const yearData = results.years?.[year];
     if (!yearData?.offices) return null;
 
-    // Journey definitions (from backend config)
-    const journeyDefinitions = {
-      'Journey 1': ['A', 'AC', 'C'],    // A-C
-      'Journey 2': ['SrC', 'AM'],       // SrC-AM
-      'Journey 3': ['M', 'SrM'],        // M-SrM
-      'Journey 4': ['PiP']              // PiP
-    };
+    // Get journey data from backend KPIs (includes baseline values)
+    const journeyKPIs = results.kpis?.journeys;
+    if (!journeyKPIs) return null;
 
-    let totalJourney1 = 0;
-    let totalJourney2 = 0;
-    let totalJourney3 = 0;
-    let totalJourney4 = 0;
+    // Extract current and baseline journey data from backend
+    const currentJourneyTotals = journeyKPIs.journey_totals || {};
+    const baselineJourneyTotals = journeyKPIs.journey_totals_baseline || {};
+    const currentJourneyPercentages = journeyKPIs.journey_percentages || {};
+    const baselineJourneyPercentages = journeyKPIs.journey_percentages_baseline || {};
+
+    // Extract values with fallbacks
+    const totalJourney1 = currentJourneyTotals['Journey 1'] || 0;
+    const totalJourney2 = currentJourneyTotals['Journey 2'] || 0;
+    const totalJourney3 = currentJourneyTotals['Journey 3'] || 0;
+    const totalJourney4 = currentJourneyTotals['Journey 4'] || 0;
+
+    const baselineJourney1 = baselineJourneyTotals['Journey 1'] || 0;
+    const baselineJourney2 = baselineJourneyTotals['Journey 2'] || 0;
+    const baselineJourney3 = baselineJourneyTotals['Journey 3'] || 0;
+    const baselineJourney4 = baselineJourneyTotals['Journey 4'] || 0;
+
+    const journey1Percent = Math.round(currentJourneyPercentages['Journey 1'] || 0);
+    const journey2Percent = Math.round(currentJourneyPercentages['Journey 2'] || 0);
+    const journey3Percent = Math.round(currentJourneyPercentages['Journey 3'] || 0);
+    const journey4Percent = Math.round(currentJourneyPercentages['Journey 4'] || 0);
+
+    const baselineJourney1Percent = Math.round(baselineJourneyPercentages['Journey 1'] || 0);
+    const baselineJourney2Percent = Math.round(baselineJourneyPercentages['Journey 2'] || 0);
+    const baselineJourney3Percent = Math.round(baselineJourneyPercentages['Journey 3'] || 0);
+    const baselineJourney4Percent = Math.round(baselineJourneyPercentages['Journey 4'] || 0);
+
+    // Calculate growth metrics from backend data
+    const grandTotal = totalJourney1 + totalJourney2 + totalJourney3 + totalJourney4;
+    const baselineGrandTotal = baselineJourney1 + baselineJourney2 + baselineJourney3 + baselineJourney4;
+
+    // Calculate FTE totals for non-debit ratio (from simulation data)
     let totalFTE = 0;
     let totalNonConsultant = 0;
-
-    // Calculate baseline values if config is provided
-    let baselineJourney1 = 0;
-    let baselineJourney2 = 0;
-    let baselineJourney3 = 0;
-    let baselineJourney4 = 0;
     let baselineTotalFTE = 0;
     let baselineNonConsultant = 0;
 
+    // Calculate current non-debit ratio from simulation data
+    Object.values(yearData.offices).forEach((officeData: any) => {
+      const levels = officeData.levels || {};
+      const consultantFTE = this.calculateRoleFTE(levels.Consultant || {});
+      const salesFTE = this.calculateRoleFTE(levels.Sales || {});
+      const recruitmentFTE = this.calculateRoleFTE(levels.Recruitment || {});
+      const operationsFTE = this.getFlatRoleFTE(levels.Operations || []);
+      
+      const officeTotalFTE = consultantFTE + salesFTE + recruitmentFTE + operationsFTE;
+      const officeNonConsultant = salesFTE + recruitmentFTE + operationsFTE;
+      
+      totalFTE += officeTotalFTE;
+      totalNonConsultant += officeNonConsultant;
+    });
+
+    // Calculate baseline non-debit ratio from config if available
     if (baselineConfig) {
       baselineConfig.forEach(office => {
         const roles = office.roles || {};
-        
-        // Calculate baseline journey totals based on definitions
-        Object.entries(journeyDefinitions).forEach(([journeyName, levels]) => {
-          let journeyTotal = 0;
-          levels.forEach(level => {
-            ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
-              if (roles[role] && roles[role][level]) {
-                journeyTotal += roles[role][level].total || 0;
-              }
-            });
-          });
-          
-          if (journeyName === 'Journey 1') baselineJourney1 += journeyTotal;
-          else if (journeyName === 'Journey 2') baselineJourney2 += journeyTotal;
-          else if (journeyName === 'Journey 3') baselineJourney3 += journeyTotal;
-          else if (journeyName === 'Journey 4') baselineJourney4 += journeyTotal;
-        });
-
-        // Calculate baseline FTE and non-consultant totals
         let officeBaseline = 0;
         let officeBaselineNonConsultant = 0;
         
@@ -681,53 +830,6 @@ class SimulationApiService {
       });
     }
 
-    Object.values(yearData.offices).forEach((officeData: any) => {
-      // Calculate journey totals directly from levels data
-      const officeLevels = officeData.levels || {};
-      
-      // Calculate current journey totals based on definitions
-      Object.entries(journeyDefinitions).forEach(([journeyName, levelsList]) => {
-        let journeyTotal = 0;
-        levelsList.forEach(level => {
-          journeyTotal += this.getLevelCount(officeLevels, level);
-        });
-        
-        if (journeyName === 'Journey 1') totalJourney1 += journeyTotal;
-        else if (journeyName === 'Journey 2') totalJourney2 += journeyTotal;
-        else if (journeyName === 'Journey 3') totalJourney3 += journeyTotal;
-        else if (journeyName === 'Journey 4') totalJourney4 += journeyTotal;
-      });
-
-      // Calculate non-debit ratio (non-consultant FTE / total FTE)
-      const levels = officeData.levels || {};
-      const consultantFTE = this.calculateRoleFTE(levels.Consultant || {});
-      const salesFTE = this.calculateRoleFTE(levels.Sales || {});
-      const recruitmentFTE = this.calculateRoleFTE(levels.Recruitment || {});
-      const operationsFTE = this.getFlatRoleFTE(levels.Operations || []);
-      
-      const officeTotalFTE = consultantFTE + salesFTE + recruitmentFTE + operationsFTE;
-      const officeNonConsultant = salesFTE + recruitmentFTE + operationsFTE;
-      
-      totalFTE += officeTotalFTE;
-      totalNonConsultant += officeNonConsultant;
-    });
-
-    // Calculate totals and percentages
-    const grandTotal = totalJourney1 + totalJourney2 + totalJourney3 + totalJourney4;
-    const baselineGrandTotal = baselineJourney1 + baselineJourney2 + baselineJourney3 + baselineJourney4;
-    
-    // Calculate journey percentages
-    const journey1Percent = grandTotal > 0 ? Math.round((totalJourney1 / grandTotal) * 100) : 0;
-    const journey2Percent = grandTotal > 0 ? Math.round((totalJourney2 / grandTotal) * 100) : 0;
-    const journey3Percent = grandTotal > 0 ? Math.round((totalJourney3 / grandTotal) * 100) : 0;
-    const journey4Percent = grandTotal > 0 ? Math.round((totalJourney4 / grandTotal) * 100) : 0;
-    
-    // Calculate baseline percentages
-    const baselineJourney1Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney1 / baselineGrandTotal) * 100) : 0;
-    const baselineJourney2Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney2 / baselineGrandTotal) * 100) : 0;
-    const baselineJourney3Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney3 / baselineGrandTotal) * 100) : 0;
-    const baselineJourney4Percent = baselineGrandTotal > 0 ? Math.round((baselineJourney4 / baselineGrandTotal) * 100) : 0;
-    
     // Calculate non-debit ratios
     const nonDebitRatio = totalFTE > 0 ? Math.round((totalNonConsultant / totalFTE) * 100) : 0;
     const baselineNonDebitRatio = baselineTotalFTE > 0 ? Math.round((baselineNonConsultant / baselineTotalFTE) * 100) : 0;
@@ -748,13 +850,9 @@ class SimulationApiService {
     // Calculate growth rates and metrics
     const totalGrowthRate = baselineGrandTotal > 0 ? ((grandTotal - baselineGrandTotal) / baselineGrandTotal * 100) : 0;
     const totalGrowthAbsolute = grandTotal - baselineGrandTotal;
-    const journey1GrowthRate = baselineJourney1 > 0 ? ((totalJourney1 - baselineJourney1) / baselineJourney1 * 100) : 0;
-    const journey2GrowthRate = baselineJourney2 > 0 ? ((totalJourney2 - baselineJourney2) / baselineJourney2 * 100) : 0;
-    const journey3GrowthRate = baselineJourney3 > 0 ? ((totalJourney3 - baselineJourney3) / baselineJourney3 * 100) : 0;
-    const journey4GrowthRate = baselineJourney4 > 0 ? ((totalJourney4 - baselineJourney4) / baselineJourney4 * 100) : 0;
 
     return {
-      // Journey data with detailed breakdown like Total Growth
+      // Journey data with detailed breakdown using backend baseline values
       journey1: formatWithDelta(totalJourney1, baselineJourney1),
       journey1Percent: formatWithDelta(journey1Percent, baselineJourney1Percent, true),
       journey1Definition: 'A, AC, C',
@@ -803,7 +901,7 @@ class SimulationApiService {
         absoluteDisplay: `${totalJourney4 - baselineJourney4 >= 0 ? '+' : ''}${totalJourney4 - baselineJourney4} FTE`
       },
       
-      // Growth KPIs
+      // Growth KPIs using backend baseline data
       totalGrowthRate: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
       totalGrowthDetails: {
         percentage: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
@@ -812,10 +910,6 @@ class SimulationApiService {
         absolute: totalGrowthAbsolute,
         absoluteDisplay: `${totalGrowthAbsolute >= 0 ? '+' : ''}${totalGrowthAbsolute} FTE`
       },
-      journey1GrowthRate: `${journey1GrowthRate >= 0 ? '+' : ''}${journey1GrowthRate.toFixed(1)}%`,
-      journey2GrowthRate: `${journey2GrowthRate >= 0 ? '+' : ''}${journey2GrowthRate.toFixed(1)}%`,
-      journey3GrowthRate: `${journey3GrowthRate >= 0 ? '+' : ''}${journey3GrowthRate.toFixed(1)}%`,
-      journey4GrowthRate: `${journey4GrowthRate >= 0 ? '+' : ''}${journey4GrowthRate.toFixed(1)}%`,
       
       // Other KPIs with detailed breakdown
       progressionRateAvg: progressionRateAvg,
@@ -832,12 +926,12 @@ class SimulationApiService {
         current: nonDebitRatio,
         baseline: baselineNonDebitRatio,
         absolute: nonDebitRatio - baselineNonDebitRatio,
-        absoluteDisplay: `${nonDebitRatio - baselineNonDebitRatio >= 0 ? '+' : ''}${(nonDebitRatio - baselineNonDebitRatio).toFixed(1)}pp`
+        absoluteDisplay: `${(nonDebitRatio - baselineNonDebitRatio).toFixed(1)}pp`
       },
       
       // Baseline information
       baselineYear: baselineYear,
-      hasBaseline: !!baselineConfig,
+      hasBaseline: true, // We now have backend baseline data
       
       // Summary values for display
       journey1Display: `${totalJourney1} (${journey1Percent}%)`,
@@ -847,7 +941,71 @@ class SimulationApiService {
       nonDebitRatioDisplay: `${nonDebitRatio}%`
     };
   }
+
+  /**
+   * Extract KPI data from year-specific KPI response (from /years/{year}/kpis endpoint)
+   */
+  extractKPIDataFromYearKPIs(yearKPIs: any): any[] {
+    if (!yearKPIs || !yearKPIs.financial) {
+      return [];
+    }
+
+    const financial = yearKPIs.financial;
+    
+    return [
+      {
+        title: 'Net Sales',
+        currentValue: this.formatValue(financial.net_sales, 'revenue'),
+        previousValue: this.formatValue(financial.net_sales_baseline, 'revenue'),
+        unit: 'mSEK',
+        description: 'Total revenue from client services',
+        change: financial.net_sales - financial.net_sales_baseline,
+        changePercent: financial.net_sales_baseline > 0 ? 
+          ((financial.net_sales - financial.net_sales_baseline) / financial.net_sales_baseline * 100) : 0
+      },
+      {
+        title: 'Total Salary Costs',
+        currentValue: this.formatValue(financial.total_salary_costs, 'revenue'),
+        previousValue: this.formatValue(financial.total_salary_costs_baseline, 'revenue'),
+        unit: 'mSEK',
+        description: 'Total employment costs including overhead',
+        change: financial.total_salary_costs - financial.total_salary_costs_baseline,
+        changePercent: financial.total_salary_costs_baseline > 0 ? 
+          ((financial.total_salary_costs - financial.total_salary_costs_baseline) / financial.total_salary_costs_baseline * 100) : 0
+      },
+      {
+        title: 'EBITDA',
+        currentValue: this.formatValue(financial.ebitda, 'revenue'),
+        previousValue: this.formatValue(financial.ebitda_baseline, 'revenue'),
+        unit: 'mSEK',
+        description: 'Earnings before interest, taxes, depreciation and amortization',
+        change: financial.ebitda - financial.ebitda_baseline,
+        changePercent: financial.ebitda_baseline > 0 ? 
+          ((financial.ebitda - financial.ebitda_baseline) / financial.ebitda_baseline * 100) : 0
+      },
+      {
+        title: 'EBITDA Margin',
+        currentValue: this.formatValue(financial.margin * 100, 'percentage'),
+        previousValue: this.formatValue(financial.margin_baseline * 100, 'percentage'),
+        unit: '%',
+        description: 'EBITDA as percentage of net sales',
+        change: (financial.margin - financial.margin_baseline) * 100,
+        changePercent: financial.margin_baseline > 0 ? 
+          ((financial.margin - financial.margin_baseline) / financial.margin_baseline * 100) : 0
+      },
+      {
+        title: 'Avg Hourly Rate',
+        currentValue: this.formatValue(financial.avg_hourly_rate, 'rate'),
+        previousValue: this.formatValue(financial.avg_hourly_rate_baseline, 'rate'),
+        unit: 'SEK',
+        description: 'Average hourly billing rate across all consultants',
+        change: financial.avg_hourly_rate - financial.avg_hourly_rate_baseline,
+        changePercent: financial.avg_hourly_rate_baseline > 0 ? 
+          ((financial.avg_hourly_rate - financial.avg_hourly_rate_baseline) / financial.avg_hourly_rate_baseline * 100) : 0
+      }
+    ];
+  }
 }
 
 export const simulationApi = new SimulationApiService();
-export type { SimulationRequest, OfficeConfig, SimulationResults, YearNavigationRequest, YearComparisonRequest }; 
+export type { SimulationRequest, OfficeConfig, SimulationResults, YearNavigationRequest, YearComparisonRequest };
