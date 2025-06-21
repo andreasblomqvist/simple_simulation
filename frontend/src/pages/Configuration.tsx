@@ -117,6 +117,7 @@ export default function Configuration() {
       const data = await response.json();
       
       console.log('[CONFIG] 🎛️  Using pure configuration service (engine never modifies config)');
+      console.log('[CONFIG] 📥 Received data:', { type: Array.isArray(data), length: data.length, firstOffice: data[0]?.name });
       
       // Validate data structure
       if (!Array.isArray(data) || data.length === 0) {
@@ -127,33 +128,37 @@ export default function Configuration() {
       const officeNames = data.map((office: any) => office.name).sort();
       setOffices(officeNames);
       
-      // Set the selected office to the first one if none selected
+      // Determine which office to load
+      const targetOffice = selectedOffice || officeNames[0];
+      
+      // Set the selected office if none selected
       if (!selectedOffice && officeNames.length > 0) {
-        setSelectedOffice(officeNames[0]);
+        setSelectedOffice(targetOffice);
       }
       
-      // Transform data for the selected office
-      if (selectedOffice && data.find((office: any) => office.name === selectedOffice)) {
-        const selectedOfficeData = data.find((office: any) => office.name === selectedOffice);
-        
-        const transformedData = transformOfficeDataForUI(selectedOfficeData);
+      // Transform data for the target office
+      const targetOfficeData = data.find((office: any) => office.name === targetOffice);
+      if (targetOfficeData) {
+        const transformedData = transformOfficeDataForUI(targetOfficeData);
         
         // Store as a dictionary keyed by office name
         setOfficeData({
-          [selectedOffice]: transformedData
+          [targetOffice]: transformedData
         });
         setOriginalData({
-          [selectedOffice]: JSON.parse(JSON.stringify(transformedData))
+          [targetOffice]: JSON.parse(JSON.stringify(transformedData))
         }); // Deep copy
         
         // Clear any draft changes since we're loading fresh data
         setDraftChanges({});
         setHasChanges(false);
         
-        console.log(`[CONFIG] 📊 Loaded data for ${selectedOffice}: ${Object.keys(transformedData.roles || {}).length} roles`);
+        console.log(`[CONFIG] 📊 Loaded data for ${targetOffice}: ${Object.keys(transformedData.roles || {}).length} roles`);
         
         // Update refresh timestamp
         setLastRefreshTime(new Date());
+      } else {
+        console.error(`[CONFIG] ❌ Office not found: ${targetOffice}`);
       }
       
     } catch (error) {
@@ -179,10 +184,11 @@ export default function Configuration() {
 
   // Helper to get value from either draft changes or original data
   const getValue = (role: string, level: string | null, field: string, month: number) => {
-    // Special case for 'total' field - it doesn't have month variants
+    // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
     const isTotal = field === 'total';
+    const backendField = isTotal ? 'fte' : field; // Map 'total' to 'fte' for backend compatibility
     const monthSuffix = isTotal ? '' : `_${month}`;
-    const fieldWithMonth = `${field}${monthSuffix}`;
+    const fieldWithMonth = `${backendField}${monthSuffix}`;
     const draftPath = `${selectedOffice}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
     
     if (draftChanges[draftPath] !== undefined) {
@@ -193,24 +199,25 @@ export default function Configuration() {
     if (!office?.roles?.[role]) return '';
     
     if (level && office.roles[role][level]) {
-      return office.roles[role][level][fieldWithMonth] ?? office.roles[role][level][field] ?? '';
+      return office.roles[role][level][fieldWithMonth] ?? office.roles[role][level][backendField] ?? '';
     } else if (!level) {
-      return office.roles[role][fieldWithMonth] ?? office.roles[role][field] ?? '';
+      return office.roles[role][fieldWithMonth] ?? office.roles[role][backendField] ?? '';
     }
     return '';
   };
 
   // Helper to set value in draft changes
   const setValue = (role: string, level: string | null, field: string, month: number, value: number) => {
-    // Special case for 'total' field - it doesn't have month variants
+    // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
     const isTotal = field === 'total';
+    const backendField = isTotal ? 'fte' : field; // Map 'total' to 'fte' for backend compatibility
     
     if (applyToAllMonths && !isTotal) {
       // Apply to all 12 months
       const newDraftChanges: any = {};
       for (let m = 1; m <= 12; m++) {
         const monthSuffix = `_${m}`;
-        const fieldWithMonth = `${field}${monthSuffix}`;
+        const fieldWithMonth = `${backendField}${monthSuffix}`;
         const draftPath = `${selectedOffice}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
         newDraftChanges[draftPath] = value;
       }
@@ -221,7 +228,7 @@ export default function Configuration() {
     } else {
       // Apply to selected month only
       const monthSuffix = isTotal ? '' : `_${month}`;
-      const fieldWithMonth = `${field}${monthSuffix}`;
+      const fieldWithMonth = `${backendField}${monthSuffix}`;
       const draftPath = `${selectedOffice}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
       setDraftChanges((prev: any) => ({
         ...prev,
@@ -233,10 +240,11 @@ export default function Configuration() {
 
   // Helper to check if value has changed
   const hasChanged = (role: string, level: string | null, field: string, month: number) => {
-    // Special case for 'total' field - it doesn't have month variants
+    // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
     const isTotal = field === 'total';
+    const backendField = isTotal ? 'fte' : field; // Map 'total' to 'fte' for backend compatibility
     const monthSuffix = isTotal ? '' : `_${month}`;
-    const fieldWithMonth = `${field}${monthSuffix}`;
+    const fieldWithMonth = `${backendField}${monthSuffix}`;
     const draftPath = `${selectedOffice}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
     return draftChanges[draftPath] !== undefined;
   };
@@ -453,8 +461,8 @@ export default function Configuration() {
     
     LEVELS.forEach(levelName => {
       const levelData = roleData[levelName];
-      if (levelData && levelData.total) {
-        total += levelData.total;
+      if (levelData && levelData.fte) {
+        total += levelData.fte;
       }
     });
     
@@ -515,7 +523,7 @@ export default function Configuration() {
       LEVELS.forEach(levelName => {
         const levelData = roleData[levelName];
         const hasData = levelData && (
-          (levelData.total && levelData.total > 0) || 
+          (levelData.fte && levelData.fte > 0) || 
           Object.keys(levelData).some(key => 
             hasChanged(roleName, levelName, key.replace(/_\d+$/, ''), selectedMonths[LEVER_GROUPS.find(g => g.columns.some(c => key.startsWith(c.key)))?.key || 'headcount'] || 1)
           )

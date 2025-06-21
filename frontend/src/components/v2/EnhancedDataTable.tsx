@@ -354,7 +354,7 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
           <Text strong>{text}</Text>
           {record.metadata?.projected && (
             <div>
-              <Tag color="orange" size="small">Projected</Tag>
+              <Tag color="orange">Projected</Tag>
             </div>
           )}
         </div>
@@ -662,7 +662,7 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
         }}
         size={viewSettings.compactView ? 'small' : 'middle'}
         onChange={(pagination, filters, sorter) => {
-          setColumnSorter(Array.isArray(sorter) ? sorter[0] : sorter);
+          setColumnSorter(Array.isArray(sorter) ? sorter[0] : sorter as any);
         }}
         onRow={(record) => ({
           onClick: () => onRowClick?.(record),
@@ -698,28 +698,7 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
       )}
 
       {/* Table Styles */}
-      <style jsx>{`
-        .enhanced-data-table .ant-table-tbody > tr.row-projected > td {
-          background-color: #fff7e6 !important;
-        }
-        
-        .enhanced-data-table .ant-table-tbody > tr.row-significant > td {
-          background-color: #f6ffed !important;
-        }
-        
-        .enhanced-data-table .ant-table-tbody > tr:hover > td {
-          background-color: #e6f7ff !important;
-        }
-
-        .enhanced-data-table .ant-table-thead > tr > th {
-          background-color: #fafafa;
-          font-weight: 600;
-        }
-
-        .enhanced-data-table .ant-table-tbody > tr > td {
-          transition: background-color 0.2s ease;
-        }
-      `}</style>
+     
     </Card>
   );
 };

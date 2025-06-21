@@ -105,8 +105,8 @@ const SimulationLabV2: React.FC = () => {
   const [activeYear, setActiveYear] = useState('2025');
   
   // Economic parameters
-  const [priceIncrease, setPriceIncrease] = useState(2.0);
-  const [salaryIncrease, setSalaryIncrease] = useState(2.0);
+  const [priceIncrease, setPriceIncrease] = useState(3.0);
+  const [salaryIncrease, setSalaryIncrease] = useState(3.0);
   const [workingHours, setWorkingHours] = useState(166.4);
   const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
   const [otherExpense, setOtherExpense] = useState(19000000);
@@ -192,21 +192,16 @@ const SimulationLabV2: React.FC = () => {
 
   // Load available years when simulation results exist
   useEffect(() => {
-    const loadAvailableYears = async () => {
-      try {
-        const years = await simulationApi.getAvailableYears();
-        setAvailableYears(years);
-        if (years.length > 0 && !years.includes(activeYear)) {
-          setActiveYear(years[0]);
-        }
-      } catch (err) {
-        // Ignore error - no simulation results yet
-        console.log('No simulation results available yet');
+    if (simulationResults && simulationResults.years) {
+      // Extract years directly from simulation results
+      const years = Object.keys(simulationResults.years).sort();
+      setAvailableYears(years);
+      
+      // Set active year to first year if current activeYear is not in the results
+      if (years.length > 0 && !years.includes(activeYear)) {
+        setActiveYear(years[0]);
+        console.log(`[YEAR SWITCH] Setting active year to ${years[0]} from available years:`, years);
       }
-    };
-
-    if (simulationResults) {
-      loadAvailableYears();
     }
   }, [simulationResults, activeYear]);
 
@@ -221,9 +216,29 @@ const SimulationLabV2: React.FC = () => {
     ? simulationApi.extractKPIData(simulationResults, activeYear)
     : [];
   
+  // Debug log for year switching
+  console.log('[YEAR DEBUG] Current activeYear:', activeYear);
+  console.log('[YEAR DEBUG] Available years:', availableYears);
+  console.log('[YEAR DEBUG] Simulation results years:', simulationResults ? Object.keys(simulationResults.years || {}) : 'No results');
+  
   const tableData = simulationResults && activeYear
-    ? simulationApi.extractTableData(simulationResults, activeYear)
+    ? simulationApi.extractTableData(simulationResults, activeYear, officeConfig)
     : [];
+  
+  // Year change handler with debug logging
+  const handleYearChange = (year: string) => {
+    console.log(`[YEAR CHANGE] Switching from ${activeYear} to ${year}`);
+    setActiveYear(year);
+    console.log(`[YEAR CHANGE] Active year updated to: ${year}`);
+  };
+
+  // Debug log for table data
+  if (tableData && tableData.length > 0) {
+    console.log('[DEBUG] Table data sample:', tableData[0]);
+    console.log('[DEBUG] Table data length:', tableData.length);
+  } else {
+    console.log('[DEBUG] Table data is empty or null');
+  }
   
   const seniorityData = simulationResults && activeYear
     ? simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig)
@@ -361,9 +376,6 @@ const SimulationLabV2: React.FC = () => {
       console.log('[FRONTEND DEBUG] Converted price_increase:', params.price_increase, '(type:', typeof params.price_increase, ')');
       console.log('[FRONTEND DEBUG] Converted salary_increase:', params.salary_increase, '(type:', typeof params.salary_increase, ')');
       console.log('[FRONTEND DEBUG] Expected for 2%: 0.02');
-      
-      // TEMPORARY: Alert to see the value being sent
-      alert(`DEBUG: Sending price_increase = ${params.price_increase} (should be 0.03 for 3%)`);
 
       // Log detailed parameters for debugging
       console.log('🚀 [FRONTEND] =================== SIMULATION PARAMETERS ===================');
@@ -949,11 +961,16 @@ const SimulationLabV2: React.FC = () => {
       <Card title="Simulation Results">
         {/* Year Selector Tabs */}
         {availableYears.length > 0 ? (
-          <Tabs activeKey={activeYear} onChange={setActiveYear} style={{ marginBottom: '24px' }}>
-            {availableYears.map(year => (
-              <TabPane tab={`Year ${year}`} key={year} />
-            ))}
-          </Tabs>
+          <div>
+            <div style={{ marginBottom: '8px', fontSize: '14px', color: '#666' }}>
+              <strong>Active Year: {activeYear}</strong> | Available Years: {availableYears.join(', ')}
+            </div>
+            <Tabs activeKey={activeYear} onChange={handleYearChange} style={{ marginBottom: '24px' }}>
+              {availableYears.map(year => (
+                <TabPane tab={`Year ${year} ${year === activeYear ? '(Active)' : ''}`} key={year} />
+              ))}
+            </Tabs>
+          </div>
         ) : (
           <div style={{ 
             textAlign: 'center', 
@@ -980,17 +997,65 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>Net Sales</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const netSales = yearData?.kpis?.financial?.net_sales || 
-                                          simulationResults.kpis?.financial?.net_sales ||
-                                          simulationResults.kpis?.financial?.current_net_sales;
-                          return netSales ? `${(netSales / 1000000).toFixed(1)}M SEK` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'Net Sales');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         Total revenue from client services
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Net Sales');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Total Salary Costs</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Total Salary Costs');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Total salary costs including employment overhead
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Total Salary Costs');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                   <Col xs={24} sm={12} lg={8}>
@@ -998,17 +1063,32 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const ebitda = yearData?.kpis?.financial?.ebitda || 
-                                        simulationResults.kpis?.financial?.ebitda ||
-                                        simulationResults.kpis?.financial?.current_ebitda;
-                          return ebitda ? `${(ebitda / 1000000).toFixed(1)}M SEK` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'EBITDA');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         Earnings before interest, taxes, depreciation
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'EBITDA');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                   <Col xs={24} sm={12} lg={8}>
@@ -1016,17 +1096,98 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA Margin</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const margin = yearData?.kpis?.financial?.margin || 
-                                        simulationResults.kpis?.financial?.margin ||
-                                        simulationResults.kpis?.financial?.current_margin;
-                          return margin !== undefined && margin !== null ? `${margin.toFixed(1)}%` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'EBITDA Margin');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         EBITDA as percentage of net sales
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'EBITDA Margin');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{kpi.change.toFixed(1)}% vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Gross Margin</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Gross Margin');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Net sales minus total costs
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Gross Margin');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Avg Hourly Rate</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Avg Hourly Rate');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Average hourly rate for consultant services
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Avg Hourly Rate');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{kpi.change.toFixed(0)} SEK vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                 </Row>

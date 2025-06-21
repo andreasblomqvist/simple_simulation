@@ -7,6 +7,8 @@ class FinancialKPIs:
     """Financial KPI results"""
     net_sales: float
     net_sales_baseline: float
+    total_salary_costs: float
+    total_salary_costs_baseline: float
     ebitda: float
     ebitda_baseline: float
     margin: float
@@ -34,6 +36,8 @@ class JourneyKPIs:
     journey_totals: Dict[str, int]
     journey_percentages: Dict[str, float]
     journey_deltas: Dict[str, float]
+    journey_totals_baseline: Dict[str, int]
+    journey_percentages_baseline: Dict[str, float]
 
 @dataclass
 class YearlyKPIs:
@@ -51,496 +55,147 @@ class AllKPIs:
     financial: FinancialKPIs
     growth: GrowthKPIs
     journeys: JourneyKPIs
-    yearly_kpis: Dict[str, YearlyKPIs]  # Added yearly KPIs
+    yearly_kpis: Dict[str, YearlyKPIs]
 
 class KPIService:
     """Service for calculating all simulation KPIs"""
     
     def __init__(self):
-        self.working_hours_per_month = 166.4  # Standard working hours per month
-        self.total_employment_cost_rate = 0.50  # 50% total employment costs (Swedish: arbetsgivaravgift 31.42% + semestertillägg 12% + tjänstepension 5% + försäkringar 5% + särskild löneskatt ~1.2%)
+        self.working_hours_per_month = 166.4  # Actual working hours per month
+        self.total_employment_cost_rate = 0.5  # 50% overhead on salary costs
+        self.default_other_expense = 19000000.0  # 19 million SEK per month globally
     
     def calculate_all_kpis(
         self, 
         simulation_results: Dict[str, Any], 
         simulation_duration_months: int,
-        unplanned_absence: float,
-        other_expense: float
+        unplanned_absence: float = 0.05,
+        other_expense: float = None
     ) -> AllKPIs:
         """Calculate all KPIs from simulation results"""
+        print(f"[KPI] Starting KPI calculation for {simulation_duration_months} months...")
         
-        # Get baseline data from config
-        baseline_data = self._get_baseline_data()
+        # Use default other expense if not provided
+        if other_expense is None:
+            other_expense = self.default_other_expense
         
-        # Calculate overall KPIs
-        financial_kpis = self._calculate_financial_kpis(
-            simulation_results, 
-            baseline_data,
-            simulation_duration_months,
-            unplanned_absence,
-            other_expense
-        )
-        
-        growth_kpis = self._calculate_growth_kpis(
-            simulation_results,
-            baseline_data
-        )
-        
-        journey_kpis = self._calculate_journey_kpis(
-            simulation_results,
-            baseline_data
-        )
-        
-        # Calculate year-specific KPIs
-        yearly_kpis = self._calculate_yearly_kpis(
-            simulation_results,
-            baseline_data,
-            unplanned_absence,
-            other_expense
-        )
-        
-        return AllKPIs(
-            financial=financial_kpis,
-            growth=growth_kpis,
-            journeys=journey_kpis,
-            yearly_kpis=yearly_kpis
-        )
-    
-    def _calculate_yearly_kpis(
-        self,
-        simulation_results: Dict[str, Any],
-        baseline_data: Dict[str, Any],
-        unplanned_absence: float,
-        other_expense: float
-    ) -> Dict[str, YearlyKPIs]:
-        """Calculate KPIs for each year in the simulation"""
-        yearly_kpis = {}
-        
-        # Sort years to ensure chronological order
-        years = sorted(simulation_results['years'].keys())
-        
-        for year in years:
-            year_data = simulation_results['years'][year]
+        try:
+            # Get baseline data from hardcoded config (avoid circular dependency)
+            baseline_data = self._get_baseline_data()
             
-            # Calculate year-specific financial KPIs
-            financial_kpis = self._calculate_financial_kpis_for_year(
-                year_data,
-                baseline_data,
+            # Calculate baseline financial metrics
+            baseline_financial = self._calculate_baseline_financial_metrics(
+                baseline_data, 
+                unplanned_absence, 
+                other_expense,
+                duration_months=simulation_duration_months
+            )
+            
+            # Extract final year data for comparison
+            years = list(simulation_results.get('years', {}).keys())
+            if not years:
+                raise ValueError("No simulation years found in results")
+            
+            final_year = max(years)
+            final_year_data = simulation_results['years'][final_year]
+            
+            # Calculate current year financial metrics
+            current_financial = self._calculate_current_financial_metrics(
+                final_year_data,
                 unplanned_absence,
-                other_expense
+                other_expense,
+                duration_months=simulation_duration_months
             )
             
-            # Calculate year-specific growth KPIs
-            growth_kpis = self._calculate_growth_kpis_for_year(
-                year_data,
-                baseline_data
+            # Calculate growth metrics
+            growth_metrics = self._calculate_growth_metrics(
+                baseline_data,
+                final_year_data
             )
             
-            # Calculate year-specific journey KPIs
-            journey_kpis = self._calculate_journey_kpis_for_year(
-                year_data,
-                baseline_data
-            )
+            # Calculate journey distribution
+            journey_metrics = self._calculate_journey_metrics(final_year_data)
             
-            # Calculate year-over-year changes
-            year_over_year_growth = 0.0
-            year_over_year_margin_change = 0.0
-            
-            if year != years[0]:  # Not the first year
-                prev_year = str(int(year) - 1)
-                if prev_year in yearly_kpis:
-                    prev_year_data = yearly_kpis[prev_year]
-                    
-                    # Calculate year-over-year growth
-                    year_over_year_growth = (
-                        (growth_kpis.current_total_fte - prev_year_data.growth.current_total_fte) /
-                        prev_year_data.growth.current_total_fte * 100
-                    )
-                    
-                    # Calculate year-over-year margin change
-                    year_over_year_margin_change = (
-                        financial_kpis.margin - prev_year_data.financial.margin
-                    )
-            
-            yearly_kpis[year] = YearlyKPIs(
-                year=year,
-                financial=financial_kpis,
-                growth=growth_kpis,
-                journeys=journey_kpis,
-                year_over_year_growth=year_over_year_growth,
-                year_over_year_margin_change=year_over_year_margin_change
-            )
-        
-        return yearly_kpis
-    
-    def _calculate_financial_kpis_for_year(
-        self,
-        year_data: Dict[str, Any],
-        baseline_data: Dict[str, Any],
-        unplanned_absence: float,
-        other_expense: float
-    ) -> FinancialKPIs:
-        """Calculate financial KPIs for a specific year"""
-        
-        # Calculate current year metrics
-        current_metrics = self._calculate_financial_metrics_for_year(
-            year_data,
-            unplanned_absence,
-            other_expense
-        )
-        
-        # Calculate baseline metrics (annualized)
-        baseline_metrics = self._calculate_baseline_financial_metrics(
-            baseline_data,
-            unplanned_absence,
-            other_expense,
-            12  # Annualized baseline
-        )
-        
-        return FinancialKPIs(
-            net_sales=current_metrics['net_sales'],
-            net_sales_baseline=baseline_metrics['net_sales'],
-            ebitda=current_metrics['ebitda'],
-            ebitda_baseline=baseline_metrics['ebitda'],
-            margin=current_metrics['margin'],
-            margin_baseline=baseline_metrics['margin'],
-            total_consultants=current_metrics['total_consultants'],
-            total_consultants_baseline=baseline_metrics['total_consultants'],
-            avg_hourly_rate=current_metrics['avg_hourly_rate'],
-            avg_hourly_rate_baseline=baseline_metrics['avg_hourly_rate'],
-            avg_utr=current_metrics['avg_utr']
-        )
-    
-    def _calculate_financial_metrics_for_year(
-        self,
-        year_data: Dict[str, Any],
-        unplanned_absence: float,
-        other_expense: float
-    ) -> Dict[str, float]:
-        """Calculate financial metrics for a specific year"""
-        
-        total_revenue = 0.0
-        total_costs = 0.0
-        total_consultants = 0
-        total_weighted_price = 0.0
-        total_weighted_utr = 0.0
-        
-        # Track office-level totals
-        office_summaries = {}
-        
-        for office_name, office_data in year_data['offices'].items():
-            # Initialize office totals
-            office_revenue = 0.0
-            office_costs = 0.0
-            office_consultants = 0
-            
-            # Only consultants generate revenue
-            if 'Consultant' in office_data['levels']:
-                consultant_levels = office_data['levels']['Consultant']
+            # Create yearly KPIs for each year
+            yearly_kpis = {}
+            for year, year_data in simulation_results['years'].items():
+                yearly_financial = self._calculate_current_financial_metrics(
+                    year_data,
+                    unplanned_absence,
+                    other_expense,
+                    duration_months=simulation_duration_months
+                )
                 
-                for level_name, level_data in consultant_levels.items():
-                    # Debug: Check the data type
-                    print(f"[DEBUG] Office: {office_name}, Level: {level_name}, Type: {type(level_data)}, Data: {level_data}")
-                    
-                    # Handle both list and dict structures
-                    if isinstance(level_data, list) and len(level_data) > 0:
-                        # Use the last month's data for the year
-                        last_month_data = level_data[-1]
-                        print(f"[DEBUG] Using last month data from list: {last_month_data}")
-                    elif isinstance(level_data, dict):
-                        # Direct dict access
-                        last_month_data = level_data
-                        print(f"[DEBUG] Using direct dict data: {last_month_data}")
-                    elif isinstance(level_data, int):
-                        # Fallback for integer values - create basic structure
-                        print(f"[WARNING] Level data is integer, creating fallback structure for {office_name} {level_name}")
-                        last_month_data = {
-                            'total': level_data,
-                            'price': 1000.0,  # Default price
-                            'salary': 50000.0  # Default salary
-                        }
-                        print(f"[DEBUG] Created fallback data: {last_month_data}")
-                    else:
-                        print(f"[ERROR] Unexpected level_data type: {type(level_data)}")
-                        continue
-                    
-                    # Extract values with detailed logging
-                    fte_count = last_month_data['total']
-                    hourly_price = last_month_data['price']
-                    monthly_salary = last_month_data['salary']
-                    
-                    print(f"[DEBUG] {office_name} {level_name} - FTE: {fte_count}, Price: {hourly_price} SEK/hr, Salary: {monthly_salary} SEK/month")
-                    
-                    office_consultants += fte_count
-                    total_consultants += fte_count
-                    total_weighted_price += fte_count * hourly_price
-                    total_weighted_utr += fte_count * 0.85  # Assuming 85% UTR
-                    
-                    # Calculate revenue with detailed logging
-                    working_hours = self.working_hours_per_month
-                    # Apply unplanned_absence as a percentage (it's already a decimal fraction)
-                    available_hours = working_hours * (1 - unplanned_absence)  # Apply absence percentage
-                    billable_hours = available_hours * 0.85  # Apply UTR to available hours
-                    
-                    print(f"[DEBUG] REVENUE CALC {office_name} {level_name}:")
-                    print(f"  FTE: {fte_count}")
-                    print(f"  Price: {hourly_price} SEK/hr")
-                    print(f"  Total working hours/month: {working_hours}")
-                    print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
-                    print(f"  Available hours: {available_hours}")
-                    print(f"  Billable hours (85% UTR): {billable_hours}")
-                    print(f"  Formula: {fte_count} * ({hourly_price} * {billable_hours}) * 12")
-                    
-                    revenue = (
-                        fte_count *
-                        hourly_price *
-                        billable_hours *
-                        12  # Annualize
-                    )
-                    
-                    print(f"  Result: {revenue:,.0f} SEK")
-                    
-                    # Calculate costs with detailed logging
-                    costs = (
-                        fte_count *
-                        monthly_salary *
-                        (1 + self.total_employment_cost_rate) *
-                        12  # Annualize
-                    )
-                    
-                    profit = revenue - costs
-                    
-                    # Calculate detailed salary cost breakdown
-                    base_salary_cost = fte_count * monthly_salary * 12  # Annual base salary
-                    employment_cost_addition = base_salary_cost * self.total_employment_cost_rate  # Additional employment costs
-                    total_employment_cost = base_salary_cost + employment_cost_addition  # Total employment cost
-                    
-                    print(f"[DEBUG] {office_name} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
-                    print(f"[DEBUG] {office_name} {level_name} COST BREAKDOWN:")
-                    print(f"  Base salary cost (annual): {base_salary_cost:,.0f} SEK")
-                    print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {employment_cost_addition:,.0f} SEK")
-                    print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
-                    
-                    office_revenue += revenue
-                    office_costs += costs
+                # Create a simplified yearly KPI
+                yearly_kpis[year] = YearlyKPIs(
+                    year=year,
+                    financial=FinancialKPIs(
+                        net_sales=yearly_financial['total_revenue'],
+                        net_sales_baseline=baseline_financial['total_revenue'],
+                        total_salary_costs=yearly_financial['total_salary_costs'],
+                        total_salary_costs_baseline=baseline_financial['total_salary_costs'],
+                        ebitda=yearly_financial['ebitda'],
+                        ebitda_baseline=baseline_financial['ebitda'],
+                        margin=yearly_financial['margin'],
+                        margin_baseline=baseline_financial['margin'],
+                        total_consultants=yearly_financial.get('total_consultants', 0),
+                        total_consultants_baseline=baseline_financial.get('total_consultants', 0),
+                        avg_hourly_rate=yearly_financial['avg_hourly_rate'],
+                        avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
+                        avg_utr=0.85
+                    ),
+                    growth=growth_metrics,
+                    journeys=journey_metrics,
+                    year_over_year_growth=0.0,
+                    year_over_year_margin_change=0.0
+                )
             
-            # Store office summary for logging
-            office_summaries[office_name] = {
-                'revenue': office_revenue,
-                'costs': office_costs,  # Costs before other expenses
-                'consultants': office_consultants,
-                'profit': office_revenue - office_costs
-            }
+            # Create financial KPIs
+            financial_kpis = FinancialKPIs(
+                net_sales=current_financial['total_revenue'],
+                net_sales_baseline=baseline_financial['total_revenue'],
+                total_salary_costs=current_financial['total_salary_costs'],
+                total_salary_costs_baseline=baseline_financial['total_salary_costs'],
+                ebitda=current_financial['ebitda'],
+                ebitda_baseline=baseline_financial['ebitda'],
+                margin=current_financial['margin'],
+                margin_baseline=baseline_financial['margin'],
+                total_consultants=current_financial.get('total_consultants', 0),
+                total_consultants_baseline=baseline_financial.get('total_consultants', 0),
+                avg_hourly_rate=current_financial['avg_hourly_rate'],
+                avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
+                avg_utr=0.85
+            )
             
-            # Add office totals to overall totals
-            total_revenue += office_revenue
-            total_costs += office_costs
-        
-        # Add other expenses once for all offices combined
-        other_expense_annual = other_expense * 12  # Annualize
-        total_costs += other_expense_annual
-        
-        # Log office summaries
-        print(f"\n[DEBUG] OFFICE SUMMARIES:")
-        print(f"[DEBUG] " + "="*50)
-        for office_name, summary in office_summaries.items():
-            margin = (summary['profit'] / summary['revenue'] * 100) if summary['revenue'] > 0 else 0.0
-            print(f"[DEBUG] {office_name}:")
-            print(f"  Consultants: {summary['consultants']}")
-            print(f"  Revenue: {summary['revenue']:,.0f} SEK")
-            print(f"  Costs: {summary['costs']:,.0f} SEK")
-            print(f"  Profit: {summary['profit']:,.0f} SEK")
-            print(f"  Margin: {margin:.1f}%")
-        
-        print(f"[DEBUG] OTHER EXPENSES (all offices): {other_expense_annual:,.0f} SEK annually")
-        
-        print(f"\n[DEBUG] FINAL TOTALS:")
-        print(f"[DEBUG] Total Consultants: {total_consultants}")
-        print(f"[DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
-        print(f"[DEBUG] Total Costs: {total_costs:,.0f} SEK")
-        
-        # Calculate averages
-        avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
-        avg_utr = total_weighted_utr / total_consultants if total_consultants > 0 else 0.0
-        
-        # Calculate EBITDA and margin
-        ebitda = total_revenue - total_costs
-        margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
-        
-        print(f"\n[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
-        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
-        print(f"[KPI DEBUG] Total Costs: {total_costs:,.0f} SEK")
-        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
-        print(f"[KPI DEBUG] Margin: {margin:.2f}%")
-        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
-        print(f"[KPI DEBUG] ================================================================\n")
-        
-        return {
-            'net_sales': total_revenue,
-            'ebitda': ebitda,
-            'margin': margin,
-            'total_consultants': total_consultants,
-            'avg_hourly_rate': avg_hourly_rate,
-            'avg_utr': avg_utr
-        }
-    
-    def _calculate_growth_kpis_for_year(
-        self,
-        year_data: Dict[str, Any],
-        baseline_data: Dict[str, Any]
-    ) -> GrowthKPIs:
-        """Calculate growth KPIs for a specific year"""
-        
-        current_total = year_data['summary']['total_fte']
-        baseline_total = baseline_data['total_fte']
-        
-        # Calculate growth metrics
-        total_growth_absolute = current_total - baseline_total
-        total_growth_percent = (total_growth_absolute / baseline_total * 100) if baseline_total > 0 else 0.0
-        
-        # Calculate non-debit ratio
-        non_debit_ratio = self._calculate_non_debit_ratio_for_year(year_data)
-        non_debit_ratio_baseline = self._calculate_baseline_non_debit_ratio(baseline_data)
-        non_debit_delta = non_debit_ratio - non_debit_ratio_baseline
-        
-        return GrowthKPIs(
-            total_growth_percent=total_growth_percent,
-            total_growth_absolute=total_growth_absolute,
-            current_total_fte=current_total,
-            baseline_total_fte=baseline_total,
-            non_debit_ratio=non_debit_ratio,
-            non_debit_ratio_baseline=non_debit_ratio_baseline,
-            non_debit_delta=non_debit_delta
-        )
-    
-    def _calculate_journey_kpis_for_year(
-        self,
-        year_data: Dict[str, Any],
-        baseline_data: Dict[str, Any]
-    ) -> JourneyKPIs:
-        """Calculate journey KPIs for a specific year"""
-        
-        journey_totals = {}
-        journey_percentages = {}
-        journey_deltas = {}
-        
-        total_fte = year_data['summary']['total_fte']
-        
-        # Calculate journey totals and percentages
-        for journey in ['Journey 1', 'Journey 2', 'Journey 3', 'Journey 4']:
-            journey_total = 0
+            print(f"[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
+            print(f"[KPI DEBUG] Total Revenue: {current_financial['total_revenue']:,.0f} SEK")
+            print(f"[KPI DEBUG] Total Salary Costs: {current_financial['total_salary_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] Total Costs: {current_financial['total_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] EBITDA: {current_financial['ebitda']:,.0f} SEK")
+            print(f"[KPI DEBUG] Margin: {current_financial['margin']:.2%}")
+            print(f"[KPI DEBUG] Avg Hourly Rate: {current_financial['avg_hourly_rate']:.2f} SEK")
+            print(f"[KPI DEBUG] Baseline Total Revenue: {baseline_financial['total_revenue']:,.0f} SEK")
+            print(f"[KPI DEBUG] Baseline Total Salary Costs: {baseline_financial['total_salary_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] Baseline Total Costs: {baseline_financial['total_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] Baseline EBITDA: {baseline_financial['ebitda']:,.0f} SEK")
+            print(f"[KPI DEBUG] Baseline Margin: {baseline_financial['margin']:.2%}")
+            print(f"[KPI DEBUG] ================================================================")
             
-            # Check if journeys data exists in the expected format
-            for office_data in year_data['offices'].values():
-                if 'journeys' in office_data and journey in office_data['journeys']:
-                    journey_data = office_data['journeys'][journey]
-                    if isinstance(journey_data, list) and len(journey_data) > 0:
-                        # Use the last entry if it's a list
-                        last_entry = journey_data[-1]
-                        if isinstance(last_entry, dict):
-                            journey_total += last_entry.get('total', 0)
-                        elif isinstance(last_entry, int):
-                            journey_total += last_entry
-                    elif isinstance(journey_data, dict):
-                        # Use total directly if it's a dict
-                        journey_total += journey_data.get('total', 0)
-                    elif isinstance(journey_data, int):
-                        # Use value directly if it's an int
-                        journey_total += journey_data
+            return AllKPIs(
+                financial=financial_kpis,
+                growth=growth_metrics,
+                journeys=journey_metrics,
+                yearly_kpis=yearly_kpis
+            )
             
-            journey_totals[journey] = journey_total
-            journey_percentages[journey] = (journey_total / total_fte * 100) if total_fte > 0 else 0.0
-            
-            # Calculate deltas from baseline
-            baseline_total = self._get_baseline_journey_total(baseline_data, journey)
-            journey_deltas[journey] = journey_total - baseline_total
-        
-        return JourneyKPIs(
-            journey_totals=journey_totals,
-            journey_percentages=journey_percentages,
-            journey_deltas=journey_deltas
-        )
-    
-    def _calculate_non_debit_ratio_for_year(self, year_data: Dict[str, Any]) -> float:
-        """Calculate non-debit ratio for a specific year (non-consultants / total FTE)"""
-        total_fte = year_data['summary']['total_fte']
-        
-        # Non-debit includes Sales, Recruitment, and Operations (all non-consultants)
-        non_debit_fte = 0
-        for office_data in year_data['offices'].values():
-            # Add Sales
-            if 'Sales' in office_data['levels']:
-                for level_name, level_data in office_data['levels']['Sales'].items():
-                    # Handle both list and dict/int structures
-                    if isinstance(level_data, list) and len(level_data) > 0:
-                        last_month_data = level_data[-1]
-                        if isinstance(last_month_data, dict):
-                            non_debit_fte += last_month_data.get('total', 0)
-                        else:
-                            non_debit_fte += last_month_data
-                    elif isinstance(level_data, dict):
-                        non_debit_fte += level_data.get('total', 0)
-                    elif isinstance(level_data, int):
-                        non_debit_fte += level_data
-            
-            # Add Recruitment
-            if 'Recruitment' in office_data['levels']:
-                for level_name, level_data in office_data['levels']['Recruitment'].items():
-                    # Handle both list and dict/int structures
-                    if isinstance(level_data, list) and len(level_data) > 0:
-                        last_month_data = level_data[-1]
-                        if isinstance(last_month_data, dict):
-                            non_debit_fte += last_month_data.get('total', 0)
-                        else:
-                            non_debit_fte += last_month_data
-                    elif isinstance(level_data, dict):
-                        non_debit_fte += level_data.get('total', 0)
-                    elif isinstance(level_data, int):
-                        non_debit_fte += level_data
-            
-            # Add Operations
-            if 'Operations' in office_data['levels']:
-                operations_data = office_data['levels']['Operations']
-                # Handle both list and dict/int structures
-                if isinstance(operations_data, list) and len(operations_data) > 0:
-                    last_month_data = operations_data[-1]
-                    if isinstance(last_month_data, dict):
-                        fte = last_month_data.get('total', 0)
-                        salary = last_month_data.get('salary', 0)
-                        if fte > 0:
-                            # Fix: Add total employment cost rate (40%) to salary costs
-                            non_debit_fte += fte
-                elif isinstance(operations_data, dict):
-                    fte = operations_data.get('total', 0)
-                    salary = operations_data.get('salary', 0)
-                    if fte > 0:
-                        # Fix: Add total employment cost rate (40%) to salary costs
-                        non_debit_fte += fte
-                elif isinstance(operations_data, int):
-                    # This shouldn't happen in simulation data, but handle it
-                    print(f"[KPI DEBUG]   Operations: unexpected int data type: {operations_data}")
-        
-        return (non_debit_fte / total_fte * 100) if total_fte > 0 else 0.0
-    
-    def _get_baseline_journey_total(self, baseline_data: Dict[str, Any], journey: str) -> int:
-        """Get baseline total for a specific journey"""
-        total = 0
-        
-        # Get the correct level mapping from JOURNEY_CLASSIFICATION
-        journey_levels = JOURNEY_CLASSIFICATION.get(journey, [])
-        
-        for office in baseline_data['offices']:
-            # All journeys come from Consultant roles only
-            if 'Consultant' in office['roles']:
-                consultant_levels = office['roles']['Consultant']
-                for level_name, count in consultant_levels.items():
-                    if level_name in journey_levels:
-                        total += count
-        
-        return total
+        except Exception as e:
+            import traceback
+            print(f"[KPI ERROR] Exception in calculate_all_kpis: {e}")
+            print(f"[KPI ERROR] Traceback: {traceback.format_exc()}")
+            raise e
     
     def _get_baseline_data(self) -> Dict[str, Any]:
-        """Get baseline data from original config"""
+        """Get baseline data from hardcoded config to avoid circular dependency"""
         baseline = {
             'offices': [],
             'total_consultants': 0,
@@ -551,310 +206,544 @@ class KPIService:
         for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
             office_baseline = {
                 'name': office_name,
-                'roles': office_data,
+                'roles': {},
                 'consultants': 0,
                 'non_consultants': 0,
-                'total': 0
+                'total_fte': 0
             }
             
-            # Count consultants
-            if 'Consultant' in office_data:
-                for level, count in office_data['Consultant'].items():
-                    office_baseline['consultants'] += count
-                    office_baseline['total'] += count
-            
-            # Count non-consultants (Sales + Recruitment + Operations)
-            for role_name in ['Sales', 'Recruitment']:
-                if role_name in office_data:
-                    for level, count in office_data[role_name].items():
-                        office_baseline['non_consultants'] += count
-                        office_baseline['total'] += count
-            
-            # Operations (single number)
-            if 'Operations' in office_data:
-                office_baseline['non_consultants'] += office_data['Operations']
-                office_baseline['total'] += office_data['Operations']
+            for role_name, role_data in office_data.items():
+                if role_name == 'Operations':
+                    # Operations is a flat role with integer value
+                    operations_fte = role_data  # role_data is directly an integer
+                    office_baseline['roles']['Operations'] = {
+                        'fte': operations_fte,
+                        'price_1': 80.0,  # Default operations pricing
+                        'salary_1': 40000.0,  # Default operations salary
+                        'utr_1': 0.85
+                    }
+                    office_baseline['non_consultants'] += operations_fte
+                    office_baseline['total_fte'] += operations_fte
+                else:
+                    # Roles with levels (Consultant, Sales, Recruitment)
+                    office_baseline['roles'][role_name] = {}
+                    for level_name, level_fte in role_data.items():
+                        # level_fte is directly an integer, not a dict
+                        # Get pricing from BASE_PRICING or use defaults
+                        default_price = BASE_PRICING.get(office_name, {}).get(level_name, 1000.0)
+                        default_salary = default_price * 0.5  # Approximate salary as 50% of price
+                        
+                        office_baseline['roles'][role_name][level_name] = {
+                            'fte': level_fte,
+                            'price_1': default_price,
+                            'salary_1': default_salary,
+                            'utr_1': 0.85
+                        }
+                        
+                        if role_name == 'Consultant':
+                            office_baseline['consultants'] += level_fte
+                        else:
+                            office_baseline['non_consultants'] += level_fte
+                        office_baseline['total_fte'] += level_fte
             
             baseline['offices'].append(office_baseline)
             baseline['total_consultants'] += office_baseline['consultants']
             baseline['total_non_consultants'] += office_baseline['non_consultants']
-            baseline['total_fte'] += office_baseline['total']
+            baseline['total_fte'] += office_baseline['total_fte']
         
         return baseline
-    
-    def _calculate_financial_kpis(
-        self, 
-        simulation_results: Dict[str, Any], 
-        baseline_data: Dict[str, Any],
-        simulation_duration_months: int,
-        unplanned_absence: float,
-        other_expense: float
-    ) -> FinancialKPIs:
-        """Calculate financial KPIs from simulation results - Fixed to use yearly method"""
-        print(f"\n[OVERALL KPI DEBUG] =================== OVERALL FINANCIAL KPI CALCULATION ===================")
-        print(f"[OVERALL KPI DEBUG] USING YEARLY METHOD RESULT FOR CONSISTENCY")
-        
-        # Get the last year's data for current values
-        last_year = max(simulation_results['years'].keys(), key=int)
-        print(f"[OVERALL KPI DEBUG] Using last year data: {last_year}")
-        
-        # Use the yearly method to calculate the current metrics (this is the correct method)
-        current_metrics = self._calculate_financial_metrics_for_year(
-            simulation_results['years'][last_year],
-            unplanned_absence,
-            other_expense
-        )
-        
-        # Calculate baseline values (using baseline data from configuration)
-        baseline_data = self._get_baseline_data()
-        baseline_metrics = self._calculate_baseline_financial_metrics(
-            baseline_data,
-            unplanned_absence,  # Use same unplanned absence as current simulation
-            other_expense,
-            12  # Annualized
-        )
-        
-        print(f"\n[OVERALL KPI DEBUG] =================== FINAL RESULTS ===================")
-        print(f"[OVERALL KPI DEBUG] Net Sales: {current_metrics['net_sales']:,.0f} SEK (vs baseline {baseline_metrics['net_sales']:,.0f})")
-        print(f"[OVERALL KPI DEBUG] EBITDA: {current_metrics['ebitda']:,.0f} SEK (vs baseline {baseline_metrics['ebitda']:,.0f})")
-        print(f"[OVERALL KPI DEBUG] Margin: {current_metrics['margin']:.1f}% (vs baseline {baseline_metrics['margin']:.1f}%)")
-        print(f"[OVERALL KPI DEBUG] ================================================================\n")
-        
-        return FinancialKPIs(
-            net_sales=current_metrics['net_sales'],
-            net_sales_baseline=baseline_metrics['net_sales'],
-            ebitda=current_metrics['ebitda'],
-            ebitda_baseline=baseline_metrics['ebitda'],
-            margin=current_metrics['margin'],
-            margin_baseline=baseline_metrics['margin'],
-            total_consultants=current_metrics['total_consultants'],
-            total_consultants_baseline=baseline_metrics['total_consultants'],
-            avg_hourly_rate=current_metrics['avg_hourly_rate'],
-            avg_hourly_rate_baseline=baseline_metrics['avg_hourly_rate'],
-            avg_utr=current_metrics['avg_utr']
-        )
-    
-    def _calculate_growth_kpis(
-        self, 
-        simulation_results: Dict[str, Any], 
-        baseline_data: Dict[str, Any]
-    ) -> GrowthKPIs:
-        """Calculate growth KPIs from simulation results"""
-        
-        # Get the first and last year's data
-        years = sorted(simulation_results['years'].keys())
-        first_year = years[0]
-        last_year = years[-1]
-        
-        first_year_data = simulation_results['years'][first_year]
-        last_year_data = simulation_results['years'][last_year]
-        
-        # Calculate current total from last year
-        current_total = last_year_data['summary']['total_fte']
-        baseline_total = baseline_data['total_fte']
-        
-        # Calculate growth metrics
-        total_growth_absolute = current_total - baseline_total
-        total_growth_percent = (total_growth_absolute / baseline_total * 100) if baseline_total > 0 else 0.0
-        
-        # Calculate non-debit ratio from last year
-        non_debit_ratio = self._calculate_non_debit_ratio_for_year(last_year_data)
-        non_debit_ratio_baseline = self._calculate_baseline_non_debit_ratio(baseline_data)
-        non_debit_delta = non_debit_ratio - non_debit_ratio_baseline
-        
-        return GrowthKPIs(
-            total_growth_percent=total_growth_percent,
-            total_growth_absolute=total_growth_absolute,
-            current_total_fte=current_total,
-            baseline_total_fte=baseline_total,
-            non_debit_ratio=non_debit_ratio,
-            non_debit_ratio_baseline=non_debit_ratio_baseline,
-            non_debit_delta=non_debit_delta
-        )
-    
-    def _calculate_journey_kpis(
-        self, 
-        simulation_results: Dict[str, Any], 
-        baseline_data: Dict[str, Any]
-    ) -> JourneyKPIs:
-        """Calculate journey KPIs from simulation results"""
-        
-        # Get the last year's data
-        years = sorted(simulation_results['years'].keys())
-        last_year = years[-1]
-        last_year_data = simulation_results['years'][last_year]
-        
-        journey_totals = {}
-        journey_percentages = {}
-        journey_deltas = {}
-        
-        total_fte = last_year_data['summary']['total_fte']
-        
-        # Calculate journey totals and percentages
-        for journey in ['Journey 1', 'Journey 2', 'Journey 3', 'Journey 4']:
-            journey_total = 0
-            
-            # Check if journeys data exists in the expected format
-            for office_data in last_year_data['offices'].values():
-                if 'journeys' in office_data and journey in office_data['journeys']:
-                    journey_data = office_data['journeys'][journey]
-                    if isinstance(journey_data, list) and len(journey_data) > 0:
-                        # Use the last entry if it's a list
-                        last_entry = journey_data[-1]
-                        if isinstance(last_entry, dict):
-                            journey_total += last_entry.get('total', 0)
-                        elif isinstance(last_entry, int):
-                            journey_total += last_entry
-                    elif isinstance(journey_data, dict):
-                        # Use total directly if it's a dict
-                        journey_total += journey_data.get('total', 0)
-                    elif isinstance(journey_data, int):
-                        # Use value directly if it's an int
-                        journey_total += journey_data
-            
-            journey_totals[journey] = journey_total
-            journey_percentages[journey] = (journey_total / total_fte * 100) if total_fte > 0 else 0.0
-            
-            # Calculate deltas from baseline
-            baseline_total = self._get_baseline_journey_total(baseline_data, journey)
-            journey_deltas[journey] = journey_total - baseline_total
-        
-        return JourneyKPIs(
-            journey_totals=journey_totals,
-            journey_percentages=journey_percentages,
-            journey_deltas=journey_deltas
-        )
     
     def _calculate_baseline_financial_metrics(
         self, 
         baseline_data: Dict[str, Any], 
         unplanned_absence: float, 
         other_expense: float,
-        duration_months: int = 12  # Default to 12 months for annualization
+        duration_months: int = 12
     ) -> Dict[str, float]:
         """Calculate baseline financial metrics"""
         
         total_revenue = 0.0
         total_costs = 0.0
+        total_salary_costs = 0.0  # Track salary costs separately
         total_consultants = 0
         total_weighted_price = 0.0
         total_weighted_utr = 0.0
         
-        for office in baseline_data['offices']:
-            if 'Consultant' in office['roles']:
-                consultant_levels = office['roles']['Consultant']
-                
-                for level_name, count in consultant_levels.items():
-                    # Get price and salary from BASE_PRICING and BASE_SALARIES
-                    price = BASE_PRICING[office['name']][level_name]
-                    salary = BASE_SALARIES[office['name']][level_name]
-                    
-                    print(f"[DEBUG] BASELINE {office['name']} {level_name} - FTE: {count}, Price: {price} SEK/hr, Salary: {salary} SEK/month")
-                    
-                    total_consultants += count
-                    total_weighted_price += count * price
-                    total_weighted_utr += count * 0.85  # Assuming 85% UTR
-                    
-                    # Calculate revenue (annualized) with detailed debug
-                    working_hours = self.working_hours_per_month
-                    # Apply unplanned_absence as a percentage (it's already a decimal fraction)
-                    available_hours = working_hours * (1 - unplanned_absence)  # Apply absence percentage
-                    billable_hours = available_hours * 0.85  # Apply UTR to available hours
-                    
-                    print(f"[DEBUG] BASELINE REVENUE CALC {office['name']} {level_name}:")
-                    print(f"  FTE: {count}")
-                    print(f"  Price: {price} SEK/hr")
-                    print(f"  Total working hours/month: {working_hours}")
-                    print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
-                    print(f"  Available hours: {available_hours}")
-                    print(f"  Billable hours (85% UTR): {billable_hours}")
-                    print(f"  Duration months: {duration_months}")
-                    print(f"  Formula: {count} * ({price} * {billable_hours}) * {duration_months}")
-                    
-                    revenue = (
-                        count *
-                        price *
-                        billable_hours *
-                        duration_months  # Annualize by multiplying by 12 months
-                    )
-                    
-                    print(f"  Result: {revenue:,.0f} SEK")
-                    total_revenue += revenue
-                    
-                    # Calculate costs (salary + total employment costs, annualized)
-                    costs = (
-                        count *
-                        salary *
-                        (1 + self.total_employment_cost_rate) *
-                        duration_months  # Annualize by multiplying by 12 months
-                    )
-                    total_costs += costs
-                    
-                    # Calculate detailed salary cost breakdown for baseline
-                    base_salary_cost = count * salary * duration_months  # Base salary cost
-                    employment_cost_addition = base_salary_cost * self.total_employment_cost_rate  # Additional employment costs
-                    total_employment_cost = base_salary_cost + employment_cost_addition  # Total employment cost
-                    
-                    profit = revenue - costs
-                    print(f"[DEBUG] BASELINE {office['name']} {level_name} - Revenue: {revenue:,.0f} SEK, Costs: {costs:,.0f} SEK, Profit: {profit:,.0f} SEK")
-                    print(f"[DEBUG] BASELINE {office['name']} {level_name} COST BREAKDOWN:")
-                    print(f"  Base salary cost ({duration_months} months): {base_salary_cost:,.0f} SEK")
-                    print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {employment_cost_addition:,.0f} SEK")
-                    print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
+        print(f"[DEBUG] BASELINE CALCULATION START")
         
-        # Add other expenses ONCE for all offices combined (annualized)
-        other_expense_total = other_expense * duration_months  # Annualize by multiplying by 12 months
-        total_costs += other_expense_total
-        print(f"[DEBUG] BASELINE Added other expenses (group total): {other_expense_total:,.0f} SEK")
+        for office in baseline_data['offices']:
+            office_name = office['name']
+            
+            # Only consultants generate revenue
+            if 'Consultant' in office['roles']:
+                consultant_roles = office['roles']['Consultant']
+                for level_name, level_data in consultant_roles.items():
+                    fte_count = level_data['fte']
+                    hourly_rate = level_data['price_1']
+                    utr = level_data['utr_1']
+                    salary = level_data['salary_1']
+                    
+                    if fte_count > 0:
+                        print(f"[DEBUG] BASELINE {office_name} {level_name} - FTE: {fte_count}, Price: {hourly_rate} SEK/hr, Salary: {salary} SEK/month")
+                        
+                        # Calculate revenue
+                        available_hours = self.working_hours_per_month * (1 - unplanned_absence)
+                        billable_hours = available_hours * utr
+                        monthly_revenue_per_person = hourly_rate * billable_hours
+                        level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
+                        total_revenue += level_total_revenue
+                        
+                        print(f"[DEBUG] BASELINE REVENUE CALC {office_name} {level_name}:")
+                        print(f"  FTE: {fte_count}")
+                        print(f"  Price: {hourly_rate} SEK/hr")
+                        print(f"  Total working hours/month: {self.working_hours_per_month}")
+                        print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
+                        print(f"  Available hours: {available_hours:.1f}")
+                        print(f"  Billable hours ({utr:.0%} UTR): {billable_hours}")
+                        print(f"  Duration months: {duration_months}")
+                        print(f"  Formula: {fte_count} * ({hourly_rate} * {billable_hours}) * {duration_months}")
+                        print(f"  Result: {level_total_revenue:,.0f} SEK")
+                        
+                        # Calculate costs
+                        base_salary_cost = fte_count * salary * duration_months
+                        total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                        total_costs += total_employment_cost
+                        total_salary_costs += base_salary_cost  # Track salary costs separately
+                        
+                        print(f"[DEBUG] BASELINE {office_name} {level_name} - Revenue: {level_total_revenue:,.0f} SEK, Costs: {total_employment_cost:,.0f} SEK, Profit: {level_total_revenue - total_employment_cost:,.0f} SEK")
+                        print(f"[DEBUG] BASELINE {office_name} {level_name} COST BREAKDOWN:")
+                        print(f"  Base salary cost ({duration_months} months): {base_salary_cost:,.0f} SEK")
+                        print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {total_employment_cost - base_salary_cost:,.0f} SEK")
+                        print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
+                        
+                        # Track for weighted averages
+                        total_consultants += fte_count
+                        total_weighted_price += hourly_rate * fte_count
+                        total_weighted_utr += utr * fte_count
+            
+            # Calculate costs for all other roles (non-revenue generating)
+            for role_name, role_data in office['roles'].items():
+                if role_name != 'Consultant':
+                    if isinstance(role_data, dict) and 'fte' in role_data:
+                        # Flat role like Operations
+                        fte_count = role_data['fte']
+                        salary = role_data['salary_1']
+                        if fte_count > 0:
+                            base_salary_cost = fte_count * salary * duration_months
+                            total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                            total_costs += total_employment_cost
+                            total_salary_costs += base_salary_cost  # Track salary costs separately
+                    else:
+                        # Role with levels
+                        for level_name, level_data in role_data.items():
+                            fte_count = level_data['fte']
+                            salary = level_data['salary_1']
+                            if fte_count > 0:
+                                base_salary_cost = fte_count * salary * duration_months
+                                total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                                total_costs += total_employment_cost
+                                total_salary_costs += base_salary_cost  # Track salary costs separately
+        
+        # Add other expenses (global monthly cost, not per office)
+        group_other_expenses = other_expense * duration_months
+        total_costs += group_other_expenses
+        print(f"[DEBUG] BASELINE Added other expenses (global total): {group_other_expenses:,.0f} SEK")
+        
+        # Calculate final metrics
+        ebitda = total_revenue - total_costs
+        margin = ebitda / total_revenue if total_revenue > 0 else 0.0
+        avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
         
         print(f"[DEBUG] BASELINE FINAL TOTALS:")
         print(f"[DEBUG] BASELINE Total Consultants: {total_consultants}")
         print(f"[DEBUG] BASELINE Total Revenue: {total_revenue:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Total Costs: {total_costs:,.0f} SEK")
-        
-        # Calculate averages
-        avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
-        avg_utr = total_weighted_utr / total_consultants if total_consultants > 0 else 0.0
-        
-        # Calculate EBITDA and margin
-        ebitda = total_revenue - total_costs
-        margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
-        
-        print(f"[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
-        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
-        print(f"[KPI DEBUG] Total Costs: {total_costs:,.0f} SEK")
-        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
-        print(f"[KPI DEBUG] Margin: {margin:.2f}%")
-        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
-        print(f"[KPI DEBUG] ================================================================\n")
+        print(f"[DEBUG] BASELINE Total Salary Costs: {total_salary_costs:,.0f} SEK")
+        print(f"[DEBUG] BASELINE Total Costs (including overhead): {total_costs:,.0f} SEK")
+        print(f"[DEBUG] BASELINE Other Expenses: {group_other_expenses:,.0f} SEK")
+        print(f"[DEBUG] BASELINE EBITDA: {ebitda:,.0f} SEK")
+        print(f"[DEBUG] BASELINE Margin: {margin:.2%}")
         
         return {
-            'net_sales': total_revenue,
+            'total_revenue': total_revenue,
+            'total_costs': total_costs,
+            'total_salary_costs': total_salary_costs,
             'ebitda': ebitda,
             'margin': margin,
-            'total_consultants': total_consultants,
             'avg_hourly_rate': avg_hourly_rate,
-            'avg_utr': avg_utr
+            'total_consultants': total_consultants
         }
     
-    def _calculate_baseline_non_debit_ratio(self, baseline_data: Dict[str, Any]) -> float:
-        """Calculate baseline non-debit ratio (non-consultants / total FTE)"""
-        total_fte = baseline_data['total_fte']
+    def _calculate_current_financial_metrics(
+        self, 
+        year_data: Dict[str, Any],
+        unplanned_absence: float,
+        other_expense: float,
+        duration_months: int = 12
+    ) -> Dict[str, float]:
+        """Calculate financial metrics for current simulation data"""
         
-        # Non-debit includes Sales, Recruitment, and Operations (all non-consultants)
-        non_debit_fte = 0
-        for office in baseline_data['offices']:
-            # Add Sales
-            if 'Sales' in office['roles']:
-                for level, count in office['roles']['Sales'].items():
-                    non_debit_fte += count
-            
-            # Add Recruitment  
-            if 'Recruitment' in office['roles']:
-                for level, count in office['roles']['Recruitment'].items():
-                    non_debit_fte += count
-            
-            # Add Operations
-            non_debit_fte += office['roles'].get('Operations', 0)
+        total_revenue = 0.0
+        total_costs = 0.0
+        total_salary_costs = 0.0  # Track salary costs separately
+        total_consultants = 0
+        total_weighted_price = 0.0
         
-        return (non_debit_fte / total_fte * 100) if total_fte > 0 else 0.0 
+        # Process each office
+        for office_name, office_data in year_data.get('offices', {}).items():
+            office_levels = office_data.get('levels', {})
+            
+            # Only consultants generate revenue
+            if 'Consultant' in office_levels:
+                consultant_levels = office_levels['Consultant']
+                for level_name, level_results in consultant_levels.items():
+                    if level_results:  # Check if there are results for this level
+                        # Debug: Print the data structure
+                        print(f"[KPI DEBUG] {office_name} {level_name}: level_results type = {type(level_results)}, value = {level_results}")
+                        
+                        # Get the latest month's data
+                        if isinstance(level_results, list) and len(level_results) > 0:
+                            latest_data = level_results[-1]
+                            print(f"[KPI DEBUG] {office_name} {level_name}: latest_data type = {type(latest_data)}, value = {latest_data}")
+                        else:
+                            print(f"[KPI DEBUG] {office_name} {level_name}: level_results is not a list or is empty")
+                            latest_data = {}
+                        
+                        fte_count = latest_data.get('total', 0) if isinstance(latest_data, dict) else 0
+                        hourly_rate = latest_data.get('price', 0) if isinstance(latest_data, dict) else 0
+                        salary = latest_data.get('salary', 0) if isinstance(latest_data, dict) else 0
+                        
+                        if fte_count > 0:
+                            # Calculate revenue (assume 85% UTR for now)
+                            utr = 0.85
+                            available_hours = self.working_hours_per_month * (1 - unplanned_absence)
+                            billable_hours = available_hours * utr
+                            monthly_revenue_per_person = hourly_rate * billable_hours
+                            level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
+                            total_revenue += level_total_revenue
+                            
+                            # Calculate costs
+                            base_salary_cost = fte_count * salary * duration_months
+                            total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                            total_costs += total_employment_cost
+                            total_salary_costs += base_salary_cost  # Track salary costs separately
+                            
+                            # Track for weighted averages
+                            total_consultants += fte_count
+                            total_weighted_price += hourly_rate * fte_count
+            
+            # Calculate costs for all other roles
+            for role_name, role_data in office_levels.items():
+                if role_name != 'Consultant':
+                    if isinstance(role_data, list):
+                        # Flat role like Operations
+                        if role_data:
+                            latest_data = role_data[-1]
+                            fte_count = latest_data.get('total', 0)
+                            salary = latest_data.get('salary', 0)
+                            if fte_count > 0:
+                                base_salary_cost = fte_count * salary * duration_months
+                                total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                                total_costs += total_employment_cost
+                                total_salary_costs += base_salary_cost  # Track salary costs separately
+                    else:
+                        # Role with levels
+                        for level_name, level_results in role_data.items():
+                            if level_results:
+                                latest_data = level_results[-1]
+                                fte_count = latest_data.get('total', 0)
+                                salary = latest_data.get('salary', 0)
+                                if fte_count > 0:
+                                    base_salary_cost = fte_count * salary * duration_months
+                                    total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
+                                    total_costs += total_employment_cost
+                                    total_salary_costs += base_salary_cost  # Track salary costs separately
+        
+        # Add other expenses (global monthly cost, not per office)
+        group_other_expenses = other_expense * duration_months
+        total_costs += group_other_expenses
+        
+        # Calculate final metrics
+        ebitda = total_revenue - total_costs
+        margin = ebitda / total_revenue if total_revenue > 0 else 0.0
+        avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
+        
+        print(f"[KPI DEBUG] CURRENT FINAL TOTALS:")
+        print(f"[KPI DEBUG] Total Consultants: {total_consultants}")
+        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Salary Costs: {total_salary_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Costs (including overhead): {total_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] Other Expenses: {group_other_expenses:,.0f} SEK")
+        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
+        print(f"[KPI DEBUG] Margin: {margin:.2%}")
+        
+        return {
+            'total_revenue': total_revenue,
+            'total_costs': total_costs,
+            'total_salary_costs': total_salary_costs,
+            'ebitda': ebitda,
+            'margin': margin,
+            'avg_hourly_rate': avg_hourly_rate,
+            'total_consultants': total_consultants
+        }
+    
+    def _calculate_growth_metrics(self, baseline_data: Dict[str, Any], final_year_data: Dict[str, Any]) -> GrowthKPIs:
+        """Calculate growth metrics comparing baseline to final year"""
+        
+        # Calculate baseline totals
+        baseline_total_fte = baseline_data.get('total_fte', 0)
+        baseline_consultants = baseline_data.get('total_consultants', 0)
+        baseline_non_consultants = baseline_data.get('total_non_consultants', 0)
+        
+        # Calculate current totals from final year
+        current_total_fte = 0
+        current_consultants = 0
+        current_non_consultants = 0
+        senior_consultants = 0  # M, SrM, PiP levels
+        
+        for office_name, office_data in final_year_data.get('offices', {}).items():
+            office_levels = office_data.get('levels', {})
+            
+            # Count consultants
+            if 'Consultant' in office_levels:
+                consultant_levels = office_levels['Consultant']
+                for level_name, level_results in consultant_levels.items():
+                    if level_results:
+                        latest_data = level_results[-1] if level_results else {}
+                        fte_count = latest_data.get('total', 0)
+                        current_consultants += fte_count
+                        current_total_fte += fte_count
+                        
+                        # Count senior levels
+                        if level_name in ['M', 'SrM', 'PiP']:
+                            senior_consultants += fte_count
+            
+            # Count other roles
+            for role_name, role_data in office_levels.items():
+                if role_name != 'Consultant':
+                    if isinstance(role_data, list):
+                        # Flat role like Operations
+                        if role_data:
+                            latest_data = role_data[-1]
+                            fte_count = latest_data.get('total', 0)
+                            current_non_consultants += fte_count
+                            current_total_fte += fte_count
+                    else:
+                        # Role with levels
+                        for level_name, level_results in role_data.items():
+                            if level_results:
+                                latest_data = level_results[-1] if level_results else {}
+                                fte_count = latest_data.get('total', 0)
+                                current_non_consultants += fte_count
+                                current_total_fte += fte_count
+        
+        # Calculate growth rates
+        total_growth_rate = ((current_total_fte - baseline_total_fte) / baseline_total_fte * 100) if baseline_total_fte > 0 else 0.0
+        
+        # Calculate non-debit ratio (senior consultants / total consultants)
+        current_non_debit_ratio = (senior_consultants / current_consultants * 100) if current_consultants > 0 else 0.0
+        baseline_senior = 0
+        
+        # Calculate baseline senior consultants
+        for office in baseline_data.get('offices', []):
+            if 'Consultant' in office.get('roles', {}):
+                consultant_roles = office['roles']['Consultant']
+                for level_name, level_data in consultant_roles.items():
+                    if level_name in ['M', 'SrM', 'PiP']:
+                        baseline_senior += level_data.get('fte', 0)
+        
+        baseline_non_debit_ratio = (baseline_senior / baseline_consultants * 100) if baseline_consultants > 0 else 0.0
+        
+        return GrowthKPIs(
+            total_growth_percent=total_growth_rate,
+            total_growth_absolute=current_total_fte - baseline_total_fte,
+            current_total_fte=current_total_fte,
+            baseline_total_fte=baseline_total_fte,
+            non_debit_ratio=current_non_debit_ratio,
+            non_debit_ratio_baseline=baseline_non_debit_ratio,
+            non_debit_delta=current_non_debit_ratio - baseline_non_debit_ratio
+        )
+    
+    def _calculate_journey_metrics(self, final_year_data: Dict[str, Any]) -> JourneyKPIs:
+        """Calculate journey distribution metrics"""
+        
+        # Get baseline data for comparison
+        baseline_data = self._get_baseline_data()
+        
+        # Calculate baseline journey totals
+        baseline_journey_totals = {
+            "Journey 1": 0,  # A, AC, C
+            "Journey 2": 0,  # SrC, AM
+            "Journey 3": 0,  # M, SrM
+            "Journey 4": 0   # PiP
+        }
+        
+        # Journey level mappings
+        journey_mappings = {
+            "Journey 1": ["A", "AC", "C"],
+            "Journey 2": ["SrC", "AM"],
+            "Journey 3": ["M", "SrM"],
+            "Journey 4": ["PiP"]
+        }
+        
+        # Calculate baseline journey totals from baseline data
+        for office in baseline_data.get('offices', []):
+            office_roles = office.get('roles', {})
+            for role_name, role_data in office_roles.items():
+                if role_name in ['Consultant', 'Sales', 'Recruitment']:
+                    for level_name, level_data in role_data.items():
+                        level_fte = level_data.get('fte', 0)
+                        # Map level to journey
+                        for journey_name, levels in journey_mappings.items():
+                            if level_name in levels:
+                                baseline_journey_totals[journey_name] += level_fte
+        
+        print(f"[KPI DEBUG] BASELINE Journey totals: {baseline_journey_totals}")
+        
+        # Calculate current journey totals by aggregating from all levels across all offices
+        current_journey_totals = {
+            "Journey 1": 0,
+            "Journey 2": 0,
+            "Journey 3": 0,
+            "Journey 4": 0
+        }
+        
+        # Aggregate journey totals from all office levels
+        for office_name, office_data in final_year_data.get('offices', {}).items():
+            office_levels = office_data.get('levels', {})
+            
+            # Process all roles that have levels
+            for role_name, role_data in office_levels.items():
+                if role_name in ['Consultant', 'Sales', 'Recruitment']:
+                    for level_name, level_results in role_data.items():
+                        if level_results:  # Check if there are results for this level
+                            # Get the latest month's data
+                            if isinstance(level_results, list) and len(level_results) > 0:
+                                latest_data = level_results[-1]
+                                fte_count = latest_data.get('total', 0) if isinstance(latest_data, dict) else 0
+                                
+                                # Map level to journey and add to totals
+                                for journey_name, levels in journey_mappings.items():
+                                    if level_name in levels:
+                                        current_journey_totals[journey_name] += fte_count
+                                        print(f"[KPI DEBUG] {office_name} {role_name} {level_name}: {fte_count} FTE → {journey_name}")
+        
+        print(f"[KPI DEBUG] CURRENT Journey totals: {current_journey_totals}")
+        
+        total_current_fte = sum(current_journey_totals.values())
+        total_baseline_fte = sum(baseline_journey_totals.values())
+        
+        # Calculate percentages
+        current_percentages = {}
+        baseline_percentages = {}
+        journey_deltas = {}
+        
+        for journey_name in current_journey_totals.keys():
+            current_total = current_journey_totals[journey_name]
+            baseline_total = baseline_journey_totals[journey_name]
+            
+            current_pct = (current_total / total_current_fte * 100) if total_current_fte > 0 else 0.0
+            baseline_pct = (baseline_total / total_baseline_fte * 100) if total_baseline_fte > 0 else 0.0
+            
+            current_percentages[journey_name] = current_pct
+            baseline_percentages[journey_name] = baseline_pct
+            journey_deltas[journey_name] = current_total - baseline_total
+        
+        print(f"[KPI DEBUG] Journey percentages - Current: {current_percentages}, Baseline: {baseline_percentages}")
+        print(f"[KPI DEBUG] Journey deltas: {journey_deltas}")
+        
+        return JourneyKPIs(
+            journey_totals=current_journey_totals,
+            journey_percentages=current_percentages,
+            journey_deltas=journey_deltas,
+            journey_totals_baseline=baseline_journey_totals,
+            journey_percentages_baseline=baseline_percentages
+        )
+    
+    def calculate_kpis_for_year(
+        self, 
+        simulation_results: Dict[str, Any], 
+        target_year: str,
+        simulation_duration_months: int,
+        unplanned_absence: float = 0.05,
+        other_expense: float = None
+    ) -> AllKPIs:
+        """
+        Calculate KPIs for a specific year only (not aggregated across all years).
+        This enables year-by-year comparison in the frontend.
+        """
+        if other_expense is None:
+            other_expense = self.default_other_expense
+        
+        try:
+            # Get baseline data from hardcoded config (avoid circular dependency)
+            baseline_data = self._get_baseline_data()
+            
+            # Calculate baseline financial metrics (always 12 months for comparison)
+            baseline_financial = self._calculate_baseline_financial_metrics(
+                baseline_data, 
+                unplanned_absence, 
+                other_expense,
+                duration_months=12  # Always use 12 months for baseline
+            )
+            
+            # Extract target year data
+            if target_year not in simulation_results.get('years', {}):
+                raise ValueError(f"Year {target_year} not found in simulation results")
+            
+            target_year_data = simulation_results['years'][target_year]
+            
+            # Calculate current year financial metrics (12 months for annual comparison)
+            current_financial = self._calculate_current_financial_metrics(
+                target_year_data,
+                unplanned_absence,
+                other_expense,
+                duration_months=12  # Always use 12 months for annual comparison
+            )
+            
+            # Calculate growth metrics
+            growth_metrics = self._calculate_growth_metrics(
+                baseline_data,
+                target_year_data
+            )
+            
+            # Calculate journey distribution
+            journey_metrics = self._calculate_journey_metrics(target_year_data)
+            
+            # Create financial KPIs
+            financial_kpis = FinancialKPIs(
+                net_sales=current_financial['total_revenue'],
+                net_sales_baseline=baseline_financial['total_revenue'],
+                total_salary_costs=current_financial['total_salary_costs'],
+                total_salary_costs_baseline=baseline_financial['total_salary_costs'],
+                ebitda=current_financial['ebitda'],
+                ebitda_baseline=baseline_financial['ebitda'],
+                margin=current_financial['margin'],
+                margin_baseline=baseline_financial['margin'],
+                total_consultants=current_financial.get('total_consultants', 0),
+                total_consultants_baseline=baseline_financial.get('total_consultants', 0),
+                avg_hourly_rate=current_financial['avg_hourly_rate'],
+                avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
+                avg_utr=0.85
+            )
+            
+            print(f"[KPI DEBUG] =================== YEAR {target_year} FINANCIAL CALCULATION ===================")
+            print(f"[KPI DEBUG] Total Revenue: {current_financial['total_revenue']:,.0f} SEK")
+            print(f"[KPI DEBUG] Total Salary Costs: {current_financial['total_salary_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] Total Costs: {current_financial['total_costs']:,.0f} SEK")
+            print(f"[KPI DEBUG] EBITDA: {current_financial['ebitda']:,.0f} SEK")
+            print(f"[KPI DEBUG] Margin: {current_financial['margin']:.2%}")
+            print(f"[KPI DEBUG] Avg Hourly Rate: {current_financial['avg_hourly_rate']:.2f} SEK")
+            print(f"[KPI DEBUG] ================================================================")
+            
+            return AllKPIs(
+                financial=financial_kpis,
+                growth=growth_metrics,
+                journeys=journey_metrics,
+                yearly_kpis={}  # Not needed for single year calculation
+            )
+            
+        except Exception as e:
+            import traceback
+            print(f"[KPI ERROR] Exception in calculate_kpis_for_year: {e}")
+            print(f"[KPI ERROR] Traceback: {traceback.format_exc()}")
+            raise e 

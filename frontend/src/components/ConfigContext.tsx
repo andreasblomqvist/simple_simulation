@@ -106,7 +106,7 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Fetch configuration status from API
   const refreshConfigStatus = async () => {
     try {
-      const response = await fetch('/api/simulation/config/validation');
+      const response = await fetch('/api/offices/config/validation');
       if (response.ok) {
         const data = await response.json();
         setConfigStatus({
