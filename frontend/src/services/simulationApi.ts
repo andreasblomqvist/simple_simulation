@@ -139,7 +139,7 @@ class SimulationApiService {
   }
 
   /**
-   * Extract KPI data from simulation results for display
+   * Extract key KPI data from simulation results for a specific year and compare with baseline
    */
   extractKPIData(results: SimulationResults, year: string): any[] {
     const yearData = results.years?.[year];
@@ -196,7 +196,7 @@ class SimulationApiService {
         changePercent: baselineNetSales > 0 ? (netSalesChange / baselineNetSales) * 100 : (currentNetSales > 0 ? 100 : 0),
         rawValue: currentNetSales
       },
-      {
+      { 
         title: 'Total Salary Costs',
         currentValue: this.formatValue(currentSalaryCosts, 'revenue'),
         previousValue: this.formatValue(baselineSalaryCosts, 'revenue'),
@@ -206,8 +206,8 @@ class SimulationApiService {
         changePercent: baselineSalaryCosts > 0 ? (salaryCostsChange / baselineSalaryCosts) * 100 : (currentSalaryCosts > 0 ? 100 : 0),
         rawValue: currentSalaryCosts
       },
-      {
-        title: 'EBITDA',
+      { 
+        title: 'EBITDA', 
         currentValue: this.formatValue(currentEbitda, 'revenue'),
         previousValue: this.formatValue(baselineEbitda, 'revenue'),
         unit: 'mSEK',
@@ -487,9 +487,12 @@ class SimulationApiService {
     }));
   }
 
-  private formatValue(value: number, type: 'revenue' | 'percentage' | 'rate'): string {
+  /**
+   * Format values for display
+   */
+  formatValue(value: number, type: 'revenue' | 'percentage' | 'rate'): string {
     if (value === null || value === undefined) return '0.0';
-    
+
     if (type === 'revenue') {
       return (value / 1000000).toFixed(1); // Convert to millions
     } else if (type === 'percentage') {

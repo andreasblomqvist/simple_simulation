@@ -231,7 +231,7 @@ class KPIService:
                         # level_fte is directly an integer, not a dict
                         # Get pricing from BASE_PRICING or use defaults
                         default_price = BASE_PRICING.get(office_name, {}).get(level_name, 1000.0)
-                        default_salary = default_price * 0.5  # Approximate salary as 50% of price
+                        default_salary = BASE_SALARIES.get(office_name, {}).get(level_name, 40000.0) # Use actual monthly salary
                         
                         office_baseline['roles'][role_name][level_name] = {
                             'fte': level_fte,
@@ -260,117 +260,54 @@ class KPIService:
         other_expense: float,
         duration_months: int = 12
     ) -> Dict[str, float]:
-        """Calculate baseline financial metrics"""
-        
-        total_revenue = 0.0
-        total_costs = 0.0
-        total_salary_costs = 0.0  # Track salary costs separately
+        """Calculate financial metrics for the baseline year based on architecture doc"""
+        total_revenue = 0
+        total_salary_costs = 0
         total_consultants = 0
-        total_weighted_price = 0.0
-        total_weighted_utr = 0.0
-        
-        print(f"[DEBUG] BASELINE CALCULATION START")
         
         for office in baseline_data['offices']:
-            office_name = office['name']
-            
-            # Only consultants generate revenue
-            if 'Consultant' in office['roles']:
-                consultant_roles = office['roles']['Consultant']
-                for level_name, level_data in consultant_roles.items():
-                    fte_count = level_data['fte']
-                    hourly_rate = level_data['price_1']
-                    utr = level_data['utr_1']
-                    salary = level_data['salary_1']
-                    
-                    if fte_count > 0:
-                        print(f"[DEBUG] BASELINE {office_name} {level_name} - FTE: {fte_count}, Price: {hourly_rate} SEK/hr, Salary: {salary} SEK/month")
-                        
-                        # Calculate revenue
-                        available_hours = self.working_hours_per_month * (1 - unplanned_absence)
-                        billable_hours = available_hours * utr
-                        monthly_revenue_per_person = hourly_rate * billable_hours
-                        level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
-                        total_revenue += level_total_revenue
-                        
-                        print(f"[DEBUG] BASELINE REVENUE CALC {office_name} {level_name}:")
-                        print(f"  FTE: {fte_count}")
-                        print(f"  Price: {hourly_rate} SEK/hr")
-                        print(f"  Total working hours/month: {self.working_hours_per_month}")
-                        print(f"  Unplanned absence rate: {unplanned_absence:.1%}")
-                        print(f"  Available hours: {available_hours:.1f}")
-                        print(f"  Billable hours ({utr:.0%} UTR): {billable_hours}")
-                        print(f"  Duration months: {duration_months}")
-                        print(f"  Formula: {fte_count} * ({hourly_rate} * {billable_hours}) * {duration_months}")
-                        print(f"  Result: {level_total_revenue:,.0f} SEK")
-                        
-                        # Calculate costs
-                        base_salary_cost = fte_count * salary * duration_months
-                        total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                        total_costs += total_employment_cost
-                        total_salary_costs += base_salary_cost  # Track salary costs separately
-                        
-                        print(f"[DEBUG] BASELINE {office_name} {level_name} - Revenue: {level_total_revenue:,.0f} SEK, Costs: {total_employment_cost:,.0f} SEK, Profit: {level_total_revenue - total_employment_cost:,.0f} SEK")
-                        print(f"[DEBUG] BASELINE {office_name} {level_name} COST BREAKDOWN:")
-                        print(f"  Base salary cost ({duration_months} months): {base_salary_cost:,.0f} SEK")
-                        print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {total_employment_cost - base_salary_cost:,.0f} SEK")
-                        print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
-                        
-                        # Track for weighted averages
-                        total_consultants += fte_count
-                        total_weighted_price += hourly_rate * fte_count
-                        total_weighted_utr += utr * fte_count
-            
-            # Calculate costs for all other roles (non-revenue generating)
             for role_name, role_data in office['roles'].items():
-                if role_name != 'Consultant':
-                    if isinstance(role_data, dict) and 'fte' in role_data:
-                        # Flat role like Operations
-                        fte_count = role_data['fte']
-                        salary = role_data['salary_1']
-                        if fte_count > 0:
-                            base_salary_cost = fte_count * salary * duration_months
-                            total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                            total_costs += total_employment_cost
-                            total_salary_costs += base_salary_cost  # Track salary costs separately
-                    else:
-                        # Role with levels
-                        for level_name, level_data in role_data.items():
-                            fte_count = level_data['fte']
-                            salary = level_data['salary_1']
-                            if fte_count > 0:
-                                base_salary_cost = fte_count * salary * duration_months
-                                total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                                total_costs += total_employment_cost
-                                total_salary_costs += base_salary_cost  # Track salary costs separately
+                
+                # Determine levels to process (handles both flat and leveled roles)
+                levels_to_process = {None: role_data} if 'fte' in role_data else role_data
+
+                for level_name, level_data in levels_to_process.items():
+                    fte = level_data.get('fte', 0)
+                    if fte == 0: continue
+
+                    # Financial calculations per FTE
+                    price = level_data.get('price_1', 0)
+                    salary = level_data.get('salary_1', 0)
+                    utr = level_data.get('utr_1', 0.85)
+
+                    # Revenue is only generated by consultants
+                    if role_name == 'Consultant':
+                        monthly_revenue_per_fte = price * utr * self.working_hours_per_month * (1 - unplanned_absence)
+                        total_revenue += fte * monthly_revenue_per_fte
+                        total_consultants += fte
+                    
+                    # Salary costs are for all roles
+                    monthly_salary_cost_per_fte = salary * (1 + self.total_employment_cost_rate)
+                    total_salary_costs += fte * monthly_salary_cost_per_fte
+
+        # Annualize for the full simulation period
+        total_revenue *= duration_months
+        total_salary_costs *= duration_months
         
-        # Add other expenses (global monthly cost, not per office)
-        group_other_expenses = other_expense * duration_months
-        total_costs += group_other_expenses
-        print(f"[DEBUG] BASELINE Added other expenses (global total): {group_other_expenses:,.0f} SEK")
-        
-        # Calculate final metrics
+        # Final calculations
+        total_costs = total_salary_costs + (other_expense * duration_months)
         ebitda = total_revenue - total_costs
-        margin = ebitda / total_revenue if total_revenue > 0 else 0.0
-        avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
-        
-        print(f"[DEBUG] BASELINE FINAL TOTALS:")
-        print(f"[DEBUG] BASELINE Total Consultants: {total_consultants}")
-        print(f"[DEBUG] BASELINE Total Revenue: {total_revenue:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Total Salary Costs: {total_salary_costs:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Total Costs (including overhead): {total_costs:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Other Expenses: {group_other_expenses:,.0f} SEK")
-        print(f"[DEBUG] BASELINE EBITDA: {ebitda:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Margin: {margin:.2%}")
-        
+        margin = (ebitda / total_revenue) if total_revenue > 0 else 0
+        avg_hourly_rate = (total_revenue / total_consultants / self.working_hours_per_month / duration_months) if total_consultants > 0 else 0
+
         return {
             'total_revenue': total_revenue,
-            'total_costs': total_costs,
             'total_salary_costs': total_salary_costs,
+            'total_costs': total_costs,
             'ebitda': ebitda,
             'margin': margin,
-            'avg_hourly_rate': avg_hourly_rate,
-            'total_consultants': total_consultants
+            'total_consultants': total_consultants,
+            'avg_hourly_rate': avg_hourly_rate
         }
     
     def _calculate_current_financial_metrics(
