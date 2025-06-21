@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: office-config
+  namespace: simplesim
+data:
+  office_configuration.json: |
+    {{- .Files.Get "config/office_configuration.json" | nindent 4 }} 
