@@ -1696,22 +1696,20 @@ const SimulationLabV2: React.FC = () => {
                         yearlyTotals.progressedOut += periodData.progressed_out || 0;
                         yearlyTotals.progressedIn += periodData.progressed_in || 0;
 
-                        if (periodData.recruited > 0 || periodData.churned > 0 || periodData.progressed_out > 0 || periodData.progressed_in > 0) {
-                          monthlyData.push({
-                            key: `${officeName}-${role}-${level}-${periodIndex}`,
-                            office: officeName,
-                            role: role,
-                            level: level,
-                            period: `Month ${periodIndex + 1}`,
-                            periodIndex: periodIndex,
-                            recruited: periodData.recruited || 0,
-                            churned: periodData.churned || 0,
-                            progressedOut: periodData.progressed_out || 0,
-                            progressedIn: periodData.progressed_in || 0,
-                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
-                            totalAfter: periodData.total || 0
-                          });
-                        }
+                        monthlyData.push({
+                          key: `${officeName}-${role}-${level}-${periodIndex}`,
+                          office: officeName,
+                          role: role,
+                          level: level,
+                          period: `Month ${periodIndex + 1}`,
+                          periodIndex: periodIndex,
+                          recruited: periodData.recruited || 0,
+                          churned: periodData.churned || 0,
+                          progressedOut: periodData.progressed_out || 0,
+                          progressedIn: periodData.progressed_in || 0,
+                          totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
+                          totalAfter: periodData.total || 0
+                        });
                       });
 
                       // Always add a yearly total row to ensure visibility
