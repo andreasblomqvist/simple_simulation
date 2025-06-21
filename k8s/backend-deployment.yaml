@@ -42,6 +42,9 @@ spec:
           env:
             - name: PYTHONPATH
               value: "/app"
+          volumeMounts:
+            - name: office-config-volume
+              mountPath: /app/config
           resources:
             requests:
               memory: "1Gi"
@@ -63,3 +66,7 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
+      volumes:
+        - name: office-config-volume
+          configMap:
+            name: office-config
