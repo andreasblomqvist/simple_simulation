@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
 from backend.src.services.simulation_engine import SimulationEngine
+from backend.src.services.config_service import config_service
 from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES, OFFICE_HEADCOUNT
 
 router = APIRouter(prefix="/offices", tags=["offices"])
@@ -15,97 +16,47 @@ def set_engine(simulation_engine: SimulationEngine):
 
 @router.get("/config")
 def get_office_config():
-    """Get raw office configuration data WITHOUT going through simulation engine"""
-    offices_out = []
+    """Get configuration data from configuration service (NOT simulation engine)"""
+    return config_service.get_configuration()
+
+@router.post("/config/update")
+async def update_office_config(changes: dict):
+    """Update configuration in the configuration service"""
+    updated_count = config_service.update_configuration(changes)
     
-    for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
-        total_fte = OFFICE_HEADCOUNT.get(office_name, 0)
-        
-        # Determine office journey based on total FTE
-        if total_fte >= 500:
-            journey = "Mature Office"
-        elif total_fte >= 200:
-            journey = "Established Office"
-        elif total_fte >= 25:
-            journey = "Emerging Office"
-        else:
-            journey = "New Office"
-        
-        roles_out = {}
-        
-        # Process roles with levels (Consultant, Sales, Recruitment)
-        for role_name in ["Consultant", "Sales", "Recruitment"]:
-            if role_name in office_data:
-                role_levels = office_data[role_name]
-                roles_out[role_name] = {}
-                
-                for level_name, fte in role_levels.items():
-                    if fte > 0:  # Only include levels with actual FTE
-                        # Get pricing and salary
-                        base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-                        base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-                        price = base_prices.get(level_name, 0.0)
-                        salary = base_salaries.get(level_name, 0.0)
-                        
-                        # Get rates
-                        if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                            recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
-                        else:
-                            recruitment_rate = 0.01
-                        
-                        if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                            churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                        elif role_name in DEFAULT_RATES['churn']:
-                            churn_rate = DEFAULT_RATES['churn'][role_name]
-                        else:
-                            churn_rate = 0.014
-                        
-                        # Set progression rate based on level using correct rates
-                        progression_map = {
-                            'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
-                            'A': 0.15, 'AC': 0.12, 'PiP': 0.0
-                        }
-                        progression_rate = progression_map.get(level_name, 0.10)
-                        
-                        roles_out[role_name][level_name] = {
-                            "total": fte,
-                            **{f"price_{i}": price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                            **{f"salary_{i}": salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                            **{f"recruitment_{i}": recruitment_rate for i in range(1, 13)},
-                            **{f"churn_{i}": churn_rate for i in range(1, 13)},
-                            **{f"progression_{i}": progression_rate if i in [1, 6] else 0.0 for i in range(1, 13)},
-                            **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
-                        }
-        
-        # Process Operations (flat role)
-        if "Operations" in office_data and office_data["Operations"] > 0:
-            operations_fte = office_data["Operations"]
-            base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-            base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-            op_price = base_prices.get('Operations', 80.0)
-            op_salary = base_salaries.get('Operations', 40000.0)
-            
-            operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.021)
-            operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.0149)
-            
-            roles_out["Operations"] = {
-                "total": operations_fte,
-                **{f"price_{i}": op_price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                **{f"salary_{i}": op_salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                **{f"recruitment_{i}": operations_recruitment for i in range(1, 13)},
-                **{f"churn_{i}": operations_churn for i in range(1, 13)},
-                **{f"progression_{i}": 0.0 for i in range(1, 13)},  # Operations has no progression
-                **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
-            }
-        
-        offices_out.append({
-            "name": office_name,
-            "total_fte": total_fte,
-            "journey": journey,
-            "roles": roles_out
-        })
+    return {
+        "status": "success",
+        "message": f"Updated {updated_count} configuration values",
+        "updated_count": updated_count,
+        "total_changes": len(changes)
+    }
+
+@router.post("/config/import")
+async def import_office_config(file: UploadFile = File(...)):
+    """Import configuration from Excel file into configuration service"""
+    # Read file content into memory
+    content = await file.read()
+    df = pd.read_excel(content)
     
-    return offices_out
+    # Import into configuration service
+    updated_count = config_service.import_from_excel(df)
+    
+    return {
+        "status": "success", 
+        "message": f"Imported {updated_count} configuration changes",
+        "rows": len(df), 
+        "updated": updated_count
+    }
+
+@router.post("/config/reset")
+async def reset_office_config():
+    """Reset configuration back to defaults"""
+    config_service.reset_to_defaults()
+    
+    return {
+        "status": "success",
+        "message": "Configuration reset to defaults"
+    }
 
 def _serialize_monthly_attributes(obj, attributes: list) -> dict:
     """Helper to serialize monthly attributes (1-12) for an object"""
@@ -199,8 +150,9 @@ async def import_office_levers(file: UploadFile = File(...)):
                         updated_count += 1
                 else:
                     # Flat role (Operations) - ignore level, update directly
-                    _update_monthly_attributes(role_data, row)
-                    updated_count += 1
+                    if role_type == "Operations":  # Only update Operations for flat roles
+                        _update_monthly_attributes(role_data, row)
+                        updated_count += 1
     
     print(f"[IMPORT] ✅ Import complete: {updated_count} rows updated")
     return {"status": "success", "rows": len(df), "updated": updated_count}
@@ -231,7 +183,95 @@ def _update_monthly_attributes(obj, row):
                         
                         # Set the converted value
                         setattr(obj, attr_name, converted_value)
+                        print(f"[IMPORT] Set {attr_name} = {converted_value} (from '{value}')")
                         
                     except (ValueError, TypeError) as e:
                         print(f"[IMPORT] Error converting {col_name}='{row[col_name]}': {e}")
                         continue 
+
+@router.post("/config/apply")
+async def apply_config_changes(changes: dict):
+    """Apply configuration changes to the simulation engine"""
+    # Initialize engine offices if not already done
+    if not engine.offices:
+        print("[CONFIG] Initializing simulation engine offices before applying changes...")
+        engine._initialize_offices()
+        engine._initialize_roles_with_levers(None)
+        print(f"[CONFIG] ✓ Initialized {len(engine.offices)} offices")
+    
+    updated_count = 0
+    
+    print(f"[CONFIG] Applying {len(changes)} configuration changes...")
+    
+    for path, value in changes.items():
+        try:
+            # Parse the path: office.role.level.field or office.role.field
+            path_parts = path.split('.')
+            if len(path_parts) < 3:
+                print(f"[CONFIG] ⚠️ Skipping invalid path: {path}")
+                continue
+                
+            office_name = path_parts[0]
+            role_type = path_parts[1]
+            
+            # Find the office
+            office = engine.offices.get(office_name)
+                    
+            if not office:
+                print(f"[CONFIG] ⚠️ Office not found: {office_name}")
+                continue
+                
+            # Handle Operations (flat structure) vs other roles (level-based)
+            if role_type == "Operations":
+                # Operations: office.role.field
+                if len(path_parts) != 3:
+                    print(f"[CONFIG] ⚠️ Invalid Operations path: {path}")
+                    continue
+                    
+                field = path_parts[2]
+                if hasattr(office.roles.get(role_type), field):
+                    setattr(office.roles[role_type], field, value)
+                    print(f"[CONFIG] ✓ Updated {path} = {value}")
+                    updated_count += 1
+                else:
+                    print(f"[CONFIG] ⚠️ Field not found: {field} in {role_type}")
+                    
+            else:
+                # Other roles: office.role.level.field
+                if len(path_parts) != 4:
+                    print(f"[CONFIG] ⚠️ Invalid role path: {path}")
+                    continue
+                    
+                level = path_parts[2]
+                field = path_parts[3]
+                
+                # Check if role and level exist
+                if role_type in office.roles:
+                    role_data = office.roles[role_type]
+                    
+                    # Check if role has levels (dict) or is flat (RoleData object)
+                    if isinstance(role_data, dict) and level in role_data:
+                        # Dictionary-based role with levels
+                        role_level_obj = role_data[level]
+                        if hasattr(role_level_obj, field):
+                            setattr(role_level_obj, field, value)
+                            print(f"[CONFIG] ✓ Updated {path} = {value}")
+                            updated_count += 1
+                        else:
+                            print(f"[CONFIG] ⚠️ Field not found: {field} in {role_type}.{level}")
+                    else:
+                        print(f"[CONFIG] ⚠️ Level not found or role is not dict-based: {role_type}.{level}")
+                else:
+                    print(f"[CONFIG] ⚠️ Role not found: {role_type}")
+                    
+        except Exception as e:
+            print(f"[CONFIG] ❌ Error updating {path}: {str(e)}")
+    
+    print(f"[CONFIG] ✅ Applied {updated_count} configuration changes")
+    
+    return {
+        "status": "success",
+        "message": f"Applied {updated_count} configuration changes",
+        "updated_count": updated_count,
+        "total_changes": len(changes)
+    } 

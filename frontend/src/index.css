@@ -11,4 +11,61 @@
 .summary-card-dark {
   background-color: #1f1f1f !important;
   border: 1px solid #303030 !important;
-} 
+}
+
+/* Dark mode styles for simulation configuration card */
+.simulation-config-card-dark {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+}
+
+.simulation-config-card-dark .ant-card-body {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+}
+
+.simulation-config-card-dark .ant-typography {
+  color: #ffffff !important;
+}
+
+.simulation-config-card-dark .ant-card-head {
+  background-color: #1f1f1f !important;
+  border-bottom-color: #303030 !important;
+}
+
+.simulation-config-card-dark .ant-card-head-title {
+  color: #ffffff !important;
+}
+
+/* Light mode styles for simulation configuration card */
+.simulation-config-card-light {
+  background-color: #f0f9ff !important;
+  color: inherit;
+}
+
+/* Summary cards for movement logs */
+.summary-card-dark {
+  background-color: #1f1f1f !important;
+  border: 1px solid #303030 !important;
+  color: #ffffff !important;
+}
+
+.summary-card-dark .ant-typography {
+  color: #ffffff !important;
+}
+
+.summary-card-dark .ant-typography.ant-typography-secondary {
+  color: #d9d9d9 !important;
+}
+
+.summary-card-dark span {
+  color: #ffffff !important;
+}
+
+.summary-card-light {
+  background-color: #fafafa !important;
+  border: 1px solid #f0f0f0 !important;
+  color: inherit;
+}
+
+ 

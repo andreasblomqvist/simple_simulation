@@ -1,0 +1,191 @@
+# Cursor Rules for SimpleSim Project
+
+## Automatic Version Management
+
+### Rule: Auto-increment Patch Version on Push
+- **Trigger**: Before every `git push` command
+- **Action**: Automatically increment the patch version (third number) in:
+  - `frontend/package.json` - `version` field
+  - `backend/setup.py` - `version` parameter
+- **Format**: `MAJOR.MINOR.PATCH` (e.g., `1.4.0` → `1.4.1` → `1.4.2`)
+- **Scope**: Increment patch for bug fixes, small improvements, and routine updates
+- **Commit Message**: Include the version bump in the commit message
+
+### Version Increment Guidelines:
+- **PATCH** (third number): Bug fixes, small improvements, configuration changes
+- **MINOR** (second number): New features, significant functionality additions  
+- **MAJOR** (first number): Breaking changes, major architecture updates
+
+### Implementation:
+1. Before pushing, check current versions in both files
+2. Increment patch version by 1 in both files
+3. Commit the version bump with message: `"Bump version: x.y.z → x.y.(z+1)"`
+4. Then proceed with the original push
+
+### Example Workflow:
+```bash
+# Current: frontend 1.4.0, backend 0.3.0
+# After auto-increment: frontend 1.4.1, backend 0.3.1
+git add .
+git commit -m "Fix absence calculation bug"
+# Auto-increment versions here
+git commit -m "Bump version: frontend 1.4.0 → 1.4.1, backend 0.3.0 → 0.3.1"
+git push origin master
+```
+
+## Server Port Management
+
+### Rule: Always Kill Old Instances and Restart on Port Conflicts
+- **Problem**: "Address already in use" errors when starting servers
+- **Solution**: Automatically kill existing processes and restart with clean state
+- **Trigger**: When encountering port conflicts or when restarting development servers
+- **Ports Managed**: Backend (8000, 8001), Frontend (3000, 3001, 3002, 3003)
+
+### Available Scripts:
+```bash
+# Full system restart (recommended)
+./scripts/restart-servers.sh
+
+# Individual server management
+./scripts/start-backend.sh     # Start only backend
+./scripts/start-frontend.sh    # Start only frontend
+./scripts/kill-servers.sh      # Stop all servers
+
+# Manual commands (if scripts unavailable)
+# Kill all servers:
+pkill -f uvicorn && pkill -f vite && lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9
+
+# Start backend:
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend:
+cd frontend && npm run dev
+```
+
+### Complete Restart Workflow (Step-by-Step)
+
+When encountering "Address already in use" or module import errors, follow this exact sequence:
+
+#### 1. Emergency Kill All Processes
+```bash
+# Kill all Python/FastAPI processes
+pkill -f uvicorn || true
+pkill -f python3 || true
+
+# Kill all Node/Vite processes  
+pkill -f vite || true
+pkill -f node || true
+
+# Kill processes by port (nuclear option)
+lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9 2>/dev/null || true
+
+# Wait for processes to fully terminate
+sleep 3
+```
+
+#### 2. Clean Python Cache and Environment
+```bash
+# Remove all Python cache files
+find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+
+# Clear any stale imports
+unset PYTHONPATH
+export PYTHONPATH=.
+```
+
+#### 3. Start Backend (from project root)
+```bash
+# Method 1: Preferred approach
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Method 2: If Method 1 fails
+cd backend
+PYTHONPATH=/Users/andreasblomqvist/Code/simple-simulation/simple_simulation python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd ..
+
+# Method 3: Alternative port if 8000 is stuck
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+#### 4. Start Frontend (separate terminal)
+```bash
+cd frontend
+
+# Clear Vite cache
+rm -rf node_modules/.vite dist 2>/dev/null || true
+
+# Start frontend (will auto-find available port)
+npm run dev
+```
+
+#### 5. Health Check
+```bash
+# Test backend
+curl -s http://localhost:8000/health || curl -s http://localhost:8001/health
+
+# Check which ports are active
+lsof -i:8000,8001,3000,3001,3002,3003
+```
+
+### Implementation Guidelines:
+1. **Always kill before start**: Never attempt to start servers without cleaning existing processes
+2. **Clear Python cache**: Remove `__pycache__` directories to prevent stale imports
+3. **Wait between operations**: Add 2-3 second delays for process termination
+4. **Use proper PYTHONPATH**: Set `PYTHONPATH=.` for backend to prevent module import errors
+5. **Handle errors gracefully**: Use `|| true` and `2>/dev/null` to prevent script failures
+6. **Port flexibility**: Backend can use 8000 or 8001, frontend auto-detects 3000-3003
+
+### Common Error Solutions:
+
+**"ModuleNotFoundError: No module named 'backend'"**
+- Solution: Always set `PYTHONPATH=.` and run from project root
+- Command: `PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+
+**"Address already in use"**
+- Solution: Kill all processes and wait before restart
+- Command: `pkill -f uvicorn; sleep 3; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+
+**Frontend port conflicts**
+- Solution: Vite auto-detects available ports (3000→3001→3002→3003)
+- Clear cache: `rm -rf node_modules/.vite dist`
+
+### Error Prevention Checklist:
+- ✅ Kill processes by both name and port
+- ✅ Clear Python cache before restart
+- ✅ Wait for processes to fully terminate
+- ✅ Use absolute PYTHONPATH for backend
+- ✅ Check server health after restart
+- ✅ Handle missing processes gracefully
+- ✅ Use port flexibility (8000/8001 for backend, 3000-3003 for frontend)
+
+### Quick Commands Reference:
+```bash
+# Emergency stop everything
+pkill -f uvicorn; pkill -f vite; lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9
+
+# Clean restart backend only
+pkill -f uvicorn; rm -rf backend/__pycache__; sleep 2; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Clean restart frontend only  
+pkill -f vite; sleep 2; cd frontend && npm run dev
+
+# Check what's running on ports
+lsof -i:8000,3000,3001,3002,3003
+
+# Full nuclear restart (when everything is stuck)
+pkill -f uvicorn; pkill -f vite; pkill -f node; lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9; sleep 5; find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 &; cd frontend && npm run dev
+```
+
+## Code Quality Rules
+
+### Always follow existing patterns:
+- Use TypeScript for frontend
+- Use Python type hints for backend
+- Maintain consistent error handling
+- Add comprehensive logging for debugging
+
+### Testing Requirements:
+- Test critical paths before pushing
+- Validate both frontend and backend functionality
+- Ensure API endpoints work correctly 

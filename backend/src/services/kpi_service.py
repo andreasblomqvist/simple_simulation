@@ -58,7 +58,7 @@ class KPIService:
     
     def __init__(self):
         self.working_hours_per_month = 166.4  # Standard working hours per month
-        self.total_employment_cost_rate = 0.40  # 40% total employment costs (includes social security, pensions, health insurance, vacation accruals, etc.)
+        self.total_employment_cost_rate = 0.50  # 50% total employment costs (Swedish: arbetsgivaravgift 31.42% + semestertillägg 12% + tjänstepension 5% + försäkringar 5% + särskild löneskatt ~1.2%)
     
     def calculate_all_kpis(
         self, 
@@ -367,10 +367,13 @@ class KPIService:
         ebitda = total_revenue - total_costs
         margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
         
-        print(f"[DEBUG] EBITDA: {ebitda:,.0f} SEK")
-        print(f"[DEBUG] Margin: {margin:.2f}%")
-        print(f"[DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
-        print(f"[DEBUG] Avg UTR: {avg_utr:.2f}")
+        print(f"\n[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
+        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Costs: {total_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
+        print(f"[KPI DEBUG] Margin: {margin:.2f}%")
+        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
+        print(f"[KPI DEBUG] ================================================================\n")
         
         return {
             'net_sales': total_revenue,
@@ -502,13 +505,20 @@ class KPIService:
                 if isinstance(operations_data, list) and len(operations_data) > 0:
                     last_month_data = operations_data[-1]
                     if isinstance(last_month_data, dict):
-                        non_debit_fte += last_month_data.get('total', 0)
-                    else:
-                        non_debit_fte += last_month_data
+                        fte = last_month_data.get('total', 0)
+                        salary = last_month_data.get('salary', 0)
+                        if fte > 0:
+                            # Fix: Add total employment cost rate (40%) to salary costs
+                            non_debit_fte += fte
                 elif isinstance(operations_data, dict):
-                    non_debit_fte += operations_data.get('total', 0)
+                    fte = operations_data.get('total', 0)
+                    salary = operations_data.get('salary', 0)
+                    if fte > 0:
+                        # Fix: Add total employment cost rate (40%) to salary costs
+                        non_debit_fte += fte
                 elif isinstance(operations_data, int):
-                    non_debit_fte += operations_data
+                    # This shouldn't happen in simulation data, but handle it
+                    print(f"[KPI DEBUG]   Operations: unexpected int data type: {operations_data}")
         
         return (non_debit_fte / total_fte * 100) if total_fte > 0 else 0.0
     
@@ -580,27 +590,35 @@ class KPIService:
         unplanned_absence: float,
         other_expense: float
     ) -> FinancialKPIs:
-        """Calculate financial KPIs from simulation results"""
+        """Calculate financial KPIs from simulation results - Fixed to use yearly method"""
+        print(f"\n[OVERALL KPI DEBUG] =================== OVERALL FINANCIAL KPI CALCULATION ===================")
+        print(f"[OVERALL KPI DEBUG] USING YEARLY METHOD RESULT FOR CONSISTENCY")
         
-        # Get the last year's data for overall metrics
-        years = sorted(simulation_results['years'].keys())
-        last_year = years[-1]
-        last_year_data = simulation_results['years'][last_year]
+        # Get the last year's data for current values
+        last_year = max(simulation_results['years'].keys(), key=int)
+        print(f"[OVERALL KPI DEBUG] Using last year data: {last_year}")
         
-        # Calculate current metrics using the last year's data
+        # Use the yearly method to calculate the current metrics (this is the correct method)
         current_metrics = self._calculate_financial_metrics_for_year(
-            last_year_data,
+            simulation_results['years'][last_year],
             unplanned_absence,
             other_expense
         )
         
-        # Calculate baseline metrics (annualized)
+        # Calculate baseline values (using baseline data from configuration)
+        baseline_data = self._get_baseline_data()
         baseline_metrics = self._calculate_baseline_financial_metrics(
             baseline_data,
-            unplanned_absence,
+            unplanned_absence,  # Use same unplanned absence as current simulation
             other_expense,
-            12  # Annualized baseline
+            12  # Annualized
         )
+        
+        print(f"\n[OVERALL KPI DEBUG] =================== FINAL RESULTS ===================")
+        print(f"[OVERALL KPI DEBUG] Net Sales: {current_metrics['net_sales']:,.0f} SEK (vs baseline {baseline_metrics['net_sales']:,.0f})")
+        print(f"[OVERALL KPI DEBUG] EBITDA: {current_metrics['ebitda']:,.0f} SEK (vs baseline {baseline_metrics['ebitda']:,.0f})")
+        print(f"[OVERALL KPI DEBUG] Margin: {current_metrics['margin']:.1f}% (vs baseline {baseline_metrics['margin']:.1f}%)")
+        print(f"[OVERALL KPI DEBUG] ================================================================\n")
         
         return FinancialKPIs(
             net_sales=current_metrics['net_sales'],
@@ -783,11 +801,11 @@ class KPIService:
                     print(f"  Base salary cost ({duration_months} months): {base_salary_cost:,.0f} SEK")
                     print(f"  Employment cost addition ({self.total_employment_cost_rate:.0%}): {employment_cost_addition:,.0f} SEK")
                     print(f"  Total employment cost: {total_employment_cost:,.0f} SEK")
-            
-            # Add other expenses (annualized)
-            other_expense_total = other_expense * duration_months  # Annualize by multiplying by 12 months
-            total_costs += other_expense_total
-            print(f"[DEBUG] BASELINE Added other expenses: {other_expense_total:,.0f} SEK")
+        
+        # Add other expenses ONCE for all offices combined (annualized)
+        other_expense_total = other_expense * duration_months  # Annualize by multiplying by 12 months
+        total_costs += other_expense_total
+        print(f"[DEBUG] BASELINE Added other expenses (group total): {other_expense_total:,.0f} SEK")
         
         print(f"[DEBUG] BASELINE FINAL TOTALS:")
         print(f"[DEBUG] BASELINE Total Consultants: {total_consultants}")
@@ -802,8 +820,13 @@ class KPIService:
         ebitda = total_revenue - total_costs
         margin = (ebitda / total_revenue * 100) if total_revenue > 0 else 0.0
         
-        print(f"[DEBUG] BASELINE EBITDA: {ebitda:,.0f} SEK")
-        print(f"[DEBUG] BASELINE Margin: {margin:.2f}%")
+        print(f"[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
+        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Costs: {total_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
+        print(f"[KPI DEBUG] Margin: {margin:.2f}%")
+        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
+        print(f"[KPI DEBUG] ================================================================\n")
         
         return {
             'net_sales': total_revenue,

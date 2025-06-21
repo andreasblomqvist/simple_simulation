@@ -109,7 +109,7 @@ const SimulationLabV2: React.FC = () => {
   const [salaryIncrease, setSalaryIncrease] = useState(2.0);
   const [workingHours, setWorkingHours] = useState(166.4);
   const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
-  const [otherExpense, setOtherExpense] = useState(10000);
+  const [otherExpense, setOtherExpense] = useState(19000000);
   
   // Simulation duration
   const [simulationDuration, setSimulationDuration] = useState(3); // Default 3 years
@@ -150,12 +150,14 @@ const SimulationLabV2: React.FC = () => {
     const loadOfficeConfig = async () => {
       try {
         setConfigLoading(true);
+        console.log('[SIMULATION] 🔄 Loading office configuration...');
         const config = await simulationApi.getOfficeConfig();
         setOfficeConfig(config);
+        console.log(`[SIMULATION] ✅ Loaded ${config.length} office configurations`);
         setError(null);
       } catch (err) {
+        console.error('[SIMULATION] ❌ Failed to load office config:', err);
         setError('Failed to load office configuration');
-        console.error('Error loading office config:', err);
       } finally {
         setConfigLoading(false);
       }
@@ -163,6 +165,30 @@ const SimulationLabV2: React.FC = () => {
 
     loadOfficeConfig();
   }, []);
+
+  // Preserve applied levers in sessionStorage to survive navigation
+  useEffect(() => {
+    const savedLevers = sessionStorage.getItem('simulation-applied-levers');
+    if (savedLevers) {
+      try {
+        const parsedLevers = JSON.parse(savedLevers);
+        setAppliedLevers(parsedLevers);
+        console.log(`[SIMULATION] 🔄 Restored ${parsedLevers.length} applied levers from session`);
+      } catch (err) {
+        console.warn('[SIMULATION] ⚠️  Failed to restore saved levers:', err);
+      }
+    }
+  }, []);
+
+  // Save applied levers to sessionStorage whenever they change
+  useEffect(() => {
+    if (appliedLevers.length > 0) {
+      sessionStorage.setItem('simulation-applied-levers', JSON.stringify(appliedLevers));
+      console.log(`[SIMULATION] 💾 Saved ${appliedLevers.length} applied levers to session`);
+    } else {
+      sessionStorage.removeItem('simulation-applied-levers');
+    }
+  }, [appliedLevers]);
 
   // Load available years when simulation results exist
   useEffect(() => {
@@ -275,6 +301,13 @@ const SimulationLabV2: React.FC = () => {
     }
   };
 
+  const handleClearAllLevers = () => {
+    setAppliedLevers([]);
+    sessionStorage.removeItem('simulation-applied-levers');
+    message.info('All applied levers cleared');
+    console.log('[SIMULATION] 🗑️  Cleared all applied levers');
+  };
+
   const buildOfficeOverrides = (levers: any[]) => {
     const overrides: Record<string, any> = {};
     
@@ -320,6 +353,33 @@ const SimulationLabV2: React.FC = () => {
         office_overrides: buildOfficeOverrides(appliedLevers) // Include applied levers
       };
 
+      // DEBUG: Show exact values being sent
+      console.log('🔍 [FRONTEND DEBUG] RAW STATE VALUES:');
+      console.log('[FRONTEND DEBUG] Raw priceIncrease state:', priceIncrease, '(type:', typeof priceIncrease, ')');
+      console.log('[FRONTEND DEBUG] Raw salaryIncrease state:', salaryIncrease, '(type:', typeof salaryIncrease, ')');
+      console.log('[FRONTEND DEBUG] CONVERTED PARAMETER VALUES:');
+      console.log('[FRONTEND DEBUG] Converted price_increase:', params.price_increase, '(type:', typeof params.price_increase, ')');
+      console.log('[FRONTEND DEBUG] Converted salary_increase:', params.salary_increase, '(type:', typeof params.salary_increase, ')');
+      console.log('[FRONTEND DEBUG] Expected for 2%: 0.02');
+      
+      // TEMPORARY: Alert to see the value being sent
+      alert(`DEBUG: Sending price_increase = ${params.price_increase} (should be 0.03 for 3%)`);
+
+      // Log detailed parameters for debugging
+      console.log('🚀 [FRONTEND] =================== SIMULATION PARAMETERS ===================');
+      console.log('[FRONTEND] 📅 Duration:', `${simulationDuration} ${selectedDurationUnit} (${totalMonths} months)`);
+      console.log('[FRONTEND] 📊 Economic Parameters:');
+      console.log('[FRONTEND]   💰 Price Increase:', `${priceIncrease}% (${params.price_increase})`);
+      console.log('[FRONTEND]   💵 Salary Increase:', `${salaryIncrease}% (${params.salary_increase})`);
+      console.log('[FRONTEND]   🕒 Working Hours:', `${workingHours} hours/month`);
+      console.log('[FRONTEND]   😴 Unplanned Absence:', `${unplannedAbsence} hours/month (${(params.unplanned_absence * 100).toFixed(1)}%)`);
+      console.log('[FRONTEND]   📋 Other Expense:', `${otherExpense.toLocaleString()} SEK/month`);
+      console.log('[FRONTEND] 🎛️  Applied Levers:', appliedLevers.length);
+      appliedLevers.forEach((lever, idx) => {
+        console.log(`[FRONTEND]   ${idx + 1}. ${lever.leverType.toUpperCase()} ${lever.levels.join(',')} → ${lever.value}% (${lever.officeJourney || `${lever.targetOffices.length} offices`})`);
+      });
+      console.log('[FRONTEND] ================================================================');
+
       // Save simulation configuration for reference
       const simulationConfig = {
         timestamp: new Date().toISOString(),
@@ -346,6 +406,7 @@ const SimulationLabV2: React.FC = () => {
       setLastSimulationConfig(simulationConfig); // Save the configuration
       
       message.success('Simulation completed successfully!');
+      console.log('✅ [FRONTEND] Simulation completed successfully');
       
       // Set active year to first year if not set
       if (!activeYear && results.years) {
@@ -358,7 +419,7 @@ const SimulationLabV2: React.FC = () => {
     } catch (err) {
       setError('Simulation failed');
       message.error('Failed to run simulation');
-      console.error('Simulation error:', err);
+      console.error('❌ [FRONTEND] Simulation error:', err);
     } finally {
       setSimulationRunning(false);
     }
@@ -639,7 +700,7 @@ const SimulationLabV2: React.FC = () => {
         
         {/* Apply Levers Button and Applied Levers Display */}
         <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
-          <Col span={8}>
+          <Col span={6}>
             <Button 
               type="primary"
               icon={leverApplying ? <LoadingOutlined /> : <ControlOutlined />}
@@ -651,7 +712,17 @@ const SimulationLabV2: React.FC = () => {
               {leverApplying ? 'Applying...' : 'Apply Lever'}
             </Button>
           </Col>
-          <Col span={16}>
+          <Col span={6}>
+            <Button 
+              danger
+              onClick={handleClearAllLevers}
+              disabled={appliedLevers.length === 0 || configLoading}
+              style={{ width: '100%' }}
+            >
+              Clear All Levers ({appliedLevers.length})
+            </Button>
+          </Col>
+          <Col span={12}>
             <Text type="secondary" style={{ fontSize: '12px' }}>
               Configure lever settings above, then click "Apply Lever" to add to simulation. 
               Applied levers will be used when running simulations.
@@ -827,72 +898,52 @@ const SimulationLabV2: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Action Buttons */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={12}>
-          <Button 
-            type="primary" 
-            size="large"
-            block
-            icon={simulationRunning ? <LoadingOutlined /> : <RocketOutlined />}
-            loading={simulationRunning}
-            onClick={handleRunSimulation}
-            disabled={configLoading}
-          >
-            {simulationRunning ? 'Running Simulation...' : 'Run Simulation'}
-          </Button>
-        </Col>
-        <Col span={6}>
-          <Button size="large" block>Load Config Data</Button>
-        </Col>
-        <Col span={6}>
-          <Button size="large" block>Reset to Config</Button>
+
+
+      {/* Run Simulation Button */}
+      <Row style={{ marginBottom: '24px' }}>
+        <Col span={24} style={{ textAlign: 'center' }}>
+          <Space size="middle">
+            <Button 
+              type="primary" 
+              size="large"
+              icon={simulationRunning ? <LoadingOutlined /> : <RocketOutlined />}
+              loading={simulationRunning}
+              onClick={handleRunSimulation}
+              disabled={configLoading}
+              style={{ minWidth: '200px' }}
+            >
+              {simulationRunning ? 'Running Simulation...' : 'Run Simulation'}
+            </Button>
+            <Button 
+              size="large"
+              onClick={() => window.location.href = '/configuration'}
+              disabled={configLoading}
+            >
+              Load Config Data
+            </Button>
+            <Button 
+              size="large"
+              onClick={() => {
+                setAppliedLevers([]);
+                setPriceIncrease(3.0);
+                setSalaryIncrease(2.0);
+                setWorkingHours(166.4);
+                setUnplannedAbsence(15.7);
+                setOtherExpense(19000000);
+                setSimulationDuration(3);
+                setSelectedDurationUnit('years');
+                message.success('Configuration reset to defaults');
+              }}
+              disabled={configLoading}
+            >
+              Reset to Config
+            </Button>
+          </Space>
         </Col>
       </Row>
 
-      {/* Last Simulation Configuration Display */}
-      {lastSimulationConfig && (
-        <Card 
-          title="📊 Current Simulation Configuration" 
-          style={{ marginBottom: '16px', backgroundColor: '#f0f9ff', borderColor: '#0ea5e9' }}
-          size="small"
-        >
-          <Row gutter={16}>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Simulation Scope</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px' }}>
-                <div><Text strong>Duration:</Text> {lastSimulationConfig.duration}</div>
-                <div><Text strong>Years:</Text> {lastSimulationConfig.yearRange}</div>
-                <div><Text strong>Run at:</Text> {new Date(lastSimulationConfig.timestamp).toLocaleString()}</div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Economic Parameters</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px' }}>
-                <div><Text strong>Price Increase:</Text> {lastSimulationConfig.parameters.priceIncrease}</div>
-                <div><Text strong>Salary Increase:</Text> {lastSimulationConfig.parameters.salaryIncrease}</div>
-                <div><Text strong>Working Hours:</Text> {lastSimulationConfig.parameters.workingHours}</div>
-                <div><Text strong>Unplanned Absence:</Text> {lastSimulationConfig.parameters.unplannedAbsence}</div>
-                <div><Text strong>Other Expense:</Text> {lastSimulationConfig.parameters.otherExpense}</div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Applied Levers ({lastSimulationConfig.appliedLevers.length})</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px', maxHeight: '120px', overflowY: 'auto' }}>
-                {lastSimulationConfig.appliedLevers.length > 0 ? (
-                  lastSimulationConfig.appliedLevers.map((lever: any, index: number) => (
-                    <div key={index} style={{ marginBottom: '2px', padding: '2px 4px', backgroundColor: '#e0f2fe', borderRadius: '3px' }}>
-                      <Text strong>{lever.type}</Text> {lever.levels} • {lever.value} • {lever.scope}
-                    </div>
-                  ))
-                ) : (
-                  <Text type="secondary">No levers applied</Text>
-                )}
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      )}
+
 
       {/* Simulation Results Card */}
       <Card title="Simulation Results">
@@ -1452,7 +1503,7 @@ const SimulationLabV2: React.FC = () => {
               const yearData = simulationResults.years[activeYear];
               if (!yearData?.offices) return null;
 
-              // Process logs data
+              // Process logs data with aggregation
               const processLogsData = () => {
                 const logs: any[] = [];
                 const offices = Object.keys(yearData.offices);
@@ -1471,10 +1522,29 @@ const SimulationLabV2: React.FC = () => {
                       const levelData = roleData[level];
                       if (!levelData || !Array.isArray(levelData)) return;
 
-                      // Process each time period
+                      // Calculate yearly aggregated values
+                      const yearlyTotals = {
+                        recruited: 0,
+                        churned: 0,
+                        progressedOut: 0,
+                        progressedIn: 0,
+                        totalBefore: levelData[0] ? (levelData[0].total - levelData[0].recruited + levelData[0].churned + levelData[0].progressed_out - levelData[0].progressed_in) : 0,
+                        totalAfter: levelData[levelData.length - 1]?.total || 0
+                      };
+
+                      const monthlyData: any[] = [];
+
+                      // Process each time period for monthly breakdown
                       levelData.forEach((periodData: any, periodIndex: number) => {
+                        if (!periodData) return; // Guard against null/undefined periodData
+                        
+                        yearlyTotals.recruited += periodData.recruited || 0;
+                        yearlyTotals.churned += periodData.churned || 0;
+                        yearlyTotals.progressedOut += periodData.progressed_out || 0;
+                        yearlyTotals.progressedIn += periodData.progressed_in || 0;
+
                         if (periodData.recruited > 0 || periodData.churned > 0 || periodData.progressed_out > 0 || periodData.progressed_in > 0) {
-                          logs.push({
+                          monthlyData.push({
                             key: `${officeName}-${role}-${level}-${periodIndex}`,
                             office: officeName,
                             role: role,
@@ -1485,19 +1555,57 @@ const SimulationLabV2: React.FC = () => {
                             churned: periodData.churned || 0,
                             progressedOut: periodData.progressed_out || 0,
                             progressedIn: periodData.progressed_in || 0,
-                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned + periodData.progressed_out - periodData.progressed_in),
+                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
                             totalAfter: periodData.total || 0
                           });
                         }
                       });
+
+                      // Only add if there's activity
+                      if (yearlyTotals.recruited > 0 || yearlyTotals.churned > 0 || yearlyTotals.progressedOut > 0 || yearlyTotals.progressedIn > 0) {
+                        logs.push({
+                          key: `${officeName}-${role}-${level}-yearly`,
+                          office: officeName,
+                          role: role,
+                          level: level,
+                          period: `${activeYear} Total`,
+                          periodIndex: -1, // Special value for yearly aggregation
+                          recruited: yearlyTotals.recruited,
+                          churned: yearlyTotals.churned,
+                          progressedOut: yearlyTotals.progressedOut,
+                          progressedIn: yearlyTotals.progressedIn,
+                          totalBefore: yearlyTotals.totalBefore,
+                          totalAfter: yearlyTotals.totalAfter,
+                          isYearlyTotal: true,
+                          monthlyData: monthlyData
+                        });
+                      }
                     });
                   });
 
                   // Add operations logs if they exist
                   if (officeData.operations && Array.isArray(officeData.operations)) {
+                    const firstOperation = officeData.operations[0];
+                    const lastOperation = officeData.operations[officeData.operations.length - 1];
+                    
+                    const yearlyTotals = {
+                      recruited: 0,
+                      churned: 0,
+                      totalBefore: firstOperation && firstOperation.total !== undefined ? 
+                        (firstOperation.total - (firstOperation.recruited || 0) + (firstOperation.churned || 0)) : 0,
+                      totalAfter: lastOperation?.total || 0
+                    };
+
+                    const monthlyData: any[] = [];
+
                     officeData.operations.forEach((periodData: any, periodIndex: number) => {
+                      if (!periodData) return; // Guard against null/undefined periodData
+                      
+                      yearlyTotals.recruited += periodData.recruited || 0;
+                      yearlyTotals.churned += periodData.churned || 0;
+
                       if (periodData && (periodData.recruited > 0 || periodData.churned > 0)) {
-                        logs.push({
+                        monthlyData.push({
                           key: `${officeName}-Operations-Operations-${periodIndex}`,
                           office: officeName,
                           role: 'Operations',
@@ -1508,11 +1616,30 @@ const SimulationLabV2: React.FC = () => {
                           churned: periodData.churned || 0,
                           progressedOut: 0,
                           progressedIn: 0,
-                          totalBefore: periodIndex > 0 ? (officeData.operations[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned),
+                          totalBefore: periodIndex > 0 ? (officeData.operations[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
                           totalAfter: periodData.total || 0
                         });
                       }
                     });
+
+                    if (yearlyTotals.recruited > 0 || yearlyTotals.churned > 0) {
+                      logs.push({
+                        key: `${officeName}-Operations-Operations-yearly`,
+                        office: officeName,
+                        role: 'Operations',
+                        level: 'Operations',
+                        period: `${activeYear} Total`,
+                        periodIndex: -1,
+                        recruited: yearlyTotals.recruited,
+                        churned: yearlyTotals.churned,
+                        progressedOut: 0,
+                        progressedIn: 0,
+                        totalBefore: yearlyTotals.totalBefore,
+                        totalAfter: yearlyTotals.totalAfter,
+                        isYearlyTotal: true,
+                        monthlyData: monthlyData
+                      });
+                    }
                   }
                 });
 
@@ -1563,7 +1690,12 @@ const SimulationLabV2: React.FC = () => {
                   title: 'Period', 
                   dataIndex: 'period', 
                   key: 'period',
-                  width: 100,
+                  width: 120,
+                  render: (text: string, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '400' }}>
+                      {text}
+                    </span>
+                  ),
                   sorter: (a: any, b: any) => a.periodIndex - b.periodIndex,
                 },
                 { 
@@ -1571,8 +1703,99 @@ const SimulationLabV2: React.FC = () => {
                   dataIndex: 'totalBefore', 
                   key: 'totalBefore',
                   width: 90,
-                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
+                  render: (value: any, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '500' }}>{value}</span>
+                  )
                 },
+                { 
+                  title: 'Recruited', 
+                  dataIndex: 'recruited', 
+                  key: 'recruited',
+                  width: 90,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#52c41a', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      +{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Churned', 
+                  dataIndex: 'churned', 
+                  key: 'churned',
+                  width: 90,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#f5222d', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      -{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Progressed Out', 
+                  dataIndex: 'progressedOut', 
+                  key: 'progressedOut',
+                  width: 110,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#fa8c16', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      -{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Progressed In', 
+                  dataIndex: 'progressedIn', 
+                  key: 'progressedIn',
+                  width: 110,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#1890ff', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      +{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'FTE After', 
+                  dataIndex: 'totalAfter', 
+                  key: 'totalAfter',
+                  width: 90,
+                  render: (value: any, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '500' }}>{value}</span>
+                  )
+                },
+                {
+                  title: 'Net Change',
+                  key: 'netChange',
+                  width: 100,
+                  render: (_: any, record: any) => {
+                    const netChange = record.totalAfter - record.totalBefore;
+                    const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
+                    const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
+                    return (
+                      <span style={{ 
+                        color: changeColor, 
+                        fontWeight: record.isYearlyTotal ? '700' : '600' 
+                      }}>
+                        {changeText}
+                      </span>
+                    );
+                  }
+                }
+              ];
+
+              // Monthly details columns (for expanded rows)
+              const monthlyColumns = [
+                { title: 'Month', dataIndex: 'period', key: 'period', width: 100 },
+                { title: 'FTE Before', dataIndex: 'totalBefore', key: 'totalBefore', width: 90 },
                 { 
                   title: 'Recruited', 
                   dataIndex: 'recruited', 
@@ -1601,13 +1824,7 @@ const SimulationLabV2: React.FC = () => {
                   width: 110,
                   render: (value: any) => value > 0 ? <span style={{ color: '#1890ff', fontWeight: '600' }}>+{value}</span> : '-'
                 },
-                { 
-                  title: 'FTE After', 
-                  dataIndex: 'totalAfter', 
-                  key: 'totalAfter',
-                  width: 90,
-                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
-                },
+                { title: 'FTE After', dataIndex: 'totalAfter', key: 'totalAfter', width: 90 },
                 {
                   title: 'Net Change',
                   key: 'netChange',
@@ -1669,7 +1886,7 @@ const SimulationLabV2: React.FC = () => {
                     }}>
                       <Text style={{ fontSize: '12px', color: darkMode ? '#91d5ff' : '#1890ff' }}>
                         📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
-                        ({logsData.length} movement events)
+                        ({logsData.length} yearly aggregations)
                       </Text>
                     </div>
                   )}
@@ -1689,11 +1906,11 @@ const SimulationLabV2: React.FC = () => {
                           justifyContent: 'center'
                         }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Recruitment</Text>
+                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Total Recruitment</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#52c41a' }}>
                           +{summaryStats.totalRecruitment}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
                           New hires across all offices
                         </Text>
                       </div>
@@ -1711,11 +1928,11 @@ const SimulationLabV2: React.FC = () => {
                           justifyContent: 'center'
                         }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Churn</Text>
+                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Total Churn</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#f5222d' }}>
                           -{summaryStats.totalChurn}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
                           Departures across all offices
                         </Text>
                       </div>
@@ -1733,11 +1950,11 @@ const SimulationLabV2: React.FC = () => {
                           justifyContent: 'center'
                         }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px' }}>Progression Moves</Text>
+                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Progression Moves</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#1890ff' }}>
                           {summaryStats.totalProgressedOut}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px' }}>
+                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
                           Level promotions & transitions
                         </Text>
                       </div>
@@ -1755,15 +1972,15 @@ const SimulationLabV2: React.FC = () => {
                           justifyContent: 'center'
                         }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px' }}>Activity Scope</Text>
-                        <div style={{ fontSize: '14px', fontWeight: '600', margin: '4px 0' }}>
+                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Activity Scope</Text>
+                        <div style={{ fontSize: '14px', fontWeight: '600', margin: '4px 0', color: darkMode ? '#ffffff !important' : 'inherit' }}>
                           {summaryStats.officesActive} offices
                         </div>
-                        <div style={{ fontSize: '12px', margin: '2px 0' }}>
+                        <div style={{ fontSize: '12px', margin: '2px 0', color: darkMode ? '#ffffff !important' : 'inherit' }}>
                           {summaryStats.periodsActive} periods
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px' }}>
-                          {logsData.length} movement events
+                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
+                          {logsData.length} yearly aggregations
                         </Text>
                       </div>
                     </Col>
@@ -1787,12 +2004,15 @@ const SimulationLabV2: React.FC = () => {
                     <span style={{ color: '#fa8c16', fontWeight: '600', marginRight: '16px' }}>
                       -Progressed Out (promotions away)
                     </span>
-                    <span style={{ color: '#1890ff', fontWeight: '600' }}>
+                    <span style={{ color: '#1890ff', fontWeight: '600', marginRight: '16px' }}>
                       +Progressed In (promotions received)
                     </span>
+                    <Text type="secondary" style={{ fontSize: '12px', marginLeft: '16px' }}>
+                      💡 Click on yearly totals to expand monthly breakdown
+                    </Text>
                   </div>
 
-                  {/* Logs Table */}
+                  {/* Logs Table with Expandable Rows */}
                   <Table
                     columns={logsColumns}
                     dataSource={logsData}
@@ -1806,6 +2026,54 @@ const SimulationLabV2: React.FC = () => {
                     bordered
                     scroll={{ x: 1000 }}
                     style={{ marginBottom: '16px' }}
+                    expandable={{
+                      expandedRowRender: (record) => {
+                        if (!record.monthlyData || record.monthlyData.length === 0) {
+                          return (
+                            <div style={{ padding: '16px', textAlign: 'center', color: '#8c8c8c' }}>
+                              <Text type="secondary">No monthly breakdown available for this item</Text>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div style={{ margin: '0', backgroundColor: darkMode ? '#0f0f0f' : '#fafafa' }}>
+                            <div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                              <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>
+                                📅 Monthly Breakdown: {record.office} - {record.role} {record.level}
+                              </Text>
+                            </div>
+                            <Table
+                              columns={monthlyColumns}
+                              dataSource={record.monthlyData}
+                              pagination={false}
+                              size="small"
+                              showHeader={true}
+                              bordered={false}
+                              style={{ backgroundColor: 'transparent' }}
+                            />
+                          </div>
+                        );
+                      },
+                      rowExpandable: (record) => record.monthlyData && record.monthlyData.length > 0,
+                      expandIcon: ({ expanded, onExpand, record }) => (
+                        record.monthlyData && record.monthlyData.length > 0 ? (
+                          <span 
+                            onClick={e => onExpand(record, e)}
+                            style={{ 
+                              cursor: 'pointer', 
+                              marginRight: '8px',
+                              color: '#1890ff',
+                              fontSize: '12px'
+                            }}
+                          >
+                            {expanded ? '📅' : '📊'}
+                          </span>
+                        ) : (
+                          <span style={{ marginRight: '8px', color: '#d9d9d9', fontSize: '12px' }}>•</span>
+                        )
+                      ),
+                    }}
                   />
 
                   {logsData.length === 0 && (
