@@ -511,33 +511,25 @@ const SimulationLabV2: React.FC = () => {
       });
       
       // Sum movement data across all offices
-      Object.values(yearData.offices).forEach((officeData: any) => {
+      Object.entries(yearData.offices).forEach(([officeName, officeData]: [string, any]) => {
         if (officeData.levels) {
-          // Check all roles for movement data
-          ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
-            const roleData = officeData.levels[role];
-            if (roleData) {
-              LEVELS.forEach(level => {
-                const levelData = roleData[level];
-                                  if (levelData && levelData.length > 0) {
-                    // Get the latest period data (sum across all periods for the year)
-                    const totalMovement = levelData.reduce((sum: any, periodData: any) => {
-                      sum.churned += periodData.churned || 0;
-                      sum.recruited += periodData.recruited || 0;
-                      sum.progressed_in += periodData.progressed_in || 0;
-                      return sum;
-                    }, { churned: 0, recruited: 0, progressed_in: 0 });
-                    
-                    movementByLevel[level]['Churned'] += totalMovement.churned;
-                    movementByLevel[level]['Recruited'] += totalMovement.recruited;
-                    movementByLevel[level]['Progressed In'] += totalMovement.progressed_in;
-                  }
+          // Process roles with levels (e.g., Consultant)
+          Object.entries(officeData.levels).forEach(([roleName, roleData]: [string, any]) => {
+            if (typeof roleData === 'object' && roleData !== null && !Array.isArray(roleData)) {
+              Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+                if (Array.isArray(levelData) && LEVELS.includes(levelName)) {
+                  levelData.forEach((periodData: any) => {
+                    movementByLevel[levelName]['Recruited'] += periodData.recruited || 0;
+                    movementByLevel[levelName]['Churned'] += periodData.churned || 0;
+                    movementByLevel[levelName]['Progressed In'] += periodData.progressed_in || 0;
+                  });
+                }
               });
             }
           });
         }
       });
-      
+
       // Convert to chart data format
       stackedBarData = LEVELS.flatMap(level =>
         MOVEMENT_TYPES.map(type => ({ 
@@ -1641,39 +1633,46 @@ const SimulationLabV2: React.FC = () => {
               const yearData = simulationResults.years[activeYear];
               if (!yearData?.offices) return null;
 
+              // Get all possible roles and levels from the config to ensure all are displayed
+              const allRolesAndLevels: { [key: string]: string[] } = {};
+              if (officeConfig && officeConfig.length > 0) {
+                  officeConfig.forEach(office => {
+                      Object.keys(office.roles).forEach(role => {
+                          if (!allRolesAndLevels[role]) {
+                              allRolesAndLevels[role] = [];
+                          }
+                          // Handle roles with levels (e.g., Consultant)
+                          if (typeof office.roles[role] === 'object' && !Array.isArray(office.roles[role]) && office.roles[role] !== null) {
+                              const levels = Object.keys(office.roles[role]);
+                              levels.forEach(level => {
+                                  if (!allRolesAndLevels[role].includes(level)) {
+                                      allRolesAndLevels[role].push(level);
+                                  }
+                              });
+                          }
+                      });
+                  });
+                  // Ensure Operations role exists, as it's a flat structure
+                  if (!allRolesAndLevels['Operations']) {
+                    allRolesAndLevels['Operations'] = ['N/A'];
+                  }
+              }
+              
               // Process logs data with aggregation
               const processLogsData = () => {
                 const logs: any[] = [];
                 const offices = Object.keys(yearData.offices);
-                const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
 
                 offices.forEach(officeName => {
                   const officeData = yearData.offices[officeName];
-                  if (!officeData.levels) return;
-
-                  // Dynamically get roles from the data instead of hardcoding
-                  const roles = Object.keys(officeData.levels);
-
-                  roles.forEach(role => {
-                    const roleData = officeData.levels[role];
-                    if (!roleData) return;
-
+                  
+                  Object.entries(allRolesAndLevels).forEach(([role, levels]) => {
                     levels.forEach(level => {
-                      const levelData = roleData[level];
-                      if (!levelData || !Array.isArray(levelData)) {
-                        // Ensure a row is still created for levels with no data
-                        logs.push({
-                          key: `${officeName}-${role}-${level}-yearly`,
-                          office: officeName,
-                          role: role,
-                          level: level,
-                          period: `${activeYear} Total`,
-                          recruited: 0, churned: 0, progressedOut: 0, progressedIn: 0,
-                          totalBefore: 0, totalAfter: 0,
-                          isYearlyTotal: true, monthlyData: []
-                        });
-                        return;
-                      }
+                      // Determine the correct data path based on role
+                      const isOps = role === 'Operations';
+                      const levelData = isOps 
+                        ? officeData.operations 
+                        : officeData.levels?.[role]?.[level];
 
                       // Calculate yearly aggregated values
                       const yearlyTotals = {
@@ -1681,38 +1680,44 @@ const SimulationLabV2: React.FC = () => {
                         churned: 0,
                         progressedOut: 0,
                         progressedIn: 0,
-                        totalBefore: levelData[0] ? (levelData[0].total - (levelData[0].recruited || 0) + (levelData[0].churned || 0) + (levelData[0].progressed_out || 0) - (levelData[0].progressed_in || 0)) : 0,
-                        totalAfter: levelData[levelData.length - 1]?.total || 0
+                        totalBefore: 0,
+                        totalAfter: 0,
                       };
 
                       const monthlyData: any[] = [];
 
-                      // Process each time period for monthly breakdown
-                      levelData.forEach((periodData: any, periodIndex: number) => {
-                        if (!periodData) return;
-                        
-                        yearlyTotals.recruited += periodData.recruited || 0;
-                        yearlyTotals.churned += periodData.churned || 0;
-                        yearlyTotals.progressedOut += periodData.progressed_out || 0;
-                        yearlyTotals.progressedIn += periodData.progressed_in || 0;
+                      if (levelData && Array.isArray(levelData) && levelData.length > 0) {
+                        yearlyTotals.totalBefore = levelData[0] ? (levelData[0].total - (levelData[0].recruited || 0) + (levelData[0].churned || 0) + (isOps ? 0 : (levelData[0].progressed_out || 0)) - (isOps ? 0 : (levelData[0].progressed_in || 0))) : 0;
+                        yearlyTotals.totalAfter = levelData[levelData.length - 1]?.total || 0;
 
-                        monthlyData.push({
-                          key: `${officeName}-${role}-${level}-${periodIndex}`,
-                          office: officeName,
-                          role: role,
-                          level: level,
-                          period: `Month ${periodIndex + 1}`,
-                          periodIndex: periodIndex,
-                          recruited: periodData.recruited || 0,
-                          churned: periodData.churned || 0,
-                          progressedOut: periodData.progressed_out || 0,
-                          progressedIn: periodData.progressed_in || 0,
-                          totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
-                          totalAfter: periodData.total || 0
+                        // Process each time period for monthly breakdown
+                        levelData.forEach((period_data: any, periodIndex: number) => {
+                          if (!period_data) return;
+                          
+                          yearlyTotals.recruited += period_data.recruited || 0;
+                          yearlyTotals.churned += period_data.churned || 0;
+                          if (!isOps) {
+                            yearlyTotals.progressedOut += period_data.progressed_out || 0;
+                            yearlyTotals.progressedIn += period_data.progressed_in || 0;
+                          }
+
+                          monthlyData.push({
+                            key: `${officeName}-${role}-${level}-${periodIndex}`,
+                            office: officeName,
+                            role: role,
+                            level: level,
+                            period: `Month ${periodIndex + 1}`,
+                            periodIndex: periodIndex,
+                            recruited: period_data.recruited || 0,
+                            churned: period_data.churned || 0,
+                            progressedOut: isOps ? 0 : (period_data.progressed_out || 0),
+                            progressedIn: isOps ? 0 : (period_data.progressed_in || 0),
+                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
+                            totalAfter: period_data.total || 0
+                          });
                         });
-                      });
+                      }
 
-                      // Always add a yearly total row to ensure visibility
                       logs.push({
                         key: `${officeName}-${role}-${level}-yearly`,
                         office: officeName,
@@ -1731,74 +1736,6 @@ const SimulationLabV2: React.FC = () => {
                       });
                     });
                   });
-
-                  // Add operations logs if they exist
-                  if (officeData.operations && Array.isArray(officeData.operations)) {
-                    const firstOperation = officeData.operations[0];
-                    const lastOperation = officeData.operations[officeData.operations.length - 1];
-                    
-                    const yearlyTotals = {
-                      recruited: 0,
-                      churned: 0,
-                      totalBefore: firstOperation && firstOperation.total !== undefined ? 
-                        (firstOperation.total - (firstOperation.recruited || 0) + (firstOperation.churned || 0)) : 0,
-                      totalAfter: lastOperation?.total || 0
-                    };
-
-                    const monthlyData: any[] = [];
-
-                    officeData.operations.forEach((periodData: any, periodIndex: number) => {
-                      if (!periodData) return;
-                      
-                      yearlyTotals.recruited += periodData.recruited || 0;
-                      yearlyTotals.churned += periodData.churned || 0;
-
-                      if (periodData && (periodData.recruited > 0 || periodData.churned > 0)) {
-                        monthlyData.push({
-                          key: `${officeName}-Operations-Operations-${periodIndex}`,
-                          office: officeName,
-                          role: 'Operations',
-                          level: 'Operations',
-                          period: `Month ${periodIndex + 1}`,
-                          periodIndex: periodIndex,
-                          recruited: periodData.recruited || 0,
-                          churned: periodData.churned || 0,
-                          progressedOut: 0,
-                          progressedIn: 0,
-                          totalBefore: periodIndex > 0 ? (officeData.operations[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
-                          totalAfter: periodData.total || 0
-                        });
-                      }
-                    });
-
-                    // Always add a yearly total row for operations.
-                    logs.push({
-                      key: `${officeName}-Operations-Operations-yearly`,
-                      office: officeName,
-                      role: 'Operations',
-                      level: 'Operations',
-                      period: `${activeYear} Total`,
-                      periodIndex: -1,
-                      recruited: yearlyTotals.recruited,
-                      churned: yearlyTotals.churned,
-                      progressedOut: 0,
-                      progressedIn: 0,
-                      totalBefore: yearlyTotals.totalBefore,
-                      totalAfter: yearlyTotals.totalAfter,
-                      isYearlyTotal: true,
-                      monthlyData: monthlyData
-                    });
-                  } else {
-                     // Ensure Operations row is created even if there's no data
-                     logs.push({
-                        key: `${officeName}-Operations-Operations-yearly`,
-                        office: officeName, role: 'Operations', level: 'Operations',
-                        period: `${activeYear} Total`,
-                        recruited: 0, churned: 0, progressedOut: 0, progressedIn: 0,
-                        totalBefore: 0, totalAfter: 0,
-                        isYearlyTotal: true, monthlyData: []
-                      });
-                  }
                 });
 
                 return logs.sort((a, b) => {
