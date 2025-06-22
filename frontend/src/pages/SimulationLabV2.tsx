@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse, Table, Tabs, Typography, message, Spin, Alert, Input, Slider } from 'antd';
-import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, ControlOutlined } from '@ant-design/icons';
+import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, ControlOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
 import { useTheme } from '../components/ThemeContext';
@@ -124,6 +124,7 @@ const SimulationLabV2: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [simulationRunning, setSimulationRunning] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   
   // Error states
   const [error, setError] = useState<string | null>(null);
@@ -304,6 +305,74 @@ const SimulationLabV2: React.FC = () => {
     
     // Then run the simulation with all applied levers
     await handleRunSimulation();
+  };
+
+  const handleExportSimulation = async () => {
+    if (!lastSimulationConfig) {
+      message.error('No simulation has been run yet. Please run a simulation first.');
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      
+      // Use the same parameters as the last simulation (already in correct decimal format)
+      const exportParams = {
+        start_year: lastSimulationConfig.start_year,
+        start_month: lastSimulationConfig.start_month,
+        end_year: lastSimulationConfig.end_year,
+        end_month: lastSimulationConfig.end_month,
+        price_increase: lastSimulationConfig.price_increase, // Already in decimal format
+        salary_increase: lastSimulationConfig.salary_increase, // Already in decimal format
+        unplanned_absence: lastSimulationConfig.unplanned_absence, // Already in decimal format
+        hy_working_hours: lastSimulationConfig.hy_working_hours,
+        other_expense: lastSimulationConfig.other_expense,
+        office_overrides: lastSimulationConfig.office_overrides
+      };
+
+      console.log('[EXPORT] Starting Excel export with params:', exportParams);
+
+      const response = await fetch('/api/simulation/export/excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportParams),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${errorText}`);
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'SimulationExport.xlsx';
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Simulation results exported successfully as ${filename}`);
+      console.log('[EXPORT] ✅ Excel export completed successfully');
+
+    } catch (error) {
+      console.error('[EXPORT] ❌ Export failed:', error);
+      message.error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   // Load available years when simulation results exist
@@ -967,7 +1036,23 @@ const SimulationLabV2: React.FC = () => {
 
 
       {/* Simulation Results Card */}
-      <Card title="Simulation Results">
+      <Card 
+        title="Simulation Results"
+        extra={
+          simulationResults && (
+            <Button
+              type="primary"
+              icon={exportLoading ? <LoadingOutlined /> : <DownloadOutlined />}
+              loading={exportLoading}
+              onClick={handleExportSimulation}
+              disabled={!simulationResults}
+              size="small"
+            >
+              {exportLoading ? 'Exporting...' : 'Export to Excel'}
+            </Button>
+          )
+        }
+      >
         {/* Year Selector Tabs */}
         {availableYears.length > 0 ? (
           <div>
