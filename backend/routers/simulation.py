@@ -81,13 +81,13 @@ def run_simulation(params: SimulationRequest):
     # Parse office overrides (lever plan)
     lever_plan = None
     if params.office_overrides:
-        lever_plan = {}
+        office_levers = {}
         total_overrides = 0
         print(f"[SIMULATION] 🎛️  Office Overrides Applied:")
-        for office_name, office_levers in params.office_overrides.items():
-            lever_plan[office_name] = {}
+        for office_name, office_lever_data in params.office_overrides.items():
+            office_levers[office_name] = {}
             office_override_count = 0
-            for lever_key, lever_value in office_levers.items():
+            for lever_key, lever_value in office_lever_data.items():
                 # Parse lever key like "recruitment_AM" -> role="Consultant", level="AM", attribute="recruitment"
                 if '_' in lever_key:
                     parts = lever_key.split('_')
@@ -96,14 +96,14 @@ def run_simulation(params: SimulationRequest):
                         # Default to Consultant role for level-based overrides
                         role = "Consultant"
                         
-                        if role not in lever_plan[office_name]:
-                            lever_plan[office_name][role] = {}
-                        if level not in lever_plan[office_name][role]:
-                            lever_plan[office_name][role][level] = {}
+                        if role not in office_levers[office_name]:
+                            office_levers[office_name][role] = {}
+                        if level not in office_levers[office_name][role]:
+                            office_levers[office_name][role][level] = {}
                         
                         # Apply to all 12 months
                         for month in range(1, 13):
-                            lever_plan[office_name][role][level][f"{attribute}_{month}"] = lever_value
+                            office_levers[office_name][role][level][f"{attribute}_{month}"] = lever_value
                         
                         print(f"[SIMULATION]     📍 {office_name} → {role} {level} {attribute}: {lever_value:.1%}")
                         office_override_count += 1
@@ -111,6 +111,11 @@ def run_simulation(params: SimulationRequest):
             
             if office_override_count == 0:
                 print(f"[SIMULATION]     📍 {office_name} → No overrides")
+        
+        # Wrap office levers in the expected structure
+        lever_plan = {
+            "offices": office_levers
+        }
         
         print(f"[SIMULATION] 🎛️  Total Lever Overrides: {total_overrides}")
     else:
@@ -396,23 +401,28 @@ def export_simulation_to_excel(params: SimulationRequest):
         # Parse office overrides (lever plan) - same as simulation run
         lever_plan = None
         if params.office_overrides:
-            lever_plan = {}
-            for office_name, office_levers in params.office_overrides.items():
-                lever_plan[office_name] = {}
-                for lever_key, lever_value in office_levers.items():
+            office_levers = {}
+            for office_name, office_lever_data in params.office_overrides.items():
+                office_levers[office_name] = {}
+                for lever_key, lever_value in office_lever_data.items():
                     if '_' in lever_key:
                         parts = lever_key.split('_')
                         if len(parts) == 2:
                             attribute, level = parts
                             role = "Consultant"
                             
-                            if role not in lever_plan[office_name]:
-                                lever_plan[office_name][role] = {}
-                            if level not in lever_plan[office_name][role]:
-                                lever_plan[office_name][role][level] = {}
+                            if role not in office_levers[office_name]:
+                                office_levers[office_name][role] = {}
+                            if level not in office_levers[office_name][role]:
+                                office_levers[office_name][role][level] = {}
                             
                             for month in range(1, 13):
-                                lever_plan[office_name][role][level][f"{attribute}_{month}"] = lever_value
+                                office_levers[office_name][role][level][f"{attribute}_{month}"] = lever_value
+            
+            # Wrap office levers in the expected structure
+            lever_plan = {
+                "offices": office_levers
+            }
         
         # Reset engine state for fresh simulation
         engine.reset_simulation_state()

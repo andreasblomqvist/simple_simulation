@@ -526,8 +526,12 @@ class SimulationEngine:
                                 if monthly_key in level_config:
                                     level_attributes[monthly_key] = level_config[monthly_key]
                                 else:
-                                    # Fall back to base value if monthly value not found
-                                    level_attributes[monthly_key] = level_config.get(key, 0.0)
+                                    # Fall back to base value if monthly value not found, with proper defaults
+                                    if key == 'utr':
+                                        default_value = level_config.get(key, DEFAULT_RATES['utr'])
+                                    else:
+                                        default_value = level_config.get(key, 0.0)
+                                    level_attributes[monthly_key] = default_value
                         
                         level = Level(
                             name=level_name,
@@ -701,10 +705,10 @@ class SimulationEngine:
             current_office_levers = office_levers.get(office_name, {})
             
             for role_name, role_data in office.roles.items():
-                if role_name == 'Consultant':
+                if isinstance(role_data, dict): # Leveled roles (Consultant, Sales, Recruitment)
                     for level_name, level in role_data.items():
-                        level_levers = current_office_levers.get('Consultant', {}).get(level_name, {})
-                        global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
+                        level_levers = current_office_levers.get(role_name, {}).get(level_name, {})
+                        global_level_levers = global_levers.get(role_name, {}).get(level_name, {})
                         
                         for i in range(1, 13):
                             # Prioritize office-specific, then global, then default
@@ -721,7 +725,7 @@ class SimulationEngine:
                             setattr(level, f'price_{i}', price)
                             setattr(level, f'salary_{i}', salary)
                             setattr(level, f'utr_{i}', utr)
-                else: # Flat roles
+                else: # Flat roles (Operations only)
                     flat_role_levers = current_office_levers.get(role_name, {})
                     global_flat_role_levers = global_levers.get(role_name, {})
                     for i in range(1, 13):

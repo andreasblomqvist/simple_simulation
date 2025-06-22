@@ -110,6 +110,8 @@ const SimulationLabV2: React.FC = () => {
   const [workingHours, setWorkingHours] = useState(166.4);
   const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
   const [otherExpense, setOtherExpense] = useState(19000000);
+  const [socialCost, setSocialCost] = useState(1.4);
+  const [utr, setUtr] = useState(85.0); // UTR as percentage (85%)
   
   // Simulation duration
   const [simulationDuration, setSimulationDuration] = useState(12); // Default 12 months
@@ -402,7 +404,7 @@ const SimulationLabV2: React.FC = () => {
     if (!simulationResults || !activeYear) return { kpis: [], seniorityKPIs: null };
     
     // Get base financial KPIs
-    const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear);
+    const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear, socialCost, otherExpense);
     
     // Get seniority KPIs to extract growth data
     // Use the first available year as baseline for proper comparison
@@ -985,6 +987,35 @@ const SimulationLabV2: React.FC = () => {
               Lump sum per <b>month</b> for <b>all offices combined</b> (not per person or per office), in <b>SEK</b>
             </div>
           </Col>
+          <Col span={6}>
+            <Text strong>Social Cost Multiplier</Text>
+            <InputNumber
+              style={{ width: '100%', marginTop: '4px' }}
+              value={socialCost}
+              onChange={(value) => setSocialCost(value || 1.4)}
+              step={0.1}
+              min={1.0}
+              max={3.0}
+              precision={1}
+            />
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
+              Employment cost multiplier (1.4 = 40% overhead for social costs, taxes, benefits)
+            </div>
+          </Col>
+          <Col span={6}>
+            <Text strong>UTR (%)</Text>
+            <InputNumber
+              style={{ width: '100%', marginTop: '4px' }}
+              value={utr}
+              onChange={(value) => setUtr(value || 0)}
+              step={0.1}
+              min={0}
+              max={100}
+            />
+            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
+              UTR as percentage (85%)
+            </div>
+          </Col>
         </Row>
       </Card>
 
@@ -1021,6 +1052,7 @@ const SimulationLabV2: React.FC = () => {
                 setWorkingHours(166.4);
                 setUnplannedAbsence(15.7);
                 setOtherExpense(19000000);
+                setSocialCost(1.4);
                 setSimulationDuration(3);
                 setSelectedDurationUnit('years');
                 message.success('Configuration reset to defaults');

@@ -141,24 +141,24 @@ class SimulationApiService {
   /**
    * Extract key KPI data from simulation results for a specific year and compare with baseline
    */
-  extractKPIData(results: SimulationResults, year: string): any[] {
+  extractKPIData(results: SimulationResults, year: string, socialCost: number = 1.4, otherExpense: number = 19000000): any[] {
     const yearData = results.years?.[year];
     if (!yearData) return [];
 
-    // Use global KPIs which contain the correct financial data
-    // TODO: Implement proper backend year-specific KPI endpoint for true year-by-year comparison
+    // Calculate year-specific financial metrics using the same methodology as backend KPI service
+    const yearSpecificMetrics = this.calculateYearSpecificFinancialMetrics(yearData, socialCost, otherExpense);
+    
+    // Use global KPIs only for baseline values (these remain constant)
     const globalKpis = results.kpis || {};
     const financialKpis = globalKpis.financial || {};
     
-    // Current values from global KPIs (these are calculated correctly by the backend)
-    const currentNetSales = financialKpis.net_sales || 0;
-    const currentTotalCosts = financialKpis.total_salary_costs || 0; // Use salary costs as main cost component
-    const currentEbitda = financialKpis.ebitda || 0;
-    const currentMargin = financialKpis.margin || 0;
-    
-    // Use KPI service values for all metrics (no need to recalculate)
-    const currentSalaryCosts = financialKpis.total_salary_costs || 0;
-    const currentAvgHourlyRate = financialKpis.avg_hourly_rate || 0;
+    // Current values from year-specific calculations
+    const currentNetSales = yearSpecificMetrics.currentNetSales;
+    const currentTotalCosts = yearSpecificMetrics.currentTotalCosts;
+    const currentEbitda = yearSpecificMetrics.currentEbitda;
+    const currentMargin = yearSpecificMetrics.currentMargin;
+    const currentSalaryCosts = yearSpecificMetrics.currentSalaryCosts;
+    const currentAvgHourlyRate = yearSpecificMetrics.currentAvgHourlyRate;
     
     // Baseline values (these remain global)
     const baselineNetSales = financialKpis.net_sales_baseline || 0;
@@ -250,36 +250,105 @@ class SimulationApiService {
     ];
   }
 
-  /**
+    /**
    * Calculate comprehensive year-specific financial metrics from year data
+   * Matches backend KPI service methodology exactly
    */
-  private calculateYearSpecificFinancialMetrics(yearData: any): {
+  private calculateYearSpecificFinancialMetrics(yearData: any, socialCost: number = 1.4, otherExpense: number = 19000000): {
     currentNetSales: number;
     currentSalaryCosts: number;
+    currentTotalCosts: number;
     currentEbitda: number;
     currentMargin: number;
     currentAvgHourlyRate: number;
   } {
-    // Instead of calculating from scratch, let's use the global KPIs but adjust them
-    // The issue is that year-specific calculation is complex and should match backend logic
-    // For now, let's revert to using global KPIs but scale them appropriately
-    
-    // Calculate total FTE for this year to understand the scale
-    let totalYearFTE = 0;
+    let totalRevenue = 0;
+    let totalSalaryCosts = 0;
+    let totalConsultants = 0;
+    let totalWeightedPrice = 0;
+    const workingHoursPerMonth = 166.4;
+    const unplannedAbsence = 0.05; // 5% default
+    const duration_months = 12; // Annualize monthly values like backend KPI service
+
     const offices = yearData.offices || {};
+    const totalSystemFTE = Object.values(offices).reduce((sum: number, office: any) => sum + (office.total_fte || 0), 0);
     
-    Object.values(offices).forEach((officeData: any) => {
-      totalYearFTE += officeData.total_fte || 0;
+    Object.entries(offices).forEach(([officeName, officeData]: [string, any]) => {
+      const levels = officeData.levels || {};
+      const officeFTE = officeData.total_fte || 0;
+      let officeSalaryCosts = 0;
+      let officeRevenue = 0;
+      
+      // Calculate for each role and level - exactly like backend
+      Object.entries(levels).forEach(([roleName, roleData]: [string, any]) => {
+        if (Array.isArray(roleData)) {
+          // Flat role (Operations) - get last month's data
+          const lastEntry = roleData[roleData.length - 1];
+          if (lastEntry) {
+            const fte = lastEntry.total || 0;
+            const salary = lastEntry.salary || 0;
+            const utr = lastEntry?.utr || 0.85;
+            if (fte > 0) {
+              // Annualize monthly salary like backend
+              const annualSalaryCost = fte * salary * duration_months;
+              officeSalaryCosts += annualSalaryCost;
+            }
+          }
+        } else if (typeof roleData === 'object') {
+          // Role with levels - exactly like backend logic
+          Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+            if (Array.isArray(levelData) && levelData.length > 0) {
+              const lastEntry = levelData[levelData.length - 1];
+              const fte = lastEntry?.total || 0;
+              const salary = lastEntry?.salary || 0;
+              const price = lastEntry?.price || 0;
+              const utr = lastEntry?.utr || 0.85;
+              
+              if (fte > 0) {
+                // Revenue calculation - only for Consultants like backend
+                if (roleName === 'Consultant') {
+                  const availableHours = workingHoursPerMonth * (1 - unplannedAbsence);
+                  const billableHours = availableHours * utr;
+                  const monthlyRevenuePerPerson = price * billableHours;
+                  const levelAnnualRevenue = fte * monthlyRevenuePerPerson * duration_months;
+                  officeRevenue += levelAnnualRevenue;
+                  totalConsultants += fte;
+                  totalWeightedPrice += price * fte;
+                }
+                
+                // Salary costs for all roles - annualize like backend
+                const annualSalaryCost = fte * salary * duration_months;
+                officeSalaryCosts += annualSalaryCost;
+              }
+            }
+          });
+        }
+      });
+      
+      // Apply employment cost overhead using user's socialCost parameter
+      const officeEmploymentCost = officeSalaryCosts * socialCost;
+      
+      // Allocate other expenses proportionally like backend (annualized)
+      const officeOtherExpense = totalSystemFTE > 0 ? 
+        (officeFTE / totalSystemFTE) * otherExpense * duration_months : 0;
+      
+      totalRevenue += officeRevenue;
+      totalSalaryCosts += officeEmploymentCost;
     });
 
-    // For now, return reasonable placeholder values that won't be 12x too high
-    // This should be replaced with proper backend year-specific KPI endpoint
+    // Calculate final metrics exactly like backend
+    const currentAvgHourlyRate = totalConsultants > 0 ? totalWeightedPrice / totalConsultants : 0;
+    const totalCosts = totalSalaryCosts + (otherExpense * duration_months); // Other expenses (annualized)
+    const currentEbitda = totalRevenue - totalCosts;
+    const currentMargin = totalRevenue > 0 ? currentEbitda / totalRevenue : 0;
+    
     return {
-      currentNetSales: 0, // Will be overridden by global KPIs
-      currentSalaryCosts: 0, // Will be overridden by global KPIs  
-      currentEbitda: 0, // Will be overridden by global KPIs
-      currentMargin: 0, // Will be overridden by global KPIs
-      currentAvgHourlyRate: 0 // Will be overridden by global KPIs
+      currentNetSales: totalRevenue,
+      currentSalaryCosts: totalSalaryCosts,
+      currentTotalCosts: totalCosts,
+      currentEbitda: currentEbitda,
+      currentMargin: currentMargin,
+      currentAvgHourlyRate: currentAvgHourlyRate
     };
   }
 
@@ -314,6 +383,7 @@ class SimulationApiService {
               const fte = lastEntry?.total || 0;
               const salary = lastEntry?.salary || 0;
               const price = lastEntry?.price || 0;
+              const utr = lastEntry?.utr || 0.85;
               
               totalSalaryCosts += fte * salary * 12 * 1.5; // Annual salary with 50% overhead
               
