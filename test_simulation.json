@@ -1,0 +1,17 @@
+{
+  "start_year": 2025,
+  "start_month": 1,
+  "end_year": 2027,
+  "end_month": 12,
+  "price_increase": 0.03,
+  "salary_increase": 0.03,
+  "unplanned_absence": 0.157,
+  "hy_working_hours": 166.4,
+  "other_expense": 19000000,
+  "office_overrides": {
+    "Stockholm": {
+      "recruitment_A": 0.04,
+      "recruitment_AC": 0.04
+    }
+  }
+}

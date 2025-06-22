@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse, Table, Tabs, Typography, message, Spin, Alert, Input } from 'antd';
+import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse, Table, Tabs, Typography, message, Spin, Alert, Input, Slider } from 'antd';
 import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, ControlOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
@@ -1727,7 +1727,18 @@ const SimulationLabV2: React.FC = () => {
                       const monthlyData: any[] = [];
 
                       if (levelData && Array.isArray(levelData) && levelData.length > 0) {
-                        yearlyTotals.totalBefore = levelData[0] ? (levelData[0].total - (levelData[0].recruited || 0) + (levelData[0].churned || 0) + (isOps ? 0 : (levelData[0].progressed_out || 0)) - (isOps ? 0 : (levelData[0].progressed_in || 0))) : 0;
+                        // Get the starting FTE from configuration data instead of trying to calculate it
+                        const currentOfficeConfig = officeConfig?.find((o: any) => o.name === officeName);
+                        let startingFTE = 0;
+                        if (currentOfficeConfig) {
+                          if (isOps) {
+                            startingFTE = currentOfficeConfig.roles?.Operations?.fte || 0;
+                          } else {
+                            startingFTE = currentOfficeConfig.roles?.[role]?.[level]?.fte || 0;
+                          }
+                        }
+                        
+                        yearlyTotals.totalBefore = startingFTE;
                         yearlyTotals.totalAfter = levelData[levelData.length - 1]?.total || 0;
 
                         // Process each time period for monthly breakdown
@@ -1912,7 +1923,7 @@ const SimulationLabV2: React.FC = () => {
                   key: 'netChange',
                   width: 100,
                   render: (_: any, record: any) => {
-                    const netChange = record.totalAfter - record.totalBefore;
+                    const netChange = record.recruited - record.churned - record.progressedOut + record.progressedIn;
                     const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
                     const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
                     return (
@@ -1965,7 +1976,7 @@ const SimulationLabV2: React.FC = () => {
                   key: 'netChange',
                   width: 100,
                   render: (_: any, record: any) => {
-                    const netChange = record.totalAfter - record.totalBefore;
+                    const netChange = record.recruited - record.churned - record.progressedOut + record.progressedIn;
                     const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
                     const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
                     return <span style={{ color: changeColor, fontWeight: '600' }}>{changeText}</span>;
@@ -2012,123 +2023,140 @@ const SimulationLabV2: React.FC = () => {
                   
                   {/* Filter Status */}
                   {selectedOfficeFilter && (
-                    <div style={{ 
-                      marginBottom: '16px', 
-                      padding: '8px 12px', 
-                      backgroundColor: darkMode ? '#003a8c' : '#e6f7ff', 
-                      borderRadius: '4px',
-                      border: darkMode ? '1px solid #1890ff' : '1px solid #91d5ff'
-                    }}>
-                      <Text style={{ fontSize: '12px', color: darkMode ? '#91d5ff' : '#1890ff' }}>
-                        📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
-                        ({logsData.length} yearly aggregations)
-                      </Text>
-                    </div>
+                    <Alert
+                      message={
+                        <Text style={{ fontSize: '12px' }}>
+                          📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
+                          ({logsData.length} yearly aggregations)
+                        </Text>
+                      }
+                      type="info"
+                      showIcon={false}
+                      style={{ marginBottom: '16px' }}
+                    />
                   )}
 
                   {/* Summary Cards */}
                   <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
                         }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
+                        }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Total Recruitment</Text>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Recruitment</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#52c41a' }}>
                           +{summaryStats.totalRecruitment}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
                           New hires across all offices
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
                         }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
+                        }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Total Churn</Text>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Total Churn</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#f5222d' }}>
                           -{summaryStats.totalChurn}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
                           Departures across all offices
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
                         }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
+                        }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Progression Moves</Text>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Progression Moves</Text>
                         <div style={{ fontSize: '18px', fontWeight: '600', margin: '4px 0', color: '#1890ff' }}>
                           {summaryStats.totalProgressedOut}
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
                           Level promotions & transitions
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
                         }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
+                        }}
                       >
-                        <Text type="secondary" style={{ fontSize: '11px', color: darkMode ? '#d9d9d9 !important' : 'inherit' }}>Activity Scope</Text>
-                        <div style={{ fontSize: '14px', fontWeight: '600', margin: '4px 0', color: darkMode ? '#ffffff !important' : 'inherit' }}>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>Activity Scope</Text>
+                        <div style={{ fontSize: '14px', fontWeight: '600', margin: '4px 0' }}>
                           {summaryStats.officesActive} offices
                         </div>
-                        <div style={{ fontSize: '12px', margin: '2px 0', color: darkMode ? '#ffffff !important' : 'inherit' }}>
+                        <div style={{ fontSize: '12px', margin: '2px 0' }}>
                           {summaryStats.periodsActive} periods
                         </div>
-                        <Text type="secondary" style={{ fontSize: '10px', color: darkMode ? '#8c8c8c !important' : 'inherit' }}>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>
                           {logsData.length} yearly aggregations
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                   </Row>
 
                   {/* Legend */}
-                  <div style={{ 
-                    marginBottom: '16px', 
-                    padding: '12px 16px', 
-                    backgroundColor: darkMode ? '#1f1f1f' : '#fafafa', 
-                    borderRadius: '6px',
-                    border: darkMode ? '1px solid #303030' : '1px solid #f0f0f0'
-                  }}>
+                  <Card 
+                    size="small"
+                    style={{ marginBottom: '16px' }}
+                    bodyStyle={{ padding: '12px 16px' }}
+                  >
                     <Text strong style={{ marginRight: '24px' }}>Legend:</Text>
                     <span style={{ color: '#52c41a', fontWeight: '600', marginRight: '16px' }}>
                       +Recruited (new hires)
@@ -2145,7 +2173,7 @@ const SimulationLabV2: React.FC = () => {
                     <Text type="secondary" style={{ fontSize: '12px', marginLeft: '16px' }}>
                       💡 Click on yearly totals to expand monthly breakdown
                     </Text>
-                  </div>
+                  </Card>
 
                   {/* Logs Table with Expandable Rows */}
                   <Table
