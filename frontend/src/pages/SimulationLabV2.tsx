@@ -17,7 +17,6 @@ const LEVERS = [
   { key: 'recruitment', label: 'Recruitment' },
   { key: 'churn', label: 'Churn' },
   { key: 'progression', label: 'Progression' },
-  { key: 'utr', label: 'UTR' },
 ];
 
 const LEVELS = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"];
@@ -111,7 +110,6 @@ const SimulationLabV2: React.FC = () => {
   const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
   const [otherExpense, setOtherExpense] = useState(19000000);
   const [socialCost, setSocialCost] = useState(1.4);
-  const [utr, setUtr] = useState(85.0); // UTR as percentage (85%)
   
   // Simulation duration
   const [simulationDuration, setSimulationDuration] = useState(12); // Default 12 months
@@ -715,7 +713,7 @@ const SimulationLabV2: React.FC = () => {
               style={{ width: '100%', marginTop: '4px' }}
               placeholder="Enter percentage"
               min={0}
-              max={selectedLevers.includes('utr') ? 100 : 100}
+              max={100}
               step={0.1}
               value={leverValue}
               onChange={v => setLeverValue(v ?? 0)}
@@ -1002,20 +1000,7 @@ const SimulationLabV2: React.FC = () => {
               Employment cost multiplier (1.4 = 40% overhead for social costs, taxes, benefits)
             </div>
           </Col>
-          <Col span={6}>
-            <Text strong>UTR (%)</Text>
-            <InputNumber
-              style={{ width: '100%', marginTop: '4px' }}
-              value={utr}
-              onChange={(value) => setUtr(value || 0)}
-              step={0.1}
-              min={0}
-              max={100}
-            />
-            <div style={{ fontSize: '11px', color: darkMode ? '#999' : '#888', marginTop: '2px' }}>
-              UTR as percentage (85%)
-            </div>
-          </Col>
+
         </Row>
       </Card>
 
