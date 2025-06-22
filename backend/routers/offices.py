@@ -240,12 +240,16 @@ async def export_office_config(export_request: dict):
                             if field_name == 'fte':
                                 row['FTE'] = value
                             elif '_' in field_name:
-                                # Convert field like 'price_1' to 'Price_1'
+                                # Convert field like 'price_1' to 'Price_1', 'utr_1' to 'UTR_1'
                                 parts = field_name.split('_')
                                 if len(parts) == 2:
-                                    base_name = parts[0].capitalize()
+                                    base_name = parts[0]
                                     month_num = parts[1]
-                                    excel_col = f'{base_name}_{month_num}'
+                                    # Special case for UTR - keep all uppercase
+                                    if base_name.lower() == 'utr':
+                                        excel_col = f'UTR_{month_num}'
+                                    else:
+                                        excel_col = f'{base_name.capitalize()}_{month_num}'
                                     row[excel_col] = value
                             else:
                                 # Handle other fields - capitalize first letter
@@ -268,12 +272,16 @@ async def export_office_config(export_request: dict):
                                     if field_name == 'fte':
                                         row['FTE'] = value
                                     elif '_' in field_name:
-                                        # Convert field like 'price_1' to 'Price_1'
+                                        # Convert field like 'price_1' to 'Price_1', 'utr_1' to 'UTR_1'
                                         parts = field_name.split('_')
                                         if len(parts) == 2:
-                                            base_name = parts[0].capitalize()
+                                            base_name = parts[0]
                                             month_num = parts[1]
-                                            excel_col = f'{base_name}_{month_num}'
+                                            # Special case for UTR - keep all uppercase
+                                            if base_name.lower() == 'utr':
+                                                excel_col = f'UTR_{month_num}'
+                                            else:
+                                                excel_col = f'{base_name.capitalize()}_{month_num}'
                                             row[excel_col] = value
                                     else:
                                         # Handle other fields - capitalize first letter
