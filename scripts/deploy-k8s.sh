@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Deploy SimpleSim to Kubernetes
-# Usage: ./scripts/deploy-k8s.sh [NAMESPACE]
+# Usage: ./scripts/deploy-k8s.sh [NAMESPACE] [COMMIT_SHA]
 
 set -e
 
 NAMESPACE=${1:-"simplesim"}
+COMMIT_SHA=${2:-"latest"}
 
 echo "Deploying SimpleSim to Kubernetes..."
 echo "Namespace: ${NAMESPACE}"
+echo "Image Tag: ${COMMIT_SHA}"
 
 # Apply namespace first
 echo "Creating namespace..."
@@ -17,6 +19,11 @@ kubectl apply -f k8s/namespace.yaml
 # Apply ConfigMap
 echo "Applying ConfigMap..."
 kubectl apply -f k8s/configmap.yaml
+
+# Update image tags in deployment files
+echo "Updating image tags in deployment files..."
+sed -i.bak "s/:latest/:${COMMIT_SHA}/g" k8s/backend-deployment.yaml
+sed -i.bak "s/:latest/:${COMMIT_SHA}/g" k8s/frontend-deployment.yaml
 
 # Apply backend resources
 echo "Deploying backend..."
@@ -42,6 +49,9 @@ kubectl rollout status deployment/simplesim-backend -n ${NAMESPACE} --timeout=30
 
 echo "Waiting for frontend deployment to be ready..."
 kubectl rollout status deployment/simplesim-frontend -n ${NAMESPACE} --timeout=300s
+
+# Clean up backup files
+rm -f k8s/*.bak
 
 echo "Deployment complete!"
 echo ""

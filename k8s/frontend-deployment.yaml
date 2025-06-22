@@ -6,6 +6,8 @@ metadata:
   labels:
     app: simplesim-frontend
     version: v1
+  annotations:
+    kubectl.kubernetes.io/restartedAt: "2024-03-19T23:55:00Z"
 spec:
   replicas: 2
   selector:
@@ -16,6 +18,8 @@ spec:
       labels:
         app: simplesim-frontend
         version: v1
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2024-03-19T23:55:00Z"
     spec:
       nodeSelector:
         node-type: "x86-spot"
@@ -35,31 +39,28 @@ spec:
           effect: NoSchedule
       containers:
         - name: frontend
-          image: andreasblomqvist/simplesim-frontend:latest
+          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-frontend:8c194e72
           ports:
             - containerPort: 3000
               name: http
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
               memory: "256Mi"
-              cpu: "200m"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-

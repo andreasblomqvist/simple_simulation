@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse, Table, Tabs, Typography, message, Spin, Alert, Input } from 'antd';
+import { Card, Row, Col, Select, InputNumber, Checkbox, Button, Space, Collapse, Table, Tabs, Typography, message, Spin, Alert, Input, Slider } from 'antd';
 import { SettingOutlined, RocketOutlined, TableOutlined, LoadingOutlined, ControlOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { simulationApi } from '../services/simulationApi';
@@ -105,15 +105,15 @@ const SimulationLabV2: React.FC = () => {
   const [activeYear, setActiveYear] = useState('2025');
   
   // Economic parameters
-  const [priceIncrease, setPriceIncrease] = useState(2.0);
-  const [salaryIncrease, setSalaryIncrease] = useState(2.0);
+  const [priceIncrease, setPriceIncrease] = useState(3.0);
+  const [salaryIncrease, setSalaryIncrease] = useState(3.0);
   const [workingHours, setWorkingHours] = useState(166.4);
   const [unplannedAbsence, setUnplannedAbsence] = useState(15.7);
-  const [otherExpense, setOtherExpense] = useState(10000);
+  const [otherExpense, setOtherExpense] = useState(19000000);
   
   // Simulation duration
-  const [simulationDuration, setSimulationDuration] = useState(3); // Default 3 years
-  const [selectedDurationUnit, setSelectedDurationUnit] = useState('years');
+  const [simulationDuration, setSimulationDuration] = useState(12); // Default 12 months
+  const [selectedDurationUnit, setSelectedDurationUnit] = useState('months');
   
   // API data
   const [officeConfig, setOfficeConfig] = useState<OfficeConfig[]>([]);
@@ -150,12 +150,14 @@ const SimulationLabV2: React.FC = () => {
     const loadOfficeConfig = async () => {
       try {
         setConfigLoading(true);
+        console.log('[SIMULATION] 🔄 Loading office configuration...');
         const config = await simulationApi.getOfficeConfig();
         setOfficeConfig(config);
+        console.log(`[SIMULATION] ✅ Loaded ${config.length} office configurations`);
         setError(null);
       } catch (err) {
+        console.error('[SIMULATION] ❌ Failed to load office config:', err);
         setError('Failed to load office configuration');
-        console.error('Error loading office config:', err);
       } finally {
         setConfigLoading(false);
       }
@@ -164,23 +166,158 @@ const SimulationLabV2: React.FC = () => {
     loadOfficeConfig();
   }, []);
 
+  // Preserve applied levers in sessionStorage to survive navigation
+  useEffect(() => {
+    const savedLevers = sessionStorage.getItem('simulation-applied-levers');
+    if (savedLevers) {
+      try {
+        const parsedLevers = JSON.parse(savedLevers);
+        setAppliedLevers(parsedLevers);
+        console.log(`[SIMULATION] 🔄 Restored ${parsedLevers.length} applied levers from session`);
+      } catch (err) {
+        console.warn('[SIMULATION] ⚠️  Failed to restore saved levers:', err);
+      }
+    }
+  }, []);
+
+  // Save applied levers to sessionStorage whenever they change
+  useEffect(() => {
+    if (appliedLevers.length > 0) {
+      sessionStorage.setItem('simulation-applied-levers', JSON.stringify(appliedLevers));
+      console.log(`[SIMULATION] 💾 Saved ${appliedLevers.length} applied levers to session`);
+    } else {
+      sessionStorage.removeItem('simulation-applied-levers');
+    }
+  }, [appliedLevers]);
+
+  const handleClearAllLevers = () => {
+    setAppliedLevers([]);
+    console.log('[SIMULATION] 🗑️ All applied levers have been cleared.');
+  };
+
+  const handleRunSimulation = async (isRetry?: boolean | React.MouseEvent<HTMLElement>) => {
+    // Check if the call is a retry, not just a mouse event
+    const isRetryRun = typeof isRetry === 'boolean' && isRetry;
+
+    try {
+      setSimulationRunning(true);
+      setError(null);
+  
+      // --- Build the correct simulation request payload ---
+      const start_year = parseInt(activeYear, 10) || new Date().getFullYear();
+      const start_month = 1;
+
+      let totalMonths = 0;
+      if (selectedDurationUnit === 'years') {
+        totalMonths = simulationDuration * 12;
+      } else if (selectedDurationUnit === 'half-years') {
+        totalMonths = simulationDuration * 6;
+      } else { // months
+        totalMonths = simulationDuration;
+      }
+
+      // Calculate end date based on start date and duration
+      const endDate = new Date(start_year, start_month - 1 + totalMonths -1, 1);
+      const end_year = endDate.getFullYear();
+      const end_month = endDate.getMonth() + 1;
+
+      const simulationConfig = {
+        start_year,
+        start_month,
+        end_year,
+        end_month,
+        price_increase: priceIncrease / 100, // Convert percentage to float
+        salary_increase: salaryIncrease / 100, // Convert percentage to float
+        hy_working_hours: workingHours,
+        unplanned_absence: unplannedAbsence / 100, // Convert percentage to float
+        other_expense: otherExpense,
+        office_overrides: appliedLevers.reduce((acc: Record<string, any>, lever: any) => {
+          // Determine which offices to apply to
+          let targetOffices: string[] = [];
+          if (lever.targetOffices.includes('all')) {
+            targetOffices = officeConfig.map((office: any) => office.name);
+          } else if (lever.officeJourney) {
+            targetOffices = officeConfig
+              .filter((office: any) => office.journey === lever.officeJourney)
+              .map((office: any) => office.name);
+          } else {
+            targetOffices = lever.targetOffices.map((officeName: string) => 
+              officeConfig.find((office: any) => office.name.toLowerCase().replace(' ', '_') === officeName)?.name
+            ).filter(Boolean);
+          }
+          
+          // Apply lever to each target office and level
+          targetOffices.forEach((officeName: string) => {
+            if (!acc[officeName]) {
+              acc[officeName] = {};
+            }
+            lever.levels.forEach((level: string) => {
+              const key = `${lever.leverType}_${level}`;
+              acc[officeName][key] = Number(lever.value) / 100; // Convert percentage to float
+            });
+          });
+          
+          return acc;
+        }, {})
+      };
+  
+      console.log('[SIMULATION] 🚀 Running simulation with config:', simulationConfig);
+      
+      // Save the configuration for potential retries
+      setLastSimulationConfig(simulationConfig);
+  
+      const results = await simulationApi.runSimulation(simulationConfig);
+      
+      // --- RAW RESULTS DEBUG ---
+      console.log('%c[DEBUG] Raw Simulation Results from Backend:', 'color: #FF6347; font-weight: bold;', results);
+      // --- END RAW RESULTS DEBUG ---
+
+      setSimulationResults(results);
+      console.log('[SIMULATION] ✅ Simulation run successful.');
+  
+    } catch (err) {
+      console.error('[SIMULATION] ❌ Simulation run failed:', err);
+      setError('Simulation run failed. Check console for details.');
+    } finally {
+      setSimulationRunning(false);
+    }
+  };
+
+  const handleApplyLevers = async () => {
+    // First, add the current lever configuration to applied levers
+    if (selectedLevers.length > 0 && selectedLevels.length > 0 && leverValue !== null) {
+      const newLever = {
+        id: Date.now().toString(), // Simple ID generation
+        leverType: selectedLevers[0],
+        levels: [...selectedLevels],
+        value: leverValue,
+        timePeriod: selectedTimePeriod,
+        officeJourney: selectedOfficeJourney,
+        targetOffices: applyToAllOffices ? ['all'] : selectedOffices,
+        appliedAt: new Date().toISOString()
+      };
+      
+      setAppliedLevers(prev => [...prev, newLever]);
+      console.log('[SIMULATION] 🎛️ Added new lever:', newLever);
+      message.success(`Applied ${selectedLevers[0]} lever to ${selectedLevels.join(', ')} levels`);
+    }
+    
+    // Then run the simulation with all applied levers
+    await handleRunSimulation();
+  };
+
   // Load available years when simulation results exist
   useEffect(() => {
-    const loadAvailableYears = async () => {
-      try {
-        const years = await simulationApi.getAvailableYears();
-        setAvailableYears(years);
-        if (years.length > 0 && !years.includes(activeYear)) {
-          setActiveYear(years[0]);
-        }
-      } catch (err) {
-        // Ignore error - no simulation results yet
-        console.log('No simulation results available yet');
+    if (simulationResults && simulationResults.years) {
+      // Extract years directly from simulation results
+      const years = Object.keys(simulationResults.years).sort();
+      setAvailableYears(years);
+      
+      // Set active year to first year if current activeYear is not in the results
+      if (years.length > 0 && !years.includes(activeYear)) {
+        setActiveYear(years[0]);
+        console.log(`[YEAR SWITCH] Setting active year to ${years[0]} from available years:`, years);
       }
-    };
-
-    if (simulationResults) {
-      loadAvailableYears();
     }
   }, [simulationResults, activeYear]);
 
@@ -191,178 +328,131 @@ const SimulationLabV2: React.FC = () => {
     : [];
   const officeOptions = officeConfig.length > 0 ? simulationApi.extractOfficeOptions(officeConfig) : [];
   
-  const kpiData = simulationResults && activeYear 
-    ? simulationApi.extractKPIData(simulationResults, activeYear)
-    : [];
+  // Enhanced kpiData that includes both financial and growth KPIs
+  const enhancedKpiData = (() => {
+    if (!simulationResults || !activeYear) return { kpis: [], seniorityKPIs: null };
+    
+    // Get base financial KPIs
+    const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear);
+    
+    // Get seniority KPIs to extract growth data
+    // Use the first available year as baseline for proper comparison
+    const baselineYear = availableYears.length > 0 ? availableYears[0] : activeYear;
+    const seniorityKPIs = simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, baselineYear);
+    
+    // Add growth KPIs from seniorityKPIs
+    const growthKPIs = [];
+    if (seniorityKPIs) {
+      // Total Growth Rate KPI
+      if (seniorityKPIs.totalGrowthDetails) {
+        growthKPIs.push({
+          title: 'Total Growth',
+          currentValue: seniorityKPIs.totalGrowthDetails.percentage,
+          previousValue: '0.0%', // Baseline is always 0% growth
+          unit: '',
+          description: 'Total workforce growth compared to baseline',
+          change: seniorityKPIs.totalGrowthDetails.absolute,
+          changePercent: parseFloat(seniorityKPIs.totalGrowthDetails.percentage.replace(/[+%]/g, '')),
+          rawValue: seniorityKPIs.totalGrowthDetails.current
+        });
+      }
+      
+      // Non-Debit Ratio KPI
+      if (seniorityKPIs.nonDebitDetails) {
+        growthKPIs.push({
+          title: 'Non-Debit Ratio',
+          currentValue: seniorityKPIs.nonDebitDetails.percentage,
+          previousValue: `${seniorityKPIs.nonDebitDetails.baseline}%`,
+          unit: '',
+          description: 'Percentage of non-consultant roles (Sales, Recruitment, Operations)',
+          change: seniorityKPIs.nonDebitDetails.absolute,
+          changePercent: seniorityKPIs.nonDebitDetails.absolute,
+          rawValue: seniorityKPIs.nonDebitDetails.current
+        });
+      }
+      
+      // Journey Distribution KPIs
+      ['journey1', 'journey2', 'journey3', 'journey4'].forEach((journey, index) => {
+        const journeyDetails = seniorityKPIs[`${journey}Details`];
+        if (journeyDetails) {
+          const journeyDefinitions = ['A, AC, C', 'SrC, AM', 'M, SrM', 'PiP'];
+          growthKPIs.push({
+            title: `Journey ${index + 1} (${journeyDefinitions[index]})`,
+            currentValue: journeyDetails.percentage,
+            previousValue: `${journeyDetails.baseline} FTE`,
+            unit: '',
+            description: `Workforce distribution in Journey ${index + 1}: ${journeyDefinitions[index]}`,
+            change: journeyDetails.absolute,
+            changePercent: journeyDetails.baseline > 0 ? (journeyDetails.absolute / journeyDetails.baseline) * 100 : 0,
+            rawValue: journeyDetails.current
+          });
+        }
+      });
+    }
+    
+    // Store seniorityKPIs for use in other parts of the component
+    return {
+      kpis: [...financialKPIs, ...growthKPIs],
+      seniorityKPIs
+    };
+  })();
+
+  // --- START ENHANCED DEBUG LOGGING ---
+  useEffect(() => {
+    if (simulationResults && activeYear) {
+      console.log(`%c[DEBUG] Year Changed: ${activeYear}`, 'color: #7B68EE; font-weight: bold;');
+      
+      const yearData = simulationResults.years?.[activeYear];
+      console.log('[DEBUG] Data for active year:', yearData);
+      
+      const extractedKPIs = enhancedKpiData.seniorityKPIs;
+      console.log('[DEBUG] Extracted Seniority KPIs for the year:', extractedKPIs);
+
+      if (extractedKPIs) {
+        console.log('[DEBUG] Baseline year used for comparison:', extractedKPIs.baselineYear);
+        console.log({
+          journey1: extractedKPIs.journey1Details,
+          journey2: extractedKPIs.journey2Details,
+          journey3: extractedKPIs.journey3Details,
+          journey4: extractedKPIs.journey4Details,
+        });
+      }
+    }
+  }, [activeYear, simulationResults, enhancedKpiData]);
+  // --- END ENHANCED DEBUG LOGGING ---
+
+  // Extract kpiData and seniorityKPIs from the enhanced calculation
+  const kpiData = enhancedKpiData.kpis;
+  const seniorityKPIs = enhancedKpiData.seniorityKPIs;
+  
+  // Debug log for year switching
+  console.log('[YEAR DEBUG] Current activeYear:', activeYear);
+  console.log('[YEAR DEBUG] Available years:', availableYears);
+  console.log('[YEAR DEBUG] Simulation results years:', simulationResults ? Object.keys(simulationResults.years || {}) : 'No results');
+  console.log('[KPI DEBUG] Enhanced kpiData length:', kpiData.length);
   
   const tableData = simulationResults && activeYear
-    ? simulationApi.extractTableData(simulationResults, activeYear)
+    ? simulationApi.extractTableData(simulationResults, activeYear, officeConfig)
     : [];
+  
+  // Year change handler with debug logging
+  const handleYearChange = (year: string) => {
+    console.log(`[YEAR CHANGE] Switching from ${activeYear} to ${year}`);
+    setActiveYear(year);
+    console.log(`[YEAR CHANGE] Active year updated to: ${year}`);
+  };
+
+  // Debug log for table data
+  if (tableData && tableData.length > 0) {
+    console.log('[DEBUG] Table data sample:', tableData[0]);
+    console.log('[DEBUG] Table data length:', tableData.length);
+  } else {
+    console.log('[DEBUG] Table data is empty or null');
+  }
   
   const seniorityData = simulationResults && activeYear
     ? simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig)
     : [];
-  
-  const seniorityKPIs = simulationResults && activeYear
-    ? simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, '2025')
-    : null;
-
-  // Seniority data updates when year changes
-
-  const handleLeverChange = (value: string) => {
-    setSelectedLever(value);
-    setSelectedLevel(undefined);
-    setLeverValue(null);
-  };
-
-  const handleApplyLevers = async () => {
-    try {
-      setLeverApplying(true);
-      
-      // Validate inputs
-      if (!selectedLevers.length || !selectedLevels.length || leverValue === null) {
-        message.error('Please select lever type, levels, and enter a value');
-        return;
-      }
-      
-      // Determine target offices
-      let targetOffices: string[] = [];
-      if (applyToAllOffices) {
-        targetOffices = officeOptions.map(office => office.value);
-      } else if (selectedOfficeJourney) {
-        // Filter offices by journey type using the office configuration
-        targetOffices = officeConfig
-          .filter(office => office.journey === selectedOfficeJourney)
-          .map(office => office.name.toLowerCase().replace(' ', '_'));
-      } else {
-        targetOffices = selectedOffices;
-      }
-      
-      if (targetOffices.length === 0) {
-        message.error('Please select at least one office or office journey');
-        return;
-      }
-      
-      // Create lever configuration
-      const leverConfig = {
-        id: Date.now(), // Simple ID for tracking
-        leverType: selectedLevers[0],
-        levels: selectedLevels,
-        value: leverValue,
-        timePeriod: selectedTimePeriod,
-        targetOffices: targetOffices,
-        officeJourney: selectedOfficeJourney,
-        appliedAt: new Date().toISOString()
-      };
-      
-      // Add to applied levers
-      setAppliedLevers(prev => [...prev, leverConfig]);
-      
-      // Only reset the value to allow quick application of similar levers
-      setLeverValue(null);
-      // Keep lever type and levels for easy reuse
-      // setSelectedLevels(['AM']); // Don't reset levels
-      // setSelectedOffices([]); // Don't reset office selection
-      // setSelectedOfficeJourney(''); // Don't reset office journey
-      
-      message.success(`Lever applied successfully! (${leverConfig.leverType} for ${leverConfig.levels.join(', ')} levels)`);
-      
-    } catch (err) {
-      message.error('Failed to apply lever');
-      console.error('Lever application error:', err);
-    } finally {
-      setLeverApplying(false);
-    }
-  };
-
-  const buildOfficeOverrides = (levers: any[]) => {
-    const overrides: Record<string, any> = {};
-    
-    levers.forEach(lever => {
-      lever.targetOffices.forEach((office: string) => {
-        if (!overrides[office]) {
-          overrides[office] = {};
-        }
-        
-        // Add lever configuration to office overrides
-        lever.levels.forEach((level: string) => {
-          const leverKey = `${lever.leverType}_${level}`;
-          overrides[office][leverKey] = lever.value / 100; // Convert percentage to decimal
-        });
-      });
-    });
-    
-    return overrides;
-  };
-
-  const handleRunSimulation = async () => {
-    try {
-      setSimulationRunning(true);
-      setError(null);
-      
-      // Prepare simulation parameters
-      const startYear = 2025;
-      const totalMonths = selectedDurationUnit === 'years' ? simulationDuration * 12 : 
-                          selectedDurationUnit === 'half-years' ? simulationDuration * 6 : 
-                          simulationDuration;
-      const endYear = startYear + Math.ceil(totalMonths / 12) - 1;
-      
-      const params = {
-        start_year: startYear,
-        start_month: 1,
-        end_year: endYear,
-        end_month: 12,
-        price_increase: priceIncrease / 100,
-        salary_increase: salaryIncrease / 100,
-        hy_working_hours: workingHours,
-        unplanned_absence: unplannedAbsence / workingHours, // Convert absence hours to decimal percentage
-        other_expense: otherExpense,
-        office_overrides: buildOfficeOverrides(appliedLevers) // Include applied levers
-      };
-
-      // Save simulation configuration for reference
-      const simulationConfig = {
-        timestamp: new Date().toISOString(),
-        duration: `${simulationDuration} ${selectedDurationUnit}`,
-        yearRange: totalMonths <= 12 ? '2025' : `2025-${endYear}`,
-        parameters: {
-          priceIncrease: `${priceIncrease}%`,
-          salaryIncrease: `${salaryIncrease}%`,
-          workingHours: workingHours,
-          unplannedAbsence: `${unplannedAbsence} hours/month`,
-          otherExpense: `${otherExpense.toLocaleString()} SEK`
-        },
-        appliedLevers: appliedLevers.map(lever => ({
-          type: lever.leverType.toUpperCase(),
-          levels: lever.levels.join(', '),
-          value: `${lever.value}%`,
-          scope: lever.officeJourney || `${lever.targetOffices.length} office(s)`,
-          timePeriod: lever.timePeriod
-        }))
-      };
-
-      const results = await simulationApi.runSimulation(params);
-      setSimulationResults(results);
-      setLastSimulationConfig(simulationConfig); // Save the configuration
-      
-      message.success('Simulation completed successfully!');
-      
-      // Set active year to first year if not set
-      if (!activeYear && results.years) {
-        const firstYear = Object.keys(results.years)[0];
-        if (firstYear) {
-          setActiveYear(firstYear);
-        }
-      }
-      
-    } catch (err) {
-      setError('Simulation failed');
-      message.error('Failed to run simulation');
-      console.error('Simulation error:', err);
-    } finally {
-      setSimulationRunning(false);
-    }
-  };
 
   const tableColumns = [
     {
@@ -461,33 +551,25 @@ const SimulationLabV2: React.FC = () => {
       });
       
       // Sum movement data across all offices
-      Object.values(yearData.offices).forEach((officeData: any) => {
+      Object.entries(yearData.offices).forEach(([officeName, officeData]: [string, any]) => {
         if (officeData.levels) {
-          // Check all roles for movement data
-          ['Consultant', 'Sales', 'Recruitment'].forEach(role => {
-            const roleData = officeData.levels[role];
-            if (roleData) {
-              LEVELS.forEach(level => {
-                const levelData = roleData[level];
-                                  if (levelData && levelData.length > 0) {
-                    // Get the latest period data (sum across all periods for the year)
-                    const totalMovement = levelData.reduce((sum: any, periodData: any) => {
-                      sum.churned += periodData.churned || 0;
-                      sum.recruited += periodData.recruited || 0;
-                      sum.progressed_in += periodData.progressed_in || 0;
-                      return sum;
-                    }, { churned: 0, recruited: 0, progressed_in: 0 });
-                    
-                    movementByLevel[level]['Churned'] += totalMovement.churned;
-                    movementByLevel[level]['Recruited'] += totalMovement.recruited;
-                    movementByLevel[level]['Progressed In'] += totalMovement.progressed_in;
-                  }
+          // Process roles with levels (e.g., Consultant)
+          Object.entries(officeData.levels).forEach(([roleName, roleData]: [string, any]) => {
+            if (typeof roleData === 'object' && roleData !== null && !Array.isArray(roleData)) {
+              Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+                if (Array.isArray(levelData) && LEVELS.includes(levelName)) {
+                  levelData.forEach((periodData: any) => {
+                    movementByLevel[levelName]['Recruited'] += periodData.recruited || 0;
+                    movementByLevel[levelName]['Churned'] += periodData.churned || 0;
+                    movementByLevel[levelName]['Progressed In'] += periodData.progressed_in || 0;
+                  });
+                }
               });
             }
           });
         }
       });
-      
+
       // Convert to chart data format
       stackedBarData = LEVELS.flatMap(level =>
         MOVEMENT_TYPES.map(type => ({ 
@@ -639,7 +721,7 @@ const SimulationLabV2: React.FC = () => {
         
         {/* Apply Levers Button and Applied Levers Display */}
         <Row gutter={16} style={{ marginTop: 16, marginBottom: 16 }}>
-          <Col span={8}>
+          <Col span={6}>
             <Button 
               type="primary"
               icon={leverApplying ? <LoadingOutlined /> : <ControlOutlined />}
@@ -651,7 +733,17 @@ const SimulationLabV2: React.FC = () => {
               {leverApplying ? 'Applying...' : 'Apply Lever'}
             </Button>
           </Col>
-          <Col span={16}>
+          <Col span={6}>
+            <Button 
+              danger
+              onClick={handleClearAllLevers}
+              disabled={appliedLevers.length === 0 || configLoading}
+              style={{ width: '100%' }}
+            >
+              Clear All Levers ({appliedLevers.length})
+            </Button>
+          </Col>
+          <Col span={12}>
             <Text type="secondary" style={{ fontSize: '12px' }}>
               Configure lever settings above, then click "Apply Lever" to add to simulation. 
               Applied levers will be used when running simulations.
@@ -827,82 +919,67 @@ const SimulationLabV2: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Action Buttons */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={12}>
-          <Button 
-            type="primary" 
-            size="large"
-            block
-            icon={simulationRunning ? <LoadingOutlined /> : <RocketOutlined />}
-            loading={simulationRunning}
-            onClick={handleRunSimulation}
-            disabled={configLoading}
-          >
-            {simulationRunning ? 'Running Simulation...' : 'Run Simulation'}
-          </Button>
-        </Col>
-        <Col span={6}>
-          <Button size="large" block>Load Config Data</Button>
-        </Col>
-        <Col span={6}>
-          <Button size="large" block>Reset to Config</Button>
+
+
+      {/* Run Simulation Button */}
+      <Row style={{ marginBottom: '24px' }}>
+        <Col span={24} style={{ textAlign: 'center' }}>
+          <Space size="middle">
+            <Button 
+              type="primary" 
+              size="large"
+              icon={simulationRunning ? <LoadingOutlined /> : <RocketOutlined />}
+              loading={simulationRunning}
+              onClick={handleRunSimulation}
+              disabled={configLoading}
+              style={{ minWidth: '200px' }}
+            >
+              {simulationRunning ? 'Running Simulation...' : 'Run Simulation'}
+            </Button>
+            <Button 
+              size="large"
+              onClick={() => window.location.href = '/configuration'}
+              disabled={configLoading}
+            >
+              Load Config Data
+            </Button>
+            <Button 
+              size="large"
+              onClick={() => {
+                setAppliedLevers([]);
+                setPriceIncrease(3.0);
+                setSalaryIncrease(2.0);
+                setWorkingHours(166.4);
+                setUnplannedAbsence(15.7);
+                setOtherExpense(19000000);
+                setSimulationDuration(3);
+                setSelectedDurationUnit('years');
+                message.success('Configuration reset to defaults');
+              }}
+              disabled={configLoading}
+            >
+              Reset to Config
+            </Button>
+          </Space>
         </Col>
       </Row>
 
-      {/* Last Simulation Configuration Display */}
-      {lastSimulationConfig && (
-        <Card 
-          title="📊 Current Simulation Configuration" 
-          style={{ marginBottom: '16px', backgroundColor: '#f0f9ff', borderColor: '#0ea5e9' }}
-          size="small"
-        >
-          <Row gutter={16}>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Simulation Scope</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px' }}>
-                <div><Text strong>Duration:</Text> {lastSimulationConfig.duration}</div>
-                <div><Text strong>Years:</Text> {lastSimulationConfig.yearRange}</div>
-                <div><Text strong>Run at:</Text> {new Date(lastSimulationConfig.timestamp).toLocaleString()}</div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Economic Parameters</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px' }}>
-                <div><Text strong>Price Increase:</Text> {lastSimulationConfig.parameters.priceIncrease}</div>
-                <div><Text strong>Salary Increase:</Text> {lastSimulationConfig.parameters.salaryIncrease}</div>
-                <div><Text strong>Working Hours:</Text> {lastSimulationConfig.parameters.workingHours}</div>
-                <div><Text strong>Unplanned Absence:</Text> {lastSimulationConfig.parameters.unplannedAbsence}</div>
-                <div><Text strong>Other Expense:</Text> {lastSimulationConfig.parameters.otherExpense}</div>
-              </div>
-            </Col>
-            <Col span={8}>
-              <Text strong style={{ color: '#0ea5e9' }}>Applied Levers ({lastSimulationConfig.appliedLevers.length})</Text>
-              <div style={{ marginTop: '4px', fontSize: '12px', maxHeight: '120px', overflowY: 'auto' }}>
-                {lastSimulationConfig.appliedLevers.length > 0 ? (
-                  lastSimulationConfig.appliedLevers.map((lever: any, index: number) => (
-                    <div key={index} style={{ marginBottom: '2px', padding: '2px 4px', backgroundColor: '#e0f2fe', borderRadius: '3px' }}>
-                      <Text strong>{lever.type}</Text> {lever.levels} • {lever.value} • {lever.scope}
-                    </div>
-                  ))
-                ) : (
-                  <Text type="secondary">No levers applied</Text>
-                )}
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      )}
+
 
       {/* Simulation Results Card */}
       <Card title="Simulation Results">
         {/* Year Selector Tabs */}
         {availableYears.length > 0 ? (
-          <Tabs activeKey={activeYear} onChange={setActiveYear} style={{ marginBottom: '24px' }}>
-            {availableYears.map(year => (
-              <TabPane tab={`Year ${year}`} key={year} />
-            ))}
-          </Tabs>
+          <div>
+            <div style={{ marginBottom: '8px', fontSize: '14px', color: '#666' }}>
+              <strong>Active Year: {activeYear}</strong> | Available Years: {availableYears.join(', ')}
+            </div>
+            <Tabs activeKey={activeYear} onChange={handleYearChange} style={{ marginBottom: '24px' }}>
+              {availableYears.map(year => (
+                <TabPane tab={`Year ${year} ${year === activeYear ? '(Active)' : ''}`} key={year} />
+              ))}
+            </Tabs>
+          </div>
         ) : (
           <div style={{ 
             textAlign: 'center', 
@@ -929,17 +1006,65 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>Net Sales</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const netSales = yearData?.kpis?.financial?.net_sales || 
-                                          simulationResults.kpis?.financial?.net_sales ||
-                                          simulationResults.kpis?.financial?.current_net_sales;
-                          return netSales ? `${(netSales / 1000000).toFixed(1)}M SEK` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'Net Sales');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         Total revenue from client services
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Net Sales');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Total Salary Costs</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Total Salary Costs');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Total salary costs including employment overhead
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Total Salary Costs');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                   <Col xs={24} sm={12} lg={8}>
@@ -947,17 +1072,32 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const ebitda = yearData?.kpis?.financial?.ebitda || 
-                                        simulationResults.kpis?.financial?.ebitda ||
-                                        simulationResults.kpis?.financial?.current_ebitda;
-                          return ebitda ? `${(ebitda / 1000000).toFixed(1)}M SEK` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'EBITDA');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         Earnings before interest, taxes, depreciation
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'EBITDA');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                   <Col xs={24} sm={12} lg={8}>
@@ -965,17 +1105,98 @@ const SimulationLabV2: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: '12px' }}>EBITDA Margin</Text>
                       <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
                         {(() => {
-                          // Get year-specific financial data
-                          const yearData = simulationResults.years?.[activeYear];
-                          const margin = yearData?.kpis?.financial?.margin || 
-                                        simulationResults.kpis?.financial?.margin ||
-                                        simulationResults.kpis?.financial?.current_margin;
-                          return margin !== undefined && margin !== null ? `${margin.toFixed(1)}%` : 'N/A';
+                          const kpi = kpiData.find(k => k.title === 'EBITDA Margin');
+                          return kpi ? kpi.currentValue : 'N/A';
                         })()}
                       </div>
                       <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
                         EBITDA as percentage of net sales
                       </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'EBITDA Margin');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{kpi.change.toFixed(1)}% vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Gross Margin</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Gross Margin');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Net sales minus total costs
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Gross Margin');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{(kpi.change / 1000000).toFixed(1)}M vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Card size="small" style={{ textAlign: 'center', height: '120px' }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>Avg Hourly Rate</Text>
+                      <div style={{ fontSize: '20px', fontWeight: '600', margin: '4px 0' }}>
+                        {(() => {
+                          const kpi = kpiData.find(k => k.title === 'Avg Hourly Rate');
+                          return kpi ? kpi.currentValue : 'N/A';
+                        })()}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                        Average hourly rate for consultant services
+                      </Text>
+                      {(() => {
+                        const kpi = kpiData.find(k => k.title === 'Avg Hourly Rate');
+                        if (kpi && kpi.previousValue !== undefined) {
+                          return (
+                            <div style={{ fontSize: '9px', color: '#8c8c8c', lineHeight: '1.1' }}>
+                              <div>Baseline: {kpi.previousValue} {kpi.unit}</div>
+                              {kpi.change !== undefined && (
+                                <div style={{ 
+                                  color: kpi.change >= 0 ? '#52c41a' : '#f5222d',
+                                  fontWeight: '600'
+                                }}>
+                                  {kpi.change >= 0 ? '+' : ''}{kpi.change.toFixed(0)} SEK vs baseline
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </Card>
                   </Col>
                 </Row>
@@ -1452,68 +1673,120 @@ const SimulationLabV2: React.FC = () => {
               const yearData = simulationResults.years[activeYear];
               if (!yearData?.offices) return null;
 
-              // Process logs data
+              // Get all possible roles and levels from the config to ensure all are displayed
+              const allRolesAndLevels: { [key: string]: string[] } = {};
+              if (officeConfig && officeConfig.length > 0) {
+                  officeConfig.forEach(office => {
+                      Object.keys(office.roles).forEach(role => {
+                          if (!allRolesAndLevels[role]) {
+                              allRolesAndLevels[role] = [];
+                          }
+                          // Handle roles with levels (e.g., Consultant)
+                          if (typeof office.roles[role] === 'object' && !Array.isArray(office.roles[role]) && office.roles[role] !== null) {
+                              const levels = Object.keys(office.roles[role]);
+                              levels.forEach(level => {
+                                  if (!allRolesAndLevels[role].includes(level)) {
+                                      allRolesAndLevels[role].push(level);
+                                  }
+                              });
+                          }
+                      });
+                  });
+                  // Ensure Operations role exists, as it's a flat structure
+                  if (!allRolesAndLevels['Operations']) {
+                    allRolesAndLevels['Operations'] = ['N/A'];
+                  }
+              }
+              
+              // Process logs data with aggregation
               const processLogsData = () => {
                 const logs: any[] = [];
                 const offices = Object.keys(yearData.offices);
-                const roles = ['Consultant', 'Sales', 'Recruitment'];
-                const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
 
                 offices.forEach(officeName => {
                   const officeData = yearData.offices[officeName];
-                  if (!officeData.levels) return;
-
-                  roles.forEach(role => {
-                    const roleData = officeData.levels[role];
-                    if (!roleData) return;
-
+                  
+                  Object.entries(allRolesAndLevels).forEach(([role, levels]) => {
                     levels.forEach(level => {
-                      const levelData = roleData[level];
-                      if (!levelData || !Array.isArray(levelData)) return;
+                      // Determine the correct data path based on role
+                      const isOps = role === 'Operations';
+                      const levelData = isOps 
+                        ? officeData.operations 
+                        : officeData.levels?.[role]?.[level];
 
-                      // Process each time period
-                      levelData.forEach((periodData: any, periodIndex: number) => {
-                        if (periodData.recruited > 0 || periodData.churned > 0 || periodData.progressed_out > 0 || periodData.progressed_in > 0) {
-                          logs.push({
+                      // Calculate yearly aggregated values
+                      const yearlyTotals = {
+                        recruited: 0,
+                        churned: 0,
+                        progressedOut: 0,
+                        progressedIn: 0,
+                        totalBefore: 0,
+                        totalAfter: 0,
+                      };
+
+                      const monthlyData: any[] = [];
+
+                      if (levelData && Array.isArray(levelData) && levelData.length > 0) {
+                        // Get the starting FTE from configuration data instead of trying to calculate it
+                        const currentOfficeConfig = officeConfig?.find((o: any) => o.name === officeName);
+                        let startingFTE = 0;
+                        if (currentOfficeConfig) {
+                          if (isOps) {
+                            startingFTE = currentOfficeConfig.roles?.Operations?.fte || 0;
+                          } else {
+                            startingFTE = currentOfficeConfig.roles?.[role]?.[level]?.fte || 0;
+                          }
+                        }
+                        
+                        yearlyTotals.totalBefore = startingFTE;
+                        yearlyTotals.totalAfter = levelData[levelData.length - 1]?.total || 0;
+
+                        // Process each time period for monthly breakdown
+                        levelData.forEach((period_data: any, periodIndex: number) => {
+                          if (!period_data) return;
+                          
+                          yearlyTotals.recruited += period_data.recruited || 0;
+                          yearlyTotals.churned += period_data.churned || 0;
+                          if (!isOps) {
+                            yearlyTotals.progressedOut += period_data.progressed_out || 0;
+                            yearlyTotals.progressedIn += period_data.progressed_in || 0;
+                          }
+
+                          monthlyData.push({
                             key: `${officeName}-${role}-${level}-${periodIndex}`,
                             office: officeName,
                             role: role,
                             level: level,
                             period: `Month ${periodIndex + 1}`,
                             periodIndex: periodIndex,
-                            recruited: periodData.recruited || 0,
-                            churned: periodData.churned || 0,
-                            progressedOut: periodData.progressed_out || 0,
-                            progressedIn: periodData.progressed_in || 0,
-                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned + periodData.progressed_out - periodData.progressed_in),
-                            totalAfter: periodData.total || 0
+                            recruited: period_data.recruited || 0,
+                            churned: period_data.churned || 0,
+                            progressedOut: isOps ? 0 : (period_data.progressed_out || 0),
+                            progressedIn: isOps ? 0 : (period_data.progressed_in || 0),
+                            totalBefore: periodIndex > 0 ? (levelData[periodIndex - 1]?.total || 0) : yearlyTotals.totalBefore,
+                            totalAfter: period_data.total || 0
                           });
-                        }
+                        });
+                      }
+
+                      logs.push({
+                        key: `${officeName}-${role}-${level}-yearly`,
+                        office: officeName,
+                        role: role,
+                        level: level,
+                        period: `${activeYear} Total`,
+                        periodIndex: -1,
+                        recruited: yearlyTotals.recruited,
+                        churned: yearlyTotals.churned,
+                        progressedOut: yearlyTotals.progressedOut,
+                        progressedIn: yearlyTotals.progressedIn,
+                        totalBefore: yearlyTotals.totalBefore,
+                        totalAfter: yearlyTotals.totalAfter,
+                        isYearlyTotal: true,
+                        monthlyData: monthlyData
                       });
                     });
                   });
-
-                  // Add operations logs if they exist
-                  if (officeData.operations && Array.isArray(officeData.operations)) {
-                    officeData.operations.forEach((periodData: any, periodIndex: number) => {
-                      if (periodData && (periodData.recruited > 0 || periodData.churned > 0)) {
-                        logs.push({
-                          key: `${officeName}-Operations-Operations-${periodIndex}`,
-                          office: officeName,
-                          role: 'Operations',
-                          level: 'Operations',
-                          period: `Month ${periodIndex + 1}`,
-                          periodIndex: periodIndex,
-                          recruited: periodData.recruited || 0,
-                          churned: periodData.churned || 0,
-                          progressedOut: 0,
-                          progressedIn: 0,
-                          totalBefore: periodIndex > 0 ? (officeData.operations[periodIndex - 1]?.total || 0) : (periodData.total - periodData.recruited + periodData.churned),
-                          totalAfter: periodData.total || 0
-                        });
-                      }
-                    });
-                  }
                 });
 
                 return logs.sort((a, b) => {
@@ -1563,7 +1836,12 @@ const SimulationLabV2: React.FC = () => {
                   title: 'Period', 
                   dataIndex: 'period', 
                   key: 'period',
-                  width: 100,
+                  width: 120,
+                  render: (text: string, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '400' }}>
+                      {text}
+                    </span>
+                  ),
                   sorter: (a: any, b: any) => a.periodIndex - b.periodIndex,
                 },
                 { 
@@ -1571,8 +1849,99 @@ const SimulationLabV2: React.FC = () => {
                   dataIndex: 'totalBefore', 
                   key: 'totalBefore',
                   width: 90,
-                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
+                  render: (value: any, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '500' }}>{value}</span>
+                  )
                 },
+                { 
+                  title: 'Recruited', 
+                  dataIndex: 'recruited', 
+                  key: 'recruited',
+                  width: 90,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#52c41a', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      +{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Churned', 
+                  dataIndex: 'churned', 
+                  key: 'churned',
+                  width: 90,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#f5222d', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      -{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Progressed Out', 
+                  dataIndex: 'progressedOut', 
+                  key: 'progressedOut',
+                  width: 110,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#fa8c16', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      -{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'Progressed In', 
+                  dataIndex: 'progressedIn', 
+                  key: 'progressedIn',
+                  width: 110,
+                  render: (value: any, record: any) => value > 0 ? (
+                    <span style={{ 
+                      color: '#1890ff', 
+                      fontWeight: record.isYearlyTotal ? '700' : '600' 
+                    }}>
+                      +{value}
+                    </span>
+                  ) : '-'
+                },
+                { 
+                  title: 'FTE After', 
+                  dataIndex: 'totalAfter', 
+                  key: 'totalAfter',
+                  width: 90,
+                  render: (value: any, record: any) => (
+                    <span style={{ fontWeight: record.isYearlyTotal ? '600' : '500' }}>{value}</span>
+                  )
+                },
+                {
+                  title: 'Net Change',
+                  key: 'netChange',
+                  width: 100,
+                  render: (_: any, record: any) => {
+                    const netChange = record.recruited - record.churned - record.progressedOut + record.progressedIn;
+                    const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
+                    const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
+                    return (
+                      <span style={{ 
+                        color: changeColor, 
+                        fontWeight: record.isYearlyTotal ? '700' : '600' 
+                      }}>
+                        {changeText}
+                      </span>
+                    );
+                  }
+                }
+              ];
+
+              // Monthly details columns (for expanded rows)
+              const monthlyColumns = [
+                { title: 'Month', dataIndex: 'period', key: 'period', width: 100 },
+                { title: 'FTE Before', dataIndex: 'totalBefore', key: 'totalBefore', width: 90 },
                 { 
                   title: 'Recruited', 
                   dataIndex: 'recruited', 
@@ -1601,19 +1970,13 @@ const SimulationLabV2: React.FC = () => {
                   width: 110,
                   render: (value: any) => value > 0 ? <span style={{ color: '#1890ff', fontWeight: '600' }}>+{value}</span> : '-'
                 },
-                { 
-                  title: 'FTE After', 
-                  dataIndex: 'totalAfter', 
-                  key: 'totalAfter',
-                  width: 90,
-                  render: (value: any) => <span style={{ fontWeight: '500' }}>{value}</span>
-                },
+                { title: 'FTE After', dataIndex: 'totalAfter', key: 'totalAfter', width: 90 },
                 {
                   title: 'Net Change',
                   key: 'netChange',
                   width: 100,
                   render: (_: any, record: any) => {
-                    const netChange = record.totalAfter - record.totalBefore;
+                    const netChange = record.recruited - record.churned - record.progressedOut + record.progressedIn;
                     const changeColor = netChange > 0 ? '#52c41a' : netChange < 0 ? '#f5222d' : '#8c8c8c';
                     const changeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
                     return <span style={{ color: changeColor, fontWeight: '600' }}>{changeText}</span>;
@@ -1660,33 +2023,37 @@ const SimulationLabV2: React.FC = () => {
                   
                   {/* Filter Status */}
                   {selectedOfficeFilter && (
-                    <div style={{ 
-                      marginBottom: '16px', 
-                      padding: '8px 12px', 
-                      backgroundColor: darkMode ? '#003a8c' : '#e6f7ff', 
-                      borderRadius: '4px',
-                      border: darkMode ? '1px solid #1890ff' : '1px solid #91d5ff'
-                    }}>
-                      <Text style={{ fontSize: '12px', color: darkMode ? '#91d5ff' : '#1890ff' }}>
-                        📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
-                        ({logsData.length} movement events)
-                      </Text>
-                    </div>
+                    <Alert
+                      message={
+                        <Text style={{ fontSize: '12px' }}>
+                          📍 Showing logs for: <Text strong>{selectedOfficeFilter}</Text> 
+                          ({logsData.length} yearly aggregations)
+                        </Text>
+                      }
+                      type="info"
+                      showIcon={false}
+                      style={{ marginBottom: '16px' }}
+                    />
                   )}
 
                   {/* Summary Cards */}
                   <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
+                        }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: '11px' }}>Total Recruitment</Text>
@@ -1696,19 +2063,24 @@ const SimulationLabV2: React.FC = () => {
                         <Text type="secondary" style={{ fontSize: '10px' }}>
                           New hires across all offices
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
+                        }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: '11px' }}>Total Churn</Text>
@@ -1718,19 +2090,24 @@ const SimulationLabV2: React.FC = () => {
                         <Text type="secondary" style={{ fontSize: '10px' }}>
                           Departures across all offices
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
+                        }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: '11px' }}>Progression Moves</Text>
@@ -1740,19 +2117,24 @@ const SimulationLabV2: React.FC = () => {
                         <Text type="secondary" style={{ fontSize: '10px' }}>
                           Level promotions & transitions
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                      <div 
-                        className={darkMode ? 'summary-card-dark' : 'summary-card-light'}
+                      <Card 
+                        size="small"
                         style={{ 
                           textAlign: 'center', 
                           height: '100px',
-                          borderRadius: '6px',
-                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center'
+                        }}
+                        bodyStyle={{ 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          height: '100%'
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: '11px' }}>Activity Scope</Text>
@@ -1763,20 +2145,18 @@ const SimulationLabV2: React.FC = () => {
                           {summaryStats.periodsActive} periods
                         </div>
                         <Text type="secondary" style={{ fontSize: '10px' }}>
-                          {logsData.length} movement events
+                          {logsData.length} yearly aggregations
                         </Text>
-                      </div>
+                      </Card>
                     </Col>
                   </Row>
 
                   {/* Legend */}
-                  <div style={{ 
-                    marginBottom: '16px', 
-                    padding: '12px 16px', 
-                    backgroundColor: darkMode ? '#1f1f1f' : '#fafafa', 
-                    borderRadius: '6px',
-                    border: darkMode ? '1px solid #303030' : '1px solid #f0f0f0'
-                  }}>
+                  <Card 
+                    size="small"
+                    style={{ marginBottom: '16px' }}
+                    bodyStyle={{ padding: '12px 16px' }}
+                  >
                     <Text strong style={{ marginRight: '24px' }}>Legend:</Text>
                     <span style={{ color: '#52c41a', fontWeight: '600', marginRight: '16px' }}>
                       +Recruited (new hires)
@@ -1787,12 +2167,15 @@ const SimulationLabV2: React.FC = () => {
                     <span style={{ color: '#fa8c16', fontWeight: '600', marginRight: '16px' }}>
                       -Progressed Out (promotions away)
                     </span>
-                    <span style={{ color: '#1890ff', fontWeight: '600' }}>
+                    <span style={{ color: '#1890ff', fontWeight: '600', marginRight: '16px' }}>
                       +Progressed In (promotions received)
                     </span>
-                  </div>
+                    <Text type="secondary" style={{ fontSize: '12px', marginLeft: '16px' }}>
+                      💡 Click on yearly totals to expand monthly breakdown
+                    </Text>
+                  </Card>
 
-                  {/* Logs Table */}
+                  {/* Logs Table with Expandable Rows */}
                   <Table
                     columns={logsColumns}
                     dataSource={logsData}
@@ -1806,6 +2189,54 @@ const SimulationLabV2: React.FC = () => {
                     bordered
                     scroll={{ x: 1000 }}
                     style={{ marginBottom: '16px' }}
+                    expandable={{
+                      expandedRowRender: (record) => {
+                        if (!record.monthlyData || record.monthlyData.length === 0) {
+                          return (
+                            <div style={{ padding: '16px', textAlign: 'center', color: '#8c8c8c' }}>
+                              <Text type="secondary">No monthly breakdown available for this item</Text>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div style={{ margin: '0', backgroundColor: darkMode ? '#0f0f0f' : '#fafafa' }}>
+                            <div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                              <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>
+                                📅 Monthly Breakdown: {record.office} - {record.role} {record.level}
+                              </Text>
+                            </div>
+                            <Table
+                              columns={monthlyColumns}
+                              dataSource={record.monthlyData}
+                              pagination={false}
+                              size="small"
+                              showHeader={true}
+                              bordered={false}
+                              style={{ backgroundColor: 'transparent' }}
+                            />
+                          </div>
+                        );
+                      },
+                      rowExpandable: (record) => record.monthlyData && record.monthlyData.length > 0,
+                      expandIcon: ({ expanded, onExpand, record }) => (
+                        record.monthlyData && record.monthlyData.length > 0 ? (
+                          <span 
+                            onClick={e => onExpand(record, e)}
+                            style={{ 
+                              cursor: 'pointer', 
+                              marginRight: '8px',
+                              color: '#1890ff',
+                              fontSize: '12px'
+                            }}
+                          >
+                            {expanded ? '📅' : '📊'}
+                          </span>
+                        ) : (
+                          <span style={{ marginRight: '8px', color: '#d9d9d9', fontSize: '12px' }}>•</span>
+                        )
+                      ),
+                    }}
                   />
 
                   {logsData.length === 0 && (

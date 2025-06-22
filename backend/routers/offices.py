@@ -1,244 +1,337 @@
 from fastapi import APIRouter, UploadFile, File
+from fastapi.responses import StreamingResponse
 import pandas as pd
-from backend.src.services.simulation_engine import SimulationEngine
-from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES, OFFICE_HEADCOUNT
+import io
+from backend.src.services.config_service import config_service
 
 router = APIRouter(prefix="/offices", tags=["offices"])
 
-# Global engine instance - will be injected from main
-engine: SimulationEngine = None
+# Global variable to store engine reference (for compatibility)
+_engine = None
 
-def set_engine(simulation_engine: SimulationEngine):
-    """Set the global engine instance"""
-    global engine
-    engine = simulation_engine
+def set_engine(engine):
+    """Set the simulation engine reference (for compatibility with main.py)"""
+    global _engine
+    _engine = engine
+    print("[INFO] Engine set in offices router")
 
 @router.get("/config")
 def get_office_config():
-    """Get raw office configuration data WITHOUT going through simulation engine"""
-    offices_out = []
+    """Get configuration data from configuration service (NOT simulation engine)"""
+    config_dict = config_service.get_configuration()
+    # Convert dictionary to array for frontend compatibility
+    return list(config_dict.values())
+
+@router.post("/config/update")
+async def update_office_config(changes: dict):
+    """Update configuration in the configuration service"""
+    updated_count = config_service.update_configuration(changes)
     
-    for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
-        total_fte = OFFICE_HEADCOUNT.get(office_name, 0)
+    return {
+        "status": "success",
+        "message": f"Updated {updated_count} configuration values",
+        "updated_count": updated_count,
+        "total_changes": len(changes)
+    }
+
+@router.post("/config/import")
+async def import_office_config(file: UploadFile = File(...)):
+    """Import configuration from Excel file into configuration service"""
+    # Read file content into memory
+    content = await file.read()
+    df = pd.read_excel(content)
+    
+    # Import into configuration service
+    updated_count = config_service.import_from_excel(df)
+    
+    return {
+        "status": "success", 
+        "message": f"Imported {updated_count} configuration changes",
+        "rows": len(df), 
+        "updated": updated_count
+    }
+
+@router.get("/config/validation")
+def validate_office_configuration():
+    """Validate office configuration integrity and return report"""
+    from datetime import datetime
+    from fastapi import HTTPException
+    
+    try:
+        # Get configuration from configuration service (NOT simulation engine)
+        config = config_service.get_configuration()
         
-        # Determine office journey based on total FTE
-        if total_fte >= 500:
-            journey = "Mature Office"
-        elif total_fte >= 200:
-            journey = "Established Office"
-        elif total_fte >= 25:
-            journey = "Emerging Office"
-        else:
-            journey = "New Office"
-        
-        roles_out = {}
-        
-        # Process roles with levels (Consultant, Sales, Recruitment)
-        for role_name in ["Consultant", "Sales", "Recruitment"]:
-            if role_name in office_data:
-                role_levels = office_data[role_name]
-                roles_out[role_name] = {}
-                
-                for level_name, fte in role_levels.items():
-                    if fte > 0:  # Only include levels with actual FTE
-                        # Get pricing and salary
-                        base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-                        base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-                        price = base_prices.get(level_name, 0.0)
-                        salary = base_salaries.get(level_name, 0.0)
-                        
-                        # Get rates
-                        if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                            recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
-                        else:
-                            recruitment_rate = 0.01
-                        
-                        if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                            churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                        elif role_name in DEFAULT_RATES['churn']:
-                            churn_rate = DEFAULT_RATES['churn'][role_name]
-                        else:
-                            churn_rate = 0.014
-                        
-                        # Set progression rate based on level using correct rates
-                        progression_map = {
-                            'C': 0.26, 'SrC': 0.20, 'AM': 0.07, 'M': 0.12, 'SrM': 0.14,
-                            'A': 0.15, 'AC': 0.12, 'PiP': 0.0
-                        }
-                        progression_rate = progression_map.get(level_name, 0.10)
-                        
-                        roles_out[role_name][level_name] = {
-                            "total": fte,
-                            **{f"price_{i}": price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                            **{f"salary_{i}": salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                            **{f"recruitment_{i}": recruitment_rate for i in range(1, 13)},
-                            **{f"churn_{i}": churn_rate for i in range(1, 13)},
-                            **{f"progression_{i}": progression_rate if i in [1, 6] else 0.0 for i in range(1, 13)},
-                            **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
-                        }
-        
-        # Process Operations (flat role)
-        if "Operations" in office_data and office_data["Operations"] > 0:
-            operations_fte = office_data["Operations"]
-            base_prices = BASE_PRICING.get(office_name, BASE_PRICING['Stockholm'])
-            base_salaries = BASE_SALARIES.get(office_name, BASE_SALARIES['Stockholm'])
-            op_price = base_prices.get('Operations', 80.0)
-            op_salary = base_salaries.get('Operations', 40000.0)
-            
-            operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.021)
-            operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.0149)
-            
-            roles_out["Operations"] = {
-                "total": operations_fte,
-                **{f"price_{i}": op_price * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                **{f"salary_{i}": op_salary * (1 + 0.0025 * (i - 1)) for i in range(1, 13)},
-                **{f"recruitment_{i}": operations_recruitment for i in range(1, 13)},
-                **{f"churn_{i}": operations_churn for i in range(1, 13)},
-                **{f"progression_{i}": 0.0 for i in range(1, 13)},  # Operations has no progression
-                **{f"utr_{i}": DEFAULT_RATES['utr'] for i in range(1, 13)}
+        if not config:
+            return {
+                "status": "empty",
+                "message": "No configuration data found",
+                "timestamp": datetime.now().isoformat(),
+                "summary": {
+                    "total_offices": 0,
+                    "total_roles": 0,
+                    "total_levels": 0,
+                    "total_fte": 0,
+                    "missing_data_count": 0
+                }
             }
         
-        offices_out.append({
-            "name": office_name,
-            "total_fte": total_fte,
-            "journey": journey,
-            "roles": roles_out
-        })
+        # Calculate summary from configuration service data
+        total_offices = len(config)
+        total_roles = 0
+        total_levels = 0
+        total_fte = 0
+        
+        for office_name, office_data in config.items():
+            if 'roles' in office_data:
+                for role_name, role_data in office_data['roles'].items():
+                    total_roles += 1
+                    if isinstance(role_data, dict):
+                        # All roles have levels structure (including Operations with "nan")
+                        for level_name, level_data in role_data.items():
+                            total_levels += 1
+                            if isinstance(level_data, dict) and 'fte' in level_data:
+                                total_fte += level_data['fte']
+        
+        return {
+            "status": "valid",
+            "message": "Configuration loaded successfully",
+            "timestamp": datetime.now().isoformat(),
+            "summary": {
+                "total_offices": total_offices,
+                "total_roles": total_roles,
+                "total_levels": total_levels,
+                "total_fte": total_fte,
+                "missing_data_count": 0
+            }
+        }
     
-    return offices_out
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Configuration validation failed: {str(e)}")
 
-def _serialize_monthly_attributes(obj, attributes: list) -> dict:
-    """Helper to serialize monthly attributes (1-12) for an object"""
-    result = {}
-    for attr in attributes:
-        for i in range(1, 13):
-            attr_name = f"{attr}_{i}"
-            if attr == "progression" and not hasattr(obj, attr_name):
-                result[attr_name] = 0.0  # Default for operations
-            else:
-                result[attr_name] = getattr(obj, attr_name, 0.0)
-    return result
+@router.get("/config/checksum")
+def get_office_configuration_checksum():
+    """Get just the configuration checksum for quick integrity checks"""
+    from datetime import datetime
+    from fastapi import HTTPException
+    
+    try:
+        # Get configuration from configuration service (NOT simulation engine)
+        config = config_service.get_configuration()
+        
+        if not config:
+            return {
+                "checksum": "empty",
+                "total_offices": 0,
+                "total_fte": 0,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Calculate simple checksum and totals from configuration service data
+        total_offices = len(config)
+        total_fte = 0
+        
+        for office_name, office_data in config.items():
+            if 'total_fte' in office_data:
+                total_fte += office_data['total_fte']
+        
+        # Simple checksum: hash of office count and total FTE
+        import hashlib
+        checksum_string = f"{total_offices}:{total_fte}"
+        config_checksum = hashlib.md5(checksum_string.encode()).hexdigest()[:8]
+        
+        return {
+            "checksum": config_checksum,
+            "total_offices": total_offices,
+            "total_fte": total_fte,
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Checksum calculation failed: {str(e)}")
 
 def _serialize_role_data(role_data) -> dict:
-    """Serialize role data (either dict of levels or flat role)"""
-    if isinstance(role_data, dict):
-        # Roles with levels (Consultant, Sales, Recruitment)
-        return {
-            level_name: {
-                "total": level.total,
-                **_serialize_monthly_attributes(level, ["price", "salary", "recruitment", "churn", "progression", "utr"])
-            }
-            for level_name, level in role_data.items()
-        }
-    else:
-        # Flat roles (Operations)
-        return {
-            "total": role_data.total,
-            **_serialize_monthly_attributes(role_data, ["price", "salary", "recruitment", "churn", "progression", "utr"])
-        }
+    """Serialize role data - configuration service already provides correct format"""
+    return role_data
 
 @router.get("/")
 def list_offices():
-    """Get offices from simulation engine (for simulation results, not configuration)"""
+    """Get offices from configuration service (NOT simulation engine)"""
+    config_dict = config_service.get_configuration()
+    
     offices_out = []
-    for office in engine.offices.values():
+    for office_data in config_dict.values():
+        # office_data is already a dictionary with the correct structure
         roles_out = {}
-        for role_name, role_data in office.roles.items():
-            roles_out[role_name] = _serialize_role_data(role_data)
+        if "roles" in office_data and isinstance(office_data["roles"], dict):
+            for role_name, role_data in office_data["roles"].items():
+                roles_out[role_name] = _serialize_role_data(role_data)
         
         offices_out.append({
-            "name": office.name,
-            "total_fte": office.total_fte,
-            "journey": office.journey.value,
+            "name": office_data.get("name", "Unknown"),
+            "total_fte": office_data.get("total_fte", 0),
+            "journey": office_data.get("journey", "Unknown"),
             "roles": roles_out
         })
-    return offices_out
-
-@router.post("/import")
-async def import_office_levers(file: UploadFile = File(...)):
-    """Import office configuration from Excel file"""
-    # Read file content into memory to avoid SpooledTemporaryFile issues
-    content = await file.read()
-    df = pd.read_excel(content)
-    updated_count = 0
     
-    for _, row in df.iterrows():
-        office_name = row["Office"]
-        role_name = row["Role"]
-        level_name = row["Level"] if not pd.isna(row["Level"]) else None
+    print(f"[API] Returning {len(offices_out)} offices with configuration service data")
+    return offices_out 
+
+@router.post("/config/export")
+async def export_office_config(export_request: dict):
+    """Export all office configuration to Excel file in import-compatible format"""
+    try:
+        # Get all configuration data
+        config_dict = config_service.get_configuration()
         
-        office = engine.offices.get(office_name)
-        if not office or role_name not in office.roles:
-            continue
-            
-        if isinstance(office.roles[role_name], dict) and level_name:
-            # Roles with levels (Consultant, Sales, Recruitment)
-            if level_name in office.roles[role_name]:
-                level = office.roles[role_name][level_name]
-                print(f"[IMPORT] Updating {office_name} {role_name} {level_name} with FTE={row['FTE']}")
+        # Apply any unsaved changes if requested
+        unsaved_changes = export_request.get('unsavedChanges', {})
+        if export_request.get('includeUnsavedChanges', False) and unsaved_changes:
+            # Apply draft changes to the configuration
+            for path, value in unsaved_changes.items():
+                path_parts = path.split('.')
+                office_name, role_name = path_parts[0], path_parts[1]
                 
-                # Update FTE by adjusting people list
-                if not pd.isna(row["FTE"]):
-                    target_fte = int(row["FTE"])
-                    current_fte = level.total
-                    
-                    if target_fte != current_fte:
-                        print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
+                if office_name in config_dict:
+                    if len(path_parts) == 3:
+                        # Operations: office.role.field
+                        field = path_parts[2]
+                        if 'roles' not in config_dict[office_name]:
+                            config_dict[office_name]['roles'] = {}
+                        if role_name not in config_dict[office_name]['roles']:
+                            config_dict[office_name]['roles'][role_name] = {}
+                        config_dict[office_name]['roles'][role_name][field] = value
+                    elif len(path_parts) == 4:
+                        # Has level: office.role.level.field
+                        level_name, field = path_parts[2], path_parts[3]
+                        if 'roles' not in config_dict[office_name]:
+                            config_dict[office_name]['roles'] = {}
+                        if role_name not in config_dict[office_name]['roles']:
+                            config_dict[office_name]['roles'][role_name] = {}
+                        if level_name not in config_dict[office_name]['roles'][role_name]:
+                            config_dict[office_name]['roles'][role_name][level_name] = {}
+                        config_dict[office_name]['roles'][role_name][level_name][field] = value
+        
+        # Convert configuration to Excel format matching the import format
+        excel_rows = []
+        
+        # Define the expected column order (like the original Excel file)
+        expected_columns = ['Office', 'Role', 'Level', 'FTE']
+        
+        # Add monthly columns (Price_1 through Price_12, etc.)
+        for month in range(1, 13):
+            expected_columns.extend([
+                f'Price_{month}', f'Salary_{month}', f'Recruitment_{month}', 
+                f'Churn_{month}', f'UTR_{month}', f'Progression_{month}'
+            ])
+        
+        for office_name, office_data in config_dict.items():
+            if 'roles' in office_data:
+                for role_name, role_data in office_data['roles'].items():
+                    if role_name == 'Operations':
+                        # Operations is a flat structure with level 'nan'
+                        row = {
+                            'Office': office_name,
+                            'Role': role_name,
+                            'Level': 'nan'
+                        }
                         
-                        if target_fte > current_fte:
-                            # Add people
-                            for i in range(target_fte - current_fte):
-                                level.add_new_hire("2024-01", role_name, office_name)
-                        elif target_fte < current_fte:
-                            # Remove people (simple truncation)
-                            excess = current_fte - target_fte
-                            level.people = level.people[:-excess]
-                
-                # Update monthly values (1-12)
-                _update_monthly_attributes(level, row)
-                updated_count += 1
-                
-        elif not isinstance(office.roles[role_name], dict) and not level_name:
-            # Flat role (Operations)
-            role = office.roles[role_name]
-            print(f"[IMPORT] Updating {office_name} {role_name} with FTE={row['FTE']}")
+                        # Map internal field names to Excel column names
+                        for field_name, value in role_data.items():
+                            if field_name == 'fte':
+                                row['FTE'] = value
+                            elif '_' in field_name:
+                                # Convert field like 'price_1' to 'Price_1', 'utr_1' to 'UTR_1'
+                                parts = field_name.split('_')
+                                if len(parts) == 2:
+                                    base_name = parts[0]
+                                    month_num = parts[1]
+                                    # Special case for UTR - keep all uppercase
+                                    if base_name.lower() == 'utr':
+                                        excel_col = f'UTR_{month_num}'
+                                    else:
+                                        excel_col = f'{base_name.capitalize()}_{month_num}'
+                                    row[excel_col] = value
+                            else:
+                                # Handle other fields - capitalize first letter
+                                excel_col = field_name.capitalize()
+                                row[excel_col] = value
+                        
+                        excel_rows.append(row)
+                    else:
+                        # Consultant, Sales, Recruitment have levels
+                        for level_name, level_data in role_data.items():
+                            if isinstance(level_data, dict):
+                                row = {
+                                    'Office': office_name,
+                                    'Role': role_name,
+                                    'Level': level_name
+                                }
+                                
+                                # Map internal field names to Excel column names
+                                for field_name, value in level_data.items():
+                                    if field_name == 'fte':
+                                        row['FTE'] = value
+                                    elif '_' in field_name:
+                                        # Convert field like 'price_1' to 'Price_1', 'utr_1' to 'UTR_1'
+                                        parts = field_name.split('_')
+                                        if len(parts) == 2:
+                                            base_name = parts[0]
+                                            month_num = parts[1]
+                                            # Special case for UTR - keep all uppercase
+                                            if base_name.lower() == 'utr':
+                                                excel_col = f'UTR_{month_num}'
+                                            else:
+                                                excel_col = f'{base_name.capitalize()}_{month_num}'
+                                            row[excel_col] = value
+                                    else:
+                                        # Handle other fields - capitalize first letter
+                                        excel_col = field_name.capitalize()
+                                        row[excel_col] = value
+                                
+                                excel_rows.append(row)
+        
+        # Create DataFrame with all expected columns
+        df = pd.DataFrame(excel_rows)
+        
+        # Ensure all expected columns exist (fill missing with NaN)
+        for col in expected_columns:
+            if col not in df.columns:
+                df[col] = pd.NA
+        
+        # Reorder columns to match import format
+        df = df.reindex(columns=expected_columns)
+        
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Configuration', index=False)
             
-            # Update FTE by adjusting people list
-            if not pd.isna(row["FTE"]):
-                target_fte = int(row["FTE"])
-                current_fte = role.total
-                
-                if target_fte != current_fte:
-                    print(f"[IMPORT] Adjusting FTE from {current_fte} to {target_fte}")
-                    
-                    if target_fte > current_fte:
-                        # Add people
-                        for i in range(target_fte - current_fte):
-                            role.add_new_hire("2024-01", role_name, office_name)
-                    elif target_fte < current_fte:
-                        # Remove people (simple truncation)
-                        excess = current_fte - target_fte
-                        role.people = role.people[:-excess]
-            
-            # Update monthly values (1-12)
-            _update_monthly_attributes(role, row)
-            updated_count += 1
-    
-    return {"status": "success", "rows": len(df), "updated": updated_count}
-
-def _update_monthly_attributes(obj, row):
-    """Update monthly attributes from Excel row"""
-    for i in range(1, 13):
-        for attr in ["Price", "Salary", "Recruitment", "Churn", "Progression", "UTR"]:
-            col_name = f"{attr}_{i}"
-            if col_name in row and not pd.isna(row[col_name]):
-                attr_name = col_name.lower()
-                if hasattr(obj, attr_name):
-                    try:
-                        # Try to convert to float
-                        value = float(row[col_name])
-                        setattr(obj, attr_name, value)
-                    except (ValueError, TypeError):
-                        # Skip if it's not a valid float (e.g., nested dict data)
-                        print(f"[IMPORT] Skipping {col_name}: invalid value type ({type(row[col_name])})")
-                        continue 
+            # Add metadata sheet
+            metadata = export_request.get('exportMetadata', {})
+            metadata_rows = [
+                ['Export Date', metadata.get('exportedAt', '')],
+                ['Export Scope', metadata.get('exportScope', 'All Offices')],
+                ['Exported By', metadata.get('exportedBy', 'Configuration Matrix')],
+                ['Currently Viewed Office', metadata.get('currentlyViewedOffice', '')],
+                ['Has Unsaved Changes', metadata.get('hasUnsavedChanges', False)],
+                ['Unsaved Changes Count', metadata.get('unsavedChangeCount', 0)],
+                ['Total Offices', len(config_dict)],
+                ['Total Rows', len(excel_rows)]
+            ]
+            metadata_df = pd.DataFrame(metadata_rows, columns=['Property', 'Value'])
+            metadata_df.to_excel(writer, sheet_name='Export_Metadata', index=False)
+        
+        output.seek(0)
+        
+        # Return as streaming response
+        filename = f"all-offices-config-{export_request.get('exportMetadata', {}).get('exportedAt', '').split('T')[0] or 'export'}.xlsx"
+        
+        return StreamingResponse(
+            io.BytesIO(output.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}") 

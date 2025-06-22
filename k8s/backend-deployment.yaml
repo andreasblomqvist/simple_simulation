@@ -35,7 +35,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: backend
-          image: andreasblomqvist/simplesim-backend:latest
+          image: 723216754178.dkr.ecr.eu-west-1.amazonaws.com/simplesim-backend:8c194e72
           ports:
             - containerPort: 8000
               name: http
@@ -44,19 +44,17 @@ spec:
               value: "/app"
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
-            limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
@@ -65,4 +63,3 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-

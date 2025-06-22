@@ -1,15 +1,11 @@
 from fastapi import APIRouter
 from backend.src.services.simulation_engine import SimulationEngine
+from backend.src.services.config_service import config_service
 
 router = APIRouter(tags=["health"])
 
-# Global engine instance - will be injected from main
-engine: SimulationEngine = None
-
-def set_engine(simulation_engine: SimulationEngine):
-    """Set the global engine instance"""
-    global engine
-    engine = simulation_engine
+# Create engine instance (no injection needed with JSON file approach)
+engine = SimulationEngine()
 
 @router.get("/")
 def root():
@@ -22,13 +18,16 @@ def root():
 
 @router.get("/health")
 def health_check():
-    """Health check endpoint"""
-    total_offices = len(engine.offices) if engine else 0
-    total_fte = sum(office.total_fte for office in engine.offices.values()) if engine else 0
+    """Health check endpoint with configuration service status"""
+    config = config_service.get_configuration()
+    total_fte = sum(office.get('total_fte', 0) for office in config.values()) if config else 0
+    office_names = list(config.keys()) if config else []
     
     return {
         "status": "healthy",
-        "engine_initialized": engine is not None,
-        "total_offices": total_offices,
-        "total_fte": total_fte
+        "engine_initialized": True,  # Always true with JSON file approach
+        "total_offices": len(config),
+        "total_fte": total_fte,
+        "office_names": office_names,
+        "config_service_status": "loaded" if config else "empty"
     } 

@@ -1,0 +1,338 @@
+# Cursor Rules for SimpleSim Project
+
+## Architecture Documentation
+
+### Rule: ALWAYS Reference Architecture Documentation
+- **Location**: `docs/ARCHITECTURE.md`
+- **Purpose**: Comprehensive system architecture, data models, data flows, and calculation formulas
+- **Usage**: Reference this document when:
+  - Understanding data structures and object models
+  - Implementing new features that interact with existing services
+  - Debugging data flow issues
+  - Adding new calculations or KPI metrics
+  - Modifying configuration or simulation logic
+
+### Key Architecture Principles:
+1. **Configuration Service**: JSON file-based persistence with in-memory caching
+2. **Simulation Engine**: Monthly processing with deterministic results
+3. **Data Models**: Mix of dictionaries (config) and dataclasses (simulation objects)
+4. **KPI Service**: Consistent financial formulas for baseline and simulation data
+5. **API Layer**: Clear separation between configuration and simulation endpoints
+
+## Automatic Version Management
+
+### Rule: Auto-increment Patch Version on Push
+- **Trigger**: Before every `git push` command
+- **Action**: Automatically increment the patch version (third number) in:
+  - `frontend/package.json` - `version` field
+  - `backend/setup.py` - `version` parameter
+- **Format**: `MAJOR.MINOR.PATCH` (e.g., `1.4.0` → `1.4.1` → `1.4.2`)
+- **Scope**: Increment patch for bug fixes, small improvements, and routine updates
+- **Commit Message**: Include the version bump in the commit message
+
+### Version Increment Guidelines:
+- **PATCH** (third number): Bug fixes, small improvements, configuration changes
+- **MINOR** (second number): New features, significant functionality additions  
+- **MAJOR** (first number): Breaking changes, major architecture updates
+
+### Implementation:
+1. Before pushing, check current versions in both files
+2. Increment patch version by 1 in both files
+3. Commit the version bump with message: `"Bump version: x.y.z → x.y.(z+1)"`
+4. Then proceed with the original push
+
+### Example Workflow:
+```bash
+# Current: frontend 1.4.0, backend 0.3.0
+# After auto-increment: frontend 1.4.1, backend 0.3.1
+git add .
+git commit -m "Fix absence calculation bug"
+# Auto-increment versions here
+git commit -m "Bump version: frontend 1.4.0 → 1.4.1, backend 0.3.0 → 0.3.1"
+git push origin master
+```
+
+## Server Port Management
+
+### Rule: Always Kill Old Instances and Restart on Port Conflicts
+- **Problem**: "Address already in use" errors when starting servers
+- **Solution**: Automatically kill existing processes and restart with clean state
+- **Trigger**: When encountering port conflicts or when restarting development servers
+- **Ports Managed**: Backend (8000, 8001), Frontend (3000, 3001, 3002, 3003)
+
+### Available Scripts:
+```bash
+# Full system restart (recommended)
+./scripts/restart-servers.sh
+
+# Individual server management
+./scripts/start-backend.sh     # Start only backend
+./scripts/start-frontend.sh    # Start only frontend
+./scripts/kill-servers.sh      # Stop all servers
+
+# Manual commands (if scripts unavailable)
+# Kill all servers:
+pkill -f uvicorn && pkill -f vite && lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9
+
+# Start backend:
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend:
+cd frontend && npm run dev
+```
+
+### Complete Restart Workflow (Step-by-Step)
+
+When encountering "Address already in use" or module import errors, follow this exact sequence:
+
+#### 1. Emergency Kill All Processes
+```bash
+# Kill all Python/FastAPI processes
+pkill -f uvicorn || true
+pkill -f python3 || true
+
+# Kill all Node/Vite processes  
+pkill -f vite || true
+pkill -f node || true
+
+# Kill processes by port (nuclear option)
+lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9 2>/dev/null || true
+
+# Wait for processes to fully terminate
+sleep 3
+```
+
+#### 2. Clean Python Cache and Environment
+```bash
+# Remove all Python cache files
+find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+
+# Clear any stale imports
+unset PYTHONPATH
+export PYTHONPATH=.
+```
+
+#### 3. Start Backend (from project root)
+```bash
+# Method 1: Preferred approach
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Method 2: If Method 1 fails
+cd backend
+PYTHONPATH=/Users/andreasblomqvist/Code/simple-simulation/simple_simulation python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd ..
+
+# Method 3: Alternative port if 8000 is stuck
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+#### 4. Start Frontend (separate terminal)
+```bash
+cd frontend
+
+# Clear Vite cache
+rm -rf node_modules/.vite dist 2>/dev/null || true
+
+# Start frontend (will auto-find available port)
+npm run dev
+```
+
+#### 5. Health Check
+```bash
+# Test backend
+curl -s http://localhost:8000/health || curl -s http://localhost:8001/health
+
+# Check which ports are active
+lsof -i:8000,8001,3000,3001,3002,3003
+```
+
+### Implementation Guidelines:
+1. **Always kill before start**: Never attempt to start servers without cleaning existing processes
+2. **Clear Python cache**: Remove `__pycache__` directories to prevent stale imports
+3. **Wait between operations**: Add 2-3 second delays for process termination
+4. **Use proper PYTHONPATH**: Set `PYTHONPATH=.` for backend to prevent module import errors
+5. **Handle errors gracefully**: Use `|| true` and `2>/dev/null` to prevent script failures
+6. **Port flexibility**: Backend can use 8000 or 8001, frontend auto-detects 3000-3003
+
+### Common Error Solutions:
+
+**"ModuleNotFoundError: No module named 'backend'"**
+- Solution: Always set `PYTHONPATH=.` and run from project root
+- Command: `PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+
+**"Address already in use"**
+- Solution: Kill all processes and wait before restart
+- Command: `pkill -f uvicorn; sleep 3; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+
+**Frontend port conflicts**
+- Solution: Vite auto-detects available ports (3000→3001→3002→3003)
+- Clear cache: `rm -rf node_modules/.vite dist`
+
+### Error Prevention Checklist:
+- ✅ Kill processes by both name and port
+- ✅ Clear Python cache before restart
+- ✅ Wait for processes to fully terminate
+- ✅ Use absolute PYTHONPATH for backend
+- ✅ Check server health after restart
+- ✅ Handle missing processes gracefully
+- ✅ Use port flexibility (8000/8001 for backend, 3000-3003 for frontend)
+
+### Quick Commands Reference:
+```bash
+# Emergency stop everything
+pkill -f uvicorn; pkill -f vite; lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9
+
+# Clean restart backend only
+pkill -f uvicorn; rm -rf backend/__pycache__; sleep 2; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Clean restart frontend only  
+pkill -f vite; sleep 2; cd frontend && npm run dev
+
+# Check what's running on ports
+lsof -i:8000,3000,3001,3002,3003
+
+# Full nuclear restart (when everything is stuck)
+pkill -f uvicorn; pkill -f vite; pkill -f node; lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9; sleep 5; find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null; PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 &; cd frontend && npm run dev
+```
+
+## API Routing Standards
+
+### Rule: ALWAYS Use /api/ Prefix in Frontend
+**Frontend API calls must ALWAYS use `/api/` prefix:**
+- ✅ `fetch('/api/offices/config')`
+- ✅ `fetch('/api/simulation/run')`
+- ✅ `fetch('/api/offices/config/import')`
+- ❌ `fetch('/offices/config')` (NEVER use direct backend URLs)
+
+### Backend Routes (WITHOUT /api/ prefix):
+- `/offices/config` - Get configuration array
+- `/offices/config/update` - Update configuration
+- `/offices/config/import` - Import Excel configuration
+- `/simulation/run` - Run simulation
+- `/simulation/config/validation` - Validate configuration
+- `/health` - Health check
+
+### Vite Proxy Configuration:
+```typescript
+// frontend/vite.config.ts
+proxy: {
+  '/api': {
+    target: 'http://localhost:8000',
+    changeOrigin: true,
+    rewrite: (path) => path.replace(/^\/api/, '')
+  }
+}
+```
+
+### Data Flow:
+1. Frontend: `fetch('/api/offices/config')` 
+2. Vite proxy: Rewrites to `http://localhost:8000/offices/config`
+3. Backend: Handles `/offices/config` route
+4. Response: Returns array of office objects
+
+### Testing API Endpoints:
+```bash
+# Test backend directly
+curl http://localhost:8000/offices/config
+
+# Test frontend proxy  
+curl http://localhost:3000/api/offices/config
+
+# Both should return identical responses
+```
+
+### Critical Rules:
+- **NEVER** mix `/api/` and non-`/api/` calls in frontend
+- **ALWAYS** use `/api/` prefix for all frontend API calls
+- **NEVER** use `/api/` prefix in backend route definitions
+- **ALWAYS** test both direct backend and proxy URLs
+
+## Data Structure Standards
+
+### Rule: ALWAYS Use 'fte' Field for FTE Values
+**Critical**: The system uses `fte` as the standard field name for Full-Time Equivalent values.
+
+**✅ CORRECT Usage:**
+- `level_data.get("fte", 0)` - Backend data access
+- `levelData.fte` - Frontend data access  
+- `office_data["total_fte"]` - Office totals
+- `role_data.get("fte", 0)` - Role-level FTE
+
+**❌ NEVER Use:**
+- `level_data.get("total", 0)` - Causes 0 FTE calculations
+- `levelData.total` - Frontend will show empty data
+- `office_data["total"]` - Wrong field name
+
+### Data Structure Consistency:
+
+**Configuration Service Structure:**
+```python
+{
+  "office_name": {
+    "name": "Stockholm",
+    "total_fte": 821,  # Sum of all role FTE values
+    "journey": "Mature Office",
+    "roles": {
+      "Consultant": {
+        "A": {"fte": 69.0, "price_1": 1200.0, ...},
+        "AC": {"fte": 45.0, "price_1": 1300.0, ...}
+      },
+      "Operations": {"fte": 12.0, "price_1": 80.0, ...}
+    }
+  }
+}
+```
+
+**Frontend Mapping:**
+```typescript
+// Map 'total' field to 'fte' for backend compatibility
+const backendField = field === 'total' ? 'fte' : field;
+const value = levelData[backendField];
+```
+
+### Common Mistakes to Avoid:
+
+1. **Backend Configuration Service**: 
+   - ❌ `total_fte += role_data.get("total", 0)`
+   - ✅ `total_fte += role_data.get("fte", 0)`
+
+2. **Frontend Configuration Component**:
+   - ❌ `levelData.total && levelData.total > 0`
+   - ✅ `levelData.fte && levelData.fte > 0`
+
+3. **Simulation Engine Initialization**:
+   - ❌ `level_fte = level_config.get("total", 0)`
+   - ✅ `level_fte = level_config.get("fte", 0)`
+
+### Validation Checklist:
+- ✅ All FTE calculations use `fte` field
+- ✅ Frontend maps `total` to `fte` for display
+- ✅ Configuration service calculates `total_fte` from `fte` values
+- ✅ Simulation engine reads `fte` from configuration service
+- ✅ API endpoints return consistent field names
+
+### Debug Commands:
+```bash
+# Check if FTE data is correct
+curl -s http://localhost:8000/offices/config | jq '.[0].total_fte'
+
+# Check individual level FTE
+curl -s http://localhost:8000/offices/config | jq '.[0].roles.Consultant.A.fte'
+
+# Verify simulation engine sees correct data
+curl -s http://localhost:8000/offices/ | jq '.[0].total_fte'
+```
+
+## Code Quality Rules
+
+### Always follow existing patterns:
+- Use TypeScript for frontend
+- Use Python type hints for backend
+- Maintain consistent error handling
+- Add comprehensive logging for debugging
+
+### Testing Requirements:
+- Test critical paths before pushing
+- Validate both frontend and backend functionality
+- Ensure API endpoints work correctly 

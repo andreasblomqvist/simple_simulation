@@ -385,7 +385,7 @@ export const YearOverYearComparisonChart: React.FC<YearOverYearComparisonChartPr
               return (
                 <g 
                   key={`bars-${index}`}
-                  onMouseMove={(e) => handleMouseMove(e, dataPoint.category)}
+                  onMouseMove={(e) => handleMouseMove(e as any, dataPoint.category)}
                   onClick={() => handleCategoryClick(dataPoint.category, dataPoint)}
                   style={{ cursor: 'pointer' }}
                 >

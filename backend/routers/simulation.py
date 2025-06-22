@@ -3,16 +3,13 @@ from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
 from backend.src.services.cache_service import simulation_cache
+from datetime import datetime
+from backend.src.services.config_service import config_service
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
-# Global engine instance - will be injected from main
-engine: SimulationEngine = None
-
-def set_engine(simulation_engine: SimulationEngine):
-    """Set the global engine instance"""
-    global engine
-    engine = simulation_engine
+# Create engine instance (no injection needed with JSON file approach)
+engine = SimulationEngine()
 
 class SimulationRequest(BaseModel):
     start_year: int
@@ -23,7 +20,7 @@ class SimulationRequest(BaseModel):
     salary_increase: float
     unplanned_absence: Optional[float] = 0.05  # 5% default
     hy_working_hours: Optional[float] = 166.4  # Monthly working hours
-    other_expense: Optional[float] = 100000.0  # Monthly other expenses
+    other_expense: Optional[float] = 19000000.0  # Monthly other expenses
     # Advanced: office overrides for FTE, level, and operations params
     office_overrides: Optional[Dict[str, Dict[str, Any]]] = None
 
@@ -56,39 +53,106 @@ def _build_lever_plan(office_overrides: Dict[str, Dict[str, Any]]) -> Dict:
     return lever_plan
 
 @router.post("/run")
-def run_simulation(req: SimulationRequest):
+def run_simulation(params: SimulationRequest):
     """Run a simulation with the given parameters"""
+    if not engine:
+        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
+    
+    # DEBUG: Show raw parameter values
+    print(f"\n🔍 [DEBUG] RAW PARAMETERS RECEIVED:")
+    print(f"[DEBUG] Raw price_increase: {params.price_increase} (type: {type(params.price_increase)})")
+    print(f"[DEBUG] Raw salary_increase: {params.salary_increase} (type: {type(params.salary_increase)})")
+    print(f"[DEBUG] Expected for 2%: 0.02")
+    
+    print(f"\n🚀 [SIMULATION] =================== NEW SIMULATION RUN ===================")
+    print(f"[SIMULATION] 📅 Timeframe: {params.start_year}-{params.start_month:02d} to {params.end_year}-{params.end_month:02d}")
+    print(f"[SIMULATION] 📊 Economic Parameters:")
+    print(f"[SIMULATION]   💰 Price Increase: {params.price_increase:.1%}")
+    print(f"[SIMULATION]   💵 Salary Increase: {params.salary_increase:.1%}")
+    print(f"[SIMULATION]   🕒 Working Hours/Month: {params.hy_working_hours}")
+    print(f"[SIMULATION]   😴 Unplanned Absence: {params.unplanned_absence:.1%}")
+    print(f"[SIMULATION]   📋 Other Expense: {params.other_expense:,} SEK/month")
+    
+    # Parse office overrides (lever plan)
     lever_plan = None
-    if req.office_overrides:
-        lever_plan = _build_lever_plan(req.office_overrides)
+    if params.office_overrides:
+        lever_plan = {}
+        total_overrides = 0
+        print(f"[SIMULATION] 🎛️  Office Overrides Applied:")
+        for office_name, office_levers in params.office_overrides.items():
+            lever_plan[office_name] = {}
+            office_override_count = 0
+            for lever_key, lever_value in office_levers.items():
+                # Parse lever key like "recruitment_AM" -> role="Consultant", level="AM", attribute="recruitment"
+                if '_' in lever_key:
+                    parts = lever_key.split('_')
+                    if len(parts) == 2:
+                        attribute, level = parts
+                        # Default to Consultant role for level-based overrides
+                        role = "Consultant"
+                        
+                        if role not in lever_plan[office_name]:
+                            lever_plan[office_name][role] = {}
+                        if level not in lever_plan[office_name][role]:
+                            lever_plan[office_name][role][level] = {}
+                        
+                        # Apply to all 12 months
+                        for month in range(1, 13):
+                            lever_plan[office_name][role][level][f"{attribute}_{month}"] = lever_value
+                        
+                        print(f"[SIMULATION]     📍 {office_name} → {role} {level} {attribute}: {lever_value:.1%}")
+                        office_override_count += 1
+                        total_overrides += 1
+            
+            if office_override_count == 0:
+                print(f"[SIMULATION]     📍 {office_name} → No overrides")
+        
+        print(f"[SIMULATION] 🎛️  Total Lever Overrides: {total_overrides}")
+    else:
+        print(f"[SIMULATION] 🎛️  Office Overrides: None (using default config)")
     
-    # Run the simulation
-    results = engine.run_simulation(
-        start_year=req.start_year,
-        start_month=req.start_month,
-        end_year=req.end_year,
-        end_month=req.end_month,
-        price_increase=req.price_increase,
-        salary_increase=req.salary_increase,
-        lever_plan=lever_plan
-    )
+    print(f"[SIMULATION] ================================================================\n")
     
-    # Calculate simulation duration in months
-    duration_months = (req.end_year - req.start_year) * 12 + (req.end_month - req.start_month) + 1
+    try:
+        # CRITICAL: Reset simulation state before each run to prevent accumulation
+        print(f"🔄 [SIMULATION] Resetting engine state for fresh simulation...")
+        engine.reset_simulation_state()
+        print(f"✅ [SIMULATION] Engine state cleared successfully")
+        
+        # Run the simulation
+        results = engine.run_simulation(
+            start_year=params.start_year,
+            start_month=params.start_month,
+            end_year=params.end_year,
+            end_month=params.end_month,
+            price_increase=params.price_increase,
+            salary_increase=params.salary_increase,
+            lever_plan=lever_plan
+        )
+        
+        # Calculate simulation duration in months
+        start_date = datetime(params.start_year, params.start_month, 1)
+        end_date = datetime(params.end_year, params.end_month, 1)
+        simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
+        
+        # Calculate KPIs
+        results_with_kpis = engine.calculate_kpis_for_simulation(
+            results,
+            simulation_duration_months,
+            params.unplanned_absence,
+            params.other_expense
+        )
+        
+        print(f"✅ [SIMULATION] Completed successfully! Duration: {simulation_duration_months} months")
+        print(f"[SIMULATION] Years in results: {list(results_with_kpis['years'].keys())}")
+        print(f"[SIMULATION] =================== SIMULATION COMPLETE ===================\n")
+        
+        return results_with_kpis
     
-    # Calculate and add KPIs to results
-    results_with_kpis = engine.calculate_kpis_for_simulation(
-        results,
-        duration_months,
-        req.unplanned_absence,
-        req.other_expense
-    )
-    
-    # Invalidate cache for all years in the simulation
-    for year in range(req.start_year, req.end_year + 1):
-        simulation_cache.invalidate_year(year)
-    
-    return results_with_kpis
+    except Exception as e:
+        print(f"❌ [SIMULATION] Failed with error: {str(e)}")
+        print(f"[SIMULATION] =================== SIMULATION FAILED ===================\n")
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 @router.post("/year/{year}")
 def get_year_data(year: int, req: YearNavigationRequest):
@@ -239,6 +303,43 @@ def get_available_years():
     
     # Return sorted list of years
     return sorted(results['years'].keys(), key=int)
+
+@router.get("/years/{year}/kpis")
+def get_year_kpis(year: int, unplanned_absence: float = 0.05, other_expense: float = 19000000.0):
+    """Get KPIs for a specific year"""
+    if not engine:
+        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
+    
+    # Get the simulation results
+    results = engine.get_simulation_results()
+    if not results or 'years' not in results:
+        raise HTTPException(status_code=404, detail="No simulation results found")
+    
+    # Check if the year exists
+    year_str = str(year)
+    if year_str not in results['years']:
+        raise HTTPException(status_code=404, detail=f"No data found for year {year}")
+    
+    try:
+        # Calculate KPIs for the specific year
+        year_kpis = engine.kpi_service.calculate_kpis_for_year(
+            results,
+            year_str,
+            12,  # Always use 12 months for annual comparison
+            unplanned_absence,
+            other_expense
+        )
+        
+        return {
+            "financial": year_kpis.financial.__dict__,
+            "growth": year_kpis.growth.__dict__,
+            "journeys": year_kpis.journeys.__dict__,
+            "year": year_str
+        }
+        
+    except Exception as e:
+        print(f"❌ [KPI] Failed to calculate KPIs for year {year}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"KPI calculation failed: {str(e)}")
 
 @router.post("/reset")
 def reset_simulation():
