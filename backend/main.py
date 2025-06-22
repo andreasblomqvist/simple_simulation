@@ -7,43 +7,7 @@ import os
 import pandas as pd
 from backend.src.services.config_service import config_service
 
-def load_default_configuration():
-    """Load the default Excel configuration into the configuration service during startup"""
-    excel_file = "office_config_correct_progression_20250618_135815.xlsx"
-    
-    if not os.path.exists(excel_file):
-        print(f"⚠️ [STARTUP] Excel file not found: {excel_file}")
-        print(f"[STARTUP] Available Excel files:")
-        for f in os.listdir('.'):
-            if f.endswith('.xlsx'):
-                print(f"[STARTUP]   - {f}")
-        return False
-    
-    try:
-        print(f"📊 [STARTUP] Loading configuration from {excel_file}...")
-        
-        # Read Excel file
-        df = pd.read_excel(excel_file)
-        print(f"[STARTUP] Read {len(df)} rows from Excel file")
-        
-        # Import into configuration service (saves to JSON file)
-        updated_count = config_service.import_from_excel(df)
-        print(f"[STARTUP] ✅ Imported {updated_count} configuration rows")
-        
-        # Verify import
-        config = config_service.get_configuration()
-        print(f"[STARTUP] ✅ Configuration service now has {len(config)} offices")
-        
-        if len(config) > 0:
-            total_fte = sum(office.get('total_fte', 0) for office in config.values())
-            print(f"[STARTUP] ✅ Total FTE across all offices: {total_fte}")
-            print(f"[STARTUP] Office names: {list(config.keys())}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ [STARTUP] Failed to load configuration: {str(e)}")
-        return False
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -64,33 +28,26 @@ app.add_middleware(
 # Load configuration during startup
 @app.on_event("startup")
 async def startup_event():
-    """Load configuration data during FastAPI startup"""
+    """Initialize configuration service during FastAPI startup"""
     print("🚀 [STARTUP] FastAPI server starting up...")
     
-    # Check if JSON configuration file already exists
+    # Check if JSON configuration file already exists from previous user uploads
     json_config_file = "config/office_configuration.json"
     
     if os.path.exists(json_config_file):
         print(f"📄 [STARTUP] Found existing configuration file: {json_config_file}")
-        # Load from existing JSON file (don't overwrite with Excel)
         config = config_service.get_configuration()
         if len(config) > 0:
             total_fte = sum(office.get('total_fte', 0) for office in config.values())
-            print(f"✅ [STARTUP] Loaded {len(config)} offices from JSON file")
+            print(f"✅ [STARTUP] Loaded {len(config)} offices from previous user uploads")
             print(f"✅ [STARTUP] Total FTE across all offices: {total_fte}")
-            print("✅ [STARTUP] Configuration loaded successfully from existing file")
+            print("✅ [STARTUP] Configuration ready - users can upload Excel files to update")
         else:
-            print("⚠️ [STARTUP] JSON file exists but is empty, loading from Excel...")
-            success = load_default_configuration()
-            if not success:
-                print("⚠️ [STARTUP] Configuration loading failed - server will start with empty configuration")
+            print("📄 [STARTUP] Configuration file exists but is empty")
+            print("📤 [STARTUP] Ready for user to upload Excel configuration file")
     else:
-        print(f"📊 [STARTUP] No existing configuration file found, loading from Excel...")
-        success = load_default_configuration()
-        if success:
-            print("✅ [STARTUP] Configuration loaded successfully from Excel")
-        else:
-            print("⚠️ [STARTUP] Configuration loading failed - server will start with empty configuration")
+        print("📤 [STARTUP] No configuration file found - ready for user to upload Excel file")
+        print("💡 [STARTUP] Users can upload Excel files via the Configuration page")
 
 # Initialize simulation engine
 engine = SimulationEngine()

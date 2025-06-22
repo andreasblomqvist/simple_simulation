@@ -9,42 +9,30 @@ import sys
 import subprocess
 import time
 
-def load_configuration():
-    """Load configuration data into the JSON file"""
-    print("🚀 [STARTUP] Loading configuration data...")
+def check_configuration():
+    """Check if configuration exists from previous user uploads"""
+    print("🔍 [STARTUP] Checking for existing configuration...")
     
-    # Import and use the config service to load data
+    # Import and use the config service to check data
     from backend.src.services.config_service import config_service
     
-    # Load the Excel file
-    excel_file = "office_config_correct_progression_20250618_135815.xlsx"
-    
-    if not os.path.exists(excel_file):
-        print(f"❌ [STARTUP] Excel file not found: {excel_file}")
-        return False
-    
     try:
-        # Import the Excel data
-        import pandas as pd
-        df = pd.read_excel(excel_file)
-        print(f"📊 [STARTUP] Read {len(df)} rows from Excel file")
-        
-        # Import into config service (this will create the JSON file)
-        config_service.import_from_excel(df)
-        
-        # Verify the configuration was loaded
+        # Check if configuration exists from previous user uploads
         config = config_service.get_configuration()
-        if config:
+        if config and len(config) > 0:
             total_fte = sum(office.get('total_fte', 0) for office in config.values())
-            print(f"✅ [STARTUP] Configuration loaded: {len(config)} offices, {total_fte} total FTE")
+            print(f"✅ [STARTUP] Found existing configuration: {len(config)} offices, {total_fte} total FTE")
+            print("📤 [STARTUP] Users can upload new Excel files to update configuration")
             return True
         else:
-            print("❌ [STARTUP] Failed to load configuration")
-            return False
+            print("📤 [STARTUP] No configuration found - ready for user Excel upload")
+            print("💡 [STARTUP] Users can upload Excel files via the Configuration page")
+            return True  # Still return True to start the server
             
     except Exception as e:
-        print(f"❌ [STARTUP] Error loading configuration: {e}")
-        return False
+        print(f"⚠️ [STARTUP] Error checking configuration: {e}")
+        print("📤 [STARTUP] Server will start - users can upload Excel files")
+        return True  # Still return True to start the server
 
 def start_backend():
     """Start the backend server"""
@@ -73,17 +61,13 @@ def start_backend():
 
 def main():
     """Main startup function"""
-    print("🚀 [STARTUP] SimpleSim Configuration Loader")
+    print("🚀 [STARTUP] SimpleSim Server")
     print("=" * 50)
     
-    # Load configuration first
-    if load_configuration():
-        print("✅ [STARTUP] Configuration loaded successfully")
-        print("🌐 [STARTUP] Starting FastAPI backend...")
-        start_backend()
-    else:
-        print("❌ [STARTUP] Failed to load configuration. Exiting.")
-        sys.exit(1)
+    # Check configuration status
+    check_configuration()
+    print("🌐 [STARTUP] Starting FastAPI backend...")
+    start_backend()
 
 if __name__ == "__main__":
     main() 
