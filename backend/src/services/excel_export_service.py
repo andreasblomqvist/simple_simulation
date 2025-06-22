@@ -57,9 +57,9 @@ class ExcelExportService:
                 kpis['growth']['current_total_fte'],
                 kpis['growth']['total_growth_percent'],
                 kpis['growth']['total_growth_absolute'],
-                kpis['financial']['current_ebitda'],
-                kpis['financial']['current_margin'],
-                kpis['financial']['current_net_sales'],
+                kpis['financial']['ebitda'],
+                kpis['financial']['margin'],
+                kpis['financial']['net_sales'],
                 kpis['financial']['avg_hourly_rate'],
                 kpis['financial']['avg_utr'],
                 kpis['growth']['non_debit_ratio']
@@ -68,9 +68,9 @@ class ExcelExportService:
                 kpis['growth']['baseline_total_fte'],
                 None,  # No baseline for growth percentage
                 None,  # No baseline for absolute growth
-                kpis['financial']['baseline_ebitda'],
-                kpis['financial']['baseline_margin'],
-                kpis['financial']['baseline_net_sales'],
+                kpis['financial']['ebitda_baseline'],
+                kpis['financial']['margin_baseline'],
+                kpis['financial']['net_sales_baseline'],
                 kpis['financial']['avg_hourly_rate_baseline'],
                 None,  # No baseline for UTR
                 kpis['growth']['non_debit_ratio_baseline']

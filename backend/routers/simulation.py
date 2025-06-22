@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
 from backend.src.services.cache_service import simulation_cache
+from backend.src.services.excel_export_service import ExcelExportService
 from datetime import datetime
 from backend.src.services.config_service import config_service
+import io
+import tempfile
+import os
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
@@ -353,4 +358,104 @@ def reset_simulation():
     # Clear all cached data
     simulation_cache.clear_all()
     
-    return {"message": "Simulation state reset successfully"} 
+    return {"message": "Simulation state reset successfully"}
+
+@router.post("/export/excel")
+def export_simulation_to_excel(params: SimulationRequest):
+    """Export simulation results to Excel format"""
+    if not engine:
+        raise HTTPException(status_code=500, detail="Simulation engine not initialized")
+    
+    try:
+        print(f"🚀 [EXPORT] Starting Excel export for simulation...")
+        print(f"[EXPORT] Parameters: {params.start_year}-{params.start_month} to {params.end_year}-{params.end_month}")
+        
+        # Parse office overrides (lever plan) - same as simulation run
+        lever_plan = None
+        if params.office_overrides:
+            lever_plan = {}
+            for office_name, office_levers in params.office_overrides.items():
+                lever_plan[office_name] = {}
+                for lever_key, lever_value in office_levers.items():
+                    if '_' in lever_key:
+                        parts = lever_key.split('_')
+                        if len(parts) == 2:
+                            attribute, level = parts
+                            role = "Consultant"
+                            
+                            if role not in lever_plan[office_name]:
+                                lever_plan[office_name][role] = {}
+                            if level not in lever_plan[office_name][role]:
+                                lever_plan[office_name][role][level] = {}
+                            
+                            for month in range(1, 13):
+                                lever_plan[office_name][role][level][f"{attribute}_{month}"] = lever_value
+        
+        # Reset engine state for fresh simulation
+        engine.reset_simulation_state()
+        
+        # Run the simulation
+        results = engine.run_simulation(
+            start_year=params.start_year,
+            start_month=params.start_month,
+            end_year=params.end_year,
+            end_month=params.end_month,
+            price_increase=params.price_increase,
+            salary_increase=params.salary_increase,
+            lever_plan=lever_plan
+        )
+        
+        # Calculate simulation duration in months
+        start_date = datetime(params.start_year, params.start_month, 1)
+        end_date = datetime(params.end_year, params.end_month, 1)
+        simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
+        
+        # Calculate KPIs for the export
+        results_with_kpis = engine.calculate_kpis_for_simulation(
+            results,
+            simulation_duration_months,
+            params.unplanned_absence,
+            params.other_expense
+        )
+        
+        print(f"✅ [EXPORT] Simulation completed, generating Excel file...")
+        
+        # Create Excel export service
+        export_service = ExcelExportService()
+        
+        # Create temporary file for Excel export
+        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
+            temp_path = temp_file.name
+        
+        # Generate Excel file
+        export_service.export_simulation_results(
+            results_with_kpis,
+            results_with_kpis.get('kpis', {}),
+            temp_path
+        )
+        
+        # Read the Excel file into memory
+        with open(temp_path, 'rb') as excel_file:
+            excel_content = excel_file.read()
+        
+        # Clean up temporary file
+        os.unlink(temp_path)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        filename = f"SimulationExport_{timestamp}.xlsx"
+        
+        print(f"✅ [EXPORT] Excel file generated successfully: {filename} ({len(excel_content)} bytes)")
+        
+        # Return as streaming response
+        return StreamingResponse(
+            io.BytesIO(excel_content),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        print(f"❌ [EXPORT] Excel export failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Excel export failed: {str(e)}") 
