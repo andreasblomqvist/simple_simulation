@@ -217,7 +217,8 @@ class ConfigService:
             try:
                 office = str(row['Office'])
                 role = str(row['Role'])
-                level = str(row['Level'])
+                # Handle NaN from pandas as 'N/A' for consistency
+                level = 'N/A' if pd.isna(row['Level']) else str(row['Level'])
                 
                 # Initialize nested structure if office doesn't exist
                 if office not in config:
@@ -232,12 +233,15 @@ class ConfigService:
                 if role not in config[office]["roles"]:
                     config[office]["roles"][role] = {}
                 
-                if level not in config[office]["roles"][role]:
-                    config[office]["roles"][role][level] = {}
+                # If the role is 'Operations', merge data directly, don't create a level
+                if role == 'Operations':
+                    level_config = config[office]["roles"][role]
+                else:
+                    if level not in config[office]["roles"][role]:
+                        config[office]["roles"][role][level] = {}
+                    level_config = config[office]["roles"][role][level]
                 
                 # Import all attributes from the row
-                level_config = config[office]["roles"][role][level]
-                
                 for col in df.columns:
                     if col in ['Office', 'Role', 'Level']:
                         continue
@@ -277,10 +281,15 @@ class ConfigService:
             if office_name in config:
                 total_fte = 0
                 for role_name, role_data in config[office_name]["roles"].items():
-                    for level_name, level_data in role_data.items():
-                        fte = level_data.get("fte", 0)
-                        if isinstance(fte, (int, float)):
-                            total_fte += fte
+                    # Handle flat roles like 'Operations' that have FTE at the top level
+                    if role_name == 'Operations' and 'fte' in role_data and isinstance(role_data['fte'], (int, float)):
+                        total_fte += role_data['fte']
+                    # Handle hierarchical roles like 'Consultant'
+                    elif isinstance(role_data, dict):
+                        for level_name, level_data in role_data.items():
+                            fte = level_data.get("fte", 0)
+                            if isinstance(fte, (int, float)):
+                                total_fte += fte
                 
                 config[office_name]["total_fte"] = total_fte
                 

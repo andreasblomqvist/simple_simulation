@@ -1,5 +1,32 @@
 # Cursor Rules for SimpleSim Project
 
+## Git Commit and Push Policy
+
+### Rule: NEVER Auto-Commit or Auto-Push Without User Permission
+- **Policy**: NEVER execute `git commit` or `git push` commands without explicit user request
+- **Trigger**: Only when user explicitly asks to "commit", "push", "save changes to git", or similar
+- **Required**: User must explicitly request git operations using clear language like:
+  - "commit this"
+  - "push to git/gitlab"
+  - "save these changes"
+  - "commit and push"
+- **Forbidden**: Auto-committing after making code changes, even if changes are complete
+- **Exception**: Only commit/push when user specifically requests it in their message
+
+### Implementation Guidelines:
+1. **Always ask first**: "Would you like me to commit and push these changes?"
+2. **Wait for confirmation**: Don't proceed until user says "yes", "commit", "push", etc.
+3. **Separate operations**: Ask about commit and push separately if unclear
+4. **Clear messaging**: Use descriptive commit messages when user requests commits
+5. **Status check**: Always show `git status` before committing if requested
+
+### Example Workflow:
+```
+AI: I've made the changes to the code. Would you like me to commit and push these changes to git?
+User: yes, commit and push
+AI: [proceeds with git add, commit, and push]
+```
+
 ## Architecture Documentation
 
 ### Rule: ALWAYS Reference Architecture Documentation

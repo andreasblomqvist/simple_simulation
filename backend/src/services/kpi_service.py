@@ -62,8 +62,8 @@ class KPIService:
     
     def __init__(self):
         self.working_hours_per_month = 166.4  # Actual working hours per month
-        self.total_employment_cost_rate = 0.5  # 50% overhead on salary costs
-        self.default_other_expense = 19000000.0  # 19 million SEK per month globally
+        self.total_employment_cost_rate = 0.40  # 40% overhead on salary costs
+        self.default_other_expense = 10000.0  # Default monthly other expense
     
     def calculate_all_kpis(
         self, 
@@ -80,47 +80,32 @@ class KPIService:
             other_expense = self.default_other_expense
         
         try:
-            # Get baseline data from hardcoded config (avoid circular dependency)
-            baseline_data = self._get_baseline_data()
-            
-            # --- PRE-CALCULATE BASELINE AVERAGE SALARIES PER OFFICE ---
-            baseline_avg_salaries = {}
-            for office in baseline_data['offices']:
-                office_name = office['name']
-                total_salary = 0
-                total_fte = 0
-                for role_name, role_data in office.get('roles', {}).items():
-                    levels_to_process = {None: role_data} if 'fte' in role_data else role_data
-                    for level_data in levels_to_process.values():
-                        fte = level_data.get('fte', 0)
-                        salary = level_data.get('salary_1', 0)
-                        if fte > 0:
-                            total_salary += fte * salary
-                            total_fte += fte
-                baseline_avg_salaries[office_name] = (total_salary / total_fte) if total_fte > 0 else 0
-            
-            # Calculate baseline financial metrics
-            baseline_financial = self._calculate_baseline_financial_metrics(
-                baseline_data, 
-                unplanned_absence, 
-                other_expense,
-                duration_months=simulation_duration_months
-            )
-            
-            # Extract final year data for comparison
+            # Extract years from simulation results
             years = list(simulation_results.get('years', {}).keys())
             if not years:
                 raise ValueError("No simulation years found in results")
             
+            # Get baseline data from current configuration
+            baseline_data = self._get_baseline_data()
+            
+            # Use the final year for current comparison
             final_year = max(years)
             final_year_data = simulation_results['years'][final_year]
             
-            # Calculate current year financial metrics
+            # Calculate baseline financial metrics using the baseline data, annualized to 12 months
+            baseline_financial = self._calculate_baseline_financial_metrics(
+                baseline_data, 
+                unplanned_absence, 
+                other_expense,
+                duration_months=12
+            )
+            
+            # Calculate current year financial metrics using the final year's data, annualized to 12 months
             current_financial = self._calculate_current_financial_metrics(
                 final_year_data,
                 unplanned_absence,
                 other_expense,
-                duration_months=simulation_duration_months
+                duration_months=12
             )
             
             # Calculate growth metrics
@@ -139,15 +124,8 @@ class KPIService:
                     year_data,
                     unplanned_absence,
                     other_expense,
-                    duration_months=simulation_duration_months
+                    duration_months=12 # Always use 12 months for yearly KPIs
                 )
-                
-                # A proper fix would involve changing the data structure of yearly_kpis to be
-                # Dict[str, Dict[str, YearlyKPIs]] -> {year: {office_name: kpis}}
-                # But for a minimal change, we will assume the frontend is looking at the first office
-                # or that only one office is simulated. The key is to fix the baseline value.
-                
-                office_name_for_baseline = next(iter(year_data.get('offices', {})), None)
                 
                 yearly_kpis[year] = YearlyKPIs(
                     year=year,
@@ -163,7 +141,7 @@ class KPIService:
                         total_consultants=yearly_financial.get('total_consultants', 0),
                         total_consultants_baseline=baseline_financial.get('total_consultants', 0),
                         avg_hourly_rate=yearly_financial['avg_hourly_rate'],
-                        avg_hourly_rate_baseline=baseline_avg_salaries.get(office_name_for_baseline, 0),
+                        avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
                         avg_utr=0.85
                     ),
                     growth=growth_metrics,
@@ -190,6 +168,7 @@ class KPIService:
             )
             
             print(f"[KPI DEBUG] =================== FINAL FINANCIAL CALCULATION ===================")
+            print(f"[KPI DEBUG] Baseline Year: {final_year}")
             print(f"[KPI DEBUG] Total Revenue: {current_financial['total_revenue']:,.0f} SEK")
             print(f"[KPI DEBUG] Total Salary Costs: {current_financial['total_salary_costs']:,.0f} SEK")
             print(f"[KPI DEBUG] Total Costs: {current_financial['total_costs']:,.0f} SEK")
@@ -217,7 +196,13 @@ class KPIService:
             raise e
     
     def _get_baseline_data(self) -> Dict[str, Any]:
-        """Get baseline data from hardcoded config to avoid circular dependency"""
+        """Get baseline data from current configuration to avoid using hardcoded values"""
+        # Import here to avoid circular dependency
+        from backend.src.services.config_service import ConfigService
+        
+        config_service = ConfigService()
+        current_config = config_service.get_configuration()
+        
         baseline = {
             'offices': [],
             'total_consultants': 0,
@@ -225,48 +210,43 @@ class KPIService:
             'total_fte': 0
         }
         
-        for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
+        for office_name, office_data in current_config.items():
             office_baseline = {
                 'name': office_name,
                 'roles': {},
                 'consultants': 0,
                 'non_consultants': 0,
-                'total_fte': 0
+                'total_fte': office_data.get('total_fte', 0)
             }
             
-            for role_name, role_data in office_data.items():
+            # Use the actual roles from current configuration
+            for role_name, role_data in office_data.get('roles', {}).items():
                 if role_name == 'Operations':
-                    # Operations is a flat role with integer value
-                    operations_fte = role_data  # role_data is directly an integer
+                    # Operations is a flat role
                     office_baseline['roles']['Operations'] = {
-                        'fte': operations_fte,
-                        'price_1': 80.0,  # Default operations pricing
-                        'salary_1': 40000.0,  # Default operations salary
-                        'utr_1': 0.85
+                        'fte': role_data.get('fte', 0),
+                        'price_1': role_data.get('price_1', 0),
+                        'salary_1': role_data.get('salary_1', 0),
+                        'utr_1': role_data.get('utr_1', 0.85)
                     }
-                    office_baseline['non_consultants'] += operations_fte
-                    office_baseline['total_fte'] += operations_fte
+                    office_baseline['non_consultants'] += role_data.get('fte', 0)
                 else:
                     # Roles with levels (Consultant, Sales, Recruitment)
                     office_baseline['roles'][role_name] = {}
-                    for level_name, level_fte in role_data.items():
-                        # level_fte is directly an integer, not a dict
-                        # Get pricing from BASE_PRICING or use defaults
-                        default_price = BASE_PRICING.get(office_name, {}).get(level_name, 1000.0)
-                        default_salary = BASE_SALARIES.get(office_name, {}).get(level_name, 40000.0) # Use actual monthly salary
-                        
-                        office_baseline['roles'][role_name][level_name] = {
-                            'fte': level_fte,
-                            'price_1': default_price,
-                            'salary_1': default_salary,
-                            'utr_1': 0.85
-                        }
-                        
-                        if role_name == 'Consultant':
-                            office_baseline['consultants'] += level_fte
-                        else:
-                            office_baseline['non_consultants'] += level_fte
-                        office_baseline['total_fte'] += level_fte
+                    for level_name, level_data in role_data.items():
+                        if isinstance(level_data, dict):
+                            level_fte = level_data.get('fte', 0)
+                            office_baseline['roles'][role_name][level_name] = {
+                                'fte': level_fte,
+                                'price_1': level_data.get('price_1', 0),
+                                'salary_1': level_data.get('salary_1', 0),
+                                'utr_1': level_data.get('utr_1', 0.85)
+                            }
+                            
+                            if role_name == 'Consultant':
+                                office_baseline['consultants'] += level_fte
+                            else:
+                                office_baseline['non_consultants'] += level_fte
             
             baseline['offices'].append(office_baseline)
             baseline['total_consultants'] += office_baseline['consultants']
@@ -282,45 +262,142 @@ class KPIService:
         other_expense: float,
         duration_months: int = 12
     ) -> Dict[str, float]:
-        """Calculate financial metrics for the baseline year based on architecture doc"""
+        """Calculate baseline financial metrics for comparison"""
+        
+        print(f"\n🔍 [KPI DEBUG] === BASELINE FINANCIAL METRICS CALCULATION ===")
+        print(f"[KPI DEBUG] Input parameters:")
+        print(f"[KPI DEBUG]   - unplanned_absence: {unplanned_absence:.1%}")
+        print(f"[KPI DEBUG]   - other_expense (monthly): {other_expense:,.0f} SEK")
+        print(f"[KPI DEBUG]   - duration_months: {duration_months}")
+        print(f"[KPI DEBUG]   - working_hours_per_month: {self.working_hours_per_month}")
+        print(f"[KPI DEBUG]   - employment_cost_rate: {self.total_employment_cost_rate:.1%}")
+        
         total_revenue = 0
         total_salary_costs = 0
         total_consultants = 0
-        
-        for office in baseline_data['offices']:
-            for role_name, role_data in office['roles'].items():
+        total_costs = 0
+        total_fte_for_avg_rate = 0
+
+        # Available hours after accounting for unplanned absence (unplanned_absence is a percentage)
+        # unplanned_absence = 0.05 means 5% of working hours are lost to unplanned absence
+        available_hours_per_month = self.working_hours_per_month * (1 - unplanned_absence)
+        print(f"[KPI DEBUG] Available hours per month: {available_hours_per_month:.1f}")
+
+        # Distribute other_expense proportionally across offices based on their FTE
+        total_system_fte = sum(office_data.get('total_fte', 0) for office_data in baseline_data.get('offices', []))
+        print(f"[KPI DEBUG] Total baseline system FTE: {total_system_fte}")
+
+        office_count = 0
+        for office_data in baseline_data.get('offices', []): # Iterate over list of offices
+            office_count += 1
+            office_name = office_data.get('name', f'Office_{office_count}')
+            print(f"\n[KPI DEBUG] --- Processing Baseline Office {office_count}: {office_name} ---")
+            
+            office_revenue = 0
+            office_salary_costs = 0
+            office_fte = office_data.get('total_fte', 0)
+            print(f"[KPI DEBUG] {office_name} baseline total FTE: {office_fte}")
+            
+            for role_name, role_data in office_data.get('roles', {}).items():
+                print(f"[KPI DEBUG]   Processing baseline role: {role_name}")
                 
-                # Determine levels to process (handles both flat and leveled roles)
-                levels_to_process = {None: role_data} if 'fte' in role_data else role_data
-
-                for level_name, level_data in levels_to_process.items():
-                    fte = level_data.get('fte', 0)
-                    if fte == 0: continue
-
-                    # Financial calculations per FTE
-                    price = level_data.get('price_1', 0)
-                    salary = level_data.get('salary_1', 0)
-                    utr = level_data.get('utr_1', 0.85)
-
-                    # Revenue is only generated by consultants
-                    if role_name == 'Consultant':
-                        monthly_revenue_per_fte = price * utr * self.working_hours_per_month * (1 - unplanned_absence)
-                        total_revenue += fte * monthly_revenue_per_fte
-                        total_consultants += fte
+                if role_name == 'Consultant':
+                    consultant_levels = role_data
+                    print(f"[KPI DEBUG]     Consultant levels: {list(consultant_levels.keys())}")
                     
-                    # Salary costs are for all roles
-                    monthly_salary_cost_per_fte = salary * (1 + self.total_employment_cost_rate)
-                    total_salary_costs += fte * monthly_salary_cost_per_fte
-
-        # Annualize for the full simulation period
-        total_revenue *= duration_months
-        total_salary_costs *= duration_months
+                    for level_name, level_data in consultant_levels.items():
+                        if level_data:  # Check if there are results for this level
+                            fte_count = level_data.get('fte', 0)
+                            hourly_rate = level_data.get('price_1', 0)
+                            salary = level_data.get('salary_1', 0)
+                            utr = level_data.get('utr_1', 0.85)
+                            
+                            print(f"[KPI DEBUG]       {role_name}/{level_name}: {fte_count} FTE, {hourly_rate} SEK/hour, {salary} SEK/month, {utr:.1%} UTR")
+                            
+                            if fte_count > 0:
+                                # Calculate revenue (assume 85% UTR for now)
+                                # Calculate billable hours: available hours * UTR
+                                billable_hours = available_hours_per_month * utr
+                                monthly_revenue_per_person = hourly_rate * billable_hours
+                                level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
+                                office_revenue += level_total_revenue
+                                
+                                print(f"[KPI DEBUG]         Revenue calc: {fte_count} × {hourly_rate} × {billable_hours:.1f} × {duration_months} = {level_total_revenue:,.0f} SEK")
+                                
+                                # Calculate costs
+                                base_salary_cost = fte_count * salary * duration_months
+                                office_salary_costs += base_salary_cost
+                                
+                                print(f"[KPI DEBUG]         Salary cost: {fte_count} × {salary} × {duration_months} = {base_salary_cost:,.0f} SEK")
+                                
+                                # Track for weighted averages
+                                total_consultants += fte_count
+                                total_fte_for_avg_rate += fte_count
+                else:
+                    if isinstance(role_data, dict) and 'fte' in role_data:
+                        # Flat role like Operations
+                        fte_count = role_data.get('fte', 0)
+                        salary = role_data.get('salary_1', 0)
+                        print(f"[KPI DEBUG]     {role_name} (flat): {fte_count} FTE, {salary} SEK/month salary")
+                        
+                        if fte_count > 0:
+                            base_salary_cost = fte_count * salary * duration_months
+                            office_salary_costs += base_salary_cost
+                            print(f"[KPI DEBUG]         Salary cost: {fte_count} × {salary} × {duration_months} = {base_salary_cost:,.0f} SEK")
+                    else:
+                        # Role with levels
+                        print(f"[KPI DEBUG]     {role_name} has levels: {list(role_data.keys()) if isinstance(role_data, dict) else 'N/A'}")
+                        for level_name, level_data in role_data.items():
+                            if level_data:
+                                fte_count = level_data.get('fte', 0)
+                                salary = level_data.get('salary_1', 0)
+                                print(f"[KPI DEBUG]       {role_name}/{level_name}: {fte_count} FTE, {salary} SEK/month salary")
+                                
+                                if fte_count > 0:
+                                    base_salary_cost = fte_count * salary * duration_months
+                                    office_salary_costs += base_salary_cost
+                                    print(f"[KPI DEBUG]         Salary cost: {fte_count} × {salary} × {duration_months} = {base_salary_cost:,.0f} SEK")
+            
+            # Calculate total costs for the office
+            office_total_employment_cost = office_salary_costs * (1 + self.total_employment_cost_rate)
+            print(f"[KPI DEBUG] {office_name} total employment cost (with {self.total_employment_cost_rate:.1%} overhead): {office_total_employment_cost:,.0f} SEK")
+            
+            # Allocate a portion of other_expense to this office (annualized)
+            office_other_expense = 0
+            if total_system_fte > 0:
+                office_other_expense = (office_fte / total_system_fte) * other_expense * duration_months
+            
+            print(f"[KPI DEBUG] {office_name} other expense allocation: ({office_fte}/{total_system_fte}) × {other_expense:,.0f} × {duration_months} = {office_other_expense:,.0f} SEK")
+            
+            office_total_costs = office_total_employment_cost + office_other_expense
+            
+            print(f"[KPI DEBUG] {office_name} baseline totals:")
+            print(f"[KPI DEBUG]   - Revenue: {office_revenue:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Salary costs: {office_salary_costs:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Employment costs (with overhead): {office_total_employment_cost:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Other expenses: {office_other_expense:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Total costs: {office_total_costs:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Office EBITDA: {office_revenue - office_total_costs:,.0f} SEK")
+            
+            # Add office totals to global totals
+            total_revenue += office_revenue
+            total_costs += office_total_costs
+            total_salary_costs += office_salary_costs
         
-        # Final calculations
-        total_costs = total_salary_costs + (other_expense * duration_months)
+        # Final calculations (other_expense is now included in total_costs)
         ebitda = total_revenue - total_costs
         margin = (ebitda / total_revenue) if total_revenue > 0 else 0
         avg_hourly_rate = (total_revenue / total_consultants / self.working_hours_per_month / duration_months) if total_consultants > 0 else 0
+
+        print(f"\n[KPI DEBUG] === FINAL BASELINE TOTALS ===")
+        print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Salary Costs: {total_salary_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Costs (including overhead + other): {total_costs:,.0f} SEK")
+        print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
+        print(f"[KPI DEBUG] Margin: {margin:.2%}")
+        print(f"[KPI DEBUG] Total Consultants: {total_consultants}")
+        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
+        print(f"[KPI DEBUG] ==========================================\n")
 
         return {
             'total_revenue': total_revenue,
@@ -339,101 +416,126 @@ class KPIService:
         other_expense: float,
         duration_months: int = 12
     ) -> Dict[str, float]:
-        """Calculate financial metrics for current simulation data"""
+        """Calculate financial metrics for current simulation data, with proportional expense allocation."""
+        
+        print(f"\n🔍 [KPI DEBUG] === CURRENT FINANCIAL METRICS CALCULATION ===")
+        print(f"[KPI DEBUG] Input parameters:")
+        print(f"[KPI DEBUG]   - unplanned_absence: {unplanned_absence:.1%}")
+        print(f"[KPI DEBUG]   - other_expense (monthly): {other_expense:,.0f} SEK")
+        print(f"[KPI DEBUG]   - duration_months: {duration_months}")
+        print(f"[KPI DEBUG]   - working_hours_per_month: {self.working_hours_per_month}")
+        print(f"[KPI DEBUG]   - employment_cost_rate: {self.total_employment_cost_rate:.1%}")
         
         total_revenue = 0.0
         total_costs = 0.0
-        total_salary_costs = 0.0  # Track salary costs separately
+        total_salary_costs = 0.0
         total_consultants = 0
         total_weighted_price = 0.0
+
+        # Calculate total FTE for the year to use for expense allocation
+        total_system_fte = sum(office.get('total_fte', 0) for office in year_data.get('offices', {}).values())
+        print(f"[KPI DEBUG] Total system FTE: {total_system_fte}")
         
+        office_count = 0
         # Process each office
         for office_name, office_data in year_data.get('offices', {}).items():
-            office_levels = office_data.get('levels', {})
+            office_count += 1
+            print(f"\n[KPI DEBUG] --- Processing Office {office_count}: {office_name} ---")
             
-            # Only consultants generate revenue
-            if 'Consultant' in office_levels:
-                consultant_levels = office_levels['Consultant']
-                for level_name, level_results in consultant_levels.items():
-                    if level_results:  # Check if there are results for this level
-                        # Debug: Print the data structure
-                        print(f"[KPI DEBUG] {office_name} {level_name}: level_results type = {type(level_results)}, value = {level_results}")
-                        
-                        # Get the latest month's data
-                        if isinstance(level_results, list) and len(level_results) > 0:
-                            latest_data = level_results[-1]
-                            print(f"[KPI DEBUG] {office_name} {level_name}: latest_data type = {type(latest_data)}, value = {latest_data}")
-                        else:
-                            print(f"[KPI DEBUG] {office_name} {level_name}: level_results is not a list or is empty")
-                            latest_data = {}
-                        
-                        fte_count = latest_data.get('total', 0) if isinstance(latest_data, dict) else 0
-                        hourly_rate = latest_data.get('price', 0) if isinstance(latest_data, dict) else 0
-                        salary = latest_data.get('salary', 0) if isinstance(latest_data, dict) else 0
+            office_revenue = 0.0
+            office_salary_costs = 0.0
+            
+            office_fte = office_data.get('total_fte', 0)
+            print(f"[KPI DEBUG] {office_name} total FTE: {office_fte}")
+            
+            # This logic handles the complex data structure from the simulation engine
+            if 'levels' in office_data:
+                office_levels = office_data.get('levels', {})
+                print(f"[KPI DEBUG] {office_name} has levels structure with roles: {list(office_levels.keys())}")
+                
+                for role_name, role_data in office_levels.items():
+                    print(f"[KPI DEBUG]   Processing role: {role_name}")
+                    
+                    if isinstance(role_data, dict): # Hierarchical roles
+                        print(f"[KPI DEBUG]     {role_name} is hierarchical with levels: {list(role_data.keys())}")
+                        for level_name, level_data in role_data.items():
+                            if isinstance(level_data, list) and level_data:
+                                last_month_data = level_data[-1]
+                                fte_count = last_month_data.get('total', 0)
+                                hourly_rate = last_month_data.get('price', 0)
+                                salary = last_month_data.get('salary', 0)
+                                utr = last_month_data.get('utr', 0.85)
+                                
+                                print(f"[KPI DEBUG]       {role_name}/{level_name}: {fte_count} FTE, {hourly_rate} SEK/hour, {salary} SEK/month, {utr:.1%} UTR")
+                                
+                                if fte_count > 0:
+                                    if role_name == 'Consultant':
+                                        available_hours = self.working_hours_per_month * (1 - unplanned_absence)
+                                        billable_hours = available_hours * utr
+                                        monthly_revenue_per_person = hourly_rate * billable_hours
+                                        level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
+                                        office_revenue += level_total_revenue
+                                        total_consultants += fte_count
+                                        total_weighted_price += hourly_rate * fte_count
+                                        
+                                        print(f"[KPI DEBUG]         Revenue calc: {fte_count} × {hourly_rate} × {billable_hours:.1f} × {duration_months} = {level_total_revenue:,.0f} SEK")
+                                    
+                                    base_salary_cost = fte_count * salary * duration_months
+                                    office_salary_costs += base_salary_cost
+                                    print(f"[KPI DEBUG]         Salary cost: {fte_count} × {salary} × {duration_months} = {base_salary_cost:,.0f} SEK")
+                    
+                    elif isinstance(role_data, list) and role_data: # Flat roles
+                        print(f"[KPI DEBUG]     {role_name} is flat role")
+                        last_month_data = role_data[-1]
+                        fte_count = last_month_data.get('total', 0)
+                        salary = last_month_data.get('salary', 0) if 'salary' in last_month_data else 40000.0
+                        print(f"[KPI DEBUG]       {role_name}: {fte_count} FTE, {salary} SEK/month salary")
                         
                         if fte_count > 0:
-                            # Calculate revenue (assume 85% UTR for now)
-                            utr = 0.85
-                            available_hours = self.working_hours_per_month * (1 - unplanned_absence)
-                            billable_hours = available_hours * utr
-                            monthly_revenue_per_person = hourly_rate * billable_hours
-                            level_total_revenue = fte_count * monthly_revenue_per_person * duration_months
-                            total_revenue += level_total_revenue
-                            
-                            # Calculate costs
                             base_salary_cost = fte_count * salary * duration_months
-                            total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                            total_costs += total_employment_cost
-                            total_salary_costs += base_salary_cost  # Track salary costs separately
-                            
-                            # Track for weighted averages
-                            total_consultants += fte_count
-                            total_weighted_price += hourly_rate * fte_count
+                            office_salary_costs += base_salary_cost
+                            print(f"[KPI DEBUG]         Salary cost: {fte_count} × {salary} × {duration_months} = {base_salary_cost:,.0f} SEK")
             
-            # Calculate costs for all other roles
-            for role_name, role_data in office_levels.items():
-                if role_name != 'Consultant':
-                    if isinstance(role_data, list):
-                        # Flat role like Operations
-                        if role_data:
-                            latest_data = role_data[-1]
-                            fte_count = latest_data.get('total', 0)
-                            salary = latest_data.get('salary', 0)
-                            if fte_count > 0:
-                                base_salary_cost = fte_count * salary * duration_months
-                                total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                                total_costs += total_employment_cost
-                                total_salary_costs += base_salary_cost  # Track salary costs separately
-                    else:
-                        # Role with levels
-                        for level_name, level_results in role_data.items():
-                            if level_results:
-                                latest_data = level_results[-1]
-                                fte_count = latest_data.get('total', 0)
-                                salary = latest_data.get('salary', 0)
-                                if fte_count > 0:
-                                    base_salary_cost = fte_count * salary * duration_months
-                                    total_employment_cost = base_salary_cost * (1 + self.total_employment_cost_rate)
-                                    total_costs += total_employment_cost
-                                    total_salary_costs += base_salary_cost  # Track salary costs separately
-        
-        # Add other expenses (global monthly cost, not per office)
-        group_other_expenses = other_expense * duration_months
-        total_costs += group_other_expenses
+            # Calculate total costs for the office
+            office_total_employment_cost = office_salary_costs * (1 + self.total_employment_cost_rate)
+            print(f"[KPI DEBUG] {office_name} total employment cost (with {self.total_employment_cost_rate:.1%} overhead): {office_total_employment_cost:,.0f} SEK")
+            
+            # Annualize the allocated portion of other_expense
+            office_other_expense = 0
+            if total_system_fte > 0:
+                office_other_expense = (office_fte / total_system_fte) * other_expense * duration_months
+            
+            print(f"[KPI DEBUG] {office_name} other expense allocation: ({office_fte}/{total_system_fte}) × {other_expense:,.0f} × {duration_months} = {office_other_expense:,.0f} SEK")
+            
+            office_total_costs = office_total_employment_cost + office_other_expense
+            
+            print(f"[KPI DEBUG] {office_name} totals:")
+            print(f"[KPI DEBUG]   - Revenue: {office_revenue:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Salary costs: {office_salary_costs:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Employment costs (with overhead): {office_total_employment_cost:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Other expenses: {office_other_expense:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Total costs: {office_total_costs:,.0f} SEK")
+            print(f"[KPI DEBUG]   - Office EBITDA: {office_revenue - office_total_costs:,.0f} SEK")
+            
+            # Add office totals to global totals
+            total_revenue += office_revenue
+            total_costs += office_total_costs
+            total_salary_costs += office_salary_costs
         
         # Calculate final metrics
         ebitda = total_revenue - total_costs
         margin = ebitda / total_revenue if total_revenue > 0 else 0.0
         avg_hourly_rate = total_weighted_price / total_consultants if total_consultants > 0 else 0.0
         
-        print(f"[KPI DEBUG] CURRENT FINAL TOTALS:")
-        print(f"[KPI DEBUG] Total Consultants: {total_consultants}")
+        print(f"\n[KPI DEBUG] === FINAL CURRENT TOTALS ===")
         print(f"[KPI DEBUG] Total Revenue: {total_revenue:,.0f} SEK")
         print(f"[KPI DEBUG] Total Salary Costs: {total_salary_costs:,.0f} SEK")
-        print(f"[KPI DEBUG] Total Costs (including overhead): {total_costs:,.0f} SEK")
-        print(f"[KPI DEBUG] Other Expenses: {group_other_expenses:,.0f} SEK")
+        print(f"[KPI DEBUG] Total Costs (including overhead + other): {total_costs:,.0f} SEK")
         print(f"[KPI DEBUG] EBITDA: {ebitda:,.0f} SEK")
         print(f"[KPI DEBUG] Margin: {margin:.2%}")
+        print(f"[KPI DEBUG] Total Consultants: {total_consultants}")
+        print(f"[KPI DEBUG] Avg Hourly Rate: {avg_hourly_rate:.2f} SEK")
+        print(f"[KPI DEBUG] ==========================================\n")
         
         return {
             'total_revenue': total_revenue,
@@ -460,40 +562,56 @@ class KPIService:
         senior_consultants = 0  # M, SrM, PiP levels
         
         for office_name, office_data in final_year_data.get('offices', {}).items():
-            office_levels = office_data.get('levels', {})
+            # Check structure type
+            if 'levels' in office_data:
+                # Complex structure: extract from monthly arrays
+                office_levels = office_data.get('levels', {})
+                
+                for role_name, role_data in office_levels.items():
+                    if isinstance(role_data, dict):
+                        # Role with levels (Consultant, Sales, Recruitment)
+                        for level_name, level_data in role_data.items():
+                            if isinstance(level_data, list) and level_data:
+                                # Get the last month's data
+                                last_month_data = level_data[-1]
+                                fte_count = last_month_data.get('total', 0)
+                                current_total_fte += fte_count
+                                
+                                if role_name == 'Consultant':
+                                    current_consultants += fte_count
+                                    # Count senior levels
+                                    if level_name in ['M', 'SrM', 'PiP']:
+                                        senior_consultants += fte_count
+                                else:
+                                    current_non_consultants += fte_count
+                    
+                    elif isinstance(role_data, list) and role_data:
+                        # Flat role (Operations)
+                        last_month_data = role_data[-1]
+                        fte_count = last_month_data.get('total', 0)
+                        current_total_fte += fte_count
+                        current_non_consultants += fte_count
             
-            # Count consultants
-            if 'Consultant' in office_levels:
-                consultant_levels = office_levels['Consultant']
-                for level_name, level_results in consultant_levels.items():
-                    if level_results:
-                        latest_data = level_results[-1] if level_results else {}
-                        fte_count = latest_data.get('total', 0)
-                        current_consultants += fte_count
+            elif 'roles' in office_data:
+                # Simple structure: direct access
+                office_roles = office_data.get('roles', {})
+                
+                for role_key, role_data in office_roles.items():
+                    if isinstance(role_data, dict) and 'fte' in role_data:
+                        fte_count = role_data.get('fte', 0)
                         current_total_fte += fte_count
                         
-                        # Count senior levels
-                        if level_name in ['M', 'SrM', 'PiP']:
-                            senior_consultants += fte_count
-            
-            # Count other roles
-            for role_name, role_data in office_levels.items():
-                if role_name != 'Consultant':
-                    if isinstance(role_data, list):
-                        # Flat role like Operations
-                        if role_data:
-                            latest_data = role_data[-1]
-                            fte_count = latest_data.get('total', 0)
+                        # Parse role and level from key
+                        if role_key.startswith('Consultant_'):
+                            level_name = role_key.replace('Consultant_', '')
+                            current_consultants += fte_count
+                            
+                            # Count senior levels
+                            if level_name in ['M', 'SrM', 'PiP']:
+                                senior_consultants += fte_count
+                        else:
+                            # Non-consultant roles
                             current_non_consultants += fte_count
-                            current_total_fte += fte_count
-                    else:
-                        # Role with levels
-                        for level_name, level_results in role_data.items():
-                            if level_results:
-                                latest_data = level_results[-1] if level_results else {}
-                                fte_count = latest_data.get('total', 0)
-                                current_non_consultants += fte_count
-                                current_total_fte += fte_count
         
         # Calculate growth rates
         total_growth_rate = ((current_total_fte - baseline_total_fte) / baseline_total_fte * 100) if baseline_total_fte > 0 else 0.0
@@ -566,25 +684,47 @@ class KPIService:
             "Journey 4": 0
         }
         
-        # Aggregate journey totals from all office levels
+        # Aggregate journey totals from all office roles
         for office_name, office_data in final_year_data.get('offices', {}).items():
-            office_levels = office_data.get('levels', {})
-            
-            # Process all roles that have levels
-            for role_name, role_data in office_levels.items():
-                if role_name in ['Consultant', 'Sales', 'Recruitment']:
-                    for level_name, level_results in role_data.items():
-                        if level_results:  # Check if there are results for this level
-                            # Get the latest month's data
-                            if isinstance(level_results, list) and len(level_results) > 0:
-                                latest_data = level_results[-1]
-                                fte_count = latest_data.get('total', 0) if isinstance(latest_data, dict) else 0
+            # Check structure type
+            if 'levels' in office_data:
+                # Complex structure: extract from monthly arrays
+                office_levels = office_data.get('levels', {})
+                
+                for role_name, role_data in office_levels.items():
+                    if isinstance(role_data, dict) and role_name in ['Consultant', 'Sales', 'Recruitment']:
+                        # Role with levels
+                        for level_name, level_data in role_data.items():
+                            if isinstance(level_data, list) and level_data:
+                                # Get the last month's data
+                                last_month_data = level_data[-1]
+                                fte_count = last_month_data.get('total', 0)
                                 
                                 # Map level to journey and add to totals
                                 for journey_name, levels in journey_mappings.items():
                                     if level_name in levels:
                                         current_journey_totals[journey_name] += fte_count
                                         print(f"[KPI DEBUG] {office_name} {role_name} {level_name}: {fte_count} FTE → {journey_name}")
+                                        break
+            
+            elif 'roles' in office_data:
+                # Simple structure: flattened roles
+                office_roles = office_data.get('roles', {})
+                
+                for role_key, role_data in office_roles.items():
+                    if isinstance(role_data, dict) and 'fte' in role_data:
+                        fte_count = role_data.get('fte', 0)
+                        
+                        # Parse role and level from key (e.g., "Consultant_A" -> "Consultant", "A")
+                        if '_' in role_key:
+                            role_name, level_name = role_key.split('_', 1)
+                            if role_name in ['Consultant', 'Sales', 'Recruitment']:
+                                # Map level to journey and add to totals
+                                for journey_name, levels in journey_mappings.items():
+                                    if level_name in levels:
+                                        current_journey_totals[journey_name] += fte_count
+                                        print(f"[KPI DEBUG] {office_name} {role_name} {level_name}: {fte_count} FTE → {journey_name}")
+                                        break
         
         print(f"[KPI DEBUG] CURRENT Journey totals: {current_journey_totals}")
         

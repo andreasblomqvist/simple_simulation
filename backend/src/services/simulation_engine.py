@@ -8,6 +8,7 @@ import os
 import uuid
 import random
 import hashlib
+from copy import deepcopy
 
 # Import config from backend.config
 from backend.config.default_config import (
@@ -51,9 +52,9 @@ class Journey(Enum):
     JOURNEY_4 = "Journey 4"
 
 class OfficeJourney(Enum):
-    NEW = "New Office"          # 0-25 FTE
-    EMERGING = "Emerging Office"  # 25-200 FTE
-    ESTABLISHED = "Established Office"  # 200-500 FTE
+    NEW = "New Office"          # 0-24 FTE
+    EMERGING = "Emerging Office"  # 25-199 FTE
+    ESTABLISHED = "Established Office"  # 200-499 FTE
     MATURE = "Mature Office"    # 500+ FTE
 
 @dataclass
@@ -419,7 +420,8 @@ class Office:
         elif total_fte >= 25:
             journey = OfficeJourney.EMERGING
         else:
-            journey = OfficeJourney.NEW
+            journey = OfficeJourney.NEW # 0-24 FTE
+        
         return cls(
             name=name,
             total_fte=total_fte,
@@ -428,836 +430,660 @@ class Office:
         )
 
 class SimulationEngine:
-    
+    """
+    The core simulation engine for SimpleSim.
+    This class manages the simulation state and runs the monthly progression,
+    recruitment, and churn calculations.
+    """
+
     def __init__(self, config_service_instance=None):
-        """Initialize the simulation engine"""
-        self.offices: Dict[str, Office] = {}
-        self.simulation_results: Optional[Dict[str, Any]] = None
+        """
+        Initialize the simulation engine.
+        - offices: A dictionary of Office objects, keyed by office name.
+        - monthly_results: A dictionary to store detailed monthly simulation outputs.
+        """
+        print("✅ [ENGINE] SimulationEngine created, awaiting initialization.")
         self.config_service = config_service_instance or config_service
-        self.kpi_service = KPIService()
-        # Do not reset state on initial creation, wait for explicit call
-        print(f"✅ [ENGINE] SimulationEngine created, awaiting initialization.")
+        self.offices: Dict[str, Office] = {}
+        self.monthly_results: Dict[str, Any] = {}
+        self.simulation_results: Optional[Dict[str, Any]] = None
+        self.reinitialize_with_config()
 
     def reinitialize_with_config(self):
-        """Re-initialize the engine after configuration is loaded."""
-        print("🔄 [ENGINE] Re-initializing SimulationEngine with loaded configuration...")
+        """Re-initialize the engine with the latest configuration from the service."""
         self.reset_simulation_state()
-
-    def reset_simulation_state(self):
-        """Reset simulation state to initial configuration"""
-        print("[ENGINE] Resetting simulation state...")
         self._initialize_offices_from_config_service()
+    
+    def reset_simulation_state(self):
+        """Reset the simulation state to a clean slate."""
+        self.offices = {}
+        self.monthly_results = {}
         self.simulation_results = None
-        print("✅ [ENGINE] Simulation state reset complete.")
-        
+
     def _initialize_offices_from_config_service(self):
-        """Initialize offices and roles from the live configuration service"""
-        print("[INFO] Initializing offices from configuration service...")
-        config = self.config_service.get_configuration()
+        """Initialize offices and their roles/levels from the configuration service."""
+        config_dict = self.config_service.get_configuration()
+        # Convert dict to list format expected by the rest of the method
+        config_data = []
+        for office_name, office_config in config_dict.items():
+            config_data.append(office_config)
         
-        if not config:
-            print("[WARNING] No configuration found in service, cannot initialize offices.")
-            self.offices = {}
-            return
-            
-        self.offices = {}  # Clear existing offices
-        
-        for office_name, office_data in config.items():
-            # Use the total_fte already calculated by configuration service
-            total_fte = office_data.get('total_fte', 0)
-            
-            # Create office with correct journey classification
-            if total_fte >= 500:
-                journey = OfficeJourney.MATURE
-            elif total_fte >= 200:
-                journey = OfficeJourney.ESTABLISHED
-            elif total_fte >= 25:
-                journey = OfficeJourney.EMERGING
-            else:
-                journey = OfficeJourney.NEW
-            
-            self.offices[office_name] = Office(
-                name=office_name,
-                total_fte=total_fte,
-                journey=journey,
-                roles={}
-            )
-        
-        print(f"[INFO] ✓ Initialized {len(self.offices)} offices from configuration service")
-        # Skip deprecated _initialize_offices call to prevent recursion
-        self._initialize_roles()
-        
-    def _initialize_offices(self):
-        """Initialize offices with their journeys based on real FTE data"""
-        print("[WARNING] Using deprecated _initialize_offices - this method is now a no-op")
-        # This method is deprecated and should not call other initialization methods
-        # to prevent recursion. The _initialize_offices_from_config_service method
-        # handles all office initialization.
+        # Determine the level order for progression
+        self.level_order = self._determine_level_order(config_data)
 
-    def _initialize_roles(self):
-        """DEPRECATED: Use _initialize_roles_with_levers instead"""
-        print("[WARNING] Using deprecated _initialize_roles method - use _initialize_roles_with_levers for lever support")
-        self._initialize_roles_with_levers(None)
+        for office_config in config_data:
+            office_name = office_config.get('name', 'Unknown Office')
+            total_fte = office_config.get('total_fte', 0)
+            
+            # Create the Office object
+            office = Office.create_office(office_name, total_fte)
+            
+            # Initialize roles and levels
+            for role_name, role_data in office_config.get('roles', {}).items():
+                if role_name == 'Operations':
+                    # Handle flat structure for Operations
+                    op_fte = role_data.get('fte', 0)
+                    
+                    operations_role = RoleData()
+                    
+                    # Set monthly values from config
+                    for i in range(1, 13):
+                        # Look for monthly values first, then fall back to base values
+                        salary_key = f'salary_{i}'
+                        price_key = f'price_{i}'
+                        utr_key = f'utr_{i}'
+                        
+                        salary = role_data.get(salary_key, role_data.get('salary', 40000.0))  # Default ops salary
+                        price = role_data.get(price_key, role_data.get('price', 0.0))  # Ops don't generate revenue
+                        utr = role_data.get(utr_key, role_data.get('utr', 0.0))  # Ops don't have UTR
+                        
+                        setattr(operations_role, f'salary_{i}', salary)
+                        setattr(operations_role, f'price_{i}', price)
+                        setattr(operations_role, f'utr_{i}', utr)
 
-    def _initialize_roles_with_levers(self, lever_plan: Optional[Dict] = None):
-        """Initialize roles with configuration service data and apply lever overrides"""
-        print("[INFO] Initializing roles with configuration service data and lever support")
-        
-        # Get configuration from configuration service
-        config = self.config_service.get_configuration()
-        print(f"[CONFIG] Loaded configuration for {len(config)} offices from configuration service")
-        
-        for office_name, office in self.offices.items():
-            office.roles["Consultant"] = {}
-            office.roles["Sales"] = {}
-            office.roles["Recruitment"] = {}
-            
-            # Get office configuration data
-            office_config = config.get(office_name, {})
-            office_roles = office_config.get('roles', {})
-            
-            print(f"[CONFIG] Processing {office_name} with {len(office_roles)} role types")
-            
-            # Process each role with levels
-            for role_name in ["Consultant", "Sales", "Recruitment"]:
-                role_data = office_roles.get(role_name, {})
-                
-                for level_name, level_config in role_data.items():
-                    level_fte = level_config.get("fte", 0)  # Changed from "total" to "fte"
-                    if level_fte > 0:  # Only create levels with actual FTE
-                        # Get data from config service
-                        price = level_config.get('price_1', 1000.0)  # Use month 1 as base
-                        salary = level_config.get('salary_1', 50000.0)  # Use month 1 as base
-                        recruitment_rate = level_config.get('recruitment_1', 0.01)
-                        churn_rate = level_config.get('churn_1', 0.014)
-                        progression_rate = level_config.get('progression_1', 0.10)
+                    # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                    initialization_date_str = "2023-01"
+                    for _ in range(int(op_fte)):
+                        operations_role.add_new_hire(initialization_date_str, "Operations", office_name)
+                    
+                    office.roles['Operations'] = operations_role
+                else:
+                    # Handle roles with levels (Consultant, Sales, Recruitment)
+                    office.roles[role_name] = {}
+                    for level_name, level_config in role_data.items():
+                        # Determine progression months (e.g., June and December)
+                        progression_months = [Month.JUN, Month.DEC]
+
+                        # Create Level object
+                        journey_name = self._get_journey_for_level(level_name)
                         
-                        print(f"[CONFIG] {office_name} {role_name} {level_name}: FTE={level_fte}, Price={price:.0f}, Salary={salary:.0f}, Recruit={recruitment_rate:.1%}, Churn={churn_rate:.1%}")
+                        # Build monthly attributes from config
+                        level_attributes = {}
+                        for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
+                            for i in range(1, 13):
+                                # Look for monthly values first (price_1, price_2, etc.), then fall back to base value
+                                monthly_key = f'{key}_{i}'
+                                if monthly_key in level_config:
+                                    level_attributes[monthly_key] = level_config[monthly_key]
+                                else:
+                                    # Fall back to base value if monthly value not found
+                                    level_attributes[monthly_key] = level_config.get(key, 0.0)
                         
-                        # Determine journey and progression months for this level
-                        level_journey = Journey.JOURNEY_1  # default
-                        for journey_name, levels in JOURNEY_CLASSIFICATION.items():
-                            if level_name in levels:
-                                if journey_name == 'Journey 1':
-                                    level_journey = Journey.JOURNEY_1
-                                elif journey_name == 'Journey 2':
-                                    level_journey = Journey.JOURNEY_2
-                                elif journey_name == 'Journey 3':
-                                    level_journey = Journey.JOURNEY_3
-                                elif journey_name == 'Journey 4':
-                                    level_journey = Journey.JOURNEY_4
-                                break
-                        
-                        # Set progression months - all levels now progress in January and June
-                        progression_months = [Month.JAN, Month.JUN]
-                        
-                        # Create level with monthly fields from config service
-                        office.roles[role_name][level_name] = Level(
+                        level = Level(
                             name=level_name,
-                            journey=level_journey,
+                            journey=journey_name,
                             progression_months=progression_months,
-                            # Use config service data for all monthly values
-                            progression_1=level_config.get('progression_1', 0.0), 
-                            progression_2=level_config.get('progression_2', 0.0), 
-                            progression_3=level_config.get('progression_3', 0.0), 
-                            progression_4=level_config.get('progression_4', 0.0), 
-                            progression_5=level_config.get('progression_5', 0.0), 
-                            progression_6=level_config.get('progression_6', progression_rate), 
-                            progression_7=level_config.get('progression_7', 0.0), 
-                            progression_8=level_config.get('progression_8', 0.0), 
-                            progression_9=level_config.get('progression_9', 0.0), 
-                            progression_10=level_config.get('progression_10', 0.0), 
-                            progression_11=level_config.get('progression_11', 0.0), 
-                            progression_12=level_config.get('progression_12', 0.0),
-                            recruitment_1=level_config.get('recruitment_1', recruitment_rate), 
-                            recruitment_2=level_config.get('recruitment_2', recruitment_rate), 
-                            recruitment_3=level_config.get('recruitment_3', recruitment_rate), 
-                            recruitment_4=level_config.get('recruitment_4', recruitment_rate), 
-                            recruitment_5=level_config.get('recruitment_5', recruitment_rate), 
-                            recruitment_6=level_config.get('recruitment_6', recruitment_rate), 
-                            recruitment_7=level_config.get('recruitment_7', recruitment_rate), 
-                            recruitment_8=level_config.get('recruitment_8', recruitment_rate), 
-                            recruitment_9=level_config.get('recruitment_9', recruitment_rate), 
-                            recruitment_10=level_config.get('recruitment_10', recruitment_rate), 
-                            recruitment_11=level_config.get('recruitment_11', recruitment_rate), 
-                            recruitment_12=level_config.get('recruitment_12', recruitment_rate),
-                            churn_1=level_config.get('churn_1', churn_rate), 
-                            churn_2=level_config.get('churn_2', churn_rate), 
-                            churn_3=level_config.get('churn_3', churn_rate), 
-                            churn_4=level_config.get('churn_4', churn_rate), 
-                            churn_5=level_config.get('churn_5', churn_rate), 
-                            churn_6=level_config.get('churn_6', churn_rate), 
-                            churn_7=level_config.get('churn_7', churn_rate), 
-                            churn_8=level_config.get('churn_8', churn_rate), 
-                            churn_9=level_config.get('churn_9', churn_rate), 
-                            churn_10=level_config.get('churn_10', churn_rate), 
-                            churn_11=level_config.get('churn_11', churn_rate), 
-                            churn_12=level_config.get('churn_12', churn_rate),
-                            utr_1=level_config.get('utr_1', 0.85), 
-                            utr_2=level_config.get('utr_2', 0.85), 
-                            utr_3=level_config.get('utr_3', 0.85), 
-                            utr_4=level_config.get('utr_4', 0.85), 
-                            utr_5=level_config.get('utr_5', 0.85), 
-                            utr_6=level_config.get('utr_6', 0.85), 
-                            utr_7=level_config.get('utr_7', 0.85), 
-                            utr_8=level_config.get('utr_8', 0.85), 
-                            utr_9=level_config.get('utr_9', 0.85), 
-                            utr_10=level_config.get('utr_10', 0.85), 
-                            utr_11=level_config.get('utr_11', 0.85), 
-                            utr_12=level_config.get('utr_12', 0.85),
-                            price_1=level_config.get('price_1', price), 
-                            price_2=level_config.get('price_2', price), 
-                            price_3=level_config.get('price_3', price), 
-                            price_4=level_config.get('price_4', price), 
-                            price_5=level_config.get('price_5', price), 
-                            price_6=level_config.get('price_6', price), 
-                            price_7=level_config.get('price_7', price), 
-                            price_8=level_config.get('price_8', price), 
-                            price_9=level_config.get('price_9', price), 
-                            price_10=level_config.get('price_10', price), 
-                            price_11=level_config.get('price_11', price), 
-                            price_12=level_config.get('price_12', price),
-                            salary_1=level_config.get('salary_1', salary), 
-                            salary_2=level_config.get('salary_2', salary), 
-                            salary_3=level_config.get('salary_3', salary), 
-                            salary_4=level_config.get('salary_4', salary), 
-                            salary_5=level_config.get('salary_5', salary), 
-                            salary_6=level_config.get('salary_6', salary), 
-                            salary_7=level_config.get('salary_7', salary), 
-                            salary_8=level_config.get('salary_8', salary), 
-                            salary_9=level_config.get('salary_9', salary), 
-                            salary_10=level_config.get('salary_10', salary), 
-                            salary_11=level_config.get('salary_11', salary), 
-                            salary_12=level_config.get('salary_12', salary)
+                            **level_attributes
                         )
                         
-                        # Create individual Person objects for existing headcount
-                        base_date = "2023-01"  # 12+ months ago from 2024 simulation start
-                        for i in range(int(level_fte)):
-                            person = Person(
-                                id=str(uuid.uuid4()),
-                                career_start=base_date,
-                                current_level=level_name,
-                                level_start=base_date,
-                                role=role_name,
-                                office=office_name
-                            )
-                            office.roles[role_name][level_name].people.append(person)
+                        # Initialize people in this level
+                        level_fte = level_config.get('fte', 0)
+                        # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                        initialization_date_str = "2023-01"
+                        for _ in range(int(level_fte)):
+                            level.add_new_hire(initialization_date_str, role_name, office_name)
                         
-                        # Apply lever overrides if provided
-                        if (lever_plan and office_name in lever_plan and 
-                            role_name in lever_plan[office_name] and 
-                            level_name in lever_plan[office_name][role_name]):
-                            level_levers = lever_plan[office_name][role_name][level_name]
-                            print(f"[LEVER] Applying {len(level_levers)} levers to {office_name} {role_name} {level_name}")
-                            
-                            for lever_key, lever_value in level_levers.items():
-                                if hasattr(office.roles[role_name][level_name], lever_key):
-                                    setattr(office.roles[role_name][level_name], lever_key, lever_value)
-                                    print(f"[LEVER] Set {office_name} {role_name} {level_name} {lever_key} = {lever_value}")
-            
-            # Initialize Operations role using configuration service data
-            operations_config = office_roles.get('Operations', {})
-            operations_fte = operations_config.get('fte', 0)  # Changed from 'total' to 'fte'
-            if operations_fte > 0:
-                # Get Operations data from config service
-                operations_price = operations_config.get('price_1', 80.0)
-                operations_salary = operations_config.get('salary_1', 40000.0)
-                operations_recruitment = operations_config.get('recruitment_1', 0.008)
-                operations_churn = operations_config.get('churn_1', 0.014)
+                        office.roles[role_name][level_name] = level
+
+            self.offices[office_name] = office
+    
+    def _determine_level_order(self, config_data: List[Dict]) -> List[str]:
+        """Dynamically determine the level order from configuration."""
+        levels = set()
+        for office_config in config_data:
+            for role_name, role_data in office_config.get('roles', {}).items():
+                if role_name != 'Operations':
+                    levels.update(role_data.keys())
+        
+        # Use a standard, sorted progression path
+        standard_order = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP']
+        
+        # Filter and sort found levels according to the standard order
+        sorted_levels = [level for level in standard_order if level in levels]
+        
+        return sorted_levels
+
+    def _get_journey_for_level(self, level_name: str) -> Journey:
+        """Get the Journey enum for a given level name."""
+        for journey, levels in JOURNEY_CLASSIFICATION.items():
+            if level_name in levels:
+                return Journey(journey)
+        return Journey.JOURNEY_1 # Default
+
+    def _initialize_offices(self):
+        """Initializes all offices with default data"""
+        self.offices = {}
+        for office_name, total_fte in OFFICE_HEADCOUNT.items():
+            self.offices[office_name] = Office.create_office(office_name, total_fte)
+
+    def _initialize_roles(self):
+        """Initializes roles and levels for all offices"""
+        for office in self.offices.values():
+            office.roles = {} # Clear existing roles
+            # Initialize Consultant role with levels
+            office.roles['Consultant'] = {}
+            for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
+                # Get journey for this level
+                journey = self._get_journey_for_level(level_name)
+                # Progression occurs in June and December
+                progression_months = [Month.JUN, Month.DEC]
                 
-                print(f"[CONFIG] {office_name} Operations: FTE={operations_fte}, Price={operations_price:.0f}, Salary={operations_salary:.0f}, Recruit={operations_recruitment:.1%}, Churn={operations_churn:.1%}")
+                # Get default rates for this level
+                level_rates = DEFAULT_RATES['progression']['levels'].get(level_name, {})
                 
-                # Check for Operations lever overrides
-                if (lever_plan and office_name in lever_plan and 
-                    'Operations' in lever_plan[office_name]):
-                    operations_levers = lever_plan[office_name]['Operations']
-                    if 'recruitment_1' in operations_levers:
-                        operations_recruitment = operations_levers['recruitment_1']
-                        print(f"[LEVER] {office_name} Operations recruitment: {operations_recruitment}")
-                    if 'churn_1' in operations_levers:
-                        operations_churn = operations_levers['churn_1']
-                        print(f"[LEVER] {office_name} Operations churn: {operations_churn}")
-                
-                office.roles["Operations"] = RoleData(
-                    recruitment_1=operations_config.get('recruitment_1', operations_recruitment), 
-                    recruitment_2=operations_config.get('recruitment_2', operations_recruitment), 
-                    recruitment_3=operations_config.get('recruitment_3', operations_recruitment), 
-                    recruitment_4=operations_config.get('recruitment_4', operations_recruitment), 
-                    recruitment_5=operations_config.get('recruitment_5', operations_recruitment), 
-                    recruitment_6=operations_config.get('recruitment_6', operations_recruitment), 
-                    recruitment_7=operations_config.get('recruitment_7', operations_recruitment), 
-                    recruitment_8=operations_config.get('recruitment_8', operations_recruitment), 
-                    recruitment_9=operations_config.get('recruitment_9', operations_recruitment), 
-                    recruitment_10=operations_config.get('recruitment_10', operations_recruitment), 
-                    recruitment_11=operations_config.get('recruitment_11', operations_recruitment), 
-                    recruitment_12=operations_config.get('recruitment_12', operations_recruitment),
-                    churn_1=operations_config.get('churn_1', operations_churn), 
-                    churn_2=operations_config.get('churn_2', operations_churn), 
-                    churn_3=operations_config.get('churn_3', operations_churn), 
-                    churn_4=operations_config.get('churn_4', operations_churn), 
-                    churn_5=operations_config.get('churn_5', operations_churn), 
-                    churn_6=operations_config.get('churn_6', operations_churn), 
-                    churn_7=operations_config.get('churn_7', operations_churn), 
-                    churn_8=operations_config.get('churn_8', operations_churn), 
-                    churn_9=operations_config.get('churn_9', operations_churn), 
-                    churn_10=operations_config.get('churn_10', operations_churn), 
-                    churn_11=operations_config.get('churn_11', operations_churn), 
-                    churn_12=operations_config.get('churn_12', operations_churn),
-                    price_1=operations_config.get('price_1', operations_price), 
-                    price_2=operations_config.get('price_2', operations_price), 
-                    price_3=operations_config.get('price_3', operations_price), 
-                    price_4=operations_config.get('price_4', operations_price), 
-                    price_5=operations_config.get('price_5', operations_price), 
-                    price_6=operations_config.get('price_6', operations_price), 
-                    price_7=operations_config.get('price_7', operations_price), 
-                    price_8=operations_config.get('price_8', operations_price), 
-                    price_9=operations_config.get('price_9', operations_price), 
-                    price_10=operations_config.get('price_10', operations_price), 
-                    price_11=operations_config.get('price_11', operations_price), 
-                    price_12=operations_config.get('price_12', operations_price),
-                    salary_1=operations_config.get('salary_1', operations_salary), 
-                    salary_2=operations_config.get('salary_2', operations_salary), 
-                    salary_3=operations_config.get('salary_3', operations_salary), 
-                    salary_4=operations_config.get('salary_4', operations_salary), 
-                    salary_5=operations_config.get('salary_5', operations_salary), 
-                    salary_6=operations_config.get('salary_6', operations_salary), 
-                    salary_7=operations_config.get('salary_7', operations_salary), 
-                    salary_8=operations_config.get('salary_8', operations_salary), 
-                    salary_9=operations_config.get('salary_9', operations_salary), 
-                    salary_10=operations_config.get('salary_10', operations_salary), 
-                    salary_11=operations_config.get('salary_11', operations_salary), 
-                    salary_12=operations_config.get('salary_12', operations_salary),
-                    utr_1=operations_config.get('utr_1', 0.85), 
-                    utr_2=operations_config.get('utr_2', 0.85), 
-                    utr_3=operations_config.get('utr_3', 0.85), 
-                    utr_4=operations_config.get('utr_4', 0.85), 
-                    utr_5=operations_config.get('utr_5', 0.85), 
-                    utr_6=operations_config.get('utr_6', 0.85), 
-                    utr_7=operations_config.get('utr_7', 0.85), 
-                    utr_8=operations_config.get('utr_8', 0.85), 
-                    utr_9=operations_config.get('utr_9', 0.85), 
-                    utr_10=operations_config.get('utr_10', 0.85), 
-                    utr_11=operations_config.get('utr_11', 0.85), 
-                    utr_12=operations_config.get('utr_12', 0.85)
+                level = Level(
+                    name=level_name,
+                    journey=journey,
+                    progression_months=progression_months,
+                    # Set rates for all 12 months from defaults
+                    **{f'progression_{i}': level_rates.get('base_rate', 0.0) for i in range(1, 13)},
+                    **{f'recruitment_{i}': 0.0 for i in range(1, 13)},
+                    **{f'churn_{i}': 0.0 for i in range(1, 13)},
+                    **{f'price_{i}': BASE_PRICING.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
+                    **{f'salary_{i}': BASE_SALARIES.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
+                    **{f'utr_{i}': 0.0 for i in range(1, 13)}
                 )
                 
-                # Create individual Person objects for existing Operations headcount
-                base_date = "2023-01"  # 12+ months ago from 2024 simulation start
-                for i in range(int(operations_fte)):
-                    person = Person(
-                        id=str(uuid.uuid4()),
-                        career_start=base_date,
-                        current_level="Operations",
-                        level_start=base_date,
-                        role="Operations",
-                        office=office_name
-                    )
-                    office.roles["Operations"].people.append(person)
-        
-        print(f"[INFO] ✓ Initialized roles from configuration service for {len(self.offices)} offices")
+                # Set initial headcount
+                consultant_fte = office.total_fte * ROLE_DISTRIBUTION.get('Consultant', 0.8)
+                level_fte = int(consultant_fte * level_percentage)
+                # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                initialization_date_str = "2023-01"
+                for _ in range(level_fte):
+                    level.add_new_hire(initialization_date_str, "Consultant", office.name)
+                    
+                office.roles['Consultant'][level_name] = level
+            
+            # Initialize other roles (flat structure)
+            for role_name in ['Sales', 'Recruitment', 'Operations']:
+                role_fte = int(office.total_fte * ROLE_DISTRIBUTION.get(role_name, 0.05))
+                role_data = RoleData()
+                # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                initialization_date_str = "2023-01"
+                for _ in range(role_fte):
+                    role_data.add_new_hire(initialization_date_str, role_name, office.name)
+                office.roles[role_name] = role_data
 
-    def _apply_levers_to_existing_offices(self, lever_plan: Optional[Dict] = None):
-        """Apply lever overrides to existing offices without full reinitialization"""
-        if not lever_plan:
+    def _initialize_roles_with_levers(self, lever_plan: Optional[Dict] = None):
+        """Initializes roles and levels, applying any levers from the start."""
+        if lever_plan is None:
+            self._initialize_roles()
             return
             
-        print("[LEVER] Applying lever overrides to existing offices...")
+        # Global levers (apply to all offices)
+        global_levers = lever_plan.get('global', {})
+        
+        for office in self.offices.values():
+            office.roles = {} # Clear existing roles
+            
+            # Get office-specific levers
+            office_levers = lever_plan.get('offices', {}).get(office.name, {})
+            
+            # Initialize Consultant role with levels
+            office.roles['Consultant'] = {}
+            for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
+                journey = self._get_journey_for_level(level_name)
+                progression_months = [Month.JUN, Month.DEC]
+                
+                # Combine global, office, and level-specific levers
+                level_levers = office_levers.get('Consultant', {}).get(level_name, {})
+                global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
+
+                # Create level with combined levers
+                level = Level(
+                    name=level_name,
+                    journey=journey,
+                    progression_months=progression_months,
+                    # Apply levers to rates, prices, and salaries for all 12 months
+                    **{f'progression_{i}': level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', DEFAULT_RATES['progression']['levels'].get(level_name, {}).get('base_rate', 0.0))) for i in range(1, 13)},
+                    **{f'recruitment_{i}': level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', 0.0)) for i in range(1, 13)},
+                    **{f'churn_{i}': level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', 0.0)) for i in range(1, 13)},
+                    **{f'price_{i}': level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', BASE_PRICING.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
+                    **{f'salary_{i}': level_levers.get(f'salary_{i}', global_level_levers.get(f'salary_{i}', BASE_SALARIES.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
+                    **{f'utr_{i}': level_levers.get(f'utr_{i}', global_level_levers.get(f'utr_{i}', 0.0)) for i in range(1, 13)},
+                )
+                
+                # Set initial headcount
+                consultant_fte = office.total_fte * ROLE_DISTRIBUTION.get('Consultant', 0.8)
+                level_fte = int(consultant_fte * level_percentage)
+                # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                initialization_date_str = "2023-01"
+                for _ in range(level_fte):
+                    level.add_new_hire(initialization_date_str, "Consultant", office.name)
+                office.roles['Consultant'][level_name] = level
+            
+            # Initialize other roles
+            for role_name in ['Sales', 'Recruitment', 'Operations']:
+                role_fte = int(office.total_fte * ROLE_DISTRIBUTION.get(role_name, 0.05))
+                role_data = RoleData()
+                # Apply levers to flat roles
+                role_levers = office_levers.get(role_name, {})
+                global_role_levers = global_levers.get(role_name, {})
+                for i in range(1, 13):
+                    setattr(role_data, f'recruitment_{i}', role_levers.get(f'recruitment_{i}', global_role_levers.get(f'recruitment_{i}', 0.0)))
+                    setattr(role_data, f'churn_{i}', role_levers.get(f'churn_{i}', global_role_levers.get(f'churn_{i}', 0.0)))
+                
+                # Use a date 2 years before simulation start to ensure people have sufficient tenure
+                initialization_date_str = "2023-01"
+                for _ in range(role_fte):
+                    role_data.add_new_hire(initialization_date_str, role_name, office.name)
+                office.roles[role_name] = role_data
+
+    def _apply_levers_to_existing_offices(self, lever_plan: Optional[Dict] = None):
+        """Applies a lever plan to an already initialized set of offices."""
+        if not lever_plan or not self.offices:
+            return
+            
+        global_levers = lever_plan.get('global', {})
+        office_levers = lever_plan.get('offices', {})
         
         for office_name, office in self.offices.items():
-            if office_name not in lever_plan:
-                continue
-                
-            office_levers = lever_plan[office_name]
-            print(f"[LEVER] Processing {office_name} with {len(office_levers)} role lever sets")
+            current_office_levers = office_levers.get(office_name, {})
             
             for role_name, role_data in office.roles.items():
-                if role_name not in office_levers:
-                    continue
-                    
-                role_levers = office_levers[role_name]
-                
-                if isinstance(role_data, dict):  # Roles with levels
+                if role_name == 'Consultant':
                     for level_name, level in role_data.items():
-                        if level_name not in role_levers:
-                            continue
+                        level_levers = current_office_levers.get('Consultant', {}).get(level_name, {})
+                        global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
+                        
+                        for i in range(1, 13):
+                            # Prioritize office-specific, then global, then default
+                            progression_rate = level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', getattr(level, f'progression_{i}')))
+                            recruitment_rate = level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', getattr(level, f'recruitment_{i}')))
+                            churn_rate = level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', getattr(level, f'churn_{i}')))
+                            price = level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', getattr(level, f'price_{i}')))
+                            salary = level_levers.get(f'salary_{i}', global_level_levers.get(f'salary_{i}', getattr(level, f'salary_{i}')))
+                            utr = level_levers.get(f'utr_{i}', global_level_levers.get(f'utr_{i}', getattr(level, f'utr_{i}')))
                             
-                        level_levers = role_levers[level_name]
-                        print(f"[LEVER] Applying {len(level_levers)} levers to {office_name} {role_name} {level_name}")
+                            setattr(level, f'progression_{i}', progression_rate)
+                            setattr(level, f'recruitment_{i}', recruitment_rate)
+                            setattr(level, f'churn_{i}', churn_rate)
+                            setattr(level, f'price_{i}', price)
+                            setattr(level, f'salary_{i}', salary)
+                            setattr(level, f'utr_{i}', utr)
+                else: # Flat roles
+                    flat_role_levers = current_office_levers.get(role_name, {})
+                    global_flat_role_levers = global_levers.get(role_name, {})
+                    for i in range(1, 13):
+                        recruitment_rate = flat_role_levers.get(f'recruitment_{i}', global_flat_role_levers.get(f'recruitment_{i}', getattr(role_data, f'recruitment_{i}')))
+                        churn_rate = flat_role_levers.get(f'churn_{i}', global_flat_role_levers.get(f'churn_{i}', getattr(role_data, f'churn_{i}')))
+                        setattr(role_data, f'recruitment_{i}', recruitment_rate)
+                        setattr(role_data, f'churn_{i}', churn_rate)
                         
-                        # Apply each lever override
-                        for lever_key, lever_value in level_levers.items():
-                            if hasattr(level, lever_key):
-                                setattr(level, lever_key, lever_value)
-                                print(f"[LEVER] Set {office_name} {role_name} {level_name} {lever_key} = {lever_value}")
-                            else:
-                                print(f"[LEVER] Warning: Unknown lever {lever_key} for {office_name} {role_name} {level_name}")
-                else:  # Flat roles (Operations)
-                    if isinstance(role_levers, dict):
-                        print(f"[LEVER] Applying {len(role_levers)} levers to {office_name} {role_name}")
-                        
-                        # Apply each lever override
-                        for lever_key, lever_value in role_levers.items():
-                            if hasattr(role_data, lever_key):
-                                setattr(role_data, lever_key, lever_value)
-                                print(f"[LEVER] Set {office_name} {role_name} {lever_key} = {lever_value}")
-                            else:
-                                print(f"[LEVER] Warning: Unknown lever {lever_key} for {office_name} {role_name}")
-
     def get_offices_by_journey(self, journey: OfficeJourney) -> List[Office]:
-        """Get all offices in a specific journey"""
-        return [office for office in self.offices.values() if office.journey == journey]
-    
+        """Returns a list of offices matching a specific journey type"""
+        return [o for o in self.offices.values() if o.journey == journey]
+
     def _get_monthly_attribute(self, obj, attribute_base: str, month: Month):
-        """Helper function to get the correct monthly attribute"""
-        return getattr(obj, f"{attribute_base}_{month.value}")
-    
+        """Gets a monthly attribute from an object (e.g., price_1, churn_5)"""
+        return getattr(obj, f"{attribute_base}_{month.value}", 0.0)
+
     def _set_monthly_attribute(self, obj, attribute_base: str, month: Month, value):
-        """Helper function to set the correct monthly attribute"""
+        """Sets a monthly attribute on an object"""
         setattr(obj, f"{attribute_base}_{month.value}", value)
     
     def run_simulation(self, start_year: int, start_month: int, end_year: int, end_month: int, 
                       price_increase: float = 0.0, salary_increase: float = 0.0, 
                       lever_plan: Optional[Dict] = None) -> Dict:
-        """Run simulation from start_month to end_month"""
-        print(f"[DEBUG] Running simulation from {start_year}-{start_month} to {end_year}-{end_month}")
-        print(f"[DEBUG] Price increase: {price_increase}, Salary increase: {salary_increase}")
-        print(f"[CONFIG] Lever plan: {'✓ Applied' if lever_plan else '✗ Default rates'}")
-        if lever_plan:
-            print(f"[DEBUG] Lever plan offices: {list(lever_plan.keys())}")
-            if 'Stockholm' in lever_plan:
-                print(f"[DEBUG] Stockholm lever roles: {list(lever_plan['Stockholm'].keys())}")
-                if 'Consultant' in lever_plan['Stockholm']:
-                    print(f"[DEBUG] Stockholm Consultant lever levels: {list(lever_plan['Stockholm']['Consultant'].keys())}")
-                    if 'A' in lever_plan['Stockholm']['Consultant']:
-                        a_levers = lever_plan['Stockholm']['Consultant']['A']
-                        print(f"[DEBUG] Stockholm Consultant A levers: {a_levers}")
+        """
+        Runs the simulation month by month.
+        - Applies annual price and salary increases.
+        - Calculates recruitment, churn, and progression for each level.
+        - Updates the number of people in each level.
+        - Stores monthly results.
+        """
+        print(f"[ENGINE] Starting simulation from {start_year}-{start_month} to {end_year}-{end_month}")
         
-        # Initialize offices with lever-aware initialization (only if not already initialized)
-        if not self.offices:
-            print("[INIT] Initializing offices for first time...")
-            self._initialize_offices_from_config_service()
-            self._initialize_roles_with_levers(lever_plan)
-            print("[INIT] ✓ Offices initialized with configuration service and lever support")
-        else:
-            print("[LEVER] Applying levers to existing offices...")
-            self._apply_levers_to_existing_offices(lever_plan)
-            print("[LEVER] ✓ Levers applied to existing offices")
-        
-        # Convert month numbers to Month enum
-        start_month_enum = Month(start_month)
-        end_month_enum = Month(end_month)
-        
-        # Initialize results structure with years
-        results = {
-            "years": {}
-        }
-        
-        # Simulation loop through months
-        current_year = start_year
-        current_month = start_month_enum
+        # Re-initialize state based on config service before every run
+        self.reinitialize_with_config()
 
-        while (current_year < end_year or 
-               (current_year == end_year and current_month.value <= end_month_enum.value)):
+        # Apply levers if a plan is provided
+        if lever_plan:
+            self._apply_levers_to_existing_offices(lever_plan)
+
+        # Use a deterministic seed for random operations if provided
+        random_seed = lever_plan.get('random_seed') if lever_plan else None
+        if random_seed is not None:
+            random.seed(random_seed)
+            print(f"[ENGINE] Using deterministic random seed: {random_seed}")
+
+        yearly_snapshots = {}
+        monthly_office_metrics = {} # To store detailed monthly snapshots for each level
+
+        simulation_start_date_str = f"{start_year}-{start_month:02d}"
+
+        # Main simulation loop
+        for year in range(start_year, end_year + 1):
+            # Apply annual price and salary increase
+            if year > start_year:
+                for office in self.offices.values():
+                    for role in office.roles.values():
+                        if isinstance(role, dict): # Leveled roles
+                            for level in role.values():
+                                for i in range(1, 13):
+                                    current_price = getattr(level, f'price_{i}')
+                                    setattr(level, f'price_{i}', current_price * (1 + price_increase))
+                                    current_salary = getattr(level, f'salary_{i}')
+                                    setattr(level, f'salary_{i}', current_salary * (1 + salary_increase))
+                        else: # Flat roles
+                             for i in range(1, 13):
+                                current_salary = getattr(role, f'salary_{i}')
+                                setattr(role, f'salary_{i}', current_salary * (1 + salary_increase))
+
+            for month in range(1, 13):
+                if (year == start_year and month < start_month) or \
+                   (year == end_year and month > end_month):
+                    continue
+
+                current_month_enum = Month(month)
+                current_date_str = f"{year}-{month:02d}"
+                print(f"[ENGINE] Simulating: {current_date_str}")
+                
+                total_system_fte_before = sum(o.total_fte for o in self.offices.values())
+
+                for office in self.offices.values():
+                    if office.name not in monthly_office_metrics:
+                        monthly_office_metrics[office.name] = {}
+                    
+                    monthly_office_metrics[office.name][current_date_str] = {}
+
+                    office_total_fte = 0
+                    
+                    # Process roles
+                    for role_name, role_data in office.roles.items():
+                        monthly_office_metrics[office.name][current_date_str][role_name] = {}
+                        
+                        if isinstance(role_data, dict): # Leveled roles (e.g., Consultant)
+                            
+                            # Progression is calculated based on the state *before* churn and recruitment
+                            promotions_this_month = {}
+                            for level_name, level in role_data.items():
+                                progression_rate = self._get_monthly_attribute(level, 'progression', current_month_enum)
+                                promoted_people = level.apply_cat_based_progression(progression_rate, current_date_str)
+                                promotions_this_month[level_name] = promoted_people
+                                print(f"[ENGINE] {office.name}/{role_name}/{level_name}: {len(promoted_people)} people promoted.")
+
+                            # Track promotions into each level
+                            promoted_into_levels = {}
+                            for level_name in role_data.keys():
+                                promoted_into_levels[level_name] = 0
+
+                            # Now apply promotions to the next levels
+                            for level_name, promoted_people in promotions_this_month.items():
+                                next_level = self._get_next_level(level_name, role_name, office.roles)
+                                if next_level:
+                                    for person in promoted_people:
+                                        next_level.add_promotion(person, current_date_str)
+                                    # Track how many people were promoted into the next level
+                                    next_level_name = self._get_next_level_name(level_name)
+                                    if next_level_name:
+                                        promoted_into_levels[next_level_name] = len(promoted_people)
+                                else:
+                                    # People at the top level who are "promoted" effectively leave the cohort
+                                    print(f"[ENGINE] {len(promoted_people)} people progressed out from top level {level_name}.")
+                            
+                            # Now calculate churn and recruitment for each level
+                            for level_name, level in role_data.items():
+                                # Churn
+                                churn_rate = self._get_monthly_attribute(level, 'churn', current_month_enum)
+                                level.fractional_churn += level.total * churn_rate
+                                churn_to_apply = int(level.fractional_churn)
+                                level.fractional_churn -= churn_to_apply
+                                level.apply_churn(churn_to_apply)
+                                
+                                # Recruitment
+                                recruitment_rate = self._get_monthly_attribute(level, 'recruitment', current_month_enum)
+                                level.fractional_recruitment += level.total * recruitment_rate
+                                recruits_to_add = int(level.fractional_recruitment)
+                                level.fractional_recruitment -= recruits_to_add
+                                for _ in range(recruits_to_add):
+                                    level.add_new_hire(current_date_str, role_name, office.name)
+                                
+                                office_total_fte += level.total
+                                # Store level metrics
+                                monthly_office_metrics[office.name][current_date_str][role_name][level_name] = {
+                                    'total_fte': level.total,
+                                    'price': self._get_monthly_attribute(level, 'price', current_month_enum),
+                                    'salary': self._get_monthly_attribute(level, 'salary', current_month_enum),
+                                    'utr': self._get_monthly_attribute(level, 'utr', current_month_enum),
+                                    'recruited': recruits_to_add,
+                                    'churned': churn_to_apply,
+                                    'progressed_out': len(promotions_this_month.get(level_name, [])),
+                                    'progressed_in': promoted_into_levels.get(level_name, 0),
+                                }
+
+                        else: # Flat roles (e.g., Operations)
+                            # Churn
+                            churn_rate = self._get_monthly_attribute(role_data, 'churn', current_month_enum)
+                            role_data.fractional_churn += role_data.total * churn_rate
+                            churn_to_apply = int(role_data.fractional_churn)
+                            role_data.fractional_churn -= churn_to_apply
+                            role_data.apply_churn(churn_to_apply)
+                            
+                            # Recruitment
+                            recruitment_rate = self._get_monthly_attribute(role_data, 'recruitment', current_month_enum)
+                            role_data.fractional_recruitment += role_data.total * recruitment_rate
+                            recruits_to_add = int(role_data.fractional_recruitment)
+                            role_data.fractional_recruitment -= recruits_to_add
+                            for _ in range(recruits_to_add):
+                                role_data.add_new_hire(current_date_str, role_name, office.name)
+
+                            office_total_fte += role_data.total
+                            monthly_office_metrics[office.name][current_date_str][role_name] = {
+                                'total_fte': role_data.total,
+                                'recruited': recruits_to_add,
+                                'churned': churn_to_apply
+                            }
+                    
+                    office.total_fte = office_total_fte
+                
+                # Store monthly metrics for analysis
+                monthly_results = self.monthly_results.get(current_date_str, {})
+                if not monthly_results:
+                    self.monthly_results[current_date_str] = {}
+
+                total_system_fte_after = sum(o.total_fte for o in self.offices.values())
+
+                for office in self.offices.values():
+                    if office.name not in self.monthly_results[current_date_str]:
+                        self.monthly_results[current_date_str][office.name] = {}
+                    
+                    self.monthly_results[current_date_str][office.name]['total_fte'] = office.total_fte
+
+                # Log system-wide summary for the month
+                print(f"[ENGINE] {current_date_str}: Total FTE Before: {total_system_fte_before:.2f}, After: {total_system_fte_after:.2f}, Change: {total_system_fte_after - total_system_fte_before:.2f}")
+
+            # Store a snapshot of the offices at the end of the year
+            office_snapshots = {}
+            for office_name, office in self.offices.items():
+                office_snapshots[office_name] = {
+                    'total_fte': office.total_fte,
+                    'name': office.name,
+                    'journey': office.journey.value,
+                    'levels': self._get_office_level_snapshot(office, monthly_office_metrics, simulation_start_date_str, f"{year}-12")
+                }
+            yearly_snapshots[str(year)] = office_snapshots
+        
+        # End of month loop
+        
+        # Structure results at the end of the simulation
+        simulation_results = {
+            'start_year': start_year,
+            'end_year': end_year,
+            'years': {}
+        }
+
+        # Create the complex structure that the frontend expects
+        print(f"[ENGINE] Creating complex data structure for frontend compatibility...")
+        try:
+            yearly_results = self._structure_yearly_results(yearly_snapshots, monthly_office_metrics, start_year, end_year)
+            simulation_results['years'] = yearly_results
+            print(f"[ENGINE] ✅ Created complex structure: {len(yearly_results)} years, {len(self.offices)} offices")
             
-            print(f"\n[SIMULATION] === {current_year} {current_month.name} ===")
-            
-            # Initialize year if not exists
-            if str(current_year) not in results["years"]:
-                results["years"][str(current_year)] = {
-                    "months": [],
-                    "offices": {},
-                    "summary": {
-                        "total_fte": 0,
-                        "total_revenue": 0.0,
-                        "total_costs": 0.0,
-                        "total_profit": 0.0,
-                        "average_margin": 0.0,
-                        "growth_rate": 0.0
-                    }
+        except Exception as e:
+            print(f"[ENGINE] ❌ Error creating complex structure: {e}")
+            import traceback
+            traceback.print_exc()
+            # Create minimal fallback
+            simulation_results['years'] = {
+                str(year): {
+                    'offices': {},
+                    'total_fte': 0
+                } for year in range(start_year, end_year + 1)
+            }
+
+        # Storing results in the instance
+        self.simulation_results = simulation_results
+        
+        simulation_duration_months = ((end_year - start_year) * 12) + (end_month - start_month) + 1
+
+        # Note: KPIs will be calculated separately by the KPI service
+        # This maintains separation of concerns - simulation engine handles workforce dynamics only
+        simulation_results['kpis'] = None
+
+        print("[ENGINE] Simulation finished.")
+        return simulation_results
+    
+    def _get_office_level_snapshot(self, office: Office, monthly_office_metrics: Dict, start_date_str: str, end_date_str: str) -> Dict[str, Any]:
+        """
+        Gathers and structures the monthly data for each level in an office
+        for the entire simulation period.
+        """
+        level_snapshots = {}
+        start_year, start_month = map(int, start_date_str.split('-'))
+        end_year, end_month = map(int, end_date_str.split('-'))
+        
+        for role_name, role_data in office.roles.items():
+            level_snapshots[role_name] = {}
+            if isinstance(role_data, dict): # Leveled roles
+                for level_name, level in role_data.items():
+                    level_snapshots[role_name][level_name] = []
+                    for year in range(start_year, end_year + 1):
+                        for month in range(1, 13):
+                            if year == start_year and month < start_month: continue
+                            if year == end_year and month > end_month: continue
+                            current_date_str = f"{year}-{month:02d}"
+                            
+                            monthly_data = monthly_office_metrics.get(office.name, {}).get(current_date_str, {}).get(role_name, {}).get(level_name, {})
+                            
+                            level_snapshots[role_name][level_name].append({
+                                'month': current_date_str,
+                                'total': monthly_data.get('total_fte', 0),
+                                'price': monthly_data.get('price', 0),
+                                'salary': monthly_data.get('salary', 0),
+                                'utr': monthly_data.get('utr', 0.0),
+                                'recruited': monthly_data.get('recruited', 0),
+                                'churned': monthly_data.get('churned', 0),
+                                'progressed_out': monthly_data.get('progressed_out', 0),
+                                'progressed_in': monthly_data.get('progressed_in', 0),
+                            })
+            else: # Flat roles
+                level_snapshots[role_name] = []
+                for year in range(start_year, end_year + 1):
+                    for month in range(1, 13):
+                        if year == start_year and month < start_month: continue
+                        if year == end_year and month > end_month: continue
+                        current_date_str = f"{year}-{month:02d}"
+                        monthly_data = monthly_office_metrics.get(office.name, {}).get(current_date_str, {}).get(role_name, {})
+                        
+                        level_snapshots[role_name].append({
+                            'month': current_date_str,
+                            'total': monthly_data.get('total_fte', 0),
+                            'recruited': monthly_data.get('recruited', 0),
+                            'churned': monthly_data.get('churned', 0),
+                        })
+
+        return level_snapshots
+
+    def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, end_year: int) -> Dict[str, Any]:
+        """
+        Structures the final results dictionary with detailed monthly level data for each year.
+        """
+        yearly_results = {}
+        
+        try:
+            for year in range(start_year, end_year + 1):
+                year_str = str(year)
+                
+                # This will contain the structured data for all offices for this year
+                yearly_offices_data = {}
+                
+                # Use the offices state from the end of the year snapshot
+                if not self.offices:
+                    print(f"[ENGINE ERROR] No offices found when structuring results for year {year}")
+                    continue
+
+                # Use the yearly snapshots if available, otherwise fall back to current office state
+                if year_str in yearly_snapshots:
+                    yearly_offices_data = yearly_snapshots[year_str]
+                else:
+                    # Fallback: create from current office state
+                    for office_name, office in self.offices.items():
+                        try:
+                            office_levels = self._get_office_level_snapshot(
+                                office, 
+                                monthly_office_metrics, 
+                                f"{year}-01", 
+                                f"{year}-12"
+                            )
+                            
+                            yearly_offices_data[office_name] = {
+                                'total_fte': office.total_fte, # End of simulation FTE
+                                'name': office.name,
+                                'journey': office.journey.value,
+                                'levels': office_levels
+                            }
+                        except Exception as e:
+                            print(f"[ENGINE ERROR] Failed to get snapshot for office {office_name}: {e}")
+                            # Provide minimal structure if snapshot fails
+                            yearly_offices_data[office_name] = {
+                                'total_fte': office.total_fte,
+                                'name': office.name,
+                                'journey': office.journey.value,
+                                'levels': {}
+                            }
+                
+                yearly_results[year_str] = {
+                    'offices': yearly_offices_data,
+                    'total_fte': sum(office_data['total_fte'] for office_data in yearly_offices_data.values())
+                }
+                
+        except Exception as e:
+            print(f"[ENGINE ERROR] Failed to structure yearly results: {e}")
+            # Return minimal structure to prevent total failure
+            for year in range(start_year, end_year + 1):
+                year_str = str(year)
+                yearly_results[year_str] = {
+                    'offices': {},
+                    'total_fte': 0
                 }
             
-            # Record period
-            results["years"][str(current_year)]["months"].append(current_month.name)
-            
-            # Current month key for individual tracking
-            current_month_key = f"{current_year}-{current_month.value:02d}"
-            
-            # Process each office
-            for office_name, office in self.offices.items():
-                # Initialize office in year if not exists
-                if office_name not in results["years"][str(current_year)]["offices"]:
-                    results["years"][str(current_year)]["offices"][office_name] = {
-                        "levels": {},
-                        "metrics": [],
-                        "operations": [],
-                        "journeys": {
-                            "Journey 1": [],
-                            "Journey 2": [],
-                            "Journey 3": [],
-                            "Journey 4": []
-                        }
-                    }
-                    # Initialize level results for both roles with levels and flat roles
-                    for role_name, role_data in office.roles.items():
-                        if isinstance(role_data, dict):
-                            results["years"][str(current_year)]["offices"][office_name]["levels"][role_name] = {}
-                            for level_name in role_data:
-                                results["years"][str(current_year)]["offices"][office_name]["levels"][role_name][level_name] = []
-                        else:
-                            results["years"][str(current_year)]["offices"][office_name]["levels"][role_name] = []
-                
-                office_results = results["years"][str(current_year)]["offices"][office_name]
-                previous_total = sum(getattr(level, 'total', 0) for role_data in office.roles.values() 
-                                   for level in (role_data.values() if isinstance(role_data, dict) else [role_data]))
-                
-                # Apply levers and simulate roles with levels
-                for role_name, role_data in office.roles.items():
-                    if isinstance(role_data, dict):  # Roles with levels
-                        
-                        # PHASE 1: Recruitment for all levels first
-                        for level_name, level in role_data.items():
-                            # Check for levers
-                            levers = {}
-                            if lever_plan and office_name in lever_plan and role_name in lever_plan[office_name]:
-                                levers = lever_plan[office_name][role_name].get(level_name, {})
-                            
-                            # Apply recruitment
-                            recruitment_key = f'recruitment_{current_month.value}'
-                            default_recruitment = getattr(level, recruitment_key)
-                            lever_recruitment = levers.get(recruitment_key) if levers else None
-                            recruitment_rate = lever_recruitment if lever_recruitment is not None else default_recruitment
-                            
-                            if level.total == 0 and recruitment_rate > 0:
-                                new_recruits = max(1, int(recruitment_rate * 10))
-                            else:
-                                # Deterministic fractional accumulation
-                                exact_recruits = level.total * recruitment_rate
-                                level.fractional_recruitment += exact_recruits
-                                new_recruits = int(level.fractional_recruitment)
-                                level.fractional_recruitment -= new_recruits
-                            
-                            # Add new hires
-                            for _ in range(new_recruits):
-                                level.add_new_hire(current_month_key, role_name, office_name)
-                            
-                            # Debug: Show recruitment details
-                            if new_recruits > 0:
-                                print(f"[RECRUITMENT] {office_name} {role_name} {level_name}: {level.total - new_recruits} → {level.total} (+{new_recruits} @ {recruitment_rate:.1%})")
-                        
-                        # PHASE 2: Churn for all levels
-                        for level_name, level in role_data.items():
-                            # Check for levers
-                            levers = {}
-                            if lever_plan and office_name in lever_plan and role_name in lever_plan[office_name]:
-                                levers = lever_plan[office_name][role_name].get(level_name, {})
-                            
-                            # Apply churn
-                            churn_key = f'churn_{current_month.value}'
-                            default_churn = getattr(level, churn_key)
-                            lever_churn = levers.get(churn_key) if levers else None
-                            churn_rate = lever_churn if lever_churn is not None else default_churn
-                            
-                            # Store baseline before churn
-                            baseline_fte = level.total
-                            
-                            # Deterministic fractional accumulation for churn
-                            exact_churn = level.total * churn_rate
-                            level.fractional_churn += exact_churn
-                            churn_count = int(level.fractional_churn)
-                            level.fractional_churn -= churn_count
-                            
-                            churned_people = level.apply_churn(churn_count)
-                            
-                            # Debug: Show churn details
-                            if churn_count > 0:
-                                print(f"[CHURN] {office_name} {role_name} {level_name}: {baseline_fte} → {level.total} (-{churn_count} @ {churn_rate:.1%})")
-                        
-                        # PHASE 3: Calculate all progressions (but don't apply yet)
-                        progression_plan = {}
-                        for level_name, level in role_data.items():
-                            # Check for levers
-                            levers = {}
-                            if lever_plan and office_name in lever_plan and role_name in lever_plan[office_name]:
-                                levers = lever_plan[office_name][role_name].get(level_name, {})
-                            
-                            # Calculate CAT-based progression using individual probabilities
-                            progression_key = f'progression_{current_month.value}'
-                            if current_month in level.progression_months:
-                                progression_rate = levers.get(progression_key) if levers.get(progression_key) is not None else getattr(level, progression_key)
-                            else:
-                                progression_rate = 0.0
-                            
-                            if progression_rate > 0:
-                                next_level_name = self._get_next_level_name(level_name)
-                                if next_level_name and next_level_name in role_data:
-                                    # Use CAT-based progression instead of count-based
-                                    progression_plan[level_name] = {
-                                        'to_level': next_level_name,
-                                        'rate': progression_rate  # Store rate instead of count
-                                    }
-                        
-                        # PHASE 4: Apply all CAT-based progressions simultaneously
-                        progression_results = {}  # Track progression results for debug
-                        
-                        # Debug: Show progression plan before execution
-                        if progression_plan:
-                            print(f"[PROGRESSION PLAN] {office_name} {role_name}: {len(progression_plan)} levels with progression")
-                            for from_level, plan in progression_plan.items():
-                                print(f"  {from_level} → {plan['to_level']} @ {plan['rate']:.1%}")
-                        
-                        for from_level_name, move in progression_plan.items():
-                            from_level = role_data[from_level_name]
-                            to_level = role_data[move['to_level']]
-                            
-                            # Store baseline counts before progression
-                            from_baseline = from_level.total
-                            to_baseline = to_level.total
-                            
-                            # Apply CAT-based progression using individual probabilities
-                            promoted_people = from_level.apply_cat_based_progression(move['rate'], current_month_key)
-                            
-                            # Debug: Show individual progression details
-                            if len(promoted_people) > 0:
-                                print(f"[PROGRESSION DETAIL] {office_name} {role_name} {from_level_name}:")
-                                print(f"  Eligible people: {len(from_level.get_eligible_for_progression(current_month_key))}")
-                                print(f"  Promoted people: {len(promoted_people)}")
-                                for person in promoted_people:
-                                    cat = person.get_cat_category(current_month_key)
-                                    tenure = person.get_level_tenure_months(current_month_key)
-                                    prob = person.get_progression_probability(current_month_key, move['rate'], from_level_name)
-                                    print(f"    {person.id[:8]}... - {cat} ({tenure}mo tenure) - prob: {prob:.1%}")
-                            
-                            # Add to target level
-                            for person in promoted_people:
-                                to_level.add_promotion(person, current_month_key)
-                            
-                            # Store results for debug
-                            if len(promoted_people) > 0:
-                                progression_results[from_level_name] = {
-                                    'to_level': move['to_level'],
-                                    'count': len(promoted_people),
-                                    'rate': move['rate'],
-                                    'from_baseline': from_baseline,
-                                    'to_baseline': to_baseline,
-                                    'from_final': from_level.total,
-                                    'to_final': to_level.total
-                                }
-                        
-                        # Debug: Show progression summary
-                        for from_level_name, result in progression_results.items():
-                            print(f"[PROGRESSION SUMMARY] {office_name} {role_name} {from_level_name}→{result['to_level']}: "
-                                  f"{result['from_baseline']}→{result['from_final']} (-{result['count']}) & "
-                                  f"{result['to_baseline']}→{result['to_final']} (+{result['count']}) @ {result['rate']:.1%}")
-                        
-                        # Store level results with movement tracking
-                        for level_name, level in role_data.items():
-                            # Calculate recruitment for this level
-                            recruitment_key = f'recruitment_{current_month.value}'
-                            recruitment_rate = getattr(level, recruitment_key)
-                            recruited_count = int(level.total * recruitment_rate) if level.total > 0 else 0
-                            
-                            # Calculate churn for this level
-                            churn_key = f'churn_{current_month.value}'
-                            churn_rate = getattr(level, churn_key)
-                            churned_count = int(level.total * churn_rate) if level.total > 0 else 0
-                            
-                            # Get progression count for this level
-                            progressed_out = 0
-                            progressed_in = 0
-                            
-                            # Check if this level had people progress out
-                            if level_name in progression_results:
-                                progressed_out = progression_results[level_name]['count']
-                            
-                            # Check if this level had people progress in
-                            for from_level, result in progression_results.items():
-                                if result['to_level'] == level_name:
-                                    progressed_in += result['count']
-                            
-                            # Debug: Show movement tracking for each level
-                            if progressed_out > 0 or progressed_in > 0:
-                                print(f"[MOVEMENT TRACKING] {office_name} {role_name} {level_name}: "
-                                      f"Out={progressed_out}, In={progressed_in}, "
-                                      f"Net={(progressed_in - progressed_out):+d}, Final={level.total}")
-                            
-                            office_results['levels'][role_name][level_name].append({
-                                'total': level.total,
-                                'price': getattr(level, f'price_{current_month.value}'),
-                                'salary': getattr(level, f'salary_{current_month.value}'),
-                                'recruited': recruited_count,
-                                'churned': churned_count,
-                                'progressed_out': progressed_out,
-                                'progressed_in': progressed_in
-                            })
-                    else:
-                        # Flat roles (Operations)
-                        level = role_data
-                        # Check for levers
-                        levers = {}
-                        if lever_plan and office_name in lever_plan and role_name in lever_plan[office_name]:
-                            levers = lever_plan[office_name][role_name]
-                        
-                        # PHASE 1: Recruitment
-                        recruitment_key = f'recruitment_{current_month.value}'
-                        default_recruitment = getattr(level, recruitment_key)
-                        lever_recruitment = levers.get(recruitment_key) if levers else None
-                        recruitment_rate = lever_recruitment if lever_recruitment is not None else default_recruitment
-                        
-                        if level.total == 0 and recruitment_rate > 0:
-                            new_recruits = max(1, int(recruitment_rate * 10))
-                        else:
-                            # Deterministic fractional accumulation
-                            exact_recruits = level.total * recruitment_rate
-                            level.fractional_recruitment += exact_recruits
-                            new_recruits = int(level.fractional_recruitment)
-                            level.fractional_recruitment -= new_recruits
-                        
-                        # Add new hires
-                        for _ in range(new_recruits):
-                            level.add_new_hire(current_month_key, role_name, office_name)
-                        
-                        # Debug: Show recruitment details for flat roles
-                        if new_recruits > 0:
-                            print(f"[RECRUITMENT] {office_name} {role_name}: {level.total - new_recruits} → {level.total} (+{new_recruits} @ {recruitment_rate:.1%})")
-                        
-                        # PHASE 2: Churn
-                        churn_key = f'churn_{current_month.value}'
-                        default_churn = getattr(level, churn_key)
-                        lever_churn = levers.get(churn_key) if levers else None
-                        churn_rate = lever_churn if lever_churn is not None else default_churn
-                        
-                        # Store baseline before churn for flat roles
-                        baseline_fte = level.total
-                        
-                        # Deterministic fractional accumulation for churn
-                        exact_churn = level.total * churn_rate
-                        level.fractional_churn += exact_churn
-                        churn_count = int(level.fractional_churn)
-                        level.fractional_churn -= churn_count
-                        
-                        churned_people = level.apply_churn(churn_count)
-                        
-                        # Debug: Show churn details for flat roles
-                        if churn_count > 0:
-                            print(f"[CHURN] {office_name} {role_name}: {baseline_fte} → {level.total} (-{churn_count} @ {churn_rate:.1%})")
-                        
-                        # Store flat role results with movement tracking
-                        recruitment_key = f'recruitment_{current_month.value}'
-                        recruitment_rate = getattr(level, recruitment_key)
-                        recruited_count = int(level.total * recruitment_rate) if level.total > 0 else 0
-                        
-                        churn_key = f'churn_{current_month.value}'
-                        churn_rate = getattr(level, churn_key)
-                        churned_count = int(level.total * churn_rate) if level.total > 0 else 0
-                        
-                        office_results['levels'][role_name].append({
-                            'total': level.total,
-                            'price': getattr(level, f'price_{current_month.value}'),
-                            'salary': getattr(level, f'salary_{current_month.value}'),
-                            'recruited': recruited_count,
-                            'churned': churned_count,
-                            'progressed_out': 0,  # Operations doesn't have progression
-                            'progressed_in': 0    # Operations doesn't have progression
-                        })
-                
-                # Store operations results (for flat roles only)
-                if 'Operations' in office.roles:
-                    op = office.roles['Operations']
-                    # Calculate operations movement
-                    recruitment_rate = getattr(op, f'recruitment_{current_month.value}')
-                    recruited_count = int(op.total * recruitment_rate) if op.total > 0 else 0
-                    
-                    churn_rate = getattr(op, f'churn_{current_month.value}')
-                    churned_count = int(op.total * churn_rate) if op.total > 0 else 0
-                    
-                    office_results['operations'].append({
-                        'total': op.total,
-                        'price': getattr(op, f'price_{current_month.value}'),
-                        'salary': getattr(op, f'salary_{current_month.value}'),
-                        'recruited': recruited_count,
-                        'churned': churned_count,
-                        'progressed_out': 0,  # Operations doesn't have progression
-                        'progressed_in': 0    # Operations doesn't have progression
-                    })
-                else:
-                    office_results['operations'].append(None)
-                
-                # Calculate journey totals by aggregating levels based on their journey assignments
-                journey_totals = {"Journey 1": 0, "Journey 2": 0, "Journey 3": 0, "Journey 4": 0}
-                
-                for role_name, role_data in office.roles.items():
-                    if isinstance(role_data, dict):  # Roles with levels
-                        for level_name, level in role_data.items():
-                            journey_name = level.journey.value
-                            journey_totals[journey_name] += level.total
-                
-                # Store journey results
-                for journey_name, total in journey_totals.items():
-                    results["years"][str(current_year)]["offices"][office_name]["journeys"][journey_name].append({
-                        'total': total
-                    })
-                
-                # Calculate and store metrics
-                office_results['metrics'].append({
-                    'growth': self.calculate_growth(previous_total, current_year),
-                    'recruitment': self.calculate_recruitment(office, current_month),
-                    'non_debit_ratio': self.calculate_non_debit_ratio(office, current_month),
-                    'churn': self.calculate_churn(office, current_month),
-                    'progression': self.calculate_progression(office, current_month),
-                    'revenue': self.calculate_revenue(office, current_month),
-                    'costs': self.calculate_costs(office, current_month),
-                    'profit': self.calculate_profit(office, current_month),
-                    'profit_margin': self.calculate_profit_margin(office, current_month)
-                })
-                
-                # Update year summary
-                year_summary = results["years"][str(current_year)]["summary"]
-                year_summary["total_fte"] += sum(getattr(level, 'total', 0) for role_data in office.roles.values() 
-                                               for level in (role_data.values() if isinstance(role_data, dict) else [role_data]))
-                year_summary["total_revenue"] += self.calculate_revenue(office, current_month)
-                year_summary["total_costs"] += self.calculate_costs(office, current_month)
-                year_summary["total_profit"] = year_summary["total_revenue"] - year_summary["total_costs"]
-                year_summary["average_margin"] = year_summary["total_profit"] / year_summary["total_revenue"] if year_summary["total_revenue"] > 0 else 0.0
-                
-                # Calculate year-over-year growth rate
-                if current_year > start_year:
-                    previous_year_fte = results["years"][str(current_year - 1)]["summary"]["total_fte"]
-                    year_summary["growth_rate"] = (year_summary["total_fte"] - previous_year_fte) / previous_year_fte if previous_year_fte > 0 else 0.0
-                
-                # Update prices and salaries at the end of each year
-                if current_month == Month.DEC:
-                    for role_data in office.roles.values():
-                        if isinstance(role_data, dict):
-                            for level in role_data.values():
-                                for month in range(1, 13):
-                                    price_attr = f'price_{month}'
-                                    salary_attr = f'salary_{month}'
-                                    setattr(level, price_attr, getattr(level, price_attr) * (1 + price_increase))
-                                    setattr(level, salary_attr, getattr(level, salary_attr) * (1 + salary_increase))
-                        else:
-                            for month in range(1, 13):
-                                price_attr = f'price_{month}'
-                                salary_attr = f'salary_{month}'
-                                setattr(role_data, price_attr, getattr(role_data, price_attr) * (1 + price_increase))
-                                setattr(role_data, salary_attr, getattr(role_data, salary_attr) * (1 + salary_increase))
-            
-            # Move to next month
-            if current_month.value == 12:
-                current_year += 1
-                current_month = Month.JAN
-            else:
-                current_month = Month(current_month.value + 1)
+        return yearly_results
         
-        # Store results for later retrieval
-        self.simulation_results = results
-        
-        return results
-    
     def get_simulation_results(self) -> Optional[Dict[str, Any]]:
-        """Get the last simulation results"""
+        """Return the latest simulation results"""
         return self.simulation_results
-    
+
     def calculate_kpis_for_simulation(
         self, 
         results: Dict[str, Any], 
@@ -1265,224 +1091,111 @@ class SimulationEngine:
         unplanned_absence: float = 0.05,
         other_expense: float = 100000.0
     ) -> Dict[str, Any]:
-        """
-        Calculate KPIs from simulation results using the KPI service.
-        """
-        print(f"[KPI] Calculating KPIs for simulation results...")
+        """Calculate KPIs using the KPI service"""
+        kpi_service = KPIService()
         
-        # Calculate all KPIs
-        all_kpis = self.kpi_service.calculate_all_kpis(
+        # Convert dataclasses to dicts for JSON serialization
+        all_kpis_dataclass = kpi_service.calculate_all_kpis(
             results,
             simulation_duration_months,
             unplanned_absence,
             other_expense
         )
         
-        # Return both original results and KPIs
-        return {
-            **results,  # Include all original simulation results (including 'years')
-            "kpis": {
-                "financial": all_kpis.financial.__dict__,
-                "growth": all_kpis.growth.__dict__,
-                "journeys": all_kpis.journeys.__dict__,
-                "yearly_kpis": {year: kpi.__dict__ for year, kpi in all_kpis.yearly_kpis.items()}
-            }
-        }
-        
+        def to_dict(data):
+            if hasattr(data, '__dataclass_fields__'):
+                return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
+            elif isinstance(data, dict):
+                return {k: to_dict(v) for k, v in data.items()}
+            elif isinstance(data, list):
+                return [to_dict(i) for i in data]
+            else:
+                return data
+
+        return to_dict(all_kpis_dataclass)
+
     def _get_next_level_name(self, current_level: str) -> Optional[str]:
-        """Get the next level name in the progression path"""
-        if current_level == "PiP":
+        """Get the name of the next level in the progression path"""
+        progression_path = self.level_order
+        try:
+            current_index = progression_path.index(current_level)
+            if current_index + 1 < len(progression_path):
+                return progression_path[current_index + 1]
             return None
-        level_order = ["A", "AC", "C", "SrC", "AM", "M", "SrM", "PiP"]
-        current_index = level_order.index(current_level)
-        return level_order[current_index + 1]
-    
-    def _get_next_level(self, current_level: str, role_name: str, office_roles: Dict[str, Dict[str, Level] or RoleData]) -> Optional[Level]:
-        """Get the next level object in the progression path (for compatibility)"""
+        except ValueError:
+            return None
+
+    def _get_next_level(self, current_level: str, role_name: str, office_roles: Dict[str, Dict[str, 'Level'] or 'RoleData']) -> Optional['Level']:
+        """Get the next Level object in the progression path"""
         next_level_name = self._get_next_level_name(current_level)
         if next_level_name and role_name in office_roles and isinstance(office_roles[role_name], dict):
-            if next_level_name in office_roles[role_name]:
-                return office_roles[role_name][next_level_name]
+            return office_roles[role_name].get(next_level_name)
         return None
 
-    def calculate_growth(self, previous_total: int, current_year: int) -> float:
-        """Calculate growth rate between periods"""
-        if previous_total == 0:
-            return 0.0
-        current_total = sum(level.total for role_data in self.offices.values() 
-                          for role_data in role_data.roles.values() 
-                          if isinstance(role_data, dict) 
-                          for level in role_data.values())
-        return (current_total - previous_total) / previous_total
-
-    def calculate_recruitment(self, office: Office, current_month: Month) -> float:
-        """Calculate recruitment rate for an office"""
-        total_recruited = 0
-        total_employees = 0
-        for role_data in office.roles.values():
-            if isinstance(role_data, dict):
-                for level in role_data.values():
-                    recruitment_rate = getattr(level, f'recruitment_{current_month.value}')
-                    recruited = int(level.total * recruitment_rate)
-                    total_recruited += recruited
-                    total_employees += level.total
-            else:
-                recruitment_rate = getattr(role_data, f'recruitment_{current_month.value}')
-                recruited = int(role_data.total * recruitment_rate)
-                total_recruited += recruited
-                total_employees += role_data.total
-        return total_recruited / total_employees if total_employees > 0 else 0.0
-
-    def calculate_non_debit_ratio(self, office: Office, current_month: Month) -> float:
-        """Calculate non-debit ratio (Senior levels / Total)"""
-        senior_count = 0
-        total_count = 0
-        for role_data in office.roles.values():
-            if isinstance(role_data, dict):
-                for level_name, level in role_data.items():
-                    total_count += level.total
-                    if level_name in ["M", "SrM", "PiP"]:
-                        senior_count += level.total
-        return senior_count / total_count if total_count > 0 else 0.0
-
-    def calculate_churn(self, office: Office, current_month: Month) -> float:
-        """Calculate churn rate for an office"""
-        total_churned = 0
-        total_employees = 0
-        for role_data in office.roles.values():
-            if isinstance(role_data, dict):
-                for level in role_data.values():
-                    churn_rate = getattr(level, f'churn_{current_month.value}')
-                    churned = int(level.total * churn_rate)
-                    total_churned += churned
-                    total_employees += level.total
-            else:
-                churn_rate = getattr(role_data, f'churn_{current_month.value}')
-                churned = int(role_data.total * churn_rate)
-                total_churned += churned
-                total_employees += role_data.total
-        return total_churned / total_employees if total_employees > 0 else 0.0
-
-    def calculate_progression(self, office: Office, current_month: Month) -> float:
-        """Calculate progression rate for an office"""
-        total_progressed = 0
-        total_employees = 0
-        for role_data in office.roles.values():
-            if isinstance(role_data, dict):
-                for level_name, level in role_data.items():
-                    # Check if progression occurs this month based on level configuration
-                    if current_month in level.progression_months:
-                        progression_rate = getattr(level, f'progression_{current_month.value}')
-                    else:
-                        progression_rate = 0.0
-                    total_progressed += int(level.total * progression_rate)
-                    total_employees += level.total
-        return total_progressed / total_employees if total_employees > 0 else 0.0
-
-    def calculate_revenue(self, office: Office, current_month: Month) -> float:
-        """Calculate revenue for an office - only consultants generate revenue"""
-        total_revenue = 0
-        working_hours_per_month = 166.4  # Actual working hours per month (matches real data)
-        
-        print(f"[REVENUE DEBUG] {office.name} - Month {current_month.value}")
-        
-        # Only consultants generate revenue (billable to clients)
-        if 'Consultant' in office.roles:
-            consultant_roles = office.roles['Consultant']
-            if isinstance(consultant_roles, dict):
-                for level_name, level in consultant_roles.items():
-                    hourly_rate = getattr(level, f'price_{current_month.value}')
-                    utr = getattr(level, f'utr_{current_month.value}')
-                    fte_count = level.total
-                    
-                    # Convert hourly rate to monthly revenue
-                    monthly_revenue_per_person = hourly_rate * working_hours_per_month * utr
-                    level_total_revenue = fte_count * monthly_revenue_per_person
-                    total_revenue += level_total_revenue
-                    
-                    if fte_count > 0:  # Only log if there are people
-                        print(f"[REVENUE DEBUG]   {level_name}: {fte_count} FTE × {hourly_rate:.2f} SEK/hr × {utr:.3f} UTR = {level_total_revenue:,.0f} SEK")
-        
-        print(f"[REVENUE DEBUG] Total office revenue: {total_revenue:,.0f} SEK")
-        return total_revenue
-
-    def calculate_costs(self, office: Office, current_month: Month) -> float:
-        """Calculate costs for an office"""
-        total_costs = 0
-        for role_data in office.roles.values():
-            if isinstance(role_data, dict):
-                for level in role_data.values():
-                    total_costs += level.total * getattr(level, f'salary_{current_month.value}')
-            else:
-                total_costs += role_data.total * getattr(role_data, f'salary_{current_month.value}')
-        return total_costs
-
-    def calculate_profit(self, office: Office, current_month: Month) -> float:
-        """Calculate profit for an office"""
-        return self.calculate_revenue(office, current_month) - self.calculate_costs(office, current_month)
-
-    def calculate_profit_margin(self, office: Office, current_month: Month) -> float:
-        """Calculate profit margin for an office"""
-        revenue = self.calculate_revenue(office, current_month)
-        return self.calculate_profit(office, current_month) / revenue if revenue > 0 else 0.0
-
-
 def calculate_configuration_checksum(offices: Dict[str, Office]) -> str:
-    """Calculate a checksum for configuration data to detect changes"""
-    import hashlib
-    
-    # Create a string representation of the configuration
-    config_str = ""
-    for office_name, office in sorted(offices.items()):
-        config_str += f"{office_name}:{office.total_fte}:{office.journey.value}:"
-        
-        for role_name, role_data in sorted(office.roles.items()):
-            if isinstance(role_data, dict):
-                for level_name, level in sorted(role_data.items()):
-                    config_str += f"{role_name}:{level_name}:{level.total}:"
-            else:
-                config_str += f"{role_name}:{role_data.total}:"
-    
-    # Return MD5 hash of the configuration string
-    return hashlib.md5(config_str.encode()).hexdigest()
+    """
+    Calculates a checksum for the initial office configuration to detect changes.
+    This helps in deciding whether to re-run a baseline simulation.
+    """
+    # Create a deep copy to avoid modifying the original data
+    offices_copy = deepcopy(offices)
+
+    # Convert the configuration to a JSON string for hashing
+    # Using a custom serializer to handle dataclasses
+    def json_default(o):
+        if hasattr(o, '__dict__'):
+            return o.__dict__
+        if isinstance(o, (datetime,)):
+            return o.isoformat()
+        if isinstance(o, Enum):
+            return o.value
+        raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
+
+    config_string = json.dumps(
+        {name: office for name, office in offices_copy.items()}, 
+        sort_keys=True, 
+        default=json_default
+    )
+
+    return hashlib.md5(config_string.encode('utf-8')).hexdigest()
 
 
 def validate_configuration_completeness(offices: Dict[str, Office]) -> Dict[str, Any]:
-    """Validate configuration completeness and return a report"""
-    report = {
-        'total_offices': len(offices),
-        'total_roles': 0,
-        'total_levels': 0,
-        'total_fte': 0,
-        'missing_data': [],
-        'warnings': []
-    }
+    """
+    Validates that the configuration for all offices, roles, and levels is complete.
+    Checks for missing rates, salaries, prices, etc. for all 12 months.
+    """
+    issues = {}
     
     for office_name, office in offices.items():
+        office_issues = {}
         for role_name, role_data in office.roles.items():
-            report['total_roles'] += 1
-            
-            if isinstance(role_data, dict):
+            role_issues = {}
+            if isinstance(role_data, dict): # Leveled roles
                 for level_name, level in role_data.items():
-                    report['total_levels'] += 1
-                    report['total_fte'] += level.total
-                    
-                    # Check for missing or zero values
-                    if level.total == 0:
-                        report['warnings'].append(f"{office_name} {role_name} {level_name} has 0 FTE")
-                    if level.price_1 == 0:
-                        report['missing_data'].append(f"{office_name} {role_name} {level_name} missing price data")
-                    if level.salary_1 == 0:
-                        report['missing_data'].append(f"{office_name} {role_name} {level_name} missing salary data")
-            else:
-                report['total_fte'] += role_data.total
-                
-                # Check for missing or zero values in flat roles
-                if role_data.total == 0:
-                    report['warnings'].append(f"{office_name} {role_name} has 0 FTE")
-                if role_data.price_1 == 0:
-                    report['missing_data'].append(f"{office_name} {role_name} missing price data")
-                if role_data.salary_1 == 0:
-                    report['missing_data'].append(f"{office_name} {role_name} missing salary data")
-    
-    return report
+                    level_issues = []
+                    for i in range(1, 13):
+                        for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
+                            if not hasattr(level, f'{key}_{i}'):
+                                level_issues.append(f"Missing '{key}' for month {i}")
+                    if level_issues:
+                        role_issues[level_name] = level_issues
+            else: # Flat roles
+                flat_role_issues = []
+                for i in range(1, 13):
+                    for key in ['recruitment', 'churn']:
+                        if not hasattr(role_data, f'{key}_{i}'):
+                            flat_role_issues.append(f"Missing '{key}' for month {i}")
+                if flat_role_issues:
+                    role_issues['base'] = flat_role_issues
+            
+            if role_issues:
+                office_issues[role_name] = role_issues
+        
+        if office_issues:
+            issues[office_name] = office_issues
+            
+    return {
+        'is_complete': not issues,
+        'issues': issues
+    }

@@ -417,152 +417,133 @@ export default function Configuration() {
 
   // Format value based on type
   const formatValue = (value: any, formatter: string) => {
-    if (!value && value !== 0) return '';
+    if (value === null || value === undefined || value === '') return '-';
     
+    // Ensure value is a number before using number-specific methods
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      return value; // Return as-is if not a number
+    }
+
     switch (formatter) {
       case 'currency':
-        return `${Number(value).toLocaleString()} SEK`;
+        return `${(numValue / 1000).toFixed(0)}k SEK`;
       case 'percentage':
-        return `${(Number(value) * 100).toFixed(1)}%`;
+        return `${(numValue * 100).toFixed(1)}%`;
       case 'number':
+        return numValue.toFixed(1);
       default:
-        return String(value);
+        return value;
     }
   };
 
   // Parse value based on type
   const parseValue = (str: string, formatter: string) => {
-    if (!str) return 0;
-    const num = Number(str.replace(/[^\d.-]/g, ''));
-    if (formatter === 'percentage') {
-      return num / 100;
+    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return 0;
+    switch (formatter) {
+      case 'currency':
+        return num * 1000;
+      case 'percentage':
+        return num / 100;
+      default:
+        return num;
     }
-    return num;
   };
 
   // Helper to calculate aggregated FTE for a role
   const getAggregatedFTE = (roleName: string) => {
     const office = officeData[selectedOffice];
-    if (!office?.roles?.[roleName]) return 0;
+    if (!office || !office.roles || !office.roles[roleName]) {
+      return 0;
+    }
     
     const roleData = office.roles[roleName];
-    let total = 0;
     
-    LEVELS.forEach(levelName => {
-      const levelData = roleData[levelName];
-      if (levelData && levelData.fte) {
-        total += levelData.fte;
-      }
-    });
-    
-    return total;
+    // Handle 'Operations' which has a flat structure
+    if (roleName === 'Operations') {
+      return roleData.fte || 0;
+    }
+
+    // Handle roles with levels
+    return Object.values(roleData).reduce((acc: number, level: any) => acc + (level.fte || 0), 0);
   };
 
   // Generate table data with grouped structure
   const getTableData = () => {
-    console.log('[CONFIG] 🔍 getTableData called:', {
-      selectedOffice,
-      hasOfficeData: !!officeData[selectedOffice],
-      officeDataKeys: Object.keys(officeData),
-      officeDataStructure: officeData[selectedOffice] ? Object.keys(officeData[selectedOffice]) : null
-    });
-    
-    if (!selectedOffice || !officeData[selectedOffice]) {
-      console.log('[CONFIG] ⚠️ No data found, returning empty array');
-      return [];
-    }
+    if (!officeData[selectedOffice]) return [];
 
     const office = officeData[selectedOffice];
-    console.log('[CONFIG] 📊 Processing office data:', {
-      officeName: office.name,
-      totalFTE: office.total_fte,
-      rolesAvailable: Object.keys(office.roles || {})
-    });
-    
     const rows: any[] = [];
 
-    // Add roles with levels (Consultant, Sales, Recruitment)
+    // --- 1. Handle Roles with Levels (e.g., Consultant, Sales) ---
     ROLES_WITH_LEVELS.forEach(roleName => {
       const roleData = office.roles[roleName];
       if (!roleData) return;
 
-      // Parent row for role
-      const roleRow: any = {
+      // Create a parent row for the role itself
+      const parentRow: any = {
         key: roleName,
         role: roleName,
-        level: null,
         isParent: true,
         children: []
       };
 
-      // Add aggregated values for parent row (used when collapsed)
-      LEVER_GROUPS.forEach(group => {
-        group.columns.forEach(col => {
-          if (col.key === 'total') {
-            // For FTE, show aggregated total
-            roleRow[`${col.key}_${group.key}`] = getAggregatedFTE(roleName);
-          } else {
-            // For other metrics, don't show values at parent level
-            roleRow[`${col.key}_${group.key}`] = null;
-          }
-        });
-      });
-
-      // Child rows for levels
+      // Set aggregated total for the parent row's FTE
+      parentRow[`total_headcount`] = getAggregatedFTE(roleName);
+      
+      // Create child rows for each level within the role
       LEVELS.forEach(levelName => {
         const levelData = roleData[levelName];
-        const hasData = levelData && (
-          (levelData.fte && levelData.fte > 0) || 
-          Object.keys(levelData).some(key => 
-            hasChanged(roleName, levelName, key.replace(/_\d+$/, ''), selectedMonths[LEVER_GROUPS.find(g => g.columns.some(c => key.startsWith(c.key)))?.key || 'headcount'] || 1)
-          )
-        );
         
+        // Only show level if it has FTE data or has changes
+        const hasData = levelData && (
+          (getValue(roleName, levelName, 'total', 1) > 0) ||
+           Object.keys(draftChanges).some(key => key.includes(`${roleName}.${levelName}`))
+        );
+
         if (hasData) {
           const childRow: any = {
             key: `${roleName}-${levelName}`,
-            role: roleName,
-            level: levelName,
-            isParent: false
+            role: roleName, // Keep parent role for context
+            level: levelName, // Specify the level
           };
 
-          // Add all lever values for each group
+          // Populate all metric columns for the child row
           LEVER_GROUPS.forEach(group => {
             group.columns.forEach(col => {
               const month = selectedMonths[group.key];
               childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, month);
             });
           });
-
-          roleRow.children.push(childRow);
+          parentRow.children.push(childRow);
         }
       });
-
-      if (roleRow.children.length > 0) {
-        rows.push(roleRow);
+      
+      // Only add the role to the table if it has visible levels
+      if (parentRow.children.length > 0) {
+        rows.push(parentRow);
       }
     });
 
-    // Add Operations (flat role)
+    // --- 2. Handle Flat Roles (e.g., Operations) ---
     if (office.roles.Operations) {
       const opsRow: any = {
         key: 'Operations',
         role: 'Operations',
-        level: null,
-        isParent: false
+        isParent: false // Not a parent, just a single row
       };
 
-      // Add all lever values for Operations
+      // Populate all metric columns for the Operations row
       LEVER_GROUPS.forEach(group => {
         group.columns.forEach(col => {
           const month = selectedMonths[group.key];
           opsRow[`${col.key}_${group.key}`] = getValue('Operations', null, col.key, month);
         });
       });
-
       rows.push(opsRow);
     }
-
+    
     return rows;
   };
 

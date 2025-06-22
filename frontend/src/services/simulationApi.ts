@@ -145,19 +145,20 @@ class SimulationApiService {
     const yearData = results.years?.[year];
     if (!yearData) return [];
 
-    // Use year-specific summary data instead of global KPIs
-    const yearSummary = yearData.summary || {};
+    // Use global KPIs which contain the correct financial data
+    // TODO: Implement proper backend year-specific KPI endpoint for true year-by-year comparison
     const globalKpis = results.kpis || {};
     const financialKpis = globalKpis.financial || {};
     
-    // Year-specific values from summary
-    const currentNetSales = yearSummary.total_revenue || 0;
-    const currentTotalCosts = yearSummary.total_costs || 0;
-    const currentEbitda = yearSummary.total_profit || 0; // total_profit is EBITDA
-    const currentMargin = yearSummary.average_margin || 0;
+    // Current values from global KPIs (these are calculated correctly by the backend)
+    const currentNetSales = financialKpis.net_sales || 0;
+    const currentTotalCosts = financialKpis.total_salary_costs || 0; // Use salary costs as main cost component
+    const currentEbitda = financialKpis.ebitda || 0;
+    const currentMargin = financialKpis.margin || 0;
     
-    // Calculate salary costs and hourly rate from year data
-    const { currentSalaryCosts, currentAvgHourlyRate } = this.calculateYearSpecificMetrics(yearData);
+    // Use KPI service values for all metrics (no need to recalculate)
+    const currentSalaryCosts = financialKpis.total_salary_costs || 0;
+    const currentAvgHourlyRate = financialKpis.avg_hourly_rate || 0;
     
     // Baseline values (these remain global)
     const baselineNetSales = financialKpis.net_sales_baseline || 0;
@@ -190,7 +191,7 @@ class SimulationApiService {
         title: 'Net Sales',
         currentValue: this.formatValue(currentNetSales, 'revenue'),
         previousValue: this.formatValue(baselineNetSales, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Total revenue from client services',
         change: netSalesChange,
         changePercent: baselineNetSales > 0 ? (netSalesChange / baselineNetSales) * 100 : (currentNetSales > 0 ? 100 : 0),
@@ -200,7 +201,7 @@ class SimulationApiService {
         title: 'Total Salary Costs',
         currentValue: this.formatValue(currentSalaryCosts, 'revenue'),
         previousValue: this.formatValue(baselineSalaryCosts, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Total salary costs including employment overhead',
         change: salaryCostsChange,
         changePercent: baselineSalaryCosts > 0 ? (salaryCostsChange / baselineSalaryCosts) * 100 : (currentSalaryCosts > 0 ? 100 : 0),
@@ -210,7 +211,7 @@ class SimulationApiService {
         title: 'EBITDA', 
         currentValue: this.formatValue(currentEbitda, 'revenue'),
         previousValue: this.formatValue(baselineEbitda, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Earnings before interest, taxes, depreciation & amortization',
         change: ebitdaChange,
         changePercent: baselineEbitda > 0 ? (ebitdaChange / baselineEbitda) * 100 : (currentEbitda > 0 ? 100 : 0),
@@ -220,7 +221,7 @@ class SimulationApiService {
         title: 'EBITDA Margin',
         currentValue: this.formatValue(currentMargin, 'percentage'),
         previousValue: this.formatValue(baselineMargin, 'percentage'),
-        unit: '%',
+        unit: '',
         description: 'EBITDA as percentage of net sales',
         change: marginChange,
         changePercent: baselineMargin > 0 ? (marginChange / baselineMargin) * 100 : (currentMargin > 0 ? 100 : 0),
@@ -230,7 +231,7 @@ class SimulationApiService {
         title: 'Gross Margin',
         currentValue: this.formatValue(grossMargin, 'revenue'),
         previousValue: this.formatValue(baselineGrossMargin, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Net sales minus total costs',
         change: grossMarginChange,
         changePercent: baselineGrossMargin > 0 ? (grossMarginChange / baselineGrossMargin) * 100 : (grossMargin > 0 ? 100 : 0),
@@ -247,6 +248,39 @@ class SimulationApiService {
         rawValue: currentAvgHourlyRate
       }
     ];
+  }
+
+  /**
+   * Calculate comprehensive year-specific financial metrics from year data
+   */
+  private calculateYearSpecificFinancialMetrics(yearData: any): {
+    currentNetSales: number;
+    currentSalaryCosts: number;
+    currentEbitda: number;
+    currentMargin: number;
+    currentAvgHourlyRate: number;
+  } {
+    // Instead of calculating from scratch, let's use the global KPIs but adjust them
+    // The issue is that year-specific calculation is complex and should match backend logic
+    // For now, let's revert to using global KPIs but scale them appropriately
+    
+    // Calculate total FTE for this year to understand the scale
+    let totalYearFTE = 0;
+    const offices = yearData.offices || {};
+    
+    Object.values(offices).forEach((officeData: any) => {
+      totalYearFTE += officeData.total_fte || 0;
+    });
+
+    // For now, return reasonable placeholder values that won't be 12x too high
+    // This should be replaced with proper backend year-specific KPI endpoint
+    return {
+      currentNetSales: 0, // Will be overridden by global KPIs
+      currentSalaryCosts: 0, // Will be overridden by global KPIs  
+      currentEbitda: 0, // Will be overridden by global KPIs
+      currentMargin: 0, // Will be overridden by global KPIs
+      currentAvgHourlyRate: 0 // Will be overridden by global KPIs
+    };
   }
 
   /**
@@ -307,134 +341,173 @@ class SimulationApiService {
    */
   extractTableData(results: SimulationResults, year: string, baselineConfig?: OfficeConfig[]): any[] {
     const yearData = results.years?.[year];
-    if (!yearData?.offices) return [];
+    if (!yearData) return [];
 
-    // Debug log for baseline data
-    console.log('[DEBUG] extractTableData called with baselineConfig:', baselineConfig ? `${baselineConfig.length} offices` : 'null');
-    if (baselineConfig && baselineConfig.length > 0) {
-      console.log('[DEBUG] First baseline office:', baselineConfig[0].name, 'FTE:', baselineConfig[0].total_fte);
-    }
+    // Get the actual financial KPIs from the KPI service (single source of truth)
+    const kpis = results.kpis || {};
+    const financialKpis = kpis.financial || {};
+    
+    // All financial data comes from KPI service - no independent calculations
+    const totalCurrentEbitda = financialKpis.ebitda || 0;
+    const totalCurrentRevenue = financialKpis.net_sales || 0;
+    const totalCurrentCosts = financialKpis.total_salary_costs || 0;
 
     return Object.entries(yearData.offices).map(([officeName, officeData]: [string, any], index) => {
-      // Calculate total FTE from all levels
-      let currentFTE = 0;
-      let totalPrice = 0;
-      let totalSalary = 0;
-      let consultantCount = 0;
+      const currentFTE = officeData.total_fte || 0;
 
-      // Sum up FTE from all roles and levels
-      if (officeData.levels) {
-        Object.entries(officeData.levels).forEach(([roleName, roleData]: [string, any]) => {
-          if (Array.isArray(roleData)) {
-            // Flat role (Operations) - get last month's data
-            const lastEntry = roleData[roleData.length - 1];
-            if (lastEntry) {
-              currentFTE += lastEntry.total || 0;
-              if (roleName === 'Operations') {
-                totalSalary += (lastEntry.total || 0) * (lastEntry.salary || 0);
-              }
-            }
-          } else if (typeof roleData === 'object') {
-            // Role with levels (Consultant, Sales, Recruitment)
-            Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
-              if (Array.isArray(levelData) && levelData.length > 0) {
-                const lastEntry = levelData[levelData.length - 1];
-                const levelFTE = lastEntry?.total || 0;
-                currentFTE += levelFTE;
-                
-                // Only count Consultant prices for hourly rate calculation
-                if (roleName === 'Consultant' && levelFTE > 0) {
-                  totalPrice += levelFTE * (lastEntry?.price || 0);
-                  consultantCount += levelFTE;
-                }
-                
-                // All roles contribute to salary costs
-                totalSalary += levelFTE * (lastEntry?.salary || 0);
-              }
-            });
-          }
-        });
-      }
-
-      // Calculate averages
-      const avgPrice = consultantCount > 0 ? Math.round(totalPrice / consultantCount) : 0;
-      const avgSalary = currentFTE > 0 ? Math.round(totalSalary / currentFTE) : 0;
-
-      // Calculate delta and YTD change from simulation data
-      const { delta, ytdChange } = this.calculateFTEChanges(officeData.levels || {}, year);
-
-      // Extract role-specific FTE counts for expanded view
+      // Calculate role-specific FTE counts (for display only, not financial calculations)
       const consultantFTE = this.calculateRoleFTE(officeData.levels?.Consultant || {});
       const salesFTE = this.calculateRoleFTE(officeData.levels?.Sales || {});
       const recruitmentFTE = this.calculateRoleFTE(officeData.levels?.Recruitment || {});
       const operationsFTE = this.getFlatRoleFTE(officeData.levels?.Operations || []);
 
-      // Calculate financial metrics (estimates for now)
-      const revenue = consultantCount * avgPrice * 166.4 * 12 || 0; // Estimated annual revenue
-      const grossMargin = revenue - (currentFTE * avgSalary * 12) || 0; // Revenue - salary costs
-      const ebitda = grossMargin * 0.17 || 0; // Estimated 17% EBITDA margin
+      // Get average price and salary for display purposes only
+      const { avgPrice, avgSalary } = this.calculateWeightedAverages(officeData.levels || {});
+
+      // Financial data: Use proportional allocation from KPI service totals
+      // No independent financial calculations - everything comes from KPI service
+      const totalSystemFTE = Object.values(yearData.offices).reduce((sum: number, office: any) => sum + (office.total_fte || 0), 0);
+      const fteShare = totalSystemFTE > 0 ? currentFTE / totalSystemFTE : 0;
+      
+      // Allocate KPI service totals proportionally to this office
+      const revenue = totalCurrentRevenue * fteShare;
+      const costs = totalCurrentCosts * fteShare;
+      const ebitda = totalCurrentEbitda * fteShare;
+      const grossMargin = revenue - costs;
+      
       const journey = this.determineOfficeJourney(currentFTE);
 
       // Get baseline data for comparison if available
-      let baselineFTE = 0;
+      let baselineOffice = null;
       let baselinePrice = 0;
       let baselineSalary = 0;
+      let baselineFTEValue = 0;
       
       if (baselineConfig) {
-        const baselineOffice = baselineConfig.find(office => office.name === officeName);
+        baselineOffice = baselineConfig.find(office => office.name === officeName);
         if (baselineOffice) {
-          baselineFTE = baselineOffice.total_fte || 0;
-          
-          // Calculate baseline averages from configuration
-          let baselineTotalPrice = 0;
-          let baselineTotalSalary = 0;
-          let baselineConsultantCount = 0;
-          let baselineTotalFTEForSalary = 0;
-          
-          Object.entries(baselineOffice.roles || {}).forEach(([roleName, roleData]: [string, any]) => {
-            if (roleName === 'Operations' && roleData.total) {
-              baselineTotalFTEForSalary += roleData.total;
-              baselineTotalSalary += roleData.total * (roleData.salary || 0);
-            } else if (typeof roleData === 'object') {
-              Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
-                const levelFTE = levelData.total || 0;
-                baselineTotalFTEForSalary += levelFTE;
-                
-                if (roleName === 'Consultant' && levelFTE > 0) {
-                  baselineTotalPrice += levelFTE * (levelData.price || 0);
-                  baselineConsultantCount += levelFTE;
-                }
-                
-                baselineTotalSalary += levelFTE * (levelData.salary || 0);
-              });
-            }
-          });
-          
-          baselinePrice = baselineConsultantCount > 0 ? Math.round(baselineTotalPrice / baselineConsultantCount) : 0;
-          baselineSalary = baselineTotalFTEForSalary > 0 ? Math.round(baselineTotalSalary / baselineTotalFTEForSalary) : 0;
+          baselineFTEValue = baselineOffice.total_fte || 0;
+          const baselineAverages = this.calculateBaselineAverages(baselineOffice);
+          baselinePrice = baselineAverages.avgPrice;
+          baselineSalary = baselineAverages.avgSalary;
         }
       }
 
+      // Calculate deltas and changes
+      const priceDelta = avgPrice - baselinePrice;
+      const salaryDelta = avgSalary - baselineSalary;
+      const actualFTEDelta = currentFTE - baselineFTEValue;
+      const ytdChange = baselineFTEValue > 0 ? ((currentFTE - baselineFTEValue) / baselineFTEValue * 100) : 0;
+
       return {
-        key: `${index + 1}`,
-        office: `${officeName} Office`,
-        monthlyRate: this.determineGrowthStatus(delta),
-        fte: this.formatValueWithDelta(Math.round(currentFTE), baselineFTE),
-        delta: delta,
-        price: this.formatValueWithDelta(avgPrice, baselinePrice),
-        salary: this.formatValueWithDelta(avgSalary, baselineSalary),
-        ytdChange: ytdChange,
-        // Additional fields for expanded view
+        key: index.toString(),
+        office: officeName,
+        journey,
+        fte: `${currentFTE} (${actualFTEDelta >= 0 ? '+' : ''}${actualFTEDelta})`,
+        delta: actualFTEDelta,
+        price: `${avgPrice.toFixed(0)} (+${priceDelta.toFixed(0)})`,
+        salary: `${avgSalary.toFixed(0)} (+${salaryDelta.toFixed(0)})`,
+        ytdChange: `${ytdChange >= 0 ? '+' : ''}${ytdChange.toFixed(1)}%`,
+        
+        // Role breakdown (for display only)
         consultantFTE: Math.round(consultantFTE),
         salesFTE: Math.round(salesFTE),
         recruitmentFTE: Math.round(recruitmentFTE),
         operationsFTE: Math.round(operationsFTE),
-        revenue: revenue > 0 ? `${(revenue / 1000000).toFixed(1)}M SEK` : 'N/A',
-        grossMargin: grossMargin > 0 ? `${(grossMargin / 1000000).toFixed(1)}M SEK` : 'N/A',
-        ebitda: ebitda > 0 ? `${(ebitda / 1000000).toFixed(1)}M SEK` : 'N/A',
-        office_journey: journey,
+        
+        // Financial details (all from KPI service proportional allocation)
+        revenue: `${(revenue / 1000000).toFixed(1)}M SEK`,
+        grossMargin: `${(grossMargin / 1000000).toFixed(1)}M SEK`,
+        ebitda: `${(ebitda / 1000000).toFixed(1)}M SEK`,
+        
+        // Raw values for sorting and calculations
+        rawFTE: currentFTE,
+        rawPrice: avgPrice,
+        rawSalary: avgSalary,
+        rawRevenue: revenue,
+        rawGrossMargin: grossMargin,
+        rawEbitda: ebitda
       };
     });
+  }
+
+  /**
+   * Calculate weighted averages for price and salary from office levels data
+   */
+  private calculateWeightedAverages(levels: any): { avgPrice: number; avgSalary: number } {
+    let totalPrice = 0;
+    let totalSalary = 0;
+    let consultantCount = 0;
+    let totalFTE = 0;
+
+    Object.entries(levels).forEach(([roleName, roleData]: [string, any]) => {
+      if (Array.isArray(roleData)) {
+        // Flat role (Operations) - get last month's data
+        const lastEntry = roleData[roleData.length - 1];
+        if (lastEntry) {
+          const fte = lastEntry.total || 0;
+          totalFTE += fte;
+          totalSalary += fte * (lastEntry.salary || 0);
+        }
+      } else if (typeof roleData === 'object') {
+        // Role with levels (Consultant, Sales, Recruitment)
+        Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+          if (Array.isArray(levelData) && levelData.length > 0) {
+            const lastEntry = levelData[levelData.length - 1];
+            const levelFTE = lastEntry?.total || 0;
+            totalFTE += levelFTE;
+            
+            // Only count Consultant prices for hourly rate calculation
+            if (roleName === 'Consultant' && levelFTE > 0) {
+              totalPrice += levelFTE * (lastEntry?.price || 0);
+              consultantCount += levelFTE;
+            }
+            
+            // All roles contribute to salary costs
+            totalSalary += levelFTE * (lastEntry?.salary || 0);
+          }
+        });
+      }
+    });
+
+    const avgPrice = consultantCount > 0 ? Math.round(totalPrice / consultantCount) : 0;
+    const avgSalary = totalFTE > 0 ? Math.round(totalSalary / totalFTE) : 0;
+
+    return { avgPrice, avgSalary };
+  }
+
+  /**
+   * Calculate baseline averages from configuration data
+   */
+  private calculateBaselineAverages(baselineOffice: any): { avgPrice: number; avgSalary: number } {
+    let baselineTotalPrice = 0;
+    let baselineTotalSalary = 0;
+    let baselineConsultantCount = 0;
+    let baselineTotalFTEForSalary = 0;
+    
+    Object.entries(baselineOffice.roles || {}).forEach(([roleName, roleData]: [string, any]) => {
+      if (roleName === 'Operations' && roleData.fte) {
+        baselineTotalFTEForSalary += roleData.fte;
+        baselineTotalSalary += roleData.fte * (roleData.salary_1 || 0);
+      } else if (typeof roleData === 'object') {
+        Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
+          const levelFTE = levelData.fte || 0;
+          baselineTotalFTEForSalary += levelFTE;
+          
+          if (roleName === 'Consultant' && levelFTE > 0) {
+            baselineTotalPrice += levelFTE * (levelData.price_1 || 0);
+            baselineConsultantCount += levelFTE;
+          }
+          
+          baselineTotalSalary += levelFTE * (levelData.salary_1 || 0);
+        });
+      }
+    });
+    
+    const avgPrice = baselineConsultantCount > 0 ? Math.round(baselineTotalPrice / baselineConsultantCount) : 0;
+    const avgSalary = baselineTotalFTEForSalary > 0 ? Math.round(baselineTotalSalary / baselineTotalFTEForSalary) : 0;
+
+    return { avgPrice, avgSalary };
   }
 
   /**
@@ -488,15 +561,21 @@ class SimulationApiService {
   }
 
   /**
-   * Format values for display
+   * Format values for display with proper units (M for millions, B for billions, % for percentages)
    */
   formatValue(value: number, type: 'revenue' | 'percentage' | 'rate'): string {
     if (value === null || value === undefined) return '0.0';
 
     if (type === 'revenue') {
-      return (value / 1000000).toFixed(1); // Convert to millions
+      // Format revenue with M (millions) or B (billions)
+      const absValue = Math.abs(value);
+      if (absValue >= 1000000000) {
+        return `${(value / 1000000000).toFixed(1)}B`;
+      } else {
+        return `${(value / 1000000).toFixed(1)}M`;
+      }
     } else if (type === 'percentage') {
-      return (value * 100).toFixed(1); // Convert to percentage
+      return `${(value * 100).toFixed(1)}%`;
     } else if (type === 'rate') {
       return Math.round(value).toString();
     }
@@ -1001,7 +1080,7 @@ class SimulationApiService {
         title: 'Net Sales',
         currentValue: this.formatValue(financial.net_sales, 'revenue'),
         previousValue: this.formatValue(financial.net_sales_baseline, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Total revenue from client services',
         change: financial.net_sales - financial.net_sales_baseline,
         changePercent: financial.net_sales_baseline > 0 ? 
@@ -1011,7 +1090,7 @@ class SimulationApiService {
         title: 'Total Salary Costs',
         currentValue: this.formatValue(financial.total_salary_costs, 'revenue'),
         previousValue: this.formatValue(financial.total_salary_costs_baseline, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Total employment costs including overhead',
         change: financial.total_salary_costs - financial.total_salary_costs_baseline,
         changePercent: financial.total_salary_costs_baseline > 0 ? 
@@ -1021,7 +1100,7 @@ class SimulationApiService {
         title: 'EBITDA',
         currentValue: this.formatValue(financial.ebitda, 'revenue'),
         previousValue: this.formatValue(financial.ebitda_baseline, 'revenue'),
-        unit: 'mSEK',
+        unit: '',
         description: 'Earnings before interest, taxes, depreciation and amortization',
         change: financial.ebitda - financial.ebitda_baseline,
         changePercent: financial.ebitda_baseline > 0 ? 
@@ -1029,9 +1108,9 @@ class SimulationApiService {
       },
       {
         title: 'EBITDA Margin',
-        currentValue: this.formatValue(financial.margin * 100, 'percentage'),
-        previousValue: this.formatValue(financial.margin_baseline * 100, 'percentage'),
-        unit: '%',
+        currentValue: this.formatValue(financial.margin, 'percentage'),
+        previousValue: this.formatValue(financial.margin_baseline, 'percentage'),
+        unit: '',
         description: 'EBITDA as percentage of net sales',
         change: (financial.margin - financial.margin_baseline) * 100,
         changePercent: financial.margin_baseline > 0 ? 

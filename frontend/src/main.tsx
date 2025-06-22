@@ -19,9 +19,7 @@ import 'antd/dist/reset.css';
 import { ConfigProvider, theme, Button, App as AntdApp } from 'antd';
 import { ConfigProvider as CustomConfigProvider } from './components/ConfigContext';
 
-// Stagewise imports
-import { StagewiseToolbar } from '@stagewise/toolbar-react';
-import { ReactPlugin } from '@stagewise-plugins/react';
+// Stagewise imports removed - packages not available
 
 function MainApp() {
   const [isDark, setIsDark] = useState(true);
@@ -30,13 +28,7 @@ function MainApp() {
       <ThemeProvider>
         <CustomConfigProvider>
           <BrowserRouter>
-            {/* Stagewise Toolbar - only in development */}
-            <StagewiseToolbar 
-              config={{
-                plugins: [ReactPlugin]
-              }}
-              enabled={import.meta.env.DEV}
-            />
+            {/* Stagewise Toolbar removed - packages not available */}
             
             <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
               <Button onClick={() => setIsDark(d => !d)}>

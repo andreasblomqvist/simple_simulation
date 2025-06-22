@@ -140,19 +140,42 @@ def run_simulation(params: SimulationRequest):
         end_date = datetime(params.end_year, params.end_month, 1)
         simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
         
-        # Calculate KPIs
-        results_with_kpis = engine.calculate_kpis_for_simulation(
-            results,
-            simulation_duration_months,
-            params.unplanned_absence,
-            params.other_expense
-        )
+        # Calculate KPIs using the KPI service (separation of concerns)
+        try:
+            from backend.src.services.kpi_service import KPIService
+            kpi_service = KPIService()
+            
+            # Calculate KPIs for the simulation
+            kpi_results = kpi_service.calculate_all_kpis(
+                results,
+                simulation_duration_months,
+                params.unplanned_absence,
+                params.other_expense
+            )
+            
+            # Convert dataclasses to dicts for JSON serialization
+            def to_dict(data):
+                if hasattr(data, '__dataclass_fields__'):
+                    return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
+                elif isinstance(data, dict):
+                    return {k: to_dict(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [to_dict(i) for i in data]
+                else:
+                    return data
+            
+            results['kpis'] = to_dict(kpi_results)
+            print(f"✅ [SIMULATION] KPIs calculated successfully")
+            
+        except Exception as e:
+            print(f"❌ [SIMULATION] KPI calculation failed: {e}")
+            results['kpis'] = None
         
         print(f"✅ [SIMULATION] Completed successfully! Duration: {simulation_duration_months} months")
-        print(f"[SIMULATION] Years in results: {list(results_with_kpis['years'].keys())}")
+        print(f"[SIMULATION] Years in results: {list(results['years'].keys())}")
         print(f"[SIMULATION] =================== SIMULATION COMPLETE ===================\n")
         
-        return results_with_kpis
+        return results
     
     except Exception as e:
         print(f"❌ [SIMULATION] Failed with error: {str(e)}")
@@ -410,13 +433,36 @@ def export_simulation_to_excel(params: SimulationRequest):
         end_date = datetime(params.end_year, params.end_month, 1)
         simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
         
-        # Calculate KPIs for the export
-        results_with_kpis = engine.calculate_kpis_for_simulation(
-            results,
-            simulation_duration_months,
-            params.unplanned_absence,
-            params.other_expense
-        )
+        # Calculate KPIs for the export using the KPI service
+        try:
+            from backend.src.services.kpi_service import KPIService
+            kpi_service = KPIService()
+            
+            kpi_results = kpi_service.calculate_all_kpis(
+                results,
+                simulation_duration_months,
+                params.unplanned_absence,
+                params.other_expense
+            )
+            
+            # Convert dataclasses to dicts for JSON serialization
+            def to_dict(data):
+                if hasattr(data, '__dataclass_fields__'):
+                    return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
+                elif isinstance(data, dict):
+                    return {k: to_dict(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [to_dict(i) for i in data]
+                else:
+                    return data
+            
+            results_with_kpis = results.copy()
+            results_with_kpis['kpis'] = to_dict(kpi_results)
+            
+        except Exception as e:
+            print(f"❌ [EXPORT] KPI calculation failed: {e}")
+            results_with_kpis = results
+            results_with_kpis['kpis'] = {}
         
         print(f"✅ [EXPORT] Simulation completed, generating Excel file...")
         
