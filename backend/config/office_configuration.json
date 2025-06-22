@@ -6,7 +6,7 @@
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 69,
+          "fte": 100,
           "price_1": 1106.61,
           "salary_1": 42000,
           "recruitment_1": 0.04,
@@ -23,7 +23,7 @@
           "salary_3": 42210,
           "recruitment_3": 0.04,
           "churn_3": 0.0128,
-          "utr_3": 0.85,
+          "utr_3": 1.85,
           "progression_3": 0,
           "price_4": 1114.91,
           "salary_4": 42315.0,
@@ -98,7 +98,7 @@
           "salary_3": 44220,
           "recruitment_3": 0.025,
           "churn_3": 0.0153,
-          "utr_3": 0.85,
+          "utr_3": 1.85,
           "progression_3": 0,
           "price_4": 1122.93,
           "salary_4": 44330.0,
@@ -12756,7 +12756,7 @@
           "salary_3": 44073.27,
           "recruitment_3": 0.04,
           "churn_3": 0.0128,
-          "utr_3": 0.85,
+          "utr_3": 2.85,
           "progression_3": 0,
           "price_4": 1159.8,
           "salary_4": 44182.91,

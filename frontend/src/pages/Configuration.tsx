@@ -332,56 +332,43 @@ export default function Configuration() {
   };
 
   // Export current configuration
-  const handleExportConfig = () => {
+  const handleExportConfig = async () => {
     try {
-      // Create a deep copy of the current office data
-      const currentData = JSON.parse(JSON.stringify(officeData));
-
-      // Apply any draft changes to the copy
-      Object.entries(draftChanges).forEach(([path, value]) => {
-        const pathParts = path.split('.');
-        const [office, role, ...rest] = pathParts;
-        
-        // Ensure the office and role exist in the data structure
-        if (!currentData[office]) currentData[office] = { roles: {} };
-        if (!currentData[office].roles) currentData[office].roles = {};
-        if (!currentData[office].roles[role]) currentData[office].roles[role] = {};
-        
-        if (rest.length === 1) {
-          // Operations: office.role.field
-          const field = rest[0];
-          currentData[office].roles[role][field] = value;
-        } else {
-          // Has level: office.role.level.field
-          const [level, field] = rest;
-          if (!currentData[office].roles[role][level]) {
-            currentData[office].roles[role][level] = {};
-          }
-          currentData[office].roles[role][level][field] = value;
-        }
-      });
-
-      // Create export data with metadata
-      const exportData = {
-        metadata: {
-          exportedAt: new Date().toISOString(),
-          exportedBy: 'Configuration Matrix',
-          selectedOffice: selectedOffice,
-          hasUnsavedChanges: hasChanges,
-          unsavedChangeCount: Object.keys(draftChanges).length,
-          selectedMonths: selectedMonths
-        },
-        configuration: currentData
-      };
-
-      // Create and download the file
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      setLoading(true);
       
+      // Call the backend Excel export endpoint
+      const response = await fetch('/api/offices/config/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          includeUnsavedChanges: hasChanges,
+          unsavedChanges: draftChanges,
+          exportMetadata: {
+            exportedAt: new Date().toISOString(),
+            exportedBy: 'Configuration Matrix',
+            exportScope: 'All Offices',
+            currentlyViewedOffice: selectedOffice,
+            hasUnsavedChanges: hasChanges,
+            unsavedChangeCount: Object.keys(draftChanges).length,
+            selectedMonths: selectedMonths
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export configuration');
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `office-config-${selectedOffice}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `all-offices-config-${new Date().toISOString().split('T')[0]}.xlsx`;
       a.style.display = 'none';
       
       document.body.appendChild(a);
@@ -396,16 +383,16 @@ export default function Configuration() {
       // Show success message with file info
       const fileSizeKB = Math.round(blob.size / 1024);
       message.success({
-        content: `✅ Configuration exported successfully! File: ${a.download} (${fileSizeKB} KB)`,
+        content: `✅ All offices configuration exported successfully! File: ${a.download} (${fileSizeKB} KB Excel file)`,
         duration: 5
       });
 
-      console.log('Export completed:', {
+      console.log('Excel export completed:', {
         fileName: a.download,
         fileSize: `${fileSizeKB} KB`,
-        officesCount: Object.keys(currentData).length,
         hasChanges: hasChanges,
-        selectedOffice: selectedOffice
+        currentlyViewedOffice: selectedOffice,
+        exportFormat: 'Excel'
       });
 
     } catch (error) {
@@ -415,6 +402,8 @@ export default function Configuration() {
         content: `❌ Export failed: ${errorMessage}`,
         duration: 8
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -785,9 +774,10 @@ export default function Configuration() {
             <Button 
               icon={<DownloadOutlined />} 
               onClick={handleExportConfig}
-              disabled={importing}
+              disabled={importing || loading}
+              loading={loading}
             >
-              📥 Export Config
+              �� Export All Offices (Excel)
             </Button>
           </Col>
           <Col flex="auto" />
