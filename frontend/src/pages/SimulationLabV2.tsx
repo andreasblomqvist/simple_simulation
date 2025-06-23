@@ -397,74 +397,84 @@ const SimulationLabV2: React.FC = () => {
     : [];
   const officeOptions = officeConfig.length > 0 ? simulationApi.extractOfficeOptions(officeConfig) : [];
   
-  // Enhanced kpiData that includes both financial and growth KPIs
-  const enhancedKpiData = (() => {
-    if (!simulationResults || !activeYear) return { kpis: [], seniorityKPIs: null };
-    
-    // Get base financial KPIs
-    const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear, socialCost, otherExpense);
-    
-    // Get seniority KPIs to extract growth data
-    // Use the first available year as baseline for proper comparison
-    const baselineYear = availableYears.length > 0 ? availableYears[0] : activeYear;
-    const seniorityKPIs = simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, baselineYear);
-    
-    // Add growth KPIs from seniorityKPIs
-    const growthKPIs = [];
-    if (seniorityKPIs) {
-      // Total Growth Rate KPI
-      if (seniorityKPIs.totalGrowthDetails) {
-        growthKPIs.push({
-          title: 'Total Growth',
-          currentValue: seniorityKPIs.totalGrowthDetails.percentage,
-          previousValue: '0.0%', // Baseline is always 0% growth
-          unit: '',
-          description: 'Total workforce growth compared to baseline',
-          change: seniorityKPIs.totalGrowthDetails.absolute,
-          changePercent: parseFloat(seniorityKPIs.totalGrowthDetails.percentage.replace(/[+%]/g, '')),
-          rawValue: seniorityKPIs.totalGrowthDetails.current
-        });
+  // State for enhanced KPI data
+  const [enhancedKpiData, setEnhancedKpiData] = useState<{ kpis: any[], seniorityKPIs: any }>({ kpis: [], seniorityKPIs: null });
+
+  // Load enhanced KPI data when simulation results or active year changes
+  useEffect(() => {
+    const loadEnhancedKpiData = async () => {
+      if (!simulationResults || !activeYear) {
+        setEnhancedKpiData({ kpis: [], seniorityKPIs: null });
+        return;
       }
       
-      // Non-Debit Ratio KPI
-      if (seniorityKPIs.nonDebitDetails) {
-        growthKPIs.push({
-          title: 'Non-Debit Ratio',
-          currentValue: seniorityKPIs.nonDebitDetails.percentage,
-          previousValue: `${seniorityKPIs.nonDebitDetails.baseline}%`,
-          unit: '',
-          description: 'Percentage of non-consultant roles (Sales, Recruitment, Operations)',
-          change: seniorityKPIs.nonDebitDetails.absolute,
-          changePercent: seniorityKPIs.nonDebitDetails.absolute,
-          rawValue: seniorityKPIs.nonDebitDetails.current
-        });
-      }
+      // Get base financial KPIs
+      const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear, socialCost, otherExpense);
       
-      // Journey Distribution KPIs
-      ['journey1', 'journey2', 'journey3', 'journey4'].forEach((journey, index) => {
-        const journeyDetails = seniorityKPIs[`${journey}Details`];
-        if (journeyDetails) {
-          const journeyDefinitions = ['A, AC, C', 'SrC, AM', 'M, SrM', 'PiP'];
+      // Get seniority KPIs to extract growth data
+      // Use the first available year as baseline for proper comparison
+      const baselineYear = availableYears.length > 0 ? availableYears[0] : activeYear;
+      const seniorityKPIs = await simulationApi.extractSeniorityKPIs(simulationResults, activeYear, officeConfig, baselineYear);
+      
+      // Add growth KPIs from seniorityKPIs
+      const growthKPIs = [];
+      if (seniorityKPIs) {
+        // Total Growth Rate KPI
+        if (seniorityKPIs.totalGrowthDetails) {
           growthKPIs.push({
-            title: `Journey ${index + 1} (${journeyDefinitions[index]})`,
-            currentValue: journeyDetails.percentage,
-            previousValue: `${journeyDetails.baseline} FTE`,
+            title: 'Total Growth',
+            currentValue: seniorityKPIs.totalGrowthDetails.percentage,
+            previousValue: '0.0%', // Baseline is always 0% growth
             unit: '',
-            description: `Workforce distribution in Journey ${index + 1}: ${journeyDefinitions[index]}`,
-            change: journeyDetails.absolute,
-            changePercent: journeyDetails.baseline > 0 ? (journeyDetails.absolute / journeyDetails.baseline) * 100 : 0,
-            rawValue: journeyDetails.current
+            description: 'Total workforce growth compared to baseline',
+            change: seniorityKPIs.totalGrowthDetails.absolute,
+            changePercent: parseFloat(seniorityKPIs.totalGrowthDetails.percentage.replace(/[+%]/g, '')),
+            rawValue: seniorityKPIs.totalGrowthDetails.current
           });
         }
+        
+        // Non-Debit Ratio KPI
+        if (seniorityKPIs.nonDebitDetails) {
+          growthKPIs.push({
+            title: 'Non-Debit Ratio',
+            currentValue: seniorityKPIs.nonDebitDetails.percentage,
+            previousValue: `${seniorityKPIs.nonDebitDetails.baseline}%`,
+            unit: '',
+            description: 'Percentage of non-consultant roles (Sales, Recruitment, Operations)',
+            change: seniorityKPIs.nonDebitDetails.absolute,
+            changePercent: seniorityKPIs.nonDebitDetails.absolute,
+            rawValue: seniorityKPIs.nonDebitDetails.current
+          });
+        }
+        
+        // Journey Distribution KPIs
+        ['journey1', 'journey2', 'journey3', 'journey4'].forEach((journey, index) => {
+          const journeyDetails = seniorityKPIs[`${journey}Details`];
+          if (journeyDetails) {
+            const journeyDefinitions = ['A, AC, C', 'SrC, AM', 'M, SrM', 'PiP'];
+            growthKPIs.push({
+              title: `Journey ${index + 1} (${journeyDefinitions[index]})`,
+              currentValue: journeyDetails.percentage,
+              previousValue: `${journeyDetails.baseline} FTE`,
+              unit: '',
+              description: `Workforce distribution in Journey ${index + 1}: ${journeyDefinitions[index]}`,
+              change: journeyDetails.absolute,
+              changePercent: journeyDetails.baseline > 0 ? (journeyDetails.absolute / journeyDetails.baseline) * 100 : 0,
+              rawValue: journeyDetails.current
+            });
+          }
+        });
+      }
+      
+      // Store seniorityKPIs for use in other parts of the component
+      setEnhancedKpiData({
+        kpis: [...financialKPIs, ...growthKPIs],
+        seniorityKPIs
       });
-    }
-    
-    // Store seniorityKPIs for use in other parts of the component
-    return {
-      kpis: [...financialKPIs, ...growthKPIs],
-      seniorityKPIs
     };
-  })();
+
+    loadEnhancedKpiData();
+  }, [simulationResults, activeYear, officeConfig, availableYears, socialCost, otherExpense]);
 
   // --- START ENHANCED DEBUG LOGGING ---
   useEffect(() => {
@@ -519,9 +529,25 @@ const SimulationLabV2: React.FC = () => {
     console.log('[DEBUG] Table data is empty or null');
   }
   
-  const seniorityData = simulationResults && activeYear
-    ? simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig)
-    : [];
+  const [seniorityData, setSeniorityData] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const loadSeniorityData = async () => {
+      if (simulationResults && activeYear) {
+        try {
+          const data = await simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig);
+          setSeniorityData(data);
+        } catch (error) {
+          console.error('Error loading seniority data:', error);
+          setSeniorityData([]);
+        }
+      } else {
+        setSeniorityData([]);
+      }
+    };
+    
+    loadSeniorityData();
+  }, [simulationResults, activeYear, officeConfig]);
 
   const tableColumns = [
     {
@@ -579,30 +605,26 @@ const SimulationLabV2: React.FC = () => {
     journey: journeyMap[level],
   }));
 
-  if (simulationResults && activeYear) {
-    // Use the first office (or aggregate all offices if needed)
-    const seniorityRows = simulationApi.extractSeniorityData(simulationResults, activeYear, officeConfig);
-    console.log('seniorityRows sample', seniorityRows[0]);
-    if (seniorityRows.length > 0) {
-      // Aggregate FTE by level across all offices
-      const fteByLevel: Record<string, number> = {};
-      LEVELS.forEach(level => { fteByLevel[level] = 0; });
-      seniorityRows.forEach(row => {
-        LEVELS.forEach(level => {
-          const key = `level${level}`;
-          let value = row[key];
-          if (typeof value === 'string' && value.includes('(')) {
-            value = value.split(' ')[0];
-          }
-          fteByLevel[level] += Number(value) || 0;
-        });
+  // Use seniorityData from state instead of calling the function again
+  if (seniorityData.length > 0) {
+    // Aggregate FTE by level across all offices
+    const fteByLevel: Record<string, number> = {};
+    LEVELS.forEach(level => { fteByLevel[level] = 0; });
+    seniorityData.forEach(row => {
+      LEVELS.forEach(level => {
+        const key = `level${level}`;
+        let value = row[key];
+        if (typeof value === 'string' && value.includes('(')) {
+          value = value.split(' ')[0];
+        }
+        fteByLevel[level] += Number(value) || 0;
       });
-      pyramidData = LEVELS.map(level => ({
-        level,
-        fte: fteByLevel[level],
-        journey: journeyMap[level],
-      }));
-    }
+    });
+    pyramidData = LEVELS.map(level => ({
+      level,
+      fte: fteByLevel[level],
+      journey: journeyMap[level],
+    }));
   }
 
   // Prepare data for WorkforceStackedBarChart from simulation results (movement data)

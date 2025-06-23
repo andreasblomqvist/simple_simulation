@@ -15,7 +15,8 @@ import {
   Checkbox,
   Progress,
   Row,
-  Col
+  Col,
+  message
 } from 'antd';
 import { 
   SearchOutlined, 
@@ -104,18 +105,56 @@ export interface TableViewSettings {
 }
 
 interface EnhancedDataTableProps {
-  data: TableDataRow[];
+  data: any[];
+  baselineData?: any[];
   loading?: boolean;
   title?: string;
   className?: string;
   height?: number;
   virtualized?: boolean;
   exportFileName?: string;
-  onRowClick?: (record: TableDataRow) => void;
+  onRowClick?: (record: any) => void;
   onFilterChange?: (filters: TableFilterState) => void;
-  customColumns?: ColumnsType<TableDataRow>;
+  customColumns?: ColumnsType<any>;
   showAdvancedFilters?: boolean;
 }
+
+const processDataForTable = (kpiData: any[], baselineConfig: any[]) => {
+  if (!kpiData || kpiData.length === 0) return [];
+
+  const baselineMap = new Map(baselineConfig.map(office => [office.name, office]));
+
+  return kpiData.map((office: any) => {
+    const baselineOffice = baselineMap.get(office.office);
+    const officeData: any = { ...office };
+    
+    const officeBaselineFTE = baselineOffice ? baselineOffice.total_fte || 0 : 0;
+    officeData.totalDelta = office.total - officeBaselineFTE;
+
+    const levels = office.levels ? Object.keys(office.levels) : Object.keys(office).filter(k => !['key', 'office', 'total', 'totalDelta', 'Non-debit Ratio'].includes(k) && !k.endsWith('Delta'));
+
+    levels.forEach((levelName: string) => {
+      let levelBaselineFTE = 0;
+      if (baselineOffice && baselineOffice.roles) {
+        if (levelName === 'Operations' && baselineOffice.roles.Operations) {
+          const opsBaseline = baselineOffice.roles.Operations;
+          if (opsBaseline && 'fte' in opsBaseline) {
+            levelBaselineFTE = opsBaseline.fte;
+          }
+        } else if (baselineOffice.roles.Consultant && baselineOffice.roles.Consultant[levelName]) {
+          const baselineLevel = baselineOffice.roles.Consultant[levelName];
+          if (baselineLevel && 'fte' in baselineLevel) {
+            levelBaselineFTE = baselineLevel.fte;
+          }
+        }
+      }
+      const currentFTE = office.levels ? office.levels[levelName] : office[levelName];
+      officeData[`${levelName}Delta`] = currentFTE - levelBaselineFTE;
+    });
+
+    return officeData;
+  });
+};
 
 /**
  * EnhancedDataTable Component
@@ -131,6 +170,7 @@ interface EnhancedDataTableProps {
  */
 export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
   data,
+  baselineData = [],
   loading = false,
   title = "Simulation Data",
   className = '',
@@ -170,9 +210,27 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [columnSorter, setColumnSorter] = useState<{ field?: string; order?: 'ascend' | 'descend' }>({});
 
+  const processedData = useMemo(() => {
+    if (!baselineData || baselineData.length === 0) {
+      return data.map((d: any) => {
+        const levels = d.levels ? Object.keys(d.levels) : Object.keys(d).filter(k => !['key', 'office', 'total', 'Non-debit Ratio'].includes(k));
+        const deltas = levels.reduce((acc: any, key: string) => {
+          acc[`${key}Delta`] = d.levels ? d.levels[key] : d[key];
+          return acc;
+        }, {} as any);
+        return {
+          ...d,
+          totalDelta: d.total,
+          ...deltas
+        };
+      });
+    }
+    return processDataForTable(data, baselineData);
+  }, [data, baselineData]);
+
   // Filter data based on current filters
   const filteredData = useMemo(() => {
-    return data.filter(row => {
+    return processedData.filter((row: any) => {
       // Search text filter
       if (filters.searchText) {
         const searchLower = filters.searchText.toLowerCase();
@@ -224,17 +282,17 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
 
       return true;
     });
-  }, [data, filters]);
+  }, [processedData, filters]);
 
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
-    const categories = [...new Set(data.map(row => row.category))];
-    const offices = [...new Set(data.map(row => row.office).filter(Boolean))];
-    const journeys = [...new Set(data.map(row => row.journey).filter(Boolean))];
-    const levels = [...new Set(data.map(row => row.level).filter(Boolean))];
+    const categories = [...new Set(processedData.map((row: any) => row.category))];
+    const offices = [...new Set(processedData.map((row: any) => row.office).filter(Boolean))];
+    const journeys = [...new Set(processedData.map((row: any) => row.journey).filter(Boolean))];
+    const levels = [...new Set(processedData.map((row: any) => row.level).filter(Boolean))];
 
     return { categories, offices, journeys, levels };
-  }, [data]);
+  }, [processedData]);
 
   // Handle filter changes
   const handleFilterChange = useCallback((newFilters: Partial<TableFilterState>) => {
@@ -248,457 +306,223 @@ export const EnhancedDataTable: React.FC<EnhancedDataTableProps> = ({
     setViewSettings(prev => ({ ...prev, [setting]: value }));
   }, []);
 
-  // Format change indicator
+  const getColumnSearchProps = (dataIndex: string) => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+      <div style={{ padding: 8 }}>
+        <Input
+          placeholder={`Search ${dataIndex}`}
+          value={selectedKeys[0]}
+          onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+          onPressEnter={() => confirm()}
+          style={{ marginBottom: 8, display: 'block' }}
+        />
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => confirm()}
+            icon={<SearchOutlined />}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Search
+          </Button>
+          <Button onClick={() => clearFilters()} size="small" style={{ width: 90 }}>
+            Reset
+          </Button>
+        </Space>
+      </div>
+    ),
+    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    onFilter: (value: any, record: any) =>
+      record[dataIndex]
+        ? record[dataIndex].toString().toLowerCase().includes(value.toLowerCase())
+        : '',
+  });
+
   const formatChangeIndicator = (change?: TableDataRow['change']) => {
     if (!change) return null;
-
-    const { percentage, trend, significance } = change;
-    const color = trend === 'up' ? '#52c41a' : trend === 'down' ? '#ff4d4f' : '#8c8c8c';
+    const { absolute, percentage, trend } = change;
+    const color = trend === 'up' ? 'green' : trend === 'down' ? 'red' : 'gray';
     const icon = trend === 'up' ? <ArrowUpOutlined /> : trend === 'down' ? <ArrowDownOutlined /> : <MinusOutlined />;
-    
+
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ color }}>{icon}</span>
-        <Text style={{ color, fontWeight: significance === 'high' ? 'bold' : 'normal' }}>
-          {percentage > 0 ? '+' : ''}{percentage.toFixed(1)}%
-        </Text>
-        {significance === 'high' && (
-          <Tooltip title="Statistically significant change">
-            <InfoCircleOutlined style={{ fontSize: '12px', color: '#faad14' }} />
-          </Tooltip>
-        )}
-      </div>
+      <Tag color={color} icon={icon}>
+        {absolute.toFixed(2)} ({percentage.toFixed(1)}%)
+      </Tag>
     );
   };
+  
+  // --- Define Columns ---
+  const columns: ColumnsType<any> = useMemo(() => {
+    if (!processedData || processedData.length === 0) return [];
 
-  // Define base columns
-  const baseColumns: ColumnsType<TableDataRow> = [
-    {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      width: 150,
-      fixed: 'left',
-      sorter: (a, b) => a.category.localeCompare(b.category),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            style={{ width: 200 }}
-            placeholder="Select categories"
-            value={selectedKeys as string[]}
-            onChange={(values) => setSelectedKeys(values)}
-            options={filterOptions.categories.map(cat => ({ label: cat, value: cat }))}
-          />
-          <div style={{ marginTop: 8 }}>
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => confirm()}
-              style={{ marginRight: 8 }}
-            >
-              Filter
-            </Button>
-            <Button size="small" onClick={() => clearFilters?.()}>
-              Reset
-            </Button>
-          </div>
-        </div>
-      ),
-      render: (text, record) => (
-        <div>
-          <Text strong>{text}</Text>
-          {record.subCategory && (
-            <div>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {record.subCategory}
-              </Text>
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Office',
-      dataIndex: 'office',
-      key: 'office',
-      width: 100,
-      sorter: (a, b) => (a.office || '').localeCompare(b.office || ''),
-      render: (text) => text ? <Tag color="blue">{text}</Tag> : '-'
-    },
-    {
-      title: 'Journey',
-      dataIndex: 'journey',
-      key: 'journey',
-      width: 100,
-      sorter: (a, b) => (a.journey || '').localeCompare(b.journey || ''),
-      render: (text) => text ? <Tag color="purple">{text}</Tag> : '-'
-    },
-    {
-      title: 'Level',
-      dataIndex: 'level',
-      key: 'level',
-      width: 80,
-      sorter: (a, b) => (a.level || '').localeCompare(b.level || ''),
-      render: (text) => text ? <Tag color="green">{text}</Tag> : '-'
-    },
-    {
-      title: `${selectedYear} Value`,
-      dataIndex: ['currentYear', 'formatted'],
-      key: 'currentValue',
-      width: 120,
-      align: 'right',
-      sorter: (a, b) => a.currentYear.value - b.currentYear.value,
-      render: (text, record) => (
-        <div>
-          <Text strong>{text}</Text>
-          {record.metadata?.projected && (
-            <div>
-              <Tag color="orange">Projected</Tag>
-            </div>
-          )}
-        </div>
-      )
-    }
-  ];
-
-  // Add YoY comparison columns if enabled
-  if (viewSettings.showYoYColumns && selectedYear > availableYears[0]) {
-    baseColumns.push(
+    const baseColumns: ColumnsType<any> = [
       {
-        title: `${selectedYear - 1} Value`,
-        dataIndex: ['previousYear', 'formatted'],
-        key: 'previousValue',
-        width: 120,
-        align: 'right',
-        render: (text) => text || '-'
+        title: 'Office',
+        dataIndex: 'office',
+        key: 'office',
+        fixed: 'left',
+        width: 150,
+        sorter: (a, b) => a.office.localeCompare(b.office),
       },
       {
-        title: 'Change',
-        dataIndex: 'change',
-        key: 'change',
-        width: 100,
-        align: 'center',
-        sorter: (a, b) => (a.change?.percentage || 0) - (b.change?.percentage || 0),
-        render: (change) => formatChangeIndicator(change)
-      }
-    );
-  }
-
-  // Add multi-year progression column if enabled
-  if (viewSettings.showMultiYearProgression) {
-    baseColumns.push({
-      title: 'Multi-Year Trend',
-      key: 'multiYearTrend',
-      width: 150,
-      render: (_, record) => {
-        if (!record.multiYear) return '-';
-        
-        const years = Object.keys(record.multiYear).sort();
-        const values = years.map(year => record.multiYear![parseInt(year)].value);
-        
-        // Simple trend visualization using progress bars
-        const maxValue = Math.max(...values);
-        
-        return (
-          <div style={{ padding: '4px 0' }}>
-            {years.slice(-3).map(year => {
-              const yearInt = parseInt(year);
-              const value = record.multiYear![yearInt].value;
-              const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-              
-              return (
-                <div key={year} style={{ marginBottom: '2px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                    <span>{year}</span>
-                    <span>{record.multiYear![yearInt].formatted}</span>
-                  </div>
-                  <Progress 
-                    percent={percentage} 
-                    size="small" 
-                    showInfo={false}
-                    strokeColor={yearInt === selectedYear ? '#1890ff' : '#d9d9d9'}
-                  />
-                </div>
-              );
-            })}
+        title: 'Total',
+        dataIndex: 'total',
+        key: 'total',
+        width: 120,
+        sorter: (a, b) => a.total - b.total,
+        render: (value, record) => (
+          <div>
+            <Text strong>{value != null ? value.toFixed(1) : '-'}</Text><br />
+            <Text type="secondary" style={{ color: record.totalDelta >= 0 ? 'green' : 'red' }}>
+              ({record.totalDelta >= 0 ? '+' : ''}{record.totalDelta != null ? record.totalDelta.toFixed(1) : '-'})
+            </Text>
           </div>
-        );
+        )
       }
+    ];
+    
+    const levelColumns: ColumnsType<any> = [];
+    const sampleRow = processedData[0];
+    const levels = sampleRow.levels ? Object.keys(sampleRow.levels) : Object.keys(sampleRow).filter(k => !['key', 'office', 'total', 'totalDelta', 'Non-debit Ratio'].includes(k) && !k.endsWith('Delta'));
+    
+    levels.forEach((level: string) => {
+      levelColumns.push({
+        title: level,
+        dataIndex: ['levels', level],
+        key: level,
+        width: 100,
+        sorter: (a, b) => ((a.levels?.[level] || a[level] || 0) - (b.levels?.[level] || b[level] || 0)),
+        render: (value, record) => {
+          const currentValue = record.levels ? record.levels[level] : record[level];
+          const deltaValue = record[`${level}Delta`];
+          return (
+            <div>
+              <Text>{currentValue != null ? currentValue.toFixed(1) : '-'}</Text><br/>
+              <Text type="secondary" style={{ color: deltaValue >= 0 ? 'green' : 'red' }}>
+                ({deltaValue >= 0 ? '+' : ''}{deltaValue != null ? deltaValue.toFixed(1) : '-'})
+              </Text>
+            </div>
+          );
+        }
+      });
     });
-  }
 
-  // Merge with custom columns
-  const finalColumns = customColumns ? [...baseColumns, ...customColumns] : baseColumns;
+    const ratioColumn = {
+        title: 'Non-debit Ratio',
+        dataIndex: 'Non-debit Ratio',
+        key: 'non_debit_ratio',
+        width: 120,
+    };
 
-  // Export functionality
-  const handleExport = (format: 'csv' | 'json' = 'csv') => {
-    const exportData = filteredData.map(row => ({
-      Category: row.category,
-      SubCategory: row.subCategory || '',
-      Office: row.office || '',
-      Journey: row.journey || '',
-      Level: row.level || '',
-      CurrentYear: row.currentYear.year,
-      CurrentValue: row.currentYear.value,
-      CurrentFormatted: row.currentYear.formatted,
-      PreviousYear: row.previousYear?.year || '',
-      PreviousValue: row.previousYear?.value || '',
-      PreviousFormatted: row.previousYear?.formatted || '',
-      ChangeAbsolute: row.change?.absolute || '',
-      ChangePercentage: row.change?.percentage || '',
-      ChangeTrend: row.change?.trend || '',
-      Significance: row.change?.significance || '',
-      Projected: row.metadata?.projected || false
-    }));
+    return [...baseColumns, ...levelColumns, ratioColumn];
+  }, [processedData, columnSorter]);
 
-    exportChartData(exportData, `${exportFileName}_${selectedYear}`, format);
-  };
-
-  // Row selection configuration
-  const rowSelection: TableProps<TableDataRow>['rowSelection'] = {
-    selectedRowKeys: selectedRows,
-    onChange: (selectedRowKeys) => {
-      setSelectedRows(selectedRowKeys as string[]);
-    },
-    type: 'checkbox',
-  };
-
-  // Expandable row configuration
-  const expandable = viewSettings.showMultiYearProgression ? {
-    expandedRowKeys: viewSettings.expandedRows,
-    onExpand: (expanded: boolean, record: TableDataRow) => {
-      const newExpandedRows = expanded 
-        ? [...viewSettings.expandedRows, record.key]
-        : viewSettings.expandedRows.filter(key => key !== record.key);
-      
-      handleViewSettingChange('expandedRows', newExpandedRows);
-    },
-    expandedRowRender: (record: TableDataRow) => {
-      if (!record.multiYear) return <div>No multi-year data available</div>;
-      
-      const years = Object.keys(record.multiYear).sort();
-      
-      return (
-        <div style={{ padding: '16px', background: '#f6f6f6' }}>
-          <Title level={5}>Multi-Year Progression for {record.category}</Title>
-          <Row gutter={[16, 8]}>
-            {years.map(year => {
-              const yearInt = parseInt(year);
-              const yearData = record.multiYear![yearInt];
-              const isCurrentYear = yearInt === selectedYear;
-              
-              return (
-                <Col key={year} span={6}>
-                  <Card 
-                    size="small" 
-                    style={{ 
-                      background: isCurrentYear ? '#e6f7ff' : 'white',
-                      border: isCurrentYear ? '2px solid #1890ff' : '1px solid #d9d9d9'
-                    }}
-                  >
-                    <div style={{ textAlign: 'center' }}>
-                      <Text type="secondary">{year}</Text>
-                      <br />
-                      <Text strong style={{ fontSize: '16px' }}>
-                        {yearData.formatted}
-                      </Text>
-                    </div>
-                  </Card>
-                </Col>
-              );
-            })}
-          </Row>
-        </div>
-      );
+  const handleRowClick = (record: any) => {
+    if (onRowClick) {
+      onRowClick(record);
     }
-  } : undefined;
+  };
+  
+  const finalColumns = customColumns || columns;
+  
+  const handleExport = (format: 'csv' | 'json' = 'csv') => {
+    exportChartData(
+      filteredData, 
+      `${exportFileName}_${selectedYear}`,
+      format
+    );
+    message.success(`Data exported as ${format.toUpperCase()}`);
+  };
+
+  const tableSettingsMenu = (
+    <Menu>
+      <Menu.Item key="compact">
+        <Switch 
+          checked={viewSettings.compactView} 
+          onChange={(checked) => handleViewSettingChange('compactView', checked)} 
+          size="small"
+        />
+        <Text style={{ marginLeft: 8 }}>Compact View</Text>
+      </Menu.Item>
+      <Menu.Item key="yoy">
+        <Switch 
+          checked={viewSettings.showYoYColumns} 
+          onChange={(checked) => handleViewSettingChange('showYoYColumns', checked)} 
+          size="small"
+        />
+        <Text style={{ marginLeft: 8 }}>Show YoY Change</Text>
+      </Menu.Item>
+      <Menu.Item key="indicators">
+        <Switch 
+          checked={viewSettings.showChangeIndicators} 
+          onChange={(checked) => handleViewSettingChange('showChangeIndicators', checked)} 
+          size="small"
+        />
+        <Text style={{ marginLeft: 8 }}>Show Trend Indicators</Text>
+      </Menu.Item>
+    </Menu>
+  );
 
   return (
     <Card 
-      className={`enhanced-data-table ${className}`}
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <TableOutlined />
-          <Title level={4} style={{ margin: 0 }}>{title}</Title>
-          <Text type="secondary">({filteredData.length} records)</Text>
-        </div>
-      }
+      title={title}
+      className={className}
+      variant="borderless"
       extra={
         <Space>
-          <Tooltip title="Toggle YoY Columns">
-            <Switch
-              checked={viewSettings.showYoYColumns}
-              onChange={(checked) => handleViewSettingChange('showYoYColumns', checked)}
-              checkedChildren="YoY"
-              unCheckedChildren="YoY"
-              size="small"
-            />
-          </Tooltip>
-          
-          <Tooltip title="Show Multi-Year Progression">
-            <Switch
-              checked={viewSettings.showMultiYearProgression}
-              onChange={(checked) => handleViewSettingChange('showMultiYearProgression', checked)}
-              checkedChildren={<BarChartOutlined />}
-              unCheckedChildren={<BarChartOutlined />}
-              size="small"
-            />
-          </Tooltip>
-          
-          <Dropdown
-            overlay={
+          <Search
+            placeholder="Search..."
+            onSearch={value => handleFilterChange({ searchText: value })}
+            style={{ width: 200 }}
+          />
+          {showAdvancedFilters && (
+            <Dropdown overlay={
               <Menu>
-                <Menu.Item key="csv" onClick={() => handleExport('csv')}>
-                  Export as CSV
-                </Menu.Item>
-                <Menu.Item key="json" onClick={() => handleExport('json')}>
-                  Export as JSON
-                </Menu.Item>
+                <Menu.SubMenu title="Filter by Office">
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder="Select offices"
+                    onChange={(value) => handleFilterChange({ office: value })}
+                    options={filterOptions.offices.map(o => ({ label: o, value: o }))}
+                  />
+                </Menu.SubMenu>
               </Menu>
-            }
-          >
-            <Button 
-              icon={<DownloadOutlined />} 
-              size="small"
-              disabled={filteredData.length === 0}
-            >
-              Export
-            </Button>
+            } trigger={['click']}>
+              <Button icon={<FilterOutlined />}>Filters</Button>
+            </Dropdown>
+          )}
+          <Dropdown overlay={tableSettingsMenu} trigger={['click']}>
+            <Button icon={<SettingOutlined />}>View</Button>
           </Dropdown>
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={() => handleExport('csv')}
+          >
+            Export
+          </Button>
         </Space>
       }
     >
-      {/* Advanced Filters */}
-      {showAdvancedFilters && (
-        <div style={{ marginBottom: '16px', padding: '16px', background: '#f6f6f6', borderRadius: '6px' }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8}>
-              <Search
-                placeholder="Search categories, offices..."
-                value={filters.searchText}
-                onChange={(e) => handleFilterChange({ searchText: e.target.value })}
-                style={{ width: '100%' }}
-                allowClear
-              />
-            </Col>
-            
-            <Col xs={12} sm={6} md={4}>
-              <Select
-                mode="multiple"
-                placeholder="Categories"
-                value={filters.category}
-                onChange={(values) => handleFilterChange({ category: values })}
-                style={{ width: '100%' }}
-                maxTagCount={1}
-              >
-                {filterOptions.categories.map(cat => (
-                  <Option key={cat} value={cat}>{cat}</Option>
-                ))}
-              </Select>
-            </Col>
-            
-            <Col xs={12} sm={6} md={4}>
-              <Select
-                mode="multiple"
-                placeholder="Offices"
-                value={filters.office}
-                onChange={(values) => handleFilterChange({ office: values })}
-                style={{ width: '100%' }}
-                maxTagCount={1}
-              >
-                {filterOptions.offices.map(office => (
-                  <Option key={office} value={office}>{office}</Option>
-                ))}
-              </Select>
-            </Col>
-            
-            <Col xs={12} sm={6} md={4}>
-              <Select
-                placeholder="Trend"
-                value={filters.trendFilter}
-                onChange={(value) => handleFilterChange({ trendFilter: value })}
-                style={{ width: '100%' }}
-              >
-                <Option value="all">All Trends</Option>
-                <Option value="up">↗️ Increasing</Option>
-                <Option value="down">↘️ Decreasing</Option>
-                <Option value="stable">➡️ Stable</Option>
-              </Select>
-            </Col>
-            
-            <Col xs={12} sm={6} md={4}>
-              <Checkbox
-                checked={filters.projectedOnly}
-                onChange={(e) => handleFilterChange({ projectedOnly: e.target.checked })}
-              >
-                Projected Only
-              </Checkbox>
-            </Col>
-          </Row>
-        </div>
-      )}
-
-      {/* Data Table */}
-      <Table<TableDataRow>
+      <Table<any>
         ref={tableRef}
         columns={finalColumns}
         dataSource={filteredData}
         loading={loading}
-        rowSelection={rowSelection}
-        expandable={expandable}
-        scroll={{ 
-          x: 'max-content', 
-          y: virtualized ? height - 200 : undefined 
-        }}
-        pagination={{
-          total: filteredData.length,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) => 
-            `${range[0]}-${range[1]} of ${total} items`,
-          pageSizeOptions: ['10', '20', '50', '100', '200'],
-          defaultPageSize: 20
-        }}
         size={viewSettings.compactView ? 'small' : 'middle'}
-        onChange={(pagination, filters, sorter) => {
-          setColumnSorter(Array.isArray(sorter) ? sorter[0] : sorter as any);
-        }}
+        rowKey="key"
+        scroll={ height ? { y: height } : {}}
+        pagination={{ pageSize: 20, showSizeChanger: true }}
         onRow={(record) => ({
-          onClick: () => onRowClick?.(record),
-          style: { cursor: onRowClick ? 'pointer' : 'default' }
+          onClick: () => handleRowClick(record),
         })}
-        rowClassName={(record) => {
-          if (record.metadata?.projected) return 'row-projected';
-          if (record.change?.significance === 'high') return 'row-significant';
-          return '';
+        sortDirections={['descend', 'ascend']}
+        onChange={(pagination, filters, sorter: any) => {
+          setColumnSorter({ field: sorter.field, order: sorter.order });
         }}
       />
-
-      {/* Selection Summary */}
-      {selectedRows.length > 0 && (
-        <div style={{ 
-          marginTop: '16px', 
-          padding: '12px', 
-          background: '#e6f7ff', 
-          borderRadius: '6px',
-          border: '1px solid #91d5ff'
-        }}>
-          <Text>
-            <strong>{selectedRows.length}</strong> rows selected
-          </Text>
-          <Button 
-            type="link" 
-            size="small"
-            onClick={() => setSelectedRows([])}
-          >
-            Clear Selection
-          </Button>
-        </div>
-      )}
-
-      {/* Table Styles */}
-     
     </Card>
   );
 };

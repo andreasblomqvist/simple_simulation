@@ -2,12 +2,13 @@
 
 ## Table of Contents
 1. [System Overview](#system-overview)
-2. [Data Models](#data-models)
-3. [Data Flow Architecture](#data-flow-architecture)
-4. [Service Layer](#service-layer)
-5. [Core Calculations & Formulas](#core-calculations--formulas)
-6. [API Structure](#api-structure)
-7. [Frontend Architecture](#frontend-architecture)
+2. [Configuration Management](#configuration-management)
+3. [Data Models](#data-models)
+4. [Data Flow Architecture](#data-flow-architecture)
+5. [Service Layer](#service-layer)
+6. [Core Calculations & Formulas](#core-calculations--formulas)
+7. [API Structure](#api-structure)
+8. [Frontend Architecture](#frontend-architecture)
 
 ---
 
@@ -20,6 +21,33 @@ SimpleSim is a workforce simulation and financial modeling platform with a **Rea
 - **Simulation Engine**: Processes monthly workforce dynamics (churn, progression, recruitment)
 - **KPI Service**: Calculates financial metrics and performance indicators
 - **Frontend**: React-based dashboard for configuration, simulation, and visualization
+
+---
+
+## Configuration Management
+
+The configuration system is designed around a single source of truth to ensure data integrity and consistent comparisons.
+
+### 1. Master Configuration File (`office_configuration.json`)
+- **Single Source of Truth**: The `backend/config/office_configuration.json` file is the master database for all office configurations. It is the definitive source for all baseline data.
+- **Persistence**: This file persists all settings for offices, roles, and financial parameters.
+
+### 2. System Startup Logic
+1.  **Check for Configuration**: On application startup, the `ConfigService` checks if `office_configuration.json` exists and contains data.
+2.  **Load Existing Config**: If the file has content, it is loaded into memory and used as the active configuration.
+3.  **Handle Empty/Missing Config**: If the file is empty or does not exist, the system enters a state where it requires the user to upload a configuration file (typically via an Excel import) to populate the initial settings.
+
+### 3. Excel Import Logic (Partial Update)
+- **Purpose**: Excel uploads are used to **update or add** data to the master configuration, not to replace it entirely.
+- **Mechanism**: When a user uploads an Excel file with configuration data, the `ConfigService` performs a **partial update**. It iterates through the offices in the uploaded file and updates the corresponding entries in `office_configuration.json`.
+- **Behavior**:
+    - If an office from the Excel file already exists in the JSON, its values are overwritten.
+    - If an office does not exist, it is added.
+    - Offices present in the JSON but **not** in the Excel file are left untouched. This is critical for managing configurations for multiple offices when an upload only contains a subset.
+
+### 4. Baseline Definition
+- **The "Baseline"**: For all KPI calculations and UI comparisons, the "baseline" is defined as the current state of the data in `office_configuration.json`.
+- **Consistency**: This ensures that all simulation runs are compared against a stable and known configuration state, regardless of any temporary levers applied during a simulation run.
 
 ---
 
@@ -187,16 +215,27 @@ class AllKPIs:
 
 ```mermaid
 graph TD
-    A[Excel File Upload] --> B[ConfigService.import_from_excel]
-    B --> C[Parse & Validate Data]
-    C --> D[Save to JSON File]
-    D --> E[Update In-Memory Cache]
-    E --> F[Return to Frontend]
-    
-    G[Frontend Configuration Page] --> H[API: GET /offices/config]
-    H --> I[ConfigService.get_configuration]
-    I --> J[Read from JSON File]
-    J --> K[Return Configuration Array]
+    subgraph Startup
+        A[Application Starts] --> B{Check office_configuration.json};
+        B -- Exists and has content --> C[Load JSON to memory];
+        B -- Empty or Missing --> D[Wait for User Upload];
+    end
+
+    subgraph User-Triggered Update
+        E[Excel File Upload] --> F[/api/offices/config/import];
+        F --> G[ConfigService.import_from_excel];
+        G --> H[Parse & Validate Data];
+        H --> I[Partially Update office_configuration.json];
+        I --> J[Update In-Memory Cache];
+        J --> K[Return Status to Frontend];
+    end
+
+    subgraph Data Retrieval
+        L[Frontend Page Load] --> M[API: GET /offices/config];
+        M --> N[ConfigService.get_configuration];
+        N --> O[Read from In-Memory Cache/JSON];
+        O --> P[Return Configuration Array];
+    end
 ```
 
 ### 2. Simulation Flow
@@ -246,15 +285,15 @@ graph TD
 
 ### 1. ConfigService (`config_service.py`)
 
-**Purpose**: Manages configuration data persistence and access
+**Purpose**: Manages the lifecycle of configuration data, treating `office_configuration.json` as the single source of truth.
 
 **Key Methods**:
-- `import_from_excel(df)`: Import Excel data and save to JSON
-- `get_configuration()`: Get current config from JSON file (cached)
-- `set_value(office, role, level, attribute, value)`: Update specific value
-- `update_configuration(config)`: Replace entire configuration
+- `import_from_excel(df)`: Parses an Excel file and performs a **partial update** of the master `office_configuration.json` file. It updates existing office data and adds new ones without removing others.
+- `get_configuration()`: Get current config from the in-memory cache, which is loaded from the JSON file.
+- `set_value(office, role, level, attribute, value)`: Update a specific value in the configuration.
+- `update_configuration(config)`: **DEPRECATED/DANGEROUS**. This method replaces the entire configuration and should be used with caution as it bypasses the partial update logic.
 
-**Data Storage**: JSON file with in-memory caching and modification time checking
+**Data Storage**: A master JSON file (`office_configuration.json`) with an in-memory cache for performance. The cache is invalidated and reloaded when the JSON file is modified.
 
 ### 2. SimulationEngine (`simulation_engine.py`)
 

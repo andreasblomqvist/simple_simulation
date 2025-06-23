@@ -24,7 +24,7 @@ from backend.config.default_config import (
 )
 
 # Import KPI service
-from backend.src.services.kpi_service import KPIService
+from backend.src.services.kpi_service import KPIService, EconomicParameters
 from backend.src.services.config_service import config_service
 
 class Month(Enum):
@@ -748,7 +748,8 @@ class SimulationEngine:
     
     def run_simulation(self, start_year: int, start_month: int, end_year: int, end_month: int, 
                       price_increase: float = 0.0, salary_increase: float = 0.0, 
-                      lever_plan: Optional[Dict] = None) -> Dict:
+                      lever_plan: Optional[Dict] = None,
+                      economic_params: Optional[EconomicParameters] = None) -> Dict:
         """
         Runs the simulation month by month.
         - Applies annual price and salary increases.
@@ -757,7 +758,8 @@ class SimulationEngine:
         - Stores monthly results.
         """
         print(f"[ENGINE] Starting simulation from {start_year}-{start_month} to {end_year}-{end_month}")
-        
+        # Use provided economic parameters or defaults
+        econ_params = economic_params or EconomicParameters()
         # Re-initialize state based on config service before every run
         self.reinitialize_with_config()
 
@@ -940,7 +942,13 @@ class SimulationEngine:
         # Create the complex structure that the frontend expects
         print(f"[ENGINE] Creating complex data structure for frontend compatibility...")
         try:
-            yearly_results = self._structure_yearly_results(yearly_snapshots, monthly_office_metrics, start_year, end_year)
+            yearly_results = self._structure_yearly_results(
+                yearly_snapshots, 
+                monthly_office_metrics, 
+                start_year, 
+                end_year,
+                econ_params
+            )
             simulation_results['years'] = yearly_results
             print(f"[ENGINE] ✅ Created complex structure: {len(yearly_results)} years, {len(self.offices)} offices")
             
@@ -952,7 +960,15 @@ class SimulationEngine:
             simulation_results['years'] = {
                 str(year): {
                     'offices': {},
-                    'total_fte': 0
+                    'total_fte': 0,
+                    'total_revenue': 0.0,
+                    'total_salary_costs': 0.0,
+                    'total_employment_costs': 0.0,
+                    'total_other_expenses': 0.0,
+                    'total_costs': 0.0,
+                    'ebitda': 0.0,
+                    'margin': 0.0,
+                    'avg_hourly_rate': 0.0
                 } for year in range(start_year, end_year + 1)
             }
 
@@ -1019,7 +1035,7 @@ class SimulationEngine:
 
         return level_snapshots
 
-    def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, end_year: int) -> Dict[str, Any]:
+    def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, end_year: int, economic_params: EconomicParameters) -> Dict[str, Any]:
         """
         Structures the final results dictionary with detailed monthly level data for each year.
         """
@@ -1067,10 +1083,26 @@ class SimulationEngine:
                                 'levels': {}
                             }
                 
+                # First create the basic year structure
                 yearly_results[year_str] = {
                     'offices': yearly_offices_data,
                     'total_fte': sum(office_data['total_fte'] for office_data in yearly_offices_data.values())
                 }
+                
+                # Then calculate year-specific financial metrics using KPI service
+                year_kpis = self._calculate_year_kpis_using_service(yearly_results, year_str, economic_params)
+                
+                # Add the financial metrics to the year
+                yearly_results[year_str].update({
+                    'total_revenue': year_kpis['total_revenue'],
+                    'total_salary_costs': year_kpis['total_salary_costs'], 
+                    'total_employment_costs': year_kpis['total_employment_costs'],
+                    'total_other_expenses': year_kpis['total_other_expenses'],
+                    'total_costs': year_kpis['total_costs'],
+                    'ebitda': year_kpis['ebitda'],
+                    'margin': year_kpis['margin'],
+                    'avg_hourly_rate': year_kpis['avg_hourly_rate']
+                })
                 
         except Exception as e:
             print(f"[ENGINE ERROR] Failed to structure yearly results: {e}")
@@ -1079,10 +1111,62 @@ class SimulationEngine:
                 year_str = str(year)
                 yearly_results[year_str] = {
                     'offices': {},
-                    'total_fte': 0
+                    'total_fte': 0,
+                    'total_revenue': 0.0,
+                    'total_salary_costs': 0.0,
+                    'total_employment_costs': 0.0,
+                    'total_other_expenses': 0.0,
+                    'total_costs': 0.0,
+                    'ebitda': 0.0,
+                    'margin': 0.0,
+                    'avg_hourly_rate': 0.0
                 }
             
         return yearly_results
+
+    def _calculate_year_kpis_using_service(self, yearly_results: Dict[str, Any], target_year: str, economic_params: EconomicParameters) -> Dict[str, float]:
+        """Use the existing KPI service to calculate year-specific financial metrics"""
+        try:
+            # Create a temporary simulation results structure for the KPI service
+            temp_simulation_results = {
+                'years': yearly_results
+            }
+            
+            # Use the existing KPI service
+            kpi_service = KPIService(economic_params=economic_params)
+            year_kpis = kpi_service.calculate_kpis_for_year(
+                temp_simulation_results,
+                target_year,
+                simulation_duration_months=12,  # Always use 12 months for annual calculations
+                economic_params=economic_params
+            )
+            
+            # Extract the financial metrics we need
+            financial = year_kpis.financial
+            return {
+                'total_revenue': financial.net_sales,
+                'total_salary_costs': financial.total_salary_costs,
+                'total_employment_costs': financial.total_salary_costs * (1 + economic_params.employment_cost_rate),  # Use dynamic overhead
+                'total_other_expenses': economic_params.other_expense * 12,  # Annualized
+                'total_costs': financial.total_salary_costs * (1 + economic_params.employment_cost_rate) + (economic_params.other_expense * 12),
+                'ebitda': financial.ebitda,
+                'margin': financial.margin,
+                'avg_hourly_rate': financial.avg_hourly_rate
+            }
+            
+        except Exception as e:
+            print(f"[ENGINE ERROR] Failed to calculate year KPIs using service: {e}")
+            # Return zero values as fallback
+            return {
+                'total_revenue': 0.0,
+                'total_salary_costs': 0.0,
+                'total_employment_costs': 0.0,
+                'total_other_expenses': 0.0,
+                'total_costs': 0.0,
+                'ebitda': 0.0,
+                'margin': 0.0,
+                'avg_hourly_rate': 0.0
+            }
         
     def get_simulation_results(self) -> Optional[Dict[str, Any]]:
         """Return the latest simulation results"""

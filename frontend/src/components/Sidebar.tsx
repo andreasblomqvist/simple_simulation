@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, Typography, Button, Divider, Tag, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
-import { SettingOutlined, RocketOutlined, CheckCircleOutlined, ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { SettingOutlined, RocketOutlined, CheckCircleOutlined, ExclamationCircleOutlined, PlusOutlined, BarChartOutlined } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
 // @ts-ignore
 import packageJson from '../../package.json';
@@ -18,6 +18,11 @@ const menuItems: MenuProps['items'] = [
     key: '/lab',
     icon: <RocketOutlined />,
     label: <Link to="/lab">Simulation Lab</Link>,
+  },
+  {
+    key: '/insights',
+    icon: <BarChartOutlined />,
+    label: <Link to="/insights">Insights</Link>,
   },
 ];
 

@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
+from backend.src.services.kpi_service import KPIService, EconomicParameters
 from backend.src.services.cache_service import simulation_cache
 from backend.src.services.excel_export_service import ExcelExportService
 from datetime import datetime
@@ -26,6 +27,7 @@ class SimulationRequest(BaseModel):
     unplanned_absence: Optional[float] = 0.05  # 5% default
     hy_working_hours: Optional[float] = 166.4  # Monthly working hours
     other_expense: Optional[float] = 19000000.0  # Monthly other expenses
+    employment_cost_rate: Optional[float] = 0.40  # 40% overhead on salary costs
     # Advanced: office overrides for FTE, level, and operations params
     office_overrides: Optional[Dict[str, Dict[str, Any]]] = None
 
@@ -76,6 +78,7 @@ def run_simulation(params: SimulationRequest):
     print(f"[SIMULATION]   💵 Salary Increase: {params.salary_increase:.1%}")
     print(f"[SIMULATION]   🕒 Working Hours/Month: {params.hy_working_hours}")
     print(f"[SIMULATION]   😴 Unplanned Absence: {params.unplanned_absence:.1%}")
+    print(f"[SIMULATION]   🏭 Employment Cost Rate: {params.employment_cost_rate:.1%}")
     print(f"[SIMULATION]   📋 Other Expense: {params.other_expense:,} SEK/month")
     
     # Parse office overrides (lever plan)
@@ -129,6 +132,10 @@ def run_simulation(params: SimulationRequest):
         engine.reset_simulation_state()
         print(f"✅ [SIMULATION] Engine state cleared successfully")
         
+        # Create economic parameters from frontend request
+        economic_params = EconomicParameters.from_simulation_request(params)
+        print(f"[SIMULATION] Economic parameters created: {economic_params}")
+        
         # Run the simulation
         results = engine.run_simulation(
             start_year=params.start_year,
@@ -137,7 +144,8 @@ def run_simulation(params: SimulationRequest):
             end_month=params.end_month,
             price_increase=params.price_increase,
             salary_increase=params.salary_increase,
-            lever_plan=lever_plan
+            lever_plan=lever_plan,
+            economic_params=economic_params
         )
         
         # Calculate simulation duration in months
@@ -147,15 +155,13 @@ def run_simulation(params: SimulationRequest):
         
         # Calculate KPIs using the KPI service (separation of concerns)
         try:
-            from backend.src.services.kpi_service import KPIService
-            kpi_service = KPIService()
+            kpi_service = KPIService(economic_params=economic_params)
             
             # Calculate KPIs for the simulation
             kpi_results = kpi_service.calculate_all_kpis(
                 results,
                 simulation_duration_months,
-                params.unplanned_absence,
-                params.other_expense
+                economic_params=economic_params
             )
             
             # Convert dataclasses to dicts for JSON serialization
@@ -427,6 +433,9 @@ def export_simulation_to_excel(params: SimulationRequest):
         # Reset engine state for fresh simulation
         engine.reset_simulation_state()
         
+        # Create economic parameters from frontend request  
+        economic_params = EconomicParameters.from_simulation_request(params)
+        
         # Run the simulation
         results = engine.run_simulation(
             start_year=params.start_year,
@@ -435,7 +444,8 @@ def export_simulation_to_excel(params: SimulationRequest):
             end_month=params.end_month,
             price_increase=params.price_increase,
             salary_increase=params.salary_increase,
-            lever_plan=lever_plan
+            lever_plan=lever_plan,
+            economic_params=economic_params
         )
         
         # Calculate simulation duration in months

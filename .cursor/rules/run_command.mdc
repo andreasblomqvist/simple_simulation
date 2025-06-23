@@ -5,14 +5,48 @@ alwaysApply: false
 ---
 ### Full Development Environment
 
+## Git Operations & Commit Rules
+
+**CRITICAL: Never commit or push without explicit user permission**
+
+**Git Operation Rules:**
+- **NEVER** execute `git commit` or `git push` automatically
+- **ALWAYS** ask user for permission before any git operations
+- **WAIT** for explicit user confirmation before proceeding
+- **ONLY** commit/push when user explicitly requests it
+
+**Required User Prompts:**
+- "Would you like me to commit these changes?"
+- "Should I push this to the remote repository?"
+- "Do you want me to commit and push these changes?"
+
+**User Confirmation Examples:**
+- User says: "yes", "commit", "push", "commit and push"
+- User says: "save changes", "save to git"
+- User explicitly requests git operations
+
+**Forbidden Actions:**
+- Auto-committing after making code changes
+- Auto-pushing after commits
+- Assuming user wants git operations
+- Proceeding without explicit confirmation
+
+**Example Workflow:**
+```
+AI: I've made the changes to fix the growth calculation. Would you like me to commit and push these changes?
+User: yes, commit and push
+AI: [proceeds with git add, commit, and push]
+```
+
 ## Cursor Terminal Window Organization
 
 **IMPORTANT: Always run development servers in Cursor's Terminal windows for better workflow integration.**
 
 **Recommended Terminal Setup:**
-- **Terminal 1**: Backend Server (uvicorn)
-- **Terminal 2**: Frontend Server (npm/vite)  
+- **Terminal 1**: Backend Server (uvicorn) with logging
+- **Terminal 2**: Frontend Server (npm/vite) with logging  
 - **Terminal 3**: Commands, testing, git operations
+- **Terminal 4**: Log tailing (optional)
 
 **To open Terminal windows in Cursor:**
 - Press `Cmd+Shift+` ` (backtick) or go to View → Terminal
@@ -24,6 +58,7 @@ alwaysApply: false
 - Integrated error handling and debugging
 - Easy server restart when code changes
 - Better context for AI assistance
+- Persistent logs for debugging
 
 ## Server Management & Troubleshooting
 
@@ -50,19 +85,31 @@ ps aux | grep uvicorn | grep -v grep | awk '{print $2}' | xargs kill -9
 # Kill frontend server (if needed)
 pkill -f "npm run dev"
 pkill -f vite
+
+# Kill all servers at once
+pkill -f uvicorn && pkill -f vite
 ```
 
-## Server Startup
+## Server Startup with Logging
 
-1. **Start the backend server (from project root):**
+### Option 1: Combined Startup (Recommended)
+```bash
+# Start both servers with logging in background
+./scripts/start-servers-with-logs.sh
+
+# The script will show you the log file paths and tail commands
+```
+
+### Option 2: Individual Server Startup
+
+1. **Start the backend server with logging (from project root):**
    ```bash
-   # Terminal 1 - Backend
-   source .venv/bin/activate
-   uvicorn backend.main:app --reload
+   # Terminal 1 - Backend with Logging
+   ./scripts/start-backend-with-logs.sh
    ```
    
    **Verify backend startup:**
-   - Look for: `INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)`
+   - Look for: `INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`
    - Look for: `INFO:     Started reloader process`
    - Look for: `INFO:     Started server process`
    - Test endpoint: `curl http://localhost:8000/health`
@@ -72,11 +119,10 @@ pkill -f vite
    - `ModuleNotFoundError`: Ensure virtual environment is activated
    - Config errors: Check for syntax errors in `.py` files
 
-2. **Start the frontend server (from project root):**
+2. **Start the frontend server with logging (from project root):**
    ```bash
-   # Terminal 2 - Frontend  
-   cd frontend
-   npm run dev
+   # Terminal 2 - Frontend with Logging
+   ./scripts/start-frontend-with-logs.sh
    ```
    
    **Verify frontend startup:**
@@ -90,6 +136,47 @@ pkill -f vite
    - `npm: command not found`: Install Node.js and npm
    - Dependencies issues: Run `npm install` in frontend directory
 
+### Option 3: Manual Startup (Legacy)
+```bash
+# Terminal 1 - Backend (manual)
+PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2 - Frontend (manual)
+cd frontend && npm run dev
+```
+
+## Log Management
+
+**Log file locations:**
+- Backend logs: `backend/logs/backend_YYYYMMDD_HHMMSS.log`
+- Frontend logs: `frontend/logs/frontend_YYYYMMDD_HHMMSS.log`
+
+**Tail log commands (after starting servers):**
+```bash
+# Tail backend logs only
+tail -f backend/logs/backend_*.log
+
+# Tail frontend logs only
+tail -f frontend/logs/frontend_*.log
+
+# Tail both logs together
+tail -f backend/logs/backend_*.log frontend/logs/frontend_*.log
+
+# Tail latest log files (most recent timestamp)
+tail -f $(ls -t backend/logs/backend_*.log | head -1) $(ls -t frontend/logs/frontend_*.log | head -1)
+```
+
+**Log file management:**
+```bash
+# List all log files
+ls -la backend/logs/
+ls -la frontend/logs/
+
+# Clean old log files (keep last 10)
+ls -t backend/logs/backend_*.log | tail -n +11 | xargs rm -f
+ls -t frontend/logs/frontend_*.log | tail -n +11 | xargs rm -f
+```
+
 ## Quick Server Status Check
 
 ```bash
@@ -100,6 +187,19 @@ curl -s http://localhost:3000 && echo "✅ Frontend OK" || echo "❌ Frontend DO
 # Check what's running on the ports
 echo "Port 8000 (Backend):" && lsof -i :8000
 echo "Port 3000 (Frontend):" && lsof -i :3000
+
+# Check latest log files
+echo "Latest backend log:" && ls -t backend/logs/backend_*.log | head -1
+echo "Latest frontend log:" && ls -t frontend/logs/frontend_*.log | head -1
+```
+
+## Emergency Server Restart
+
+**When servers are stuck or ports are in use:**
+```bash
+# Nuclear option - kill everything and restart
+pkill -f uvicorn && pkill -f vite && sleep 3
+./scripts/start-servers-with-logs.sh
 ```
 
 ### Testing the Year Navigation Features

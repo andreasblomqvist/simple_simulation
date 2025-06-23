@@ -117,49 +117,44 @@ export default function Configuration() {
       const data = await response.json();
       
       console.log('[CONFIG] 🎛️  Using pure configuration service (engine never modifies config)');
-      console.log('[CONFIG] 📥 Received data:', { type: Array.isArray(data), length: data.length, firstOffice: data[0]?.name });
+      console.log('[CONFIG] 📥 Received data:', { type: Array.isArray(data), length: data.length, offices: data.map((o: any) => o.name) });
       
       // Validate data structure
       if (!Array.isArray(data) || data.length === 0) {
-        throw new Error('Invalid office data structure received');
+        setOffices([]);
+        setSelectedOffice('');
+        setOfficeData({});
+        setOriginalData({});
+        message.warning('No office configurations found. Please upload an Excel file.');
+        return;
       }
       
-      // Extract office names
+      // Extract office names and set the first one as selected if none is
       const officeNames = data.map((office: any) => office.name).sort();
       setOffices(officeNames);
       
-      // Determine which office to load
       const targetOffice = selectedOffice || officeNames[0];
-      
-      // Set the selected office if none selected
-      if (!selectedOffice && officeNames.length > 0) {
+      if (!selectedOffice) {
         setSelectedOffice(targetOffice);
       }
       
-      // Transform data for the target office
-      const targetOfficeData = data.find((office: any) => office.name === targetOffice);
-      if (targetOfficeData) {
-        const transformedData = transformOfficeDataForUI(targetOfficeData);
-        
-        // Store as a dictionary keyed by office name
-        setOfficeData({
-          [targetOffice]: transformedData
-        });
-        setOriginalData({
-          [targetOffice]: JSON.parse(JSON.stringify(transformedData))
-        }); // Deep copy
-        
-        // Clear any draft changes since we're loading fresh data
-        setDraftChanges({});
-        setHasChanges(false);
-        
-        console.log(`[CONFIG] 📊 Loaded data for ${targetOffice}: ${Object.keys(transformedData.roles || {}).length} roles`);
-        
-        // Update refresh timestamp
-        setLastRefreshTime(new Date());
-      } else {
-        console.error(`[CONFIG] ❌ Office not found: ${targetOffice}`);
-      }
+      // Transform all offices data for UI consumption and store in a dictionary
+      const allOfficesData = data.reduce((acc: any, office: any) => {
+        acc[office.name] = transformOfficeDataForUI(office);
+        return acc;
+      }, {});
+      
+      setOfficeData(allOfficesData);
+      setOriginalData(JSON.parse(JSON.stringify(allOfficesData))); // Deep copy
+      
+      // Clear any draft changes since we're loading fresh data
+      setDraftChanges({});
+      setHasChanges(false);
+      
+      console.log(`[CONFIG] 📊 Loaded data for ${data.length} offices. Currently viewing: ${targetOffice}`);
+      
+      // Update refresh timestamp
+      setLastRefreshTime(new Date());
       
     } catch (error) {
       console.error('[CONFIG] ❌ Error fetching offices:', error);
@@ -172,15 +167,20 @@ export default function Configuration() {
   // Fetch offices on mount
   useEffect(() => {
     fetchOffices();
-  }, [fetchOffices]);
+  }, []); // Remove fetchOffices from dependency array to prevent re-fetch on every render
 
-  // Re-fetch data when selectedOffice changes to load the selected office's data
+  // Re-fetch data ONLY when selectedOffice changes AND its data is not already loaded
+  // This logic is now handled by the main fetchOffices, which gets all data at once.
+  // We just need to ensure the component re-renders if the selected office changes.
   useEffect(() => {
-    if (selectedOffice && offices.length > 0) {
-      console.log(`[CONFIG] 🔄 Office changed to: ${selectedOffice}, re-fetching data...`);
-      fetchOffices();
+    if (selectedOffice && officeData[selectedOffice]) {
+      console.log(`[CONFIG] 🔄 Switched view to: ${selectedOffice}`);
+      // No need to re-fetch, data is already in state.
+      // We could reset draft changes here if desired when switching offices.
+      setDraftChanges({});
+      setHasChanges(false);
     }
-  }, [selectedOffice, fetchOffices]);
+  }, [selectedOffice]);
 
   // Helper to get value from either draft changes or original data
   const getValue = (role: string, level: string | null, field: string, month: number) => {
@@ -195,13 +195,13 @@ export default function Configuration() {
       return draftChanges[draftPath];
     }
     
-    const office = officeData[selectedOffice];
-    if (!office?.roles?.[role]) return '';
+    const currentOfficeData = officeData[selectedOffice];
+    if (!currentOfficeData?.roles?.[role]) return '';
     
-    if (level && office.roles[role][level]) {
-      return office.roles[role][level][fieldWithMonth] ?? office.roles[role][level][backendField] ?? '';
+    if (level && currentOfficeData.roles[role][level]) {
+      return currentOfficeData.roles[role][level][fieldWithMonth] ?? currentOfficeData.roles[role][level][backendField] ?? '';
     } else if (!level) {
-      return office.roles[role][fieldWithMonth] ?? office.roles[role][backendField] ?? '';
+      return currentOfficeData.roles[role][fieldWithMonth] ?? currentOfficeData.roles[role][backendField] ?? '';
     }
     return '';
   };
@@ -453,12 +453,12 @@ export default function Configuration() {
 
   // Helper to calculate aggregated FTE for a role
   const getAggregatedFTE = (roleName: string) => {
-    const office = officeData[selectedOffice];
-    if (!office || !office.roles || !office.roles[roleName]) {
+    const currentOfficeData = officeData[selectedOffice];
+    if (!currentOfficeData || !currentOfficeData.roles || !currentOfficeData.roles[roleName]) {
       return 0;
     }
     
-    const roleData = office.roles[roleName];
+    const roleData = currentOfficeData.roles[roleName];
     
     // Handle 'Operations' which has a flat structure
     if (roleName === 'Operations') {
@@ -473,12 +473,12 @@ export default function Configuration() {
   const getTableData = () => {
     if (!officeData[selectedOffice]) return [];
 
-    const office = officeData[selectedOffice];
+    const currentOfficeData = officeData[selectedOffice];
     const rows: any[] = [];
 
     // --- 1. Handle Roles with Levels (e.g., Consultant, Sales) ---
     ROLES_WITH_LEVELS.forEach(roleName => {
-      const roleData = office.roles[roleName];
+      const roleData = currentOfficeData.roles[roleName];
       if (!roleData) return;
 
       // Create a parent row for the role itself
@@ -498,52 +498,51 @@ export default function Configuration() {
         
         // Only show level if it has FTE data or has changes
         const hasData = levelData && (
-          (getValue(roleName, levelName, 'total', 1) > 0) ||
-           Object.keys(draftChanges).some(key => key.includes(`${roleName}.${levelName}`))
+          (levelData.fte && levelData.fte > 0) ||
+          Object.keys(draftChanges).some(key => key.startsWith(`${selectedOffice}.${roleName}.${levelName}`))
         );
 
         if (hasData) {
           const childRow: any = {
             key: `${roleName}-${levelName}`,
-            role: roleName, // Keep parent role for context
-            level: levelName, // Specify the level
+            role: levelName,
+            isParent: false
           };
-
-          // Populate all metric columns for the child row
+  
+          // Populate data for each column in the group
           LEVER_GROUPS.forEach(group => {
             group.columns.forEach(col => {
-              const month = selectedMonths[group.key];
-              childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, month);
+              childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, selectedMonths[group.key]);
             });
           });
+  
           parentRow.children.push(childRow);
         }
       });
       
-      // Only add the role to the table if it has visible levels
       if (parentRow.children.length > 0) {
         rows.push(parentRow);
       }
     });
 
-    // --- 2. Handle Flat Roles (e.g., Operations) ---
-    if (office.roles.Operations) {
-      const opsRow: any = {
-        key: 'Operations',
-        role: 'Operations',
-        isParent: false // Not a parent, just a single row
+    // --- 2. Handle Roles without Levels (e.g., Operations) ---
+    const operationsRoleName = 'Operations';
+    const operationsData = currentOfficeData.roles[operationsRoleName];
+    if (operationsData && (operationsData.fte > 0 || Object.keys(draftChanges).some(key => key.startsWith(`${selectedOffice}.${operationsRoleName}`)))) {
+      const operationsRow: any = {
+        key: operationsRoleName,
+        role: operationsRoleName,
+        isParent: false, // Treat as a single row, not expandable
       };
 
-      // Populate all metric columns for the Operations row
       LEVER_GROUPS.forEach(group => {
         group.columns.forEach(col => {
-          const month = selectedMonths[group.key];
-          opsRow[`${col.key}_${group.key}`] = getValue('Operations', null, col.key, month);
+          operationsRow[`${col.key}_${group.key}`] = getValue(operationsRoleName, null, col.key, selectedMonths[group.key]);
         });
       });
-      rows.push(opsRow);
+      rows.push(operationsRow);
     }
-    
+
     return rows;
   };
 

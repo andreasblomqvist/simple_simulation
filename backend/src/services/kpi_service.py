@@ -1,6 +1,25 @@
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, JOURNEY_CLASSIFICATION, BASE_PRICING, BASE_SALARIES
+from backend.src.services.config_service import ConfigService
+
+@dataclass
+class EconomicParameters:
+    """Economic parameters for simulation and KPI calculations"""
+    unplanned_absence: float = 0.05  # 5% default
+    other_expense: float = 19000000.0  # 19M SEK monthly default
+    employment_cost_rate: float = 0.40  # 40% overhead on salary costs
+    working_hours_per_month: float = 166.4  # Monthly working hours
+    
+    @classmethod
+    def from_simulation_request(cls, params) -> 'EconomicParameters':
+        """Create EconomicParameters from simulation request"""
+        return cls(
+            unplanned_absence=getattr(params, 'unplanned_absence', 0.05),
+            other_expense=getattr(params, 'other_expense', 19000000.0),
+            employment_cost_rate=getattr(params, 'employment_cost_rate', 0.40),
+            working_hours_per_month=getattr(params, 'hy_working_hours', 166.4)
+        )
 
 @dataclass
 class FinancialKPIs:
@@ -60,24 +79,31 @@ class AllKPIs:
 class KPIService:
     """Service for calculating all simulation KPIs"""
     
-    def __init__(self):
-        self.working_hours_per_month = 166.4  # Actual working hours per month
-        self.total_employment_cost_rate = 0.40  # 40% overhead on salary costs
-        self.default_other_expense = 10000.0  # Default monthly other expense
+    def __init__(self, economic_params: Optional[EconomicParameters] = None):
+        self.economic_params = economic_params or EconomicParameters()
+        self.working_hours_per_month = self.economic_params.working_hours_per_month
+        self.total_employment_cost_rate = self.economic_params.employment_cost_rate
+        self.default_other_expense = 10000.0  # Fallback default
     
     def calculate_all_kpis(
         self, 
         simulation_results: Dict[str, Any], 
         simulation_duration_months: int,
-        unplanned_absence: float = 0.05,
-        other_expense: float = None
+        economic_params: Optional[EconomicParameters] = None
     ) -> AllKPIs:
         """Calculate all KPIs from simulation results"""
-        print(f"[KPI] Starting KPI calculation for {simulation_duration_months} months...")
+        # Use provided params or fall back to instance params
+        params = economic_params or self.economic_params
         
-        # Use default other expense if not provided
-        if other_expense is None:
-            other_expense = self.default_other_expense
+        print(f"[KPI] Starting KPI calculation for {simulation_duration_months} months...")
+        print(f"[KPI] Economic parameters: unplanned_absence={params.unplanned_absence:.1%}, "
+              f"employment_cost_rate={params.employment_cost_rate:.1%}, "
+              f"other_expense={params.other_expense:,}, "
+              f"working_hours={params.working_hours_per_month}")
+        
+        # Update instance rates from parameters
+        self.total_employment_cost_rate = params.employment_cost_rate
+        self.working_hours_per_month = params.working_hours_per_month
         
         try:
             # Extract years from simulation results
@@ -95,16 +121,16 @@ class KPIService:
             # Calculate baseline financial metrics using the baseline data, annualized to 12 months
             baseline_financial = self._calculate_baseline_financial_metrics(
                 baseline_data, 
-                unplanned_absence, 
-                other_expense,
+                params.unplanned_absence, 
+                params.other_expense,
                 duration_months=12
             )
             
             # Calculate current year financial metrics using the final year's data, annualized to 12 months
             current_financial = self._calculate_current_financial_metrics(
                 final_year_data,
-                unplanned_absence,
-                other_expense,
+                params.unplanned_absence,
+                params.other_expense,
                 duration_months=12
             )
             
@@ -122,8 +148,8 @@ class KPIService:
             for year, year_data in simulation_results['years'].items():
                 yearly_financial = self._calculate_current_financial_metrics(
                     year_data,
-                    unplanned_absence,
-                    other_expense,
+                    params.unplanned_absence,
+                    params.other_expense,
                     duration_months=12 # Always use 12 months for yearly KPIs
                 )
                 
@@ -198,8 +224,6 @@ class KPIService:
     def _get_baseline_data(self) -> Dict[str, Any]:
         """Get baseline data from current configuration to avoid using hardcoded values"""
         # Import here to avoid circular dependency
-        from backend.src.services.config_service import ConfigService
-        
         config_service = ConfigService()
         current_config = config_service.get_configuration()
         
@@ -763,15 +787,14 @@ class KPIService:
         simulation_results: Dict[str, Any], 
         target_year: str,
         simulation_duration_months: int,
-        unplanned_absence: float = 0.05,
-        other_expense: float = None
+        economic_params: Optional[EconomicParameters] = None
     ) -> AllKPIs:
         """
         Calculate KPIs for a specific year only (not aggregated across all years).
         This enables year-by-year comparison in the frontend.
         """
-        if other_expense is None:
-            other_expense = self.default_other_expense
+        # Use provided params or fall back to instance params
+        params = economic_params or self.economic_params
         
         try:
             # Get baseline data from hardcoded config (avoid circular dependency)
@@ -780,8 +803,8 @@ class KPIService:
             # Calculate baseline financial metrics (always 12 months for comparison)
             baseline_financial = self._calculate_baseline_financial_metrics(
                 baseline_data, 
-                unplanned_absence, 
-                other_expense,
+                params.unplanned_absence, 
+                params.other_expense,
                 duration_months=12  # Always use 12 months for baseline
             )
             
@@ -794,8 +817,8 @@ class KPIService:
             # Calculate current year financial metrics (12 months for annual comparison)
             current_financial = self._calculate_current_financial_metrics(
                 target_year_data,
-                unplanned_absence,
-                other_expense,
+                params.unplanned_absence,
+                params.other_expense,
                 duration_months=12  # Always use 12 months for annual comparison
             )
             

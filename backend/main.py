@@ -32,9 +32,8 @@ def setup_logging():
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_formatter)
     
-    # File handler
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_handler = logging.FileHandler(f"backend/logs/backend_{timestamp}.log")
+    # File handler - use single log file, append mode
+    file_handler = logging.FileHandler("backend/logs/backend.log", mode='a')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(file_formatter)
     
@@ -108,7 +107,7 @@ async def startup_event():
     logger.info("FastAPI server starting up...")
     
     # Check if JSON configuration file already exists from previous user uploads
-    json_config_file = "config/office_configuration.json"
+    json_config_file = "backend/config/office_configuration.json"
     
     if os.path.exists(json_config_file):
         logger.info(f"Found existing configuration file: {json_config_file}")
