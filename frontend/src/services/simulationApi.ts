@@ -901,6 +901,9 @@ class SimulationApiService {
 
     if (!yearData?.offices || !baselineYearData?.offices) return null;
 
+    // Use backend's pre-calculated growth KPIs if available
+    const backendGrowthKPIs = results.kpis?.growth;
+    
     const calculateJourneyMetricsForYear = (data: any) => {
       const journeyTotals: Record<string, number> = { 'Journey 1': 0, 'Journey 2': 0, 'Journey 3': 0, 'Journey 4': 0 };
 
@@ -947,7 +950,7 @@ class SimulationApiService {
     const baselineMetrics = calculateJourneyMetricsForYear(baselineYearData);
 
     const { totals: currentJourneyTotals, percentages: currentJourneyPercentages, grandTotal: grandTotalCurrent } = currentMetrics;
-    const { totals: baselineJourneyTotals, percentages: baselineJourneyPercentages, grandTotal: grandTotalBaseline } = baselineMetrics;
+    const { totals: baselineJourneyTotals, percentages: baselineJourneyPercentages, grandTotal: baselineGrandTotal } = baselineMetrics;
 
     // Extract values with fallbacks
     const totalJourney1 = currentJourneyTotals['Journey 1'] || 0;
@@ -970,62 +973,82 @@ class SimulationApiService {
     const baselineJourney3Percent = Math.round(baselineJourneyPercentages['Journey 3'] || 0);
     const baselineJourney4Percent = Math.round(baselineJourneyPercentages['Journey 4'] || 0);
 
-    // Calculate growth metrics from backend data
-    const grandTotal = totalJourney1 + totalJourney2 + totalJourney3 + totalJourney4;
-    const baselineGrandTotal = baselineJourney1 + baselineJourney2 + baselineJourney3 + baselineJourney4;
+    // Use backend's pre-calculated growth KPIs if available, otherwise fall back to frontend calculation
+    let totalGrowthRate: number;
+    let totalGrowthAbsolute: number;
+    let grandTotal: number;
+    let baselineGrandTotalCalculated: number;
+    let nonDebitRatio: number;
+    let baselineNonDebitRatio: number;
 
-    // Calculate FTE totals for non-debit ratio (from simulation data)
-    let totalFTE = 0;
-    let totalNonConsultant = 0;
-    let baselineTotalFTE = 0;
-    let baselineNonConsultant = 0;
+    if (backendGrowthKPIs) {
+      // Use backend's growth KPIs (source of truth)
+      totalGrowthRate = backendGrowthKPIs.total_growth_percent || 0;
+      totalGrowthAbsolute = backendGrowthKPIs.total_growth_absolute || 0;
+      grandTotal = backendGrowthKPIs.current_total_fte || 0;
+      baselineGrandTotalCalculated = backendGrowthKPIs.baseline_total_fte || 0;
+      nonDebitRatio = backendGrowthKPIs.non_debit_ratio || 0;
+      baselineNonDebitRatio = backendGrowthKPIs.non_debit_ratio_baseline || 0;
+    } else {
+      // Fallback to frontend calculation (legacy)
+      grandTotal = totalJourney1 + totalJourney2 + totalJourney3 + totalJourney4;
+      baselineGrandTotalCalculated = baselineJourney1 + baselineJourney2 + baselineJourney3 + baselineJourney4;
+      totalGrowthRate = baselineGrandTotalCalculated > 0 ? ((grandTotal - baselineGrandTotalCalculated) / baselineGrandTotalCalculated * 100) : 0;
+      totalGrowthAbsolute = grandTotal - baselineGrandTotalCalculated;
 
-    // Calculate current non-debit ratio from simulation data
-    Object.values(yearData.offices).forEach((officeData: any) => {
-      const levels = officeData.levels || {};
-      const consultantFTE = this.calculateRoleFTE(levels.Consultant || {});
-      const salesFTE = this.calculateRoleFTE(levels.Sales || {});
-      const recruitmentFTE = this.calculateRoleFTE(levels.Recruitment || {});
-      const operationsFTE = this.getFlatRoleFTE(levels.Operations || []);
-      
-      const officeTotalFTE = consultantFTE + salesFTE + recruitmentFTE + operationsFTE;
-      const officeNonConsultant = salesFTE + recruitmentFTE + operationsFTE;
-      
-      totalFTE += officeTotalFTE;
-      totalNonConsultant += officeNonConsultant;
-    });
+      // Calculate FTE totals for non-debit ratio (from simulation data)
+      let totalFTE = 0;
+      let totalNonConsultant = 0;
+      let baselineTotalFTE = 0;
+      let baselineNonConsultant = 0;
 
-    // Calculate baseline non-debit ratio from config if available
-    if (baselineConfig) {
-      baselineConfig.forEach(office => {
-        const roles = office.roles || {};
-        let officeBaseline = 0;
-        let officeBaselineNonConsultant = 0;
+      // Calculate current non-debit ratio from simulation data
+      Object.values(yearData.offices).forEach((officeData: any) => {
+        const levels = officeData.levels || {};
+        const consultantFTE = this.calculateRoleFTE(levels.Consultant || {});
+        const salesFTE = this.calculateRoleFTE(levels.Sales || {});
+        const recruitmentFTE = this.calculateRoleFTE(levels.Recruitment || {});
+        const operationsFTE = this.getFlatRoleFTE(levels.Operations || []);
         
-        Object.entries(roles).forEach(([roleName, roleData]: [string, any]) => {
-          if (roleName === 'Operations') {
-            const fte = roleData.total || 0;
-            officeBaseline += fte;
-            officeBaselineNonConsultant += fte;
-          } else if (typeof roleData === 'object') {
-            Object.values(roleData).forEach((levelData: any) => {
-              const fte = levelData.total || 0;
-              officeBaseline += fte;
-              if (roleName !== 'Consultant') {
-                officeBaselineNonConsultant += fte;
-              }
-            });
-          }
-        });
+        const officeTotalFTE = consultantFTE + salesFTE + recruitmentFTE + operationsFTE;
+        const officeNonConsultant = salesFTE + recruitmentFTE + operationsFTE;
         
-        baselineTotalFTE += officeBaseline;
-        baselineNonConsultant += officeBaselineNonConsultant;
+        totalFTE += officeTotalFTE;
+        totalNonConsultant += officeNonConsultant;
       });
-    }
 
-    // Calculate non-debit ratios
-    const nonDebitRatio = totalFTE > 0 ? Math.round((totalNonConsultant / totalFTE) * 100) : 0;
-    const baselineNonDebitRatio = baselineTotalFTE > 0 ? Math.round((baselineNonConsultant / baselineTotalFTE) * 100) : 0;
+      // Calculate baseline non-debit ratio from config if available
+      if (baselineConfig) {
+        baselineConfig.forEach(office => {
+          const roles = office.roles || {};
+          let officeBaseline = 0;
+          let officeBaselineNonConsultant = 0;
+          
+          Object.entries(roles).forEach(([roleName, roleData]: [string, any]) => {
+            if (roleName === 'Operations') {
+              const fte = roleData.total || 0;
+              officeBaseline += fte;
+              officeBaselineNonConsultant += fte;
+            } else if (typeof roleData === 'object') {
+              Object.values(roleData).forEach((levelData: any) => {
+                const fte = levelData.total || 0;
+                officeBaseline += fte;
+                if (roleName !== 'Consultant') {
+                  officeBaselineNonConsultant += fte;
+                }
+              });
+            }
+          });
+          
+          baselineTotalFTE += officeBaseline;
+          baselineNonConsultant += officeBaselineNonConsultant;
+        });
+      }
+
+      // Calculate non-debit ratios
+      nonDebitRatio = totalFTE > 0 ? Math.round((totalNonConsultant / totalFTE) * 100) : 0;
+      baselineNonDebitRatio = baselineTotalFTE > 0 ? Math.round((baselineNonConsultant / baselineTotalFTE) * 100) : 0;
+    }
     
     // Calculate average progression rate (estimated from journey distribution changes)
     const progressionRateAvg = '12.5%'; // TODO: Calculate actual progression rate from historical data
@@ -1039,10 +1062,6 @@ class SimulationApiService {
       const baselineStr = showPercent ? `${baseline}%` : baseline.toString();
       return delta === 0 ? currentStr : `${currentStr} (baseline: ${baselineStr}, ${deltaSign}${delta}${showPercent ? 'pp' : ''})`;
     };
-
-    // Calculate growth rates and metrics
-    const totalGrowthRate = baselineGrandTotal > 0 ? ((grandTotal - baselineGrandTotal) / baselineGrandTotal * 100) : 0;
-    const totalGrowthAbsolute = grandTotal - baselineGrandTotal;
 
     return {
       // Journey data with detailed breakdown using backend baseline values
@@ -1094,12 +1113,12 @@ class SimulationApiService {
         absoluteDisplay: `${totalJourney4 - baselineJourney4 >= 0 ? '+' : ''}${totalJourney4 - baselineJourney4} FTE`
       },
       
-      // Growth KPIs using backend baseline data
+      // Growth KPIs using backend data (source of truth)
       totalGrowthRate: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
       totalGrowthDetails: {
         percentage: `${totalGrowthRate >= 0 ? '+' : ''}${totalGrowthRate.toFixed(1)}%`,
         current: grandTotal,
-        baseline: baselineGrandTotal,
+        baseline: baselineGrandTotalCalculated,
         absolute: totalGrowthAbsolute,
         absoluteDisplay: `${totalGrowthAbsolute >= 0 ? '+' : ''}${totalGrowthAbsolute} FTE`
       },
@@ -1119,19 +1138,14 @@ class SimulationApiService {
         current: nonDebitRatio,
         baseline: baselineNonDebitRatio,
         absolute: nonDebitRatio - baselineNonDebitRatio,
-        absoluteDisplay: `${(nonDebitRatio - baselineNonDebitRatio).toFixed(1)}pp`
+        absoluteDisplay: `${nonDebitRatio - baselineNonDebitRatio >= 0 ? '+' : ''}${nonDebitRatio - baselineNonDebitRatio}pp`
       },
       
-      // Baseline information
-      baselineYear: resolvedBaselineYear,
-      hasBaseline: true, // We now have backend baseline data
-      
-      // Summary values for display
-      journey1Display: `${totalJourney1} (${journey1Percent}%)`,
-      journey2Display: `${totalJourney2} (${journey2Percent}%)`,
-      journey3Display: `${totalJourney3} (${journey3Percent}%)`,
-      journey4Display: `${totalJourney4} (${journey4Percent}%)`,
-      nonDebitRatioDisplay: `${nonDebitRatio}%`
+      // Journey growth rates
+      journey1GrowthRate: baselineJourney1 > 0 ? ((totalJourney1 - baselineJourney1) / baselineJourney1 * 100) : 0,
+      journey2GrowthRate: baselineJourney2 > 0 ? ((totalJourney2 - baselineJourney2) / baselineJourney2 * 100) : 0,
+      journey3GrowthRate: baselineJourney3 > 0 ? ((totalJourney3 - baselineJourney3) / baselineJourney3 * 100) : 0,
+      journey4GrowthRate: baselineJourney4 > 0 ? ((totalJourney4 - baselineJourney4) / baselineJourney4 * 100) : 0,
     };
   }
 
