@@ -96,8 +96,6 @@ async def run_simulation(params):
         if "office_overrides" in params:
             sim_params["office_overrides"] = params["office_overrides"]
             
-        print(f"[DEBUG] MCP calling simulation with: {sim_params}")
-            
         async with httpx.AsyncClient() as client:
             response = await client.post(SIMULATION_API_URL, json=sim_params, timeout=60)
             response.raise_for_status()
@@ -149,11 +147,6 @@ async def call_claude_api(prompt: str) -> str:
                 last_request_time = time.time()
             async with httpx.AsyncClient() as client:
                 response = await client.post(CLAUDE_API_URL, headers=headers, json=data, timeout=60)
-                
-                # Debug the response
-                print(f"[DEBUG] Claude API response status: {response.status_code}")
-                if response.status_code != 200:
-                    print(f"[DEBUG] Claude API error response: {response.text}")
                 
                 response.raise_for_status()
                 result = response.json()

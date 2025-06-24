@@ -28,20 +28,21 @@ class KPIService:
         params = economic_params or self.economic_params
         self.financial_calculator = FinancialKPICalculator(params)
 
-        years = list(simulation_results.get('years', {}).keys())
-        if not years:
-            raise ValueError("No simulation years found in results")
+        # Determine which year to use for current KPIs
+        years = list(simulation_results['years'].keys())
+        if len(years) == 1:
+            # Single year simulation - use that year
+            current_year = years[0]
+        else:
+            # Multi-year simulation - use first year for consistency with baseline
+            first_year = min(years)
+            current_year = first_year
+        
+        # Get current year data
+        current_year_data = simulation_results['years'][current_year]
+        
         baseline_data = get_baseline_data()
         
-        # FIXED: Use the first year for consistent KPI calculations instead of final year
-        # This ensures single-year and multi-year simulations show consistent results
-        # The "current" KPIs should represent the first simulation year, not the final year
-        first_year = min(years)
-        current_year_data = simulation_results['years'][first_year]
-        
-        print(f"[KPI DEBUG] 🔧 FIXED: Using {first_year} for current KPIs instead of final year {max(years)}")
-        print(f"[KPI DEBUG] This ensures single-year vs multi-year consistency")
-
         baseline_financial = self.financial_calculator.calculate_baseline_financial_metrics(
             baseline_data, params.unplanned_absence, params.other_expense, duration_months=12
         )

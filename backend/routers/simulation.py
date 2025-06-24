@@ -65,11 +65,18 @@ def run_simulation(params: SimulationRequest):
     if not engine:
         raise HTTPException(status_code=500, detail="Simulation engine not initialized")
     
-    # DEBUG: Show raw parameter values
-    print(f"\n🔍 [DEBUG] RAW PARAMETERS RECEIVED:")
-    print(f"[DEBUG] Raw price_increase: {params.price_increase} (type: {type(params.price_increase)})")
-    print(f"[DEBUG] Raw salary_increase: {params.salary_increase} (type: {type(params.salary_increase)})")
-    print(f"[DEBUG] Expected for 2%: 0.02")
+    # Validate and convert parameters
+    if params.price_increase is not None:
+        if not isinstance(params.price_increase, (int, float)):
+            raise HTTPException(status_code=400, detail="price_increase must be a number")
+        if params.price_increase < 0 or params.price_increase > 1:
+            raise HTTPException(status_code=400, detail="price_increase must be between 0 and 1")
+    
+    if params.salary_increase is not None:
+        if not isinstance(params.salary_increase, (int, float)):
+            raise HTTPException(status_code=400, detail="salary_increase must be a number")
+        if params.salary_increase < 0 or params.salary_increase > 1:
+            raise HTTPException(status_code=400, detail="salary_increase must be between 0 and 1")
     
     print(f"\n🚀 [SIMULATION] =================== NEW SIMULATION RUN ===================")
     print(f"[SIMULATION] 📅 Timeframe: {params.start_year}-{params.start_month:02d} to {params.end_year}-{params.end_month:02d}")

@@ -12,7 +12,7 @@
           "recruitment_1": 0.1,
           "churn_1": 0.0,
           "utr_1": 0.85,
-          "progression_1": 0.0,
+          "progression_1": 0.03,
           "price_2": 1109.38,
           "salary_2": 42105.0,
           "recruitment_2": 0.05,

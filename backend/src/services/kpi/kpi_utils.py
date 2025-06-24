@@ -66,39 +66,37 @@ def get_baseline_data() -> Dict[str, Any]:
     return baseline
 
 
-def calculate_fta_weighted_average_hourly_rate(
-    year_data: Dict[str, Any], 
-    role_filter: str = 'Consultant'
-) -> float:
+def calculate_fta_weighted_average_hourly_rate(year_data: Dict[str, Any], role_name: str = 'Consultant') -> float:
     """
     Calculate FTE-weighted average hourly rate for a specific role.
     
     Args:
-        year_data: Simulation year data
-        role_filter: Role to include in calculation (default: 'Consultant')
-    
+        year_data: Year data from simulation results
+        role_name: Role name to calculate for (default: 'Consultant')
+        
     Returns:
         FTE-weighted average hourly rate
     """
-    weighted_sum = 0.0
+    total_weighted_rate = 0.0
     total_fte = 0.0
     
     for office_name, office_data in year_data.get('offices', {}).items():
-        if 'levels' in office_data:
-            office_levels = office_data.get('levels', {})
-            for role_name, role_data in office_levels.items():
-                if role_name == role_filter and isinstance(role_data, dict):
-                    for level_name, level_data in role_data.items():
-                        if isinstance(level_data, list) and level_data:
-                            monthly_prices = [month_data.get('price', 0) for month_data in level_data]
-                            level_fte = level_data[-1].get('total', 0) if level_data[-1] else 0
-                            if any(monthly_prices) and level_fte > 0:
-                                level_avg = sum(monthly_prices) / len(monthly_prices)
-                                print(f"[KPI DEBUG] {office_name} {level_name} | FTE: {level_fte} | Prices: {monthly_prices} | Level avg: {level_avg:.2f}")
-                                weighted_sum += level_avg * level_fte
-                                total_fte += level_fte
+        if 'levels' in office_data and role_name in office_data['levels']:
+            role_data = office_data['levels'][role_name]
+            
+            if isinstance(role_data, dict):
+                # Hierarchical role with levels
+                for level_name, level_data in role_data.items():
+                    if isinstance(level_data, list) and level_data:
+                        last_month_data = level_data[-1]
+                        fte_count = last_month_data.get('total', 0)
+                        hourly_rate = last_month_data.get('price', 0)
+                        
+                        if fte_count > 0 and hourly_rate > 0:
+                            total_weighted_rate += hourly_rate * fte_count
+                            total_fte += fte_count
     
-    return weighted_sum / total_fte if total_fte > 0 else 0
+    return total_weighted_rate / total_fte if total_fte > 0 else 0.0
 
 
 def extract_office_totals(year_data: Dict[str, Any]) -> Tuple[int, int, int]:

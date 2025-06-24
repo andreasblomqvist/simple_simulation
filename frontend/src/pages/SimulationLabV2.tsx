@@ -269,10 +269,6 @@ const SimulationLabV2: React.FC = () => {
   
       const results = await simulationApi.runSimulation(simulationConfig);
       
-      // --- RAW RESULTS DEBUG ---
-      console.log('%c[DEBUG] Raw Simulation Results from Backend:', 'color: #FF6347; font-weight: bold;', results);
-      // --- END RAW RESULTS DEBUG ---
-
       setSimulationResults(results);
       console.log('[SIMULATION] ✅ Simulation run successful.');
   
@@ -385,7 +381,6 @@ const SimulationLabV2: React.FC = () => {
       // Set active year to first year if current activeYear is not in the results
       if (years.length > 0 && !years.includes(activeYear)) {
         setActiveYear(years[0]);
-        console.log(`[YEAR SWITCH] Setting active year to ${years[0]} from available years:`, years);
       }
     }
   }, [simulationResults, activeYear]);
@@ -584,15 +579,38 @@ const SimulationLabV2: React.FC = () => {
   console.log('[YEAR DEBUG] Simulation results years:', simulationResults ? Object.keys(simulationResults.years || {}) : 'No results');
   console.log('[KPI DEBUG] Enhanced kpiData length:', kpiData.length);
   
-  const tableData = simulationResults && activeYear
-    ? simulationApi.extractTableData(simulationResults, activeYear, officeConfig)
+  const tableData = simulationResults && activeYear 
+    ? simulationApi.transformResults(simulationResults, baselineResults, activeYear)
     : [];
   
   // Year change handler with debug logging
   const handleYearChange = (year: string) => {
-    console.log(`[YEAR CHANGE] Switching from ${activeYear} to ${year}`);
     setActiveYear(year);
-    console.log(`[YEAR CHANGE] Active year updated to: ${year}`);
+    
+    // Load seniority data for the new year
+    const loadSeniorityData = async () => {
+      if (!simulationResults || !year) {
+        setSeniorityKPIs(null);
+        return;
+      }
+      
+      try {
+        const yearData = simulationResults.years[year];
+        if (!yearData) {
+          setSeniorityKPIs(null);
+          return;
+        }
+        
+        const extractedKPIs = simulationApi.extractSeniorityKPIs(yearData, simulationResults.baseline);
+        setSeniorityKPIs(extractedKPIs);
+        
+      } catch (error) {
+        console.error('[SENIORITY] Error loading seniority data:', error);
+        setSeniorityKPIs(null);
+      }
+    };
+    
+    loadSeniorityData();
   };
 
   // Debug log for table data
