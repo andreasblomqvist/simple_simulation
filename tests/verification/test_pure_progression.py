@@ -216,16 +216,4 @@ class TestPureProgression:
         logger(f"   ✅ {positive_changes} levels gained FTE, {negative_changes} levels lost FTE")
         logger(f"   ✅ {total_progression_events} total progression events occurred")
         logger(f"   ✅ Total FTE change: {actual_total - total_baseline} ({((actual_total - total_baseline) / total_baseline * 100):.1f}%)")
-        logger("   ✅ Pure progression functionality verified with config rates!")
-        
-        return {
-            'baseline_total': total_baseline,
-            'actual_total': actual_total,
-            'expected_total': expected_total,
-            'levels_with_changes': levels_with_changes,
-            'total_levels': total_levels,
-            'level_changes': level_changes,
-            'positive_changes': positive_changes,
-            'negative_changes': negative_changes,
-            'total_progression_events': total_progression_events
-        } 
+        logger("   ✅ Pure progression functionality verified with config rates!") 

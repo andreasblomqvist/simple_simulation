@@ -148,22 +148,22 @@ cd frontend && npm run dev
 ## Log Management
 
 **Log file locations:**
-- Backend logs: `backend/logs/backend_YYYYMMDD_HHMMSS.log`
-- Frontend logs: `frontend/logs/frontend_YYYYMMDD_HHMMSS.log`
+- Backend logs: `backend/logs/backend.log`
+- Frontend logs: `frontend/logs/frontend.log`
 
 **Tail log commands (after starting servers):**
 ```bash
 # Tail backend logs only
-tail -f backend/logs/backend_*.log
+tail -f backend/logs/backend.log
 
 # Tail frontend logs only
-tail -f frontend/logs/frontend_*.log
+tail -f frontend/logs/frontend.log
 
 # Tail both logs together
-tail -f backend/logs/backend_*.log frontend/logs/frontend_*.log
+tail -f backend/logs/backend.log frontend/logs/frontend_*.log
 
 # Tail latest log files (most recent timestamp)
-tail -f $(ls -t backend/logs/backend_*.log | head -1) $(ls -t frontend/logs/frontend_*.log | head -1)
+tail -f $(ls -t backend/logs/backend.log | head -1) $(ls -t frontend/logs/frontend_*.log | head -1)
 ```
 
 **Log file management:**
