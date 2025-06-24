@@ -1,0 +1,143 @@
+from typing import Dict, Any
+from backend.src.services.simulation.models import Office, Level, RoleData, Month
+from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name
+
+class WorkforceManager:
+    """
+    Handles all workforce dynamics: progression, recruitment, churn, and people movement.
+    """
+    def __init__(self, offices: Dict[str, Office]):
+        self.offices = offices
+
+    def process_month(self, year: int, month: int, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
+        """
+        Process a single month for all offices:
+        - Progression (CAT-based)
+        - Churn
+        - Recruitment
+        - Update office FTEs and metrics
+        """
+        current_month_enum = Month(month)
+        for office in self.offices.values():
+            if office.name not in monthly_office_metrics:
+                monthly_office_metrics[office.name] = {}
+            monthly_office_metrics[office.name][current_date_str] = {}
+            office_total_fte = 0
+
+            # 1. Progression (CAT-based)
+            self.process_progression(office, current_month_enum, current_date_str, monthly_office_metrics)
+
+            # 2. Churn and Recruitment
+            self.process_churn_and_recruitment(office, current_month_enum, current_date_str, monthly_office_metrics)
+
+            # 3. Update office FTE
+            for role_name, role_data in office.roles.items():
+                if isinstance(role_data, dict):
+                    for level in role_data.values():
+                        office_total_fte += level.total
+                else:
+                    office_total_fte += role_data.total
+            office.total_fte = office_total_fte
+            monthly_office_metrics[office.name][current_date_str]['total_fte'] = office.total_fte
+
+    def process_progression(self, office: Office, current_month_enum: Month, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
+        """
+        Process progression for all roles/levels in an office for the given month.
+        Handles promotions and tracks movement between levels.
+        """
+        for role_name, role_data in office.roles.items():
+            if isinstance(role_data, dict):  # Leveled roles
+                promotions_this_month = {}
+                for level_name, level in role_data.items():
+                    progression_rate = get_monthly_attribute(level, 'progression', current_month_enum)
+                    promoted_people = level.apply_cat_based_progression(progression_rate, current_date_str)
+                    promotions_this_month[level_name] = promoted_people
+                # Track promotions into each level
+                promoted_into_levels = {level_name: 0 for level_name in role_data.keys()}
+                for level_name, promoted_people in promotions_this_month.items():
+                    # Find next level
+                    level_order = list(role_data.keys())
+                    next_level_name = get_next_level_name(level_name, level_order)
+                    next_level = role_data.get(next_level_name) if next_level_name else None
+                    if next_level:
+                        for person in promoted_people:
+                            next_level.add_promotion(person, current_date_str)
+                        promoted_into_levels[next_level_name] = len(promoted_people)
+                    # else: top level, people leave the cohort
+                # Store promotion metrics for each level
+                for level_name, level in role_data.items():
+                    if office.name not in monthly_office_metrics:
+                        monthly_office_metrics[office.name] = {}
+                    if current_date_str not in monthly_office_metrics[office.name]:
+                        monthly_office_metrics[office.name][current_date_str] = {}
+                    if role_name not in monthly_office_metrics[office.name][current_date_str]:
+                        monthly_office_metrics[office.name][current_date_str][role_name] = {}
+                    monthly_office_metrics[office.name][current_date_str][role_name][level_name] = {
+                        'progressed_out': len(promotions_this_month.get(level_name, [])),
+                        'progressed_in': promoted_into_levels.get(level_name, 0),
+                    }
+
+    def process_churn_and_recruitment(self, office: Office, current_month_enum: Month, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
+        """
+        Process churn and recruitment for all roles/levels in an office for the given month.
+        Updates FTE and stores metrics.
+        """
+        for role_name, role_data in office.roles.items():
+            if isinstance(role_data, dict):  # Leveled roles
+                for level_name, level in role_data.items():
+                    # Churn
+                    churn_rate = get_monthly_attribute(level, 'churn', current_month_enum)
+                    level.fractional_churn += level.total * churn_rate
+                    churn_to_apply = int(level.fractional_churn)
+                    level.fractional_churn -= churn_to_apply
+                    churned = level.apply_churn(churn_to_apply)
+                    # Recruitment
+                    recruitment_rate = get_monthly_attribute(level, 'recruitment', current_month_enum)
+                    level.fractional_recruitment += level.total * recruitment_rate
+                    recruits_to_add = int(level.fractional_recruitment)
+                    level.fractional_recruitment -= recruits_to_add
+                    for _ in range(recruits_to_add):
+                        level.add_new_hire(current_date_str, role_name, office.name)
+                    # Update metrics
+                    if office.name not in monthly_office_metrics:
+                        monthly_office_metrics[office.name] = {}
+                    if current_date_str not in monthly_office_metrics[office.name]:
+                        monthly_office_metrics[office.name][current_date_str] = {}
+                    if role_name not in monthly_office_metrics[office.name][current_date_str]:
+                        monthly_office_metrics[office.name][current_date_str][role_name] = {}
+                    if level_name not in monthly_office_metrics[office.name][current_date_str][role_name]:
+                        monthly_office_metrics[office.name][current_date_str][role_name][level_name] = {}
+                    monthly_office_metrics[office.name][current_date_str][role_name][level_name].update({
+                        'total_fte': level.total,
+                        'recruited': recruits_to_add,
+                        'churned': churn_to_apply,
+                        'price': get_monthly_attribute(level, 'price', current_month_enum),
+                        'salary': get_monthly_attribute(level, 'salary', current_month_enum),
+                        'utr': get_monthly_attribute(level, 'utr', current_month_enum),
+                    })
+            else:  # Flat roles
+                # Churn
+                churn_rate = get_monthly_attribute(role_data, 'churn', current_month_enum)
+                role_data.fractional_churn += role_data.total * churn_rate
+                churn_to_apply = int(role_data.fractional_churn)
+                role_data.fractional_churn -= churn_to_apply
+                churned = role_data.apply_churn(churn_to_apply)
+                # Recruitment
+                recruitment_rate = get_monthly_attribute(role_data, 'recruitment', current_month_enum)
+                role_data.fractional_recruitment += role_data.total * recruitment_rate
+                recruits_to_add = int(role_data.fractional_recruitment)
+                role_data.fractional_recruitment -= recruits_to_add
+                for _ in range(recruits_to_add):
+                    role_data.add_new_hire(current_date_str, role_name, office.name)
+                # Update metrics
+                if office.name not in monthly_office_metrics:
+                    monthly_office_metrics[office.name] = {}
+                if current_date_str not in monthly_office_metrics[office.name]:
+                    monthly_office_metrics[office.name][current_date_str] = {}
+                monthly_office_metrics[office.name][current_date_str][role_name] = {
+                    'total_fte': role_data.total,
+                    'recruited': recruits_to_add,
+                    'churned': churn_to_apply
+                }
+
+    # Add more helper methods as needed for CAT-based progression, churn, recruitment, etc. 
