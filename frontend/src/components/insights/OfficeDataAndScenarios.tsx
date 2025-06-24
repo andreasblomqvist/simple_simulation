@@ -140,17 +140,18 @@ const OfficeDetails: React.FC<OfficeDetailsProps> = ({
           // Hierarchical role (has levels like A, AC, C, etc.)
           Object.entries(roleData).forEach(([levelName, levelArray]: [string, any]) => {
             if (Array.isArray(levelArray) && levelArray.length > 0) {
-              const yearData = levelArray.filter((month: any) => month.month.startsWith(selectedYear));
+              // Use all monthly data for the year (no need to filter by month since it's already year-specific)
+              const yearData = levelArray;
               if (yearData.length > 0) {
                 // Get last month data for the year (December or latest available)
                 const lastMonth = yearData[yearData.length - 1];
                 
-                // Calculate totals for the year
+                // Calculate totals for the year by summing all monthly values
                 const totalRecruited = yearData.reduce((sum: number, month: any) => sum + (month.recruited || 0), 0);
                 const totalChurned = yearData.reduce((sum: number, month: any) => sum + (month.churned || 0), 0);
                 const totalProgressedIn = yearData.reduce((sum: number, month: any) => sum + (month.progressed_in || 0), 0);
                 const totalProgressedOut = yearData.reduce((sum: number, month: any) => sum + (month.progressed_out || 0), 0);
-                const netChange = totalRecruited + totalProgressedIn - totalChurned - totalProgressedOut;
+                const netChange = totalRecruited - totalChurned + totalProgressedIn - totalProgressedOut;
 
                 tableData.push({
                   key: `${roleName}-${levelName}`,
@@ -170,15 +171,17 @@ const OfficeDetails: React.FC<OfficeDetailsProps> = ({
           });
         } else if (Array.isArray(roleData) && roleData.length > 0) {
           // Flat role (like Operations)
-          const yearData = roleData.filter((month: any) => month.month.startsWith(selectedYear));
+          // Use all monthly data for the year
+          const yearData = roleData;
           if (yearData.length > 0) {
             const lastMonth = yearData[yearData.length - 1];
             
+            // Calculate totals for the year by summing all monthly values
             const totalRecruited = yearData.reduce((sum: number, month: any) => sum + (month.recruited || 0), 0);
             const totalChurned = yearData.reduce((sum: number, month: any) => sum + (month.churned || 0), 0);
             const totalProgressedIn = yearData.reduce((sum: number, month: any) => sum + (month.progressed_in || 0), 0);
             const totalProgressedOut = yearData.reduce((sum: number, month: any) => sum + (month.progressed_out || 0), 0);
-            const netChange = totalRecruited + totalProgressedIn - totalChurned - totalProgressedOut;
+            const netChange = totalRecruited - totalChurned + totalProgressedIn - totalProgressedOut;
 
             tableData.push({
               key: roleName,

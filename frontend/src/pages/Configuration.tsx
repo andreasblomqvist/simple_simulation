@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag, Space, Tooltip, Divider, Checkbox } from 'antd';
-import { UploadOutlined, DownloadOutlined, SaveOutlined, ReloadOutlined, EditOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag, Space, Tooltip, Divider, Checkbox, Modal } from 'antd';
+import { UploadOutlined, DownloadOutlined, SaveOutlined, ReloadOutlined, EditOutlined, CalendarOutlined, GlobalOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -89,6 +89,10 @@ export default function Configuration() {
   // Add state for import/refresh feedback
   const [importing, setImporting] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  
+  // Global configuration modal state
+  const [showGlobalModal, setShowGlobalModal] = useState(false);
+  const [globalForm] = Form.useForm();
   
   // Month selection state per group
   const [selectedMonths, setSelectedMonths] = useState<Record<string, number>>(() => {
@@ -413,6 +417,75 @@ export default function Configuration() {
       ...prev,
       [groupKey]: month
     }));
+  };
+
+  // Handle global configuration change
+  const handleGlobalChange = async (values: any) => {
+    try {
+      const { role, levels, field, month, value, targetOffices, applyToAllMonthsGlobal } = values;
+      
+      if (!value && value !== 0) {
+        message.error('Please enter a value');
+        return;
+      }
+
+      // If applying to all months, we don't need a specific month
+      const effectiveMonth = applyToAllMonthsGlobal ? 1 : month; // Use month 1 as default when applying to all months
+
+      const newDraftChanges: any = {};
+      // Handle "All Offices" selection or use selected offices or all if none selected
+      const officeList = targetOffices && targetOffices.includes('ALL_OFFICES') 
+        ? offices 
+        : targetOffices && targetOffices.length > 0 
+          ? targetOffices.filter((office: string) => office !== 'ALL_OFFICES') // Remove ALL_OFFICES from list if mixed selection
+          : offices;
+      const levelList = levels && levels.length > 0 ? levels : [null]; // Use selected levels or null for no level
+      
+      // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
+      const isTotal = field === 'total';
+      const backendField = isTotal ? 'fte' : field;
+      
+      officeList.forEach((officeName: string) => {
+        levelList.forEach((level: string | null) => {
+          if (applyToAllMonthsGlobal && !isTotal) {
+            // Apply to all 12 months for each office and level combination
+            for (let m = 1; m <= 12; m++) {
+              const monthSuffix = `_${m}`;
+              const fieldWithMonth = `${backendField}${monthSuffix}`;
+              const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
+              newDraftChanges[draftPath] = value;
+            }
+          } else {
+            // Apply to selected month only for each office and level combination
+            const monthSuffix = isTotal ? '' : `_${effectiveMonth}`;
+            const fieldWithMonth = `${backendField}${monthSuffix}`;
+            const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
+            newDraftChanges[draftPath] = value;
+          }
+        });
+      });
+
+      setDraftChanges((prev: any) => ({
+        ...prev,
+        ...newDraftChanges
+      }));
+      
+      setHasChanges(true);
+      setShowGlobalModal(false);
+      globalForm.resetFields();
+      
+      const changesCount = Object.keys(newDraftChanges).length;
+      const levelText = levels && levels.length > 0 ? ` across ${levels.length} level(s)` : '';
+      const monthsText = applyToAllMonthsGlobal && !isTotal ? ' (all months)' : '';
+      const officeText = targetOffices && targetOffices.includes('ALL_OFFICES') 
+        ? `all ${officeList.length} offices` 
+        : `${officeList.length} office(s)`;
+      message.success(`✅ Applied ${formatValue(value, LEVER_GROUPS.find(g => g.columns.some(c => c.key === field))?.columns.find(c => c.key === field)?.formatter || 'number')} globally to ${officeText}${levelText}${monthsText}. ${changesCount} changes added to draft.`);
+      
+    } catch (error) {
+      console.error('[CONFIG] ❌ Error applying global change:', error);
+      message.error('Failed to apply global configuration change');
+    }
   };
 
   // Format value based on type
@@ -760,6 +833,16 @@ export default function Configuration() {
               �� Export All Offices (Excel)
             </Button>
           </Col>
+          <Col>
+            <Button 
+              type="primary"
+              icon={<GlobalOutlined />} 
+              onClick={() => setShowGlobalModal(true)}
+              disabled={importing || loading || offices.length === 0}
+            >
+              🌍 Global Configuration
+            </Button>
+          </Col>
           <Col flex="auto" />
           <Col>
             <Space>
@@ -848,6 +931,7 @@ export default function Configuration() {
           <Col span={24}>
             <Text type="secondary">
               • <strong>Orange highlights</strong> indicate modified values
+              • <strong>🌍 Global Configuration:</strong> Set values across multiple offices and levels at once (e.g., recruitment rate for levels A, AC, C = 3%)
               • <strong>Click group headers</strong> to expand/collapse columns  
               • <strong>Month dropdowns</strong> 📅 control which month's data is shown/edited
               • <strong>"Apply to All Months"</strong> checkbox: when checked, value changes apply to all 12 months
@@ -935,6 +1019,7 @@ export default function Configuration() {
             <Col xs={24} md={12}>
               <Title level={5}>Advanced Features:</Title>
               <ul>
+                <li><strong>🌍 Global Configuration:</strong> Apply values to multiple offices simultaneously</li>
                 <li><strong>Draft mode:</strong> All changes are saved as drafts until applied</li>
                 <li><strong>Group expand/collapse:</strong> Focus on specific metrics</li>
                 <li><strong>Export functionality:</strong> Save current configuration with all changes</li>
@@ -943,6 +1028,168 @@ export default function Configuration() {
             </Col>
           </Row>
         </Card>
+
+        {/* Global Configuration Modal */}
+        <Modal
+          title="🌍 Global Configuration"
+          open={showGlobalModal}
+          onCancel={() => {
+            setShowGlobalModal(false);
+            globalForm.resetFields();
+          }}
+          onOk={() => globalForm.submit()}
+          okText="Apply Globally"
+          cancelText="Cancel"
+          width={600}
+        >
+          <Form
+            form={globalForm}
+            layout="vertical"
+            onFinish={handleGlobalChange}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Role"
+                  name="role"
+                  rules={[{ required: true, message: 'Please select a role' }]}
+                >
+                  <Select placeholder="Select role">
+                    {ROLES.map(role => (
+                      <Option key={role} value={role}>{role}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Levels (Optional)"
+                  name="levels"
+                  tooltip="Select multiple levels or leave empty for Operations role or to apply to all levels"
+                >
+                  <Select 
+                    mode="multiple"
+                    placeholder="Select levels (optional)" 
+                    allowClear
+                  >
+                    {LEVELS.map(level => (
+                      <Option key={level} value={level}>{level}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Field"
+                  name="field"
+                  rules={[{ required: true, message: 'Please select a field' }]}
+                >
+                  <Select placeholder="Select field to change">
+                    {LEVER_GROUPS.flatMap(group => 
+                      group.columns.map(col => (
+                        <Option key={col.key} value={col.key}>
+                          {group.icon} {col.label} ({group.label})
+                        </Option>
+                      ))
+                    )}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Month"
+                  name="month"
+                  dependencies={['applyToAllMonthsGlobal']}
+                  rules={[
+                    {
+                      required: true,
+                      validator: (_, value) => {
+                        const applyToAllMonths = globalForm.getFieldValue('applyToAllMonthsGlobal');
+                        if (!applyToAllMonths && !value) {
+                          return Promise.reject(new Error('Please select a month or check "Apply to all months"'));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
+                  tooltip="Select specific month or check 'Apply to all months' below. For FTE values, month is ignored."
+                >
+                  <Select placeholder="Select month">
+                    {MONTHS.map(month => (
+                      <Option key={month.value} value={month.value}>
+                        {month.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Value"
+                  name="value"
+                  rules={[{ required: true, message: 'Please enter a value' }]}
+                  tooltip="Enter in display format (e.g., 3% for recruitment, 120k for salary)"
+                >
+                  <InputNumber 
+                    placeholder="Enter value"
+                    style={{ width: '100%' }}
+                    precision={3}
+                  />
+                </Form.Item>
+              </Col>
+                             <Col span={12}>
+                 <Form.Item
+                   label="Target Offices"
+                   name="targetOffices"
+                   tooltip="Select specific offices or choose 'All Offices'"
+                 >
+                   <Select
+                     mode="multiple"
+                     placeholder="Select offices"
+                     allowClear
+                   >
+                     <Option key="ALL_OFFICES" value="ALL_OFFICES">
+                       🌍 All Offices ({offices.length} offices)
+                     </Option>
+                     {offices.map(office => (
+                       <Option key={office} value={office}>{office}</Option>
+                     ))}
+                   </Select>
+                 </Form.Item>
+               </Col>
+            </Row>
+
+            <Row>
+              <Col span={24}>
+                <Form.Item
+                  name="applyToAllMonthsGlobal"
+                  valuePropName="checked"
+                >
+                  <Checkbox>
+                    🔄 Apply to all 12 months (ignored for FTE values)
+                  </Checkbox>
+                </Form.Item>
+              </Col>
+            </Row>
+
+                         <div style={{ padding: '12px', backgroundColor: '#f0f2f5', borderRadius: '6px', marginTop: '16px' }}>
+               <Text type="secondary">
+                 <strong>💡 Examples:</strong><br/>
+                 • Set recruitment rate for level A to 3% - select "🌍 All Offices"<br/>
+                 • Update price for levels AC, C, SrC to 1500 SEK globally<br/>
+                 • Change churn rate for all consultant levels (leave levels empty)<br/>
+                 • Set UTR for Operations to 85% for specific offices (Stockholm, Munich)<br/>
+                 • Apply salary changes to multiple levels (A, AC, C) across all offices
+               </Text>
+             </div>
+          </Form>
+        </Modal>
       </Card>
     </div>
   );

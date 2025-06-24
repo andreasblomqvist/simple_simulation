@@ -24,7 +24,7 @@ from backend.config.default_config import (
 )
 
 # Import KPI service
-from backend.src.services.kpi_service import KPIService, EconomicParameters
+from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.config_service import config_service
 
 class Month(Enum):
@@ -986,53 +986,49 @@ class SimulationEngine:
     
     def _get_office_level_snapshot(self, office: Office, monthly_office_metrics: Dict, start_date_str: str, end_date_str: str) -> Dict[str, Any]:
         """
-        Gathers and structures the monthly data for each level in an office
-        for the entire simulation period.
+        Gathers and structures the current state data for each level in an office
+        for KPI calculations. Converts the monthly_office_metrics structure into arrays.
         """
         level_snapshots = {}
-        start_year, start_month = map(int, start_date_str.split('-'))
-        end_year, end_month = map(int, end_date_str.split('-'))
+        
+        # Extract all monthly data for this office and convert to arrays
+        office_monthly_data = monthly_office_metrics.get(office.name, {})
         
         for role_name, role_data in office.roles.items():
-            level_snapshots[role_name] = {}
             if isinstance(role_data, dict): # Leveled roles
+                level_snapshots[role_name] = {}
                 for level_name, level in role_data.items():
-                    level_snapshots[role_name][level_name] = []
-                    for year in range(start_year, end_year + 1):
-                        for month in range(1, 13):
-                            if year == start_year and month < start_month: continue
-                            if year == end_year and month > end_month: continue
-                            current_date_str = f"{year}-{month:02d}"
-                            
-                            monthly_data = monthly_office_metrics.get(office.name, {}).get(current_date_str, {}).get(role_name, {}).get(level_name, {})
-                            
-                            level_snapshots[role_name][level_name].append({
-                                'month': current_date_str,
-                                'total': monthly_data.get('total_fte', 0),
-                                'price': monthly_data.get('price', 0),
-                                'salary': monthly_data.get('salary', 0),
-                                'utr': monthly_data.get('utr', 0.0),
-                                'recruited': monthly_data.get('recruited', 0),
-                                'churned': monthly_data.get('churned', 0),
-                                'progressed_out': monthly_data.get('progressed_out', 0),
-                                'progressed_in': monthly_data.get('progressed_in', 0),
+                    # Collect all monthly data for this level into an array
+                    monthly_array = []
+                    for date_str in sorted(office_monthly_data.keys()):
+                        level_data = office_monthly_data[date_str].get(role_name, {}).get(level_name, {})
+                        if level_data:
+                            # Transform the structure for KPI service AND preserve movement data
+                            monthly_array.append({
+                                'total': level_data.get('total_fte', 0),
+                                'price': level_data.get('price', 0),
+                                'salary': level_data.get('salary', 0),
+                                'utr': level_data.get('utr', 0.85),
+                                'recruited': level_data.get('recruited', 0),
+                                'churned': level_data.get('churned', 0),
+                                'progressed_in': level_data.get('progressed_in', 0),
+                                'progressed_out': level_data.get('progressed_out', 0)
                             })
-            else: # Flat roles
-                level_snapshots[role_name] = []
-                for year in range(start_year, end_year + 1):
-                    for month in range(1, 13):
-                        if year == start_year and month < start_month: continue
-                        if year == end_year and month > end_month: continue
-                        current_date_str = f"{year}-{month:02d}"
-                        monthly_data = monthly_office_metrics.get(office.name, {}).get(current_date_str, {}).get(role_name, {})
-                        
-                        level_snapshots[role_name].append({
-                            'month': current_date_str,
-                            'total': monthly_data.get('total_fte', 0),
-                            'recruited': monthly_data.get('recruited', 0),
-                            'churned': monthly_data.get('churned', 0),
+                    level_snapshots[role_name][level_name] = monthly_array
+            else: # Flat roles (e.g., Operations)
+                # Collect all monthly data for this flat role into an array
+                monthly_array = []
+                for date_str in sorted(office_monthly_data.keys()):
+                    role_monthly_data = office_monthly_data[date_str].get(role_name, {})
+                    if role_monthly_data:
+                        monthly_array.append({
+                            'total': role_monthly_data.get('total_fte', 0),
+                            'salary': 40000.0,  # Default salary for flat roles
+                            'recruited': role_monthly_data.get('recruited', 0),
+                            'churned': role_monthly_data.get('churned', 0)
                         })
-
+                level_snapshots[role_name] = monthly_array
+        
         return level_snapshots
 
     def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, end_year: int, economic_params: EconomicParameters) -> Dict[str, Any]:

@@ -9,10 +9,10 @@
           "fte": 69,
           "price_1": 1106.61,
           "salary_1": 42000,
-          "recruitment_1": 0.12,
+          "recruitment_1": 0.05,
           "churn_1": 0.0128,
           "utr_1": 0.85,
-          "progression_1": 0.225,
+          "progression_1": 0.03,
           "price_2": 1109.38,
           "salary_2": 42105.0,
           "recruitment_2": 0.12,
@@ -15522,6 +15522,18 @@
           "churn_12": 0.0127,
           "utr_12": 0.85,
           "progression_12": 0
+        }
+      }
+    }
+  },
+  "NonExistent": {
+    "name": "NonExistent",
+    "total_fte": 0,
+    "journey": "New Office",
+    "roles": {
+      "Office": {
+        "Role": {
+          "Level": 0.05
         }
       }
     }

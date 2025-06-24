@@ -408,8 +408,82 @@ const SimulationLabV2: React.FC = () => {
         return;
       }
       
-      // Get base financial KPIs
-      const financialKPIs = simulationApi.extractKPIData(simulationResults, activeYear, socialCost, otherExpense);
+      // Use backend KPI values directly - frontend should not calculate financial metrics
+      const backendKpis = simulationResults.kpis || {};
+      const financialKpis = backendKpis.financial || {};
+      
+      // Create financial KPIs from backend values (single source of truth)
+      const financialKPIs = [
+        {
+          title: 'Net Sales',
+          currentValue: simulationApi.formatValue(financialKpis.net_sales || 0, 'revenue'),
+          previousValue: simulationApi.formatValue(financialKpis.net_sales_baseline || 0, 'revenue'),
+          unit: '',
+          description: 'Total revenue from client services',
+          change: (financialKpis.net_sales || 0) - (financialKpis.net_sales_baseline || 0),
+          changePercent: financialKpis.net_sales_baseline > 0 ? 
+            (((financialKpis.net_sales || 0) - (financialKpis.net_sales_baseline || 0)) / financialKpis.net_sales_baseline) * 100 : 0,
+          rawValue: financialKpis.net_sales || 0
+        },
+        {
+          title: 'Total Salary Costs',
+          currentValue: simulationApi.formatValue(financialKpis.total_salary_costs || 0, 'revenue'),
+          previousValue: simulationApi.formatValue(financialKpis.total_salary_costs_baseline || 0, 'revenue'),
+          unit: '',
+          description: 'Total salary costs including employment overhead',
+          change: (financialKpis.total_salary_costs || 0) - (financialKpis.total_salary_costs_baseline || 0),
+          changePercent: financialKpis.total_salary_costs_baseline > 0 ? 
+            (((financialKpis.total_salary_costs || 0) - (financialKpis.total_salary_costs_baseline || 0)) / financialKpis.total_salary_costs_baseline) * 100 : 0,
+          rawValue: financialKpis.total_salary_costs || 0
+        },
+        {
+          title: 'EBITDA',
+          currentValue: simulationApi.formatValue(financialKpis.ebitda || 0, 'revenue'),
+          previousValue: simulationApi.formatValue(financialKpis.ebitda_baseline || 0, 'revenue'),
+          unit: '',
+          description: 'Earnings before interest, taxes, depreciation & amortization',
+          change: (financialKpis.ebitda || 0) - (financialKpis.ebitda_baseline || 0),
+          changePercent: financialKpis.ebitda_baseline > 0 ? 
+            (((financialKpis.ebitda || 0) - (financialKpis.ebitda_baseline || 0)) / financialKpis.ebitda_baseline) * 100 : 0,
+          rawValue: financialKpis.ebitda || 0
+        },
+        {
+          title: 'EBITDA Margin',
+          currentValue: simulationApi.formatValue((financialKpis.margin || 0) * 100, 'percentage'),
+          previousValue: simulationApi.formatValue((financialKpis.margin_baseline || 0) * 100, 'percentage'),
+          unit: '',
+          description: 'EBITDA as percentage of net sales',
+          change: ((financialKpis.margin || 0) - (financialKpis.margin_baseline || 0)) * 100,
+          changePercent: financialKpis.margin_baseline > 0 ? 
+            (((financialKpis.margin || 0) - (financialKpis.margin_baseline || 0)) / financialKpis.margin_baseline) * 100 : 0,
+          rawValue: (financialKpis.margin || 0) * 100
+        },
+        {
+          title: 'Gross Margin',
+          currentValue: simulationApi.formatValue((financialKpis.net_sales || 0) - (financialKpis.total_salary_costs || 0), 'revenue'),
+          previousValue: simulationApi.formatValue((financialKpis.net_sales_baseline || 0) - (financialKpis.total_salary_costs_baseline || 0), 'revenue'),
+          unit: '',
+          description: 'Net sales minus total costs',
+          change: ((financialKpis.net_sales || 0) - (financialKpis.total_salary_costs || 0)) - 
+                 ((financialKpis.net_sales_baseline || 0) - (financialKpis.total_salary_costs_baseline || 0)),
+          changePercent: ((financialKpis.net_sales_baseline || 0) - (financialKpis.total_salary_costs_baseline || 0)) > 0 ? 
+            ((((financialKpis.net_sales || 0) - (financialKpis.total_salary_costs || 0)) - 
+              ((financialKpis.net_sales_baseline || 0) - (financialKpis.total_salary_costs_baseline || 0))) / 
+             ((financialKpis.net_sales_baseline || 0) - (financialKpis.total_salary_costs_baseline || 0))) * 100 : 0,
+          rawValue: (financialKpis.net_sales || 0) - (financialKpis.total_salary_costs || 0)
+        },
+        {
+          title: 'Avg Hourly Rate',
+          currentValue: simulationApi.formatValue(financialKpis.avg_hourly_rate || 0, 'rate'),
+          previousValue: simulationApi.formatValue(financialKpis.avg_hourly_rate_baseline || 0, 'rate'),
+          unit: 'SEK',
+          description: 'Average hourly rate for consultant services',
+          change: (financialKpis.avg_hourly_rate || 0) - (financialKpis.avg_hourly_rate_baseline || 0),
+          changePercent: financialKpis.avg_hourly_rate_baseline > 0 ? 
+            (((financialKpis.avg_hourly_rate || 0) - (financialKpis.avg_hourly_rate_baseline || 0)) / financialKpis.avg_hourly_rate_baseline) * 100 : 0,
+          rawValue: financialKpis.avg_hourly_rate || 0
+        }
+      ];
       
       // Get seniority KPIs to extract growth data
       // Use the first available year as baseline for proper comparison

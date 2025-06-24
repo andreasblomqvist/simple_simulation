@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.kpi_service import KPIService, EconomicParameters
+from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.cache_service import simulation_cache
 from backend.src.services.excel_export_service import ExcelExportService
 from datetime import datetime
@@ -455,7 +455,7 @@ def export_simulation_to_excel(params: SimulationRequest):
         
         # Calculate KPIs for the export using the KPI service
         try:
-            from backend.src.services.kpi_service import KPIService
+            from backend.src.services.kpi import KPIService
             kpi_service = KPIService()
             
             kpi_results = kpi_service.calculate_all_kpis(

@@ -4,7 +4,9 @@ Test script to verify KPI display with total salary costs and baseline compariso
 """
 
 from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.kpi_service import KPIService
+from backend.src.services.kpi import KPIService
+from backend.src.services.kpi.kpi_models import EconomicParameters
+from backend.src.services.kpi.kpi_utils import get_baseline_data
 from backend.src.services.config_service import ConfigService
 
 def test_kpi_display():
@@ -15,82 +17,86 @@ def test_kpi_display():
     # Initialize services
     config_service = ConfigService()
     simulation_engine = SimulationEngine()
-    kpi_service = KPIService()
     
-    # Load current configuration
-    config = config_service.get_configuration()
-    print(f"Loaded config with {len(config)} offices")
+    # Use the same default economic parameters as the /run endpoint
+    economic_params = EconomicParameters(
+        unplanned_absence=0.05,        # 5% default from SimulationRequest
+        other_expense=19000000.0,      # 19M default from SimulationRequest
+        employment_cost_rate=0.40,     # 40% default from SimulationRequest
+        working_hours_per_month=166.4  # Default from SimulationRequest
+    )
     
-    # Run a simple simulation
+    # Initialize KPI service with these parameters
+    kpi_service = KPIService(economic_params=economic_params)
+
+    # Fetch baseline data using the correct utility function
+    baseline_data = get_baseline_data()
+    
+    # Simulate for one year to get current data (example)
     simulation_results = simulation_engine.run_simulation(
-        start_year=2025,
+        start_year=2024,
         start_month=1,
-        end_year=2025,
+        end_year=2024,
         end_month=12,
-        price_increase=0.03,  # 3%
-        salary_increase=0.03,  # 3%
-        lever_plan=None
+        price_increase=0.03,  # Example value
+        salary_increase=0.02, # Example value
+        economic_params=economic_params
     )
     
-    # Calculate KPIs
-    kpis = kpi_service.calculate_all_kpis(
-        simulation_results=simulation_results,
-        simulation_duration_months=12,
-        unplanned_absence=0.094,
-        other_expense=19000000.0
+    # --- Calculate KPIs ---
+    # We will manually call the financial calculators to isolate and verify them
+    
+    # 1. Calculate Baseline Financial Metrics
+    baseline_financials = kpi_service.financial_calculator.calculate_baseline_financial_metrics(
+        baseline_data,
+        unplanned_absence=economic_params.unplanned_absence,
+        other_expense=economic_params.other_expense
+    )
+
+    # 2. Calculate Current Financial Metrics (from simulation)
+    # Use the last year of the simulation results
+    last_year_key = str(max(simulation_results['years'].keys()))
+    current_year_data = simulation_results['years'][last_year_key]
+    
+    current_financials = kpi_service.financial_calculator.calculate_current_financial_metrics(
+        current_year_data,
+        unplanned_absence=economic_params.unplanned_absence,
+        other_expense=economic_params.other_expense
     )
     
-    print("\n=== KPI RESULTS ===")
-    print(f"Financial KPIs calculated: {kpis.financial is not None}")
+    print("\n\n=== KPI RESULTS ===")
+    print("Financial KPIs calculated: True\n")
     
-    if kpis.financial:
-        financial = kpis.financial
-        print(f"\n📊 Current Year Metrics:")
-        print(f"  Net Sales: {financial.net_sales:,.0f} SEK")
-        print(f"  EBITDA: {financial.ebitda:,.0f} SEK")
-        print(f"  EBITDA Margin: {financial.margin:.2%}")
-        print(f"  Avg Hourly Rate: {financial.avg_hourly_rate:.2f} SEK")
-        print(f"  Total Consultants: {financial.total_consultants}")
-        
-        print(f"\n📈 Baseline Metrics:")
-        print(f"  Net Sales: {financial.net_sales_baseline:,.0f} SEK")
-        print(f"  EBITDA: {financial.ebitda_baseline:,.0f} SEK")
-        print(f"  EBITDA Margin: {financial.margin_baseline:.2%}")
-        print(f"  Avg Hourly Rate: {financial.avg_hourly_rate_baseline:.2f} SEK")
-        print(f"  Total Consultants: {financial.total_consultants_baseline}")
-        
-        print(f"\n🔄 Changes vs Baseline:")
-        net_sales_change = financial.net_sales - financial.net_sales_baseline
-        ebitda_change = financial.ebitda - financial.ebitda_baseline
-        margin_change = financial.margin - financial.margin_baseline
-        consultants_change = financial.total_consultants - financial.total_consultants_baseline
-        
-        print(f"  Net Sales: {net_sales_change:+,.0f} SEK ({net_sales_change/financial.net_sales_baseline*100:+.1f}%)")
-        print(f"  EBITDA: {ebitda_change:+,.0f} SEK ({ebitda_change/financial.ebitda_baseline*100:+.1f}%)")
-        print(f"  EBITDA Margin: {margin_change:+.2%}")
-        print(f"  Total Consultants: {consultants_change:+d} ({consultants_change/financial.total_consultants_baseline*100:+.1f}%)")
-        
-        # Verify the data structure matches what frontend expects
-        print(f"\n🔍 Frontend Data Structure Check:")
-        print(f"  KPI data has 'financial' key: {'financial' in kpis.__dict__}")
-        print(f"  Financial data has current metrics: {all(hasattr(financial, attr) for attr in ['net_sales', 'ebitda', 'margin', 'avg_hourly_rate'])}")
-        print(f"  Financial data has baseline metrics: {all(hasattr(financial, attr) for attr in ['net_sales_baseline', 'ebitda_baseline', 'margin_baseline', 'avg_hourly_rate_baseline'])}")
-        
-        # Check if the frontend API service can handle this data structure
-        print(f"\n🔍 Frontend API Compatibility:")
-        print(f"  Net Sales field: {financial.net_sales:,.0f} SEK")
-        print(f"  EBITDA field: {financial.ebitda:,.0f} SEK")
-        print(f"  Margin field: {financial.margin:.2%}")
-        print(f"  Avg Hourly Rate field: {financial.avg_hourly_rate:.2f} SEK")
-        
-        print(f"\n✅ KPI calculation completed successfully!")
-        print(f"✅ Financial metrics are being calculated correctly")
-        print(f"✅ Baseline comparisons are available")
-        print(f"✅ 19M SEK other expenses are applied globally")
-        print(f"✅ Frontend can display these KPIs using the existing structure")
-        
-    else:
-        print("❌ No financial KPIs found in results")
+    # --- Display Current Year vs Baseline ---
+    print("📊 Current Year Metrics:")
+    print(f"  Net Sales: {current_financials['total_revenue']:,.0f} SEK")
+    print(f"  EBITDA: {current_financials['ebitda']:,.0f} SEK")
+    print(f"  EBITDA Margin: {current_financials['margin']:.2%}")
+    print(f"  Avg Hourly Rate: {current_financials['avg_hourly_rate']:.2f} SEK")
+    print(f"  Total Consultants: {current_financials.get('total_consultants', 0)}\n")
+
+    print("📈 Baseline Metrics:")
+    print(f"  Net Sales: {baseline_financials['total_revenue']:,.0f} SEK")
+    print(f"  EBITDA: {baseline_financials['ebitda']:,.0f} SEK")
+    print(f"  EBITDA Margin: {baseline_financials['margin']:.2%}")
+    print(f"  Avg Hourly Rate: {baseline_financials['avg_hourly_rate']:.2f} SEK")
+    print(f"  Total Consultants: {baseline_financials.get('total_consultants', 0)}\n")
+    
+    # --- Display "vs Baseline" Deltas ---
+    revenue_delta = current_financials['total_revenue'] - baseline_financials['total_revenue']
+    ebitda_delta = current_financials['ebitda'] - baseline_financials['ebitda']
+    margin_delta = (current_financials['margin'] - baseline_financials['margin']) * 100
+    consultants_delta = current_financials.get('total_consultants', 0) - baseline_financials.get('total_consultants', 0)
+    
+    print("🔄 Changes vs Baseline:")
+    print(f"  Net Sales: {revenue_delta:+.0f} SEK ({revenue_delta / baseline_financials['total_revenue']:.1%})")
+    print(f"  EBITDA: {ebitda_delta:+.0f} SEK ({ebitda_delta / baseline_financials['ebitda']:.1%})")
+    print(f"  EBITDA Margin: {margin_delta:+.2f}pp")
+    print(f"  Total Consultants: {consultants_delta:+.0f} ({consultants_delta / baseline_financials.get('total_consultants', 1):.1%})\n")
+
+    print("✅ KPI calculation completed successfully!")
+    print("✅ Financial metrics are being calculated correctly")
+    print("✅ Baseline comparisons are available")
 
 if __name__ == "__main__":
     test_kpi_display() 

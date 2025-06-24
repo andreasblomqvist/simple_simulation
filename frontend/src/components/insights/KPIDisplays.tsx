@@ -25,50 +25,14 @@ const KPIDisplays: React.FC<KPIDisplaysProps> = ({
     const baselineFinancial = aggregatedKpis.financial || {};
     
     const baseData = {
-      financial: baselineFinancial,
+      financial: baselineFinancial, // Use aggregated KPIs as source of truth
       growth: aggregatedKpis.growth,
       journeys: aggregatedKpis.journeys
     };
 
-    // If we have year-specific data, use it to create year-specific financial KPIs
+    // Only update non-financial data with year-specific information
     if (simulationData?.years?.[selectedYear]) {
       const yearData = simulationData.years[selectedYear];
-      
-      // Use year-specific financial data now that backend calculates it
-      if (yearData.total_revenue !== undefined || yearData.ebitda !== undefined) {
-        baseData.financial = {
-          ...baselineFinancial,
-          // Use year-specific financial data from backend calculations
-          net_sales: yearData.total_revenue || 0,
-          ebitda: yearData.ebitda || 0,
-          margin: yearData.margin || 0,
-          avg_hourly_rate: yearData.avg_hourly_rate || 0,
-          total_salary_costs: yearData.total_salary_costs || 0,
-          total_employment_costs: yearData.total_employment_costs || 0,
-          total_other_expenses: yearData.total_other_expenses || 0,
-          total_costs: yearData.total_costs || 0,
-          // Keep baseline values for comparison  
-          net_sales_baseline: baselineFinancial.net_sales_baseline || 0,
-          ebitda_baseline: baselineFinancial.ebitda_baseline || 0,
-          margin_baseline: baselineFinancial.margin_baseline || 0,
-          total_salary_costs_baseline: baselineFinancial.total_salary_costs_baseline || 0,
-          avg_hourly_rate_baseline: baselineFinancial.avg_hourly_rate_baseline || 0
-        };
-      } else {
-        // Fallback to baseline data if year-specific data is not available
-        baseData.financial = {
-          ...baselineFinancial,
-          net_sales: baselineFinancial.net_sales || 0,
-          ebitda: baselineFinancial.ebitda || 0,
-          margin: baselineFinancial.margin || 0,
-          avg_hourly_rate: baselineFinancial.avg_hourly_rate || 0,
-          net_sales_baseline: baselineFinancial.net_sales_baseline || 0,
-          ebitda_baseline: baselineFinancial.ebitda_baseline || 0,
-          margin_baseline: baselineFinancial.margin_baseline || 0,
-          total_salary_costs_baseline: baselineFinancial.total_salary_costs_baseline || 0,
-          avg_hourly_rate_baseline: baselineFinancial.avg_hourly_rate_baseline || 0
-        };
-      }
       
       // Update growth data with year-specific FTE if available
       if (yearData.total_fte && baseData.growth) {
@@ -100,14 +64,15 @@ const KPIDisplays: React.FC<KPIDisplaysProps> = ({
       };
     }
 
-    // Debug logging to verify year-specific data is being used
-    console.log(`[KPI DEBUG] Year ${selectedYear} financial data:`, {
+    // Debug logging to verify aggregated KPIs are being used
+    console.log(`[KPI DEBUG] Year ${selectedYear} using aggregated KPIs:`, {
       net_sales: baseData.financial?.net_sales,
+      net_sales_baseline: baseData.financial?.net_sales_baseline,
       ebitda: baseData.financial?.ebitda,
+      ebitda_baseline: baseData.financial?.ebitda_baseline,
       margin: baseData.financial?.margin,
       total_fte: baseData.growth?.total_fte,
-      isYearSpecific: !!simulationData?.years?.[selectedYear]?.total_revenue,
-      yearDataStructure: simulationData?.years?.[selectedYear] ? Object.keys(simulationData.years[selectedYear]) : 'No year data'
+      source: 'aggregated_kpis'
     });
 
     return baseData;
@@ -282,10 +247,10 @@ const KPIDisplays: React.FC<KPIDisplaysProps> = ({
             <Card size="small">
               <Text type="secondary">Non-debit Ratio</Text>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                {(growth.non_debit_ratio * 100).toFixed(1)}%
+                {growth.non_debit_ratio.toFixed(1)}%
               </div>
               <Text type="secondary">
-                Baseline: {(growth.non_debit_ratio_baseline * 100).toFixed(1)}%
+                Baseline: {growth.non_debit_ratio_baseline.toFixed(1)}%
               </Text>
             </Card>
           </Col>
