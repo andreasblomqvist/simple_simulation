@@ -37,23 +37,26 @@ class TestPureProgression:
             for role_name, role_data in office['roles'].items():
                 if isinstance(role_data, dict):  # Roles with levels
                     for level_name, level_data in role_data.items():
-                        fte = level_data.get('fte', 0)
-                        total_fte += fte
-                        level_key = f"{office_name}.{role_name}.{level_name}"
-                        level_baseline[level_key] = fte
-                        
-                        # Store existing progression rates
-                        progression_1 = level_data.get('progression_1', 0.0)
-                        progression_6 = level_data.get('progression_6', 0.0)
-                        progression_rates[level_key] = {
-                            'progression_1': progression_1,
-                            'progression_6': progression_6
-                        }
+                        # Skip non-dict values (like duplicate top-level fields in flat roles)
+                        if isinstance(level_data, dict):
+                            fte = level_data.get('fte', 0)
+                            total_fte += fte
+                            level_key = f"{office_name}.{role_name}.{level_name}"
+                            level_baseline[level_key] = fte
+                            
+                            # Store existing progression rates
+                            progression_1 = level_data.get('progression_1', 0.0)
+                            progression_6 = level_data.get('progression_6', 0.0)
+                            progression_rates[level_key] = {
+                                'progression_1': progression_1,
+                                'progression_6': progression_6
+                            }
                 else:  # Flat roles (Operations)
-                    fte = role_data.get('fte', 0)
-                    total_fte += fte
-                    level_key = f"{office_name}.{role_name}"
-                    level_baseline[level_key] = fte
+                    if isinstance(role_data, dict):
+                        fte = role_data.get('fte', 0)
+                        total_fte += fte
+                        level_key = f"{office_name}.{role_name}"
+                        level_baseline[level_key] = fte
             office_baseline[office_name] = total_fte
             total_baseline += total_fte
             logger(f"   {office_name}: {total_fte} FTE")
@@ -76,19 +79,19 @@ class TestPureProgression:
             office_name = office['name']
             for role_name, role_data in office['roles'].items():
                 if isinstance(role_data, dict):  # Roles with levels
-                    level_names = list(role_data.keys())
-                    if not level_names:
-                        continue
-                    for level_name in level_names:
+                    for level_name, level_data in role_data.items():
+                        # Skip non-dict values (like duplicate top-level fields in flat roles)
+                        if isinstance(level_data, dict):
+                            for month in range(1, 13):
+                                # Keep existing progression rates - don't override them
+                                # Only set recruitment and churn to 0
+                                config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = 0.0
+                                config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
+                else:  # Flat roles (Operations)
+                    if isinstance(role_data, dict):
                         for month in range(1, 13):
-                            # Keep existing progression rates - don't override them
-                            # Only set recruitment and churn to 0
-                            config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = 0.0
-                            config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
-                else:
-                    for month in range(1, 13):
-                        config_update[f'{office_name}.{role_name}.recruitment_{month}'] = 0.0
-                        config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
+                            config_update[f'{office_name}.{role_name}.recruitment_{month}'] = 0.0
+                            config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
         
         response = api_client.post("/offices/config/update", json_data=config_update)
         assert response.status_code == 200

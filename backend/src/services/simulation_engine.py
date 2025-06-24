@@ -26,6 +26,7 @@ from backend.config.default_config import (
 # Import KPI service
 from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.config_service import config_service
+from backend.src.services.simulation.workforce import WorkforceManager
 
 class Month(Enum):
     JAN = 1
@@ -521,17 +522,34 @@ class SimulationEngine:
                         level_attributes = {}
                         for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
                             for i in range(1, 13):
-                                # Look for monthly values first (price_1, price_2, etc.), then fall back to base value
                                 monthly_key = f'{key}_{i}'
-                                if monthly_key in level_config:
-                                    level_attributes[monthly_key] = level_config[monthly_key]
-                                else:
-                                    # Fall back to base value if monthly value not found, with proper defaults
-                                    if key == 'utr':
-                                        default_value = level_config.get(key, DEFAULT_RATES['utr'])
+                                config_value = level_config.get(monthly_key, None)
+                                if key == 'progression':
+                                    # Only use config value if it is not None and not 0.0
+                                    if config_value is not None and config_value != 0.0:
+                                        level_attributes[monthly_key] = config_value
                                     else:
-                                        default_value = level_config.get(key, 0.0)
-                                    level_attributes[monthly_key] = default_value
+                                        # Use default progression rates for evaluation months
+                                        if i in DEFAULT_RATES['progression']['evaluation_months']:
+                                            if level_name == 'C':
+                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2
+                                            elif level_name == 'SrC':
+                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
+                                            elif level_name == 'AM':
+                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
+                                            elif level_name == 'M':
+                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
+                                            elif level_name == 'SrM':
+                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
+                                            else:
+                                                progression_rate = 0.10
+                                            level_attributes[monthly_key] = progression_rate
+                                        else:
+                                            level_attributes[monthly_key] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                                elif key == 'utr':
+                                    level_attributes[monthly_key] = level_config.get(monthly_key, level_config.get(key, DEFAULT_RATES['utr']))
+                                else:
+                                    level_attributes[monthly_key] = config_value if config_value is not None else level_config.get(key, 0.0)
                         
                         level = Level(
                             name=level_name,
@@ -592,15 +610,36 @@ class SimulationEngine:
                 # Progression occurs in June and December
                 progression_months = [Month.JUN, Month.DEC]
                 
-                # Get default rates for this level
-                level_rates = DEFAULT_RATES['progression']['levels'].get(level_name, {})
+                # Calculate progression rates for all 12 months
+                progression_rates = {}
+                for i in range(1, 13):
+                    if i in DEFAULT_RATES['progression']['evaluation_months']:
+                        # Get the appropriate base rate for this level
+                        progression_rate = 0.0
+                        if level_name == 'C':
+                            progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2  # Half-yearly to semi-annual
+                        elif level_name == 'SrC':
+                            progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
+                        elif level_name == 'AM':
+                            progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
+                        elif level_name == 'M':
+                            progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
+                        elif level_name == 'SrM':
+                            progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
+                        else:
+                            progression_rate = 0.10  # Default fallback for A/AC levels
+                        
+                        progression_rates[f'progression_{i}'] = progression_rate
+                    else:
+                        # Other months have no progression
+                        progression_rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
                 
                 level = Level(
                     name=level_name,
                     journey=journey,
                     progression_months=progression_months,
-                    # Set rates for all 12 months from defaults
-                    **{f'progression_{i}': level_rates.get('base_rate', 0.0) for i in range(1, 13)},
+                    # Set progression rates for all 12 months
+                    **progression_rates,
                     **{f'recruitment_{i}': 0.0 for i in range(1, 13)},
                     **{f'churn_{i}': 0.0 for i in range(1, 13)},
                     **{f'price_{i}': BASE_PRICING.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
@@ -653,13 +692,45 @@ class SimulationEngine:
                 level_levers = office_levers.get('Consultant', {}).get(level_name, {})
                 global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
 
+                # Calculate progression rates for all 12 months
+                progression_rates = {}
+                for i in range(1, 13):
+                    # Check if lever overrides the default progression rate
+                    lever_progression = level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', None))
+                    
+                    if lever_progression is not None:
+                        # Use lever value
+                        progression_rates[f'progression_{i}'] = lever_progression
+                    else:
+                        # Calculate default progression rate
+                        if i in DEFAULT_RATES['progression']['evaluation_months']:
+                            # Get the appropriate base rate for this level
+                            progression_rate = 0.0
+                            if level_name == 'C':
+                                progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2  # Half-yearly to semi-annual
+                            elif level_name == 'SrC':
+                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
+                            elif level_name == 'AM':
+                                progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
+                            elif level_name == 'M':
+                                progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
+                            elif level_name == 'SrM':
+                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
+                            else:
+                                progression_rate = 0.10  # Default fallback for A/AC levels
+                            
+                            progression_rates[f'progression_{i}'] = progression_rate
+                        else:
+                            # Other months have no progression
+                            progression_rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+
                 # Create level with combined levers
                 level = Level(
                     name=level_name,
                     journey=journey,
                     progression_months=progression_months,
-                    # Apply levers to rates, prices, and salaries for all 12 months
-                    **{f'progression_{i}': level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', DEFAULT_RATES['progression']['levels'].get(level_name, {}).get('base_rate', 0.0))) for i in range(1, 13)},
+                    # Apply progression rates
+                    **progression_rates,
                     **{f'recruitment_{i}': level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', 0.0)) for i in range(1, 13)},
                     **{f'churn_{i}': level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', 0.0)) for i in range(1, 13)},
                     **{f'price_{i}': level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', BASE_PRICING.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
@@ -746,6 +817,24 @@ class SimulationEngine:
         """Sets a monthly attribute on an object"""
         setattr(obj, f"{attribute_base}_{month.value}", value)
     
+    def _recalculate_office_total_fte(self, office: Office) -> int:
+        """
+        Recalculate the total FTE for an office by summing all roles and levels.
+        Updates the office.total_fte field and returns the calculated value.
+        """
+        total_fte = 0
+        
+        for role_name, role_data in office.roles.items():
+            if isinstance(role_data, dict):  # Leveled roles (Consultant, Sales, Recruitment)
+                for level_name, level in role_data.items():
+                    total_fte += level.total
+            else:  # Flat roles (Operations)
+                total_fte += role_data.total
+        
+        # Update the office's total_fte field
+        office.total_fte = total_fte
+        return total_fte
+
     def run_simulation(self, start_year: int, start_month: int, end_year: int, end_month: int, 
                       price_increase: float = 0.0, salary_increase: float = 0.0, 
                       lever_plan: Optional[Dict] = None,
@@ -775,9 +864,9 @@ class SimulationEngine:
 
         yearly_snapshots = {}
         monthly_office_metrics = {} # To store detailed monthly snapshots for each level
-
-        simulation_start_date_str = f"{start_year}-{start_month:02d}"
-
+        simulation_start_date_str = f"{start_year}-{start_month}"
+        # Initialize WorkforceManager
+        workforce_manager = WorkforceManager(self.offices)
         # Main simulation loop
         for year in range(start_year, end_year + 1):
             # Apply annual price and salary increase
@@ -800,125 +889,31 @@ class SimulationEngine:
                 if (year == start_year and month < start_month) or \
                    (year == end_year and month > end_month):
                     continue
-
-                current_month_enum = Month(month)
-                current_date_str = f"{year}-{month:02d}"
+                current_date_str = f"{year}-{month}"
                 print(f"[ENGINE] Simulating: {current_date_str}")
-                
                 total_system_fte_before = sum(o.total_fte for o in self.offices.values())
-
-                for office in self.offices.values():
-                    if office.name not in monthly_office_metrics:
-                        monthly_office_metrics[office.name] = {}
-                    
-                    monthly_office_metrics[office.name][current_date_str] = {}
-
-                    office_total_fte = 0
-                    
-                    # Process roles
-                    for role_name, role_data in office.roles.items():
-                        monthly_office_metrics[office.name][current_date_str][role_name] = {}
-                        
-                        if isinstance(role_data, dict): # Leveled roles (e.g., Consultant)
-                            
-                            # Progression is calculated based on the state *before* churn and recruitment
-                            promotions_this_month = {}
-                            for level_name, level in role_data.items():
-                                progression_rate = self._get_monthly_attribute(level, 'progression', current_month_enum)
-                                promoted_people = level.apply_cat_based_progression(progression_rate, current_date_str)
-                                promotions_this_month[level_name] = promoted_people
-                                print(f"[ENGINE] {office.name}/{role_name}/{level_name}: {len(promoted_people)} people promoted.")
-
-                            # Track promotions into each level
-                            promoted_into_levels = {}
-                            for level_name in role_data.keys():
-                                promoted_into_levels[level_name] = 0
-
-                            # Now apply promotions to the next levels
-                            for level_name, promoted_people in promotions_this_month.items():
-                                next_level = self._get_next_level(level_name, role_name, office.roles)
-                                if next_level:
-                                    for person in promoted_people:
-                                        next_level.add_promotion(person, current_date_str)
-                                    # Track how many people were promoted into the next level
-                                    next_level_name = self._get_next_level_name(level_name)
-                                    if next_level_name:
-                                        promoted_into_levels[next_level_name] = len(promoted_people)
-                                else:
-                                    # People at the top level who are "promoted" effectively leave the cohort
-                                    print(f"[ENGINE] {len(promoted_people)} people progressed out from top level {level_name}.")
-                            
-                            # Now calculate churn and recruitment for each level
-                            for level_name, level in role_data.items():
-                                # Churn
-                                churn_rate = self._get_monthly_attribute(level, 'churn', current_month_enum)
-                                level.fractional_churn += level.total * churn_rate
-                                churn_to_apply = int(level.fractional_churn)
-                                level.fractional_churn -= churn_to_apply
-                                level.apply_churn(churn_to_apply)
-                                
-                                # Recruitment
-                                recruitment_rate = self._get_monthly_attribute(level, 'recruitment', current_month_enum)
-                                level.fractional_recruitment += level.total * recruitment_rate
-                                recruits_to_add = int(level.fractional_recruitment)
-                                level.fractional_recruitment -= recruits_to_add
-                                for _ in range(recruits_to_add):
-                                    level.add_new_hire(current_date_str, role_name, office.name)
-                                
-                                office_total_fte += level.total
-                                # Store level metrics
-                                monthly_office_metrics[office.name][current_date_str][role_name][level_name] = {
-                                    'total_fte': level.total,
-                                    'price': self._get_monthly_attribute(level, 'price', current_month_enum),
-                                    'salary': self._get_monthly_attribute(level, 'salary', current_month_enum),
-                                    'utr': self._get_monthly_attribute(level, 'utr', current_month_enum),
-                                    'recruited': recruits_to_add,
-                                    'churned': churn_to_apply,
-                                    'progressed_out': len(promotions_this_month.get(level_name, [])),
-                                    'progressed_in': promoted_into_levels.get(level_name, 0),
-                                }
-
-                        else: # Flat roles (e.g., Operations)
-                            # Churn
-                            churn_rate = self._get_monthly_attribute(role_data, 'churn', current_month_enum)
-                            role_data.fractional_churn += role_data.total * churn_rate
-                            churn_to_apply = int(role_data.fractional_churn)
-                            role_data.fractional_churn -= churn_to_apply
-                            role_data.apply_churn(churn_to_apply)
-                            
-                            # Recruitment
-                            recruitment_rate = self._get_monthly_attribute(role_data, 'recruitment', current_month_enum)
-                            role_data.fractional_recruitment += role_data.total * recruitment_rate
-                            recruits_to_add = int(role_data.fractional_recruitment)
-                            role_data.fractional_recruitment -= recruits_to_add
-                            for _ in range(recruits_to_add):
-                                role_data.add_new_hire(current_date_str, role_name, office.name)
-
-                            office_total_fte += role_data.total
-                            monthly_office_metrics[office.name][current_date_str][role_name] = {
-                                'total_fte': role_data.total,
-                                'recruited': recruits_to_add,
-                                'churned': churn_to_apply
-                            }
-                    
-                    office.total_fte = office_total_fte
-                
+                # Delegate all workforce logic to WorkforceManager
+                workforce_manager.process_month(year, month, current_date_str, monthly_office_metrics)
                 # Store monthly metrics for analysis
                 monthly_results = self.monthly_results.get(current_date_str, {})
                 if not monthly_results:
                     self.monthly_results[current_date_str] = {}
-
                 total_system_fte_after = sum(o.total_fte for o in self.offices.values())
-
                 for office in self.offices.values():
                     if office.name not in self.monthly_results[current_date_str]:
                         self.monthly_results[current_date_str][office.name] = {}
-                    
                     self.monthly_results[current_date_str][office.name]['total_fte'] = office.total_fte
-
-                # Log system-wide summary for the month
                 print(f"[ENGINE] {current_date_str}: Total FTE Before: {total_system_fte_before:.2f}, After: {total_system_fte_after:.2f}, Change: {total_system_fte_after - total_system_fte_before:.2f}")
-
+            # End of month loop
+            
+            # After completing all months for the year, recalculate total_fte for each office
+            print(f"[ENGINE] Recalculating total FTE for all offices after year {year}")
+            for office_name, office in self.offices.items():
+                old_total_fte = office.total_fte
+                new_total_fte = self._recalculate_office_total_fte(office)
+                if old_total_fte != new_total_fte:
+                    print(f"[ENGINE] {office_name}: FTE corrected from {old_total_fte} to {new_total_fte}")
+            
             # Store a snapshot of the offices at the end of the year
             office_snapshots = {}
             for office_name, office in self.offices.items():
@@ -1085,43 +1080,55 @@ class SimulationEngine:
                     'total_fte': sum(office_data['total_fte'] for office_data in yearly_offices_data.values())
                 }
                 
-                # Then calculate year-specific financial metrics using KPI service
-                year_kpis = self._calculate_year_kpis_using_service(yearly_results, year_str, economic_params)
+                # Then calculate complete year-specific KPIs using KPI service
+                year_kpis = self._calculate_complete_year_kpis(yearly_results, year_str, economic_params)
                 
-                # Add the financial metrics to the year
-                yearly_results[year_str].update({
-                    'total_revenue': year_kpis['total_revenue'],
-                    'total_salary_costs': year_kpis['total_salary_costs'], 
-                    'total_employment_costs': year_kpis['total_employment_costs'],
-                    'total_other_expenses': year_kpis['total_other_expenses'],
-                    'total_costs': year_kpis['total_costs'],
-                    'ebitda': year_kpis['ebitda'],
-                    'margin': year_kpis['margin'],
-                    'avg_hourly_rate': year_kpis['avg_hourly_rate']
-                })
+                # Add the complete KPI structure to the year
+                yearly_results[year_str]['kpis'] = year_kpis
                 
         except Exception as e:
             print(f"[ENGINE ERROR] Failed to structure yearly results: {e}")
+            import traceback
+            traceback.print_exc()
             # Return minimal structure to prevent total failure
             for year in range(start_year, end_year + 1):
                 year_str = str(year)
                 yearly_results[year_str] = {
                     'offices': {},
                     'total_fte': 0,
-                    'total_revenue': 0.0,
-                    'total_salary_costs': 0.0,
-                    'total_employment_costs': 0.0,
-                    'total_other_expenses': 0.0,
-                    'total_costs': 0.0,
-                    'ebitda': 0.0,
-                    'margin': 0.0,
-                    'avg_hourly_rate': 0.0
+                    'kpis': {
+                        'financial': {
+                            'net_sales': 0.0,
+                            'net_sales_baseline': 0.0,
+                            'ebitda': 0.0,
+                            'ebitda_baseline': 0.0,
+                            'margin': 0.0,
+                            'margin_baseline': 0.0,
+                            'avg_hourly_rate': 0.0,
+                            'avg_hourly_rate_baseline': 0.0,
+                            'total_salary_costs': 0.0,
+                            'total_salary_costs_baseline': 0.0
+                        },
+                        'growth': {
+                            'total_fte': 0,
+                            'baseline_total_fte': 0,
+                            'current_total_fte': 0,
+                            'non_debit_ratio': 0.0,
+                            'non_debit_ratio_baseline': 0.0
+                        },
+                        'journeys': {
+                            'journey_totals': {},
+                            'journey_percentages': {},
+                            'journey_totals_baseline': {},
+                            'journey_percentages_baseline': {}
+                        }
+                    }
                 }
             
         return yearly_results
 
-    def _calculate_year_kpis_using_service(self, yearly_results: Dict[str, Any], target_year: str, economic_params: EconomicParameters) -> Dict[str, float]:
-        """Use the existing KPI service to calculate year-specific financial metrics"""
+    def _calculate_complete_year_kpis(self, yearly_results: Dict[str, Any], target_year: str, economic_params: EconomicParameters) -> Dict[str, Any]:
+        """Calculate complete year-specific KPIs including financial, growth, and journey metrics"""
         try:
             # Create a temporary simulation results structure for the KPI service
             temp_simulation_results = {
@@ -1137,31 +1144,51 @@ class SimulationEngine:
                 economic_params=economic_params
             )
             
-            # Extract the financial metrics we need
-            financial = year_kpis.financial
-            return {
-                'total_revenue': financial.net_sales,
-                'total_salary_costs': financial.total_salary_costs,
-                'total_employment_costs': financial.total_salary_costs * (1 + economic_params.employment_cost_rate),  # Use dynamic overhead
-                'total_other_expenses': economic_params.other_expense * 12,  # Annualized
-                'total_costs': financial.total_salary_costs * (1 + economic_params.employment_cost_rate) + (economic_params.other_expense * 12),
-                'ebitda': financial.ebitda,
-                'margin': financial.margin,
-                'avg_hourly_rate': financial.avg_hourly_rate
-            }
+            # Convert dataclasses to dicts for JSON serialization
+            def to_dict(data):
+                if hasattr(data, '__dataclass_fields__'):
+                    return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
+                elif isinstance(data, dict):
+                    return {k: to_dict(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [to_dict(i) for i in data]
+                else:
+                    return data
+            
+            # Return the complete KPI structure
+            return to_dict(year_kpis)
             
         except Exception as e:
-            print(f"[ENGINE ERROR] Failed to calculate year KPIs using service: {e}")
+            print(f"[ENGINE ERROR] Failed to calculate complete year KPIs: {e}")
+            import traceback
+            traceback.print_exc()
             # Return zero values as fallback
             return {
-                'total_revenue': 0.0,
-                'total_salary_costs': 0.0,
-                'total_employment_costs': 0.0,
-                'total_other_expenses': 0.0,
-                'total_costs': 0.0,
-                'ebitda': 0.0,
-                'margin': 0.0,
-                'avg_hourly_rate': 0.0
+                'financial': {
+                    'net_sales': 0.0,
+                    'net_sales_baseline': 0.0,
+                    'ebitda': 0.0,
+                    'ebitda_baseline': 0.0,
+                    'margin': 0.0,
+                    'margin_baseline': 0.0,
+                    'avg_hourly_rate': 0.0,
+                    'avg_hourly_rate_baseline': 0.0,
+                    'total_salary_costs': 0.0,
+                    'total_salary_costs_baseline': 0.0
+                },
+                'growth': {
+                    'total_fte': 0,
+                    'baseline_total_fte': 0,
+                    'current_total_fte': 0,
+                    'non_debit_ratio': 0.0,
+                    'non_debit_ratio_baseline': 0.0
+                },
+                'journeys': {
+                    'journey_totals': {},
+                    'journey_percentages': {},
+                    'journey_totals_baseline': {},
+                    'journey_percentages_baseline': {}
+                }
             }
         
     def get_simulation_results(self) -> Optional[Dict[str, Any]]:

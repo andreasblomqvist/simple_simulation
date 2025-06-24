@@ -108,18 +108,33 @@ class TestKPIBaselines:
         baseline_consultants = baseline_financial["total_consultants_baseline"]
         baseline_total_fte = baseline_growth["baseline_total_fte"]
         
+        # Extract current total FTE from simulation results for comparison
+        current_total_fte = 0
+        if "years" in results and "2025" in results["years"]:
+            year_2025 = results["years"]["2025"]
+            for office_name, office_data in year_2025.get("offices", {}).items():
+                if "levels" in office_data:
+                    office_levels = office_data.get("levels", {})
+                    for role_name, role_data in office_levels.items():
+                        if isinstance(role_data, dict):
+                            for level_name, level_data in role_data.items():
+                                if isinstance(level_data, list) and level_data:
+                                    current_total_fte += level_data[-1].get("total", 0)
+                        elif isinstance(role_data, list) and role_data:
+                            current_total_fte += role_data[-1].get("total", 0)
+        
         logger(f"   Baseline consultants: {baseline_consultants:,}")
         logger(f"   Baseline total FTE: {baseline_total_fte:,}")
         logger(f"   Journey FTE total: {total_journey_fte:,}")
-        logger(f"   Total FTE: {baseline_total_fte:,}")
-        logger(f"   Difference: {baseline_total_fte - total_journey_fte:,} (non-journey roles)")
+        logger(f"   Current total FTE: {current_total_fte:,}")
+        logger(f"   Difference: {current_total_fte - total_journey_fte:,} (non-journey roles)")
         
-        # Journey FTE should be a subset of total FTE
-        assert total_journey_fte <= baseline_total_fte, \
-            f"Journey FTE ({total_journey_fte}) > total FTE ({baseline_total_fte})"
+        # Journey FTE should be a subset of current total FTE (from same simulation)
+        assert total_journey_fte <= current_total_fte, \
+            f"Journey FTE ({total_journey_fte}) > current total FTE ({current_total_fte})"
         
-        # Journey FTE should be substantial (at least 50% of total FTE)
-        journey_ratio = total_journey_fte / baseline_total_fte
+        # Journey FTE should be substantial (at least 50% of current total FTE)
+        journey_ratio = total_journey_fte / current_total_fte if current_total_fte > 0 else 0
         assert journey_ratio >= 0.5, \
             f"Journey FTE ratio too low: {journey_ratio:.1%} (should be at least 50%)"
         

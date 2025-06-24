@@ -38,14 +38,18 @@ class TestPureRecruitment:
             for role_name, role_data in office['roles'].items():
                 if isinstance(role_data, dict):  # Roles with levels (Consultant, Sales, Recruitment)
                     for level_name, level_data in role_data.items():
-                        total_fte += level_data.get('fte', 0)
+                        # Skip non-dict values (like duplicate top-level fields in flat roles)
+                        if isinstance(level_data, dict):
+                            total_fte += level_data.get('fte', 0)
                 else:  # Flat roles (Operations)
-                    total_fte += role_data.get('fte', 0)
+                    if isinstance(role_data, dict):
+                        total_fte += role_data.get('fte', 0)
             
             baseline_totals[office_name] = total_fte
             logger(f"   {office_name}: {total_fte} FTE")
         
         total_baseline = sum(baseline_totals.values())
+        
         logger(f"   TOTAL BASELINE: {total_baseline} FTE")
         
         # Step 2: Set pure recruitment rates (2% recruitment, 0% churn, 0% progression)
@@ -59,16 +63,19 @@ class TestPureRecruitment:
             for role_name, role_data in office['roles'].items():
                 if isinstance(role_data, dict):  # Roles with levels
                     for level_name, level_data in role_data.items():
+                        # Skip non-dict values (like duplicate top-level fields in flat roles)
+                        if isinstance(level_data, dict):
+                            # Set recruitment to 2% for all months
+                            for month in range(1, 13):
+                                config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = 0.02
+                                config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
+                                config_update[f'{office_name}.{role_name}.{level_name}.progression_{month}'] = 0.0
+                else:  # Flat roles (Operations)
+                    if isinstance(role_data, dict):
                         # Set recruitment to 2% for all months
                         for month in range(1, 13):
-                            config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = 0.02
-                            config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
-                            config_update[f'{office_name}.{role_name}.{level_name}.progression_{month}'] = 0.0
-                else:  # Flat roles (Operations)
-                    # Set recruitment to 2% for all months
-                    for month in range(1, 13):
-                        config_update[f'{office_name}.{role_name}.recruitment_{month}'] = 0.02
-                        config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
+                            config_update[f'{office_name}.{role_name}.recruitment_{month}'] = 0.02
+                            config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
         
         response = api_client.post("/offices/config/update", json_data=config_update)
         if response.status_code != 200:
@@ -212,14 +219,17 @@ class TestPureRecruitment:
         # Get baseline
         response = api_client.get("/offices/config")
         offices = response.json()
-        baseline_total = sum(
-            sum(
-                level_data.get('fte', 0) if isinstance(level_data, dict) else role_data.get('fte', 0)
-                for role_data in office['roles'].values()
-                for level_data in (role_data.values() if isinstance(role_data, dict) else [role_data])
-            )
-            for office in offices
-        )
+        baseline_total = 0
+        for office in offices:
+            for role_name, role_data in office['roles'].items():
+                if isinstance(role_data, dict):
+                    for level_name, level_data in role_data.items():
+                        # Skip non-dict values (like duplicate top-level fields in flat roles)
+                        if isinstance(level_data, dict):
+                            baseline_total += level_data.get('fte', 0)
+                else:
+                    if isinstance(role_data, dict):
+                        baseline_total += role_data.get('fte', 0)
         
         for rate in test_rates:
             logger(f"   Testing {rate:.1%} monthly recruitment...")
@@ -230,15 +240,18 @@ class TestPureRecruitment:
                 office_name = office['name']
                 for role_name, role_data in office['roles'].items():
                     if isinstance(role_data, dict):
-                        for level_name in role_data.keys():
-                            for month in range(1, 13):
-                                config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = rate
-                                config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
-                                config_update[f'{office_name}.{role_name}.{level_name}.progression_{month}'] = 0.0
+                        for level_name, level_data in role_data.items():
+                            # Skip non-dict values (like duplicate top-level fields in flat roles)
+                            if isinstance(level_data, dict):
+                                for month in range(1, 13):
+                                    config_update[f'{office_name}.{role_name}.{level_name}.recruitment_{month}'] = rate
+                                    config_update[f'{office_name}.{role_name}.{level_name}.churn_{month}'] = 0.0
+                                    config_update[f'{office_name}.{role_name}.{level_name}.progression_{month}'] = 0.0
                     else:
-                        for month in range(1, 13):
-                            config_update[f'{office_name}.{role_name}.recruitment_{month}'] = rate
-                            config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
+                        if isinstance(role_data, dict):
+                            for month in range(1, 13):
+                                config_update[f'{office_name}.{role_name}.recruitment_{month}'] = rate
+                                config_update[f'{office_name}.{role_name}.churn_{month}'] = 0.0
             
             response = api_client.post("/offices/config/update", json_data=config_update)
             if response.status_code != 200:

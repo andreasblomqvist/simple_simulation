@@ -360,25 +360,23 @@ def get_year_kpis(year: int, unplanned_absence: float = 0.05, other_expense: flo
         raise HTTPException(status_code=404, detail=f"No data found for year {year}")
     
     try:
-        # Calculate KPIs for the specific year
-        year_kpis = engine.kpi_service.calculate_kpis_for_year(
-            results,
-            year_str,
-            12,  # Always use 12 months for annual comparison
-            unplanned_absence,
-            other_expense
-        )
+        # Get the year-specific KPIs that are already calculated and included in the results
+        year_data = results['years'][year_str]
         
+        if 'kpis' not in year_data:
+            raise HTTPException(status_code=404, detail=f"No KPIs found for year {year}")
+        
+        # Return the year-specific KPIs
         return {
-            "financial": year_kpis.financial.__dict__,
-            "growth": year_kpis.growth.__dict__,
-            "journeys": year_kpis.journeys.__dict__,
+            "financial": year_data['kpis']['financial'],
+            "growth": year_data['kpis']['growth'],
+            "journeys": year_data['kpis']['journeys'],
             "year": year_str
         }
         
     except Exception as e:
-        print(f"❌ [KPI] Failed to calculate KPIs for year {year}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"KPI calculation failed: {str(e)}")
+        print(f"❌ [KPI] Failed to get KPIs for year {year}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"KPI retrieval failed: {str(e)}")
 
 @router.post("/reset")
 def reset_simulation():
