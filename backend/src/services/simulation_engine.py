@@ -9,6 +9,7 @@ import uuid
 import random
 import hashlib
 from copy import deepcopy
+import logging
 
 # Import config from backend.config
 from backend.config.default_config import (
@@ -27,6 +28,9 @@ from backend.config.default_config import (
 from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.config_service import config_service
 from backend.src.services.simulation.workforce import WorkforceManager
+from backend.src.services.simulation.office_manager import OfficeManager
+from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
+from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year
 
 class Month(Enum):
     JAN = 1
@@ -448,7 +452,40 @@ class SimulationEngine:
         self.offices: Dict[str, Office] = {}
         self.monthly_results: Dict[str, Any] = {}
         self.simulation_results: Optional[Dict[str, Any]] = None
-        self.reinitialize_with_config()
+        self.office_manager = OfficeManager(self.config_service)
+        
+        # Set up yearly logging
+        self._setup_yearly_logging()
+        
+        # Initialize offices from config
+        self._initialize_offices_from_config_service()
+
+    def _setup_yearly_logging(self):
+        """Set up logging for yearly simulation results"""
+        # Create logs directory if it doesn't exist
+        os.makedirs('backend/logs', exist_ok=True)
+        
+        # Configure yearly logging
+        self.yearly_logger = logging.getLogger('simulation_yearly')
+        self.yearly_logger.setLevel(logging.INFO)
+        
+        # Clear any existing handlers
+        for handler in self.yearly_logger.handlers[:]:
+            self.yearly_logger.removeHandler(handler)
+        
+        # Create file handler for yearly log
+        yearly_handler = logging.FileHandler('backend/logs/simulation_yearly.log', mode='w')
+        yearly_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(message)s')
+        yearly_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        self.yearly_logger.addHandler(yearly_handler)
+        
+        # Prevent propagation to avoid duplicate logs
+        self.yearly_logger.propagate = False
 
     def reinitialize_with_config(self):
         """Re-initialize the engine with the latest configuration from the service."""
@@ -924,6 +961,9 @@ class SimulationEngine:
                     'levels': self._get_office_level_snapshot(office, monthly_office_metrics, simulation_start_date_str, f"{year}-12")
                 }
             yearly_snapshots[str(year)] = office_snapshots
+            
+            # Log detailed yearly results
+            self._log_yearly_results(year, yearly_snapshots, monthly_office_metrics, econ_params)
         
         # End of month loop
         
@@ -992,7 +1032,7 @@ class SimulationEngine:
         for role_name, role_data in office.roles.items():
             if isinstance(role_data, dict): # Leveled roles
                 level_snapshots[role_name] = {}
-                for level_name, level in role_data.items():
+                for level_name, level_data in role_data.items():
                     # Collect all monthly data for this level into an array
                     monthly_array = []
                     for date_str in sorted(office_monthly_data.keys()):
@@ -1242,6 +1282,24 @@ class SimulationEngine:
         if next_level_name and role_name in office_roles and isinstance(office_roles[role_name], dict):
             return office_roles[role_name].get(next_level_name)
         return None
+
+    def _log_yearly_results(self, year: int, yearly_snapshots: Dict, monthly_office_metrics: Dict, economic_params: EconomicParameters):
+        year_str = str(year)
+        if year_str not in yearly_snapshots:
+            self.yearly_logger.info("No data available for this year")
+            return
+        year_data = yearly_snapshots[year_str]
+        log_office_aggregates_per_year(self.yearly_logger, year, year_data, economic_params)
+        # Remove or comment out detailed per-office logging
+        # for office_name, office_data in year_data.items():
+        #     self._log_office_kpis(office_name, office_data, economic_params)
+        # self._log_system_kpis(year_data, economic_params)
+
+    def _log_office_kpis(self, office_name: str, office_data: Dict, economic_params: EconomicParameters):
+        log_office_kpis(self.yearly_logger, office_name, office_data, economic_params)
+
+    def _log_system_kpis(self, year_data: Dict, economic_params: EconomicParameters):
+        log_system_kpis(self.yearly_logger, year_data, economic_params)
 
 def calculate_configuration_checksum(offices: Dict[str, Office]) -> str:
     """

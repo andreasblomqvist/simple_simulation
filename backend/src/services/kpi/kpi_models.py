@@ -15,6 +15,7 @@ class EconomicParameters:
     other_expense: float = 19000000.0  # 19M SEK monthly default
     employment_cost_rate: float = 0.40  # 40% overhead on salary costs
     working_hours_per_month: float = 166.4  # Monthly working hours
+    utilization: float = 0.85  # 85% utilization rate default
     
     @classmethod
     def from_simulation_request(cls, params) -> 'EconomicParameters':
@@ -23,7 +24,8 @@ class EconomicParameters:
             unplanned_absence=getattr(params, 'unplanned_absence', 0.05),
             other_expense=getattr(params, 'other_expense', 19000000.0),
             employment_cost_rate=getattr(params, 'employment_cost_rate', 0.40),
-            working_hours_per_month=getattr(params, 'hy_working_hours', 166.4)
+            working_hours_per_month=getattr(params, 'hy_working_hours', 166.4),
+            utilization=getattr(params, 'utilization', 0.85)
         )
 
 
