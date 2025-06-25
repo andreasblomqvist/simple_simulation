@@ -568,46 +568,33 @@ export default function Configuration() {
       // Create child rows for each level within the role
       LEVELS.forEach(levelName => {
         const levelData = roleData[levelName];
-        
-        // Only show level if it has FTE data or has changes
-        const hasData = levelData && (
-          (levelData.fte && levelData.fte > 0) ||
-          Object.keys(draftChanges).some(key => key.startsWith(`${selectedOffice}.${roleName}.${levelName}`))
-        );
-
-        if (hasData) {
-          const childRow: any = {
-            key: `${roleName}-${levelName}`,
-            role: levelName,
-            isParent: false
-          };
-  
-          // Populate data for each column in the group
-          LEVER_GROUPS.forEach(group => {
-            group.columns.forEach(col => {
-              childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, selectedMonths[group.key]);
-            });
+        // Always show the row, even if FTE is 0
+        const childRow: any = {
+          key: `${roleName}-${levelName}`,
+          role: levelName,
+          isParent: false
+        };
+        // Populate data for each column in the group
+        LEVER_GROUPS.forEach(group => {
+          group.columns.forEach(col => {
+            childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, selectedMonths[group.key]);
           });
-  
-          parentRow.children.push(childRow);
-        }
+        });
+        parentRow.children.push(childRow);
       });
-      
-      if (parentRow.children.length > 0) {
-        rows.push(parentRow);
-      }
+      // Always push the parent row (even if all children are zero)
+      rows.push(parentRow);
     });
 
     // --- 2. Handle Roles without Levels (e.g., Operations) ---
     const operationsRoleName = 'Operations';
     const operationsData = currentOfficeData.roles[operationsRoleName];
-    if (operationsData && (operationsData.fte > 0 || Object.keys(draftChanges).some(key => key.startsWith(`${selectedOffice}.${operationsRoleName}`)))) {
+    if (operationsData) {
       const operationsRow: any = {
         key: operationsRoleName,
         role: operationsRoleName,
         isParent: false, // Treat as a single row, not expandable
       };
-
       LEVER_GROUPS.forEach(group => {
         group.columns.forEach(col => {
           operationsRow[`${col.key}_${group.key}`] = getValue(operationsRoleName, null, col.key, selectedMonths[group.key]);

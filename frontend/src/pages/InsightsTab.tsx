@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Divider, Button, Spin, Alert, Form, theme, Select } from 'antd';
-import { PlayCircleOutlined } from '@ant-design/icons';
+import { Card, Typography, Divider, Button, Spin, Alert, Form, theme, Select, message } from 'antd';
+import { PlayCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import { 
   SimulationParametersForm, 
   KPIDisplays, 
@@ -15,10 +15,12 @@ const { useToken } = theme;
 const InsightsTab: React.FC = () => {
   const { token } = useToken();
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [simulationData, setSimulationData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedOffice, setSelectedOffice] = useState<string>('Stockholm');
   const [selectedYear, setSelectedYear] = useState<string>('2025');
+  const [lastSimulationConfig, setLastSimulationConfig] = useState<any>(null);
   const [form] = Form.useForm();
   
   // Level action state
@@ -63,6 +65,9 @@ const InsightsTab: React.FC = () => {
     try {
       const values = await form.validateFields();
       
+      // Save the configuration for potential exports
+      setLastSimulationConfig(values);
+      
       const response = await fetch('/api/simulation/run', {
         method: 'POST',
         headers: {
@@ -81,6 +86,74 @@ const InsightsTab: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportSimulation = async () => {
+    if (!lastSimulationConfig) {
+      message.error('No simulation has been run yet. Please run a simulation first.');
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      
+      // Use the same parameters as the last simulation (already in correct decimal format)
+      const exportParams = {
+        start_year: lastSimulationConfig.start_year,
+        start_month: lastSimulationConfig.start_month,
+        end_year: lastSimulationConfig.end_year,
+        end_month: lastSimulationConfig.end_month,
+        price_increase: lastSimulationConfig.price_increase, // Already in decimal format
+        salary_increase: lastSimulationConfig.salary_increase, // Already in decimal format
+        unplanned_absence: lastSimulationConfig.unplanned_absence, // Already in decimal format
+        hy_working_hours: lastSimulationConfig.hy_working_hours,
+        other_expense: lastSimulationConfig.other_expense,
+        office_overrides: lastSimulationConfig.office_overrides || {}
+      };
+
+      console.log('[EXPORT] Starting Excel export with params:', exportParams);
+
+      const response = await fetch('/api/simulation/export/excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportParams),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${errorText}`);
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'SimulationExport.xlsx';
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Simulation results exported successfully as ${filename}`);
+      console.log('[EXPORT] ✅ Excel export completed successfully');
+
+    } catch (error) {
+      console.error('[EXPORT] ❌ Export failed:', error);
+      message.error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -131,9 +204,20 @@ const InsightsTab: React.FC = () => {
           onClick={runSimulation}
           loading={loading}
           size="large"
+          style={{ marginRight: 16 }}
         >
           Run Simulation
         </Button>
+        {simulationData && (
+          <Button 
+            icon={<DownloadOutlined />}
+            onClick={handleExportSimulation}
+            loading={exportLoading}
+            size="large"
+          >
+            {exportLoading ? 'Exporting...' : 'Export to Excel'}
+          </Button>
+        )}
       </div>
 
       {error && (

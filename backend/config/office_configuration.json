@@ -1,12 +1,12 @@
 {
   "Stockholm": {
     "name": "Stockholm",
-    "total_fte": 821,
+    "total_fte": 1000,
     "journey": "Mature Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 69,
+          "fte": 1000,
           "price_1": 1106.61,
           "salary_1": 42000,
           "recruitment_1": 0.1,
@@ -78,10 +78,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 54,
+          "fte": 0,
           "price_1": 1114.57,
           "salary_1": 44000,
           "recruitment_1": 0.05,
@@ -153,10 +160,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 178,
+          "fte": 0,
           "price_1": 1247.87,
           "salary_1": 58000,
           "recruitment_1": 0.05,
@@ -228,10 +242,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 123,
+          "fte": 0,
           "price_1": 1153.8,
           "salary_1": 48000,
           "recruitment_1": 0.05,
@@ -303,10 +324,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 47,
+          "fte": 0,
           "price_1": 1377.61,
           "salary_1": 70000,
           "recruitment_1": 0.05,
@@ -378,10 +406,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 14,
+          "fte": 0,
           "price_1": 2000.0,
           "salary_1": 90000,
           "recruitment_1": 0.05,
@@ -453,10 +488,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 162,
+          "fte": 0,
           "price_1": 1185.03,
           "salary_1": 53000,
           "recruitment_1": 0.05,
@@ -528,10 +570,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 32,
+          "fte": 0,
           "price_1": 1461.7,
           "salary_1": 84000,
           "recruitment_1": 0.05,
@@ -603,7 +652,14 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -682,7 +738,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 67,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -754,11 +810,18 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       },
       "Recruitment": {
         "A": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1106.61,
           "salary_1": 42000,
           "recruitment_1": 0.05,
@@ -830,10 +893,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1114.57,
           "salary_1": 44000,
           "recruitment_1": 0.05,
@@ -905,10 +975,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1247.87,
           "salary_1": 58000,
           "recruitment_1": 0.05,
@@ -980,10 +1057,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1153.8,
           "salary_1": 48000,
           "recruitment_1": 0.05,
@@ -1055,10 +1139,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1377.61,
           "salary_1": 70000,
           "recruitment_1": 0.05,
@@ -1130,10 +1221,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2000.0,
           "salary_1": 90000,
           "recruitment_1": 0.05,
@@ -1205,10 +1303,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1185.03,
           "salary_1": 53000,
           "recruitment_1": 0.05,
@@ -1280,10 +1385,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1461.7,
           "salary_1": 84000,
           "recruitment_1": 0.05,
@@ -1355,12 +1467,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "A": {
-          "fte": 6,
+          "fte": 0,
           "price_1": 1106.61,
           "salary_1": 42000,
           "recruitment_1": 0.05,
@@ -1432,10 +1551,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 8,
+          "fte": 0,
           "price_1": 1114.57,
           "salary_1": 44000,
           "recruitment_1": 0.05,
@@ -1507,10 +1633,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 10,
+          "fte": 0,
           "price_1": 1247.87,
           "salary_1": 58000,
           "recruitment_1": 0.05,
@@ -1582,10 +1715,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1153.8,
           "salary_1": 48000,
           "recruitment_1": 0.05,
@@ -1657,10 +1797,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 6,
+          "fte": 0,
           "price_1": 1377.61,
           "salary_1": 70000,
           "recruitment_1": 0.05,
@@ -1732,10 +1879,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 8,
+          "fte": 0,
           "price_1": 2000.0,
           "salary_1": 90000,
           "recruitment_1": 0.05,
@@ -1807,10 +1961,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1185.03,
           "salary_1": 53000,
           "recruitment_1": 0.05,
@@ -1882,10 +2043,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1461.7,
           "salary_1": 84000,
           "recruitment_1": 0.05,
@@ -1957,19 +2125,26 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       }
     }
   },
   "Munich": {
     "name": "Munich",
-    "total_fte": 410,
-    "journey": "Established Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 18,
+          "fte": 0,
           "recruitment_1": 0.05,
           "churn_1": 0.0,
           "progression_1": 0.0,
@@ -2041,10 +2216,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 32,
+          "fte": 0,
           "recruitment_1": 0.05,
           "churn_1": 0.0,
           "progression_1": 0.0,
@@ -2116,10 +2298,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 61,
+          "fte": 0,
           "price_1": 1342.15,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -2191,10 +2380,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 89,
+          "fte": 0,
           "price_1": 1419.77,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -2266,10 +2462,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 89,
+          "fte": 0,
           "price_1": 1525.9,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -2341,10 +2544,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 30,
+          "fte": 0,
           "price_1": 1672.59,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -2416,10 +2626,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 6,
+          "fte": 0,
           "price_1": 1952.49,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -2491,10 +2708,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 7,
+          "fte": 0,
           "price_1": 1780.69,
           "salary_1": 135947.4,
           "recruitment_1": 0.05,
@@ -2566,12 +2790,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1284.7,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -2643,10 +2874,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1342.15,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -2718,10 +2956,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 6,
+          "fte": 0,
           "price_1": 1419.77,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -2793,10 +3038,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1525.9,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -2868,10 +3120,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1672.59,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -2943,10 +3202,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1952.49,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -3018,10 +3284,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1780.69,
           "salary_1": 135947.4,
           "recruitment_1": 0.05,
@@ -3093,12 +3366,29 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1282.62,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -3170,10 +3460,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1284.7,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -3245,10 +3542,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1342.15,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -3320,10 +3624,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1419.77,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -3395,10 +3706,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1525.9,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -3470,10 +3788,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1672.59,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -3545,10 +3870,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1952.49,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -3620,10 +3952,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1780.69,
           "salary_1": 135947.4,
           "recruitment_1": 0.05,
@@ -3695,7 +4034,14 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -3774,7 +4120,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 35,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -3846,18 +4192,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Hamburg": {
     "name": "Hamburg",
-    "total_fte": 165,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 9,
+          "fte": 0,
           "price_1": 1307.95,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -3929,10 +4282,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 27,
+          "fte": 0,
           "price_1": 1300.16,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -4004,10 +4364,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 29,
+          "fte": 0,
           "price_1": 1402.56,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -4079,10 +4446,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 27,
+          "fte": 0,
           "price_1": 1470.97,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -4154,10 +4528,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 26,
+          "fte": 0,
           "price_1": 1589.71,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -4229,10 +4610,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 8,
+          "fte": 0,
           "price_1": 1807.55,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -4304,10 +4692,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1832.55,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -4379,10 +4774,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1972.77,
           "salary_1": 135947.4,
           "recruitment_1": 0.05,
@@ -4454,12 +4856,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1307.95,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -4531,10 +4940,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1300.16,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -4606,10 +5022,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1402.56,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -4681,10 +5104,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1470.97,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -4756,10 +5186,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1589.71,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -4831,10 +5268,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1807.55,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -4906,10 +5350,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1832.55,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -4981,10 +5432,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1972.77,
           "salary_1": 135947.4,
           "recruitment_1": 0.05,
@@ -5056,12 +5514,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "AC": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1300.16,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -5133,10 +5598,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1402.56,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -5208,10 +5680,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1470.97,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -5283,10 +5762,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1589.71,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -5358,7 +5844,54 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -5437,7 +5970,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 8,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -5509,18 +6042,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Helsinki": {
     "name": "Helsinki",
-    "total_fte": 130,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 16,
+          "fte": 0,
           "price_1": 1187.35,
           "salary_1": 49335.75,
           "recruitment_1": 0.05,
@@ -5592,10 +6132,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 16,
+          "fte": 0,
           "price_1": 1221.0,
           "salary_1": 49335.75,
           "recruitment_1": 0.05,
@@ -5667,10 +6214,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 17,
+          "fte": 0,
           "price_1": 1264.64,
           "salary_1": 52624.8,
           "recruitment_1": 0.05,
@@ -5742,10 +6296,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 24,
+          "fte": 0,
           "price_1": 1294.9,
           "salary_1": 58106.55,
           "recruitment_1": 0.05,
@@ -5817,10 +6378,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 20,
+          "fte": 0,
           "price_1": 1350.05,
           "salary_1": 64684.65,
           "recruitment_1": 0.05,
@@ -5892,10 +6460,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 11,
+          "fte": 0,
           "price_1": 1388.75,
           "salary_1": 74551.8,
           "recruitment_1": 0.05,
@@ -5967,10 +6542,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1589.71,
           "salary_1": 89900.7,
           "recruitment_1": 0.05,
@@ -6042,12 +6624,29 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1187.35,
           "salary_1": 49335.75,
           "recruitment_1": 0.05,
@@ -6119,10 +6718,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1221.0,
           "salary_1": 49335.75,
           "recruitment_1": 0.05,
@@ -6194,10 +6800,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1264.64,
           "salary_1": 52624.8,
           "recruitment_1": 0.05,
@@ -6269,10 +6882,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1294.9,
           "salary_1": 58106.55,
           "recruitment_1": 0.05,
@@ -6344,10 +6964,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1388.75,
           "salary_1": 74551.8,
           "recruitment_1": 0.05,
@@ -6419,10 +7046,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1972.77,
           "salary_1": 96829.63,
           "recruitment_1": 0.05,
@@ -6494,12 +7128,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "AM": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1350.05,
           "salary_1": 64684.65,
           "recruitment_1": 0.05,
@@ -6571,10 +7232,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1264.64,
           "salary_1": 52624.8,
           "recruitment_1": 0.05,
@@ -6646,10 +7314,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1388.75,
           "salary_1": 74551.8,
           "recruitment_1": 0.05,
@@ -6721,10 +7396,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1589.71,
           "salary_1": 89900.7,
           "recruitment_1": 0.05,
@@ -6796,7 +7478,54 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -6875,7 +7604,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 5,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -6947,18 +7676,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Oslo": {
     "name": "Oslo",
-    "total_fte": 123,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1127.88,
           "salary_1": 51093.33,
           "recruitment_1": 0.05,
@@ -7030,10 +7766,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 11,
+          "fte": 0,
           "price_1": 1184.18,
           "salary_1": 53488.33,
           "recruitment_1": 0.05,
@@ -7105,10 +7848,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 23,
+          "fte": 0,
           "price_1": 1210.21,
           "salary_1": 59875.0,
           "recruitment_1": 0.05,
@@ -7180,10 +7930,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 20,
+          "fte": 0,
           "price_1": 1293.59,
           "salary_1": 63866.67,
           "recruitment_1": 0.05,
@@ -7255,10 +8012,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 21,
+          "fte": 0,
           "price_1": 1357.47,
           "salary_1": 68656.67,
           "recruitment_1": 0.05,
@@ -7330,10 +8094,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 10,
+          "fte": 0,
           "price_1": 1410.65,
           "salary_1": 73446.67,
           "recruitment_1": 0.05,
@@ -7405,10 +8176,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1612.76,
           "salary_1": 83825.0,
           "recruitment_1": 0.05,
@@ -7480,10 +8258,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1972.77,
           "salary_1": 98993.33,
           "recruitment_1": 0.05,
@@ -7555,12 +8340,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1184.18,
           "salary_1": 53488.33,
           "recruitment_1": 0.05,
@@ -7632,10 +8424,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1210.21,
           "salary_1": 59875.0,
           "recruitment_1": 0.05,
@@ -7707,10 +8506,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1293.59,
           "salary_1": 63866.67,
           "recruitment_1": 0.05,
@@ -7782,10 +8588,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1357.47,
           "salary_1": 68656.67,
           "recruitment_1": 0.05,
@@ -7857,10 +8670,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1410.65,
           "salary_1": 73446.67,
           "recruitment_1": 0.05,
@@ -7932,12 +8752,49 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1357.47,
           "salary_1": 68656.67,
           "recruitment_1": 0.05,
@@ -8009,10 +8866,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1210.21,
           "salary_1": 59875.0,
           "recruitment_1": 0.05,
@@ -8084,10 +8948,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1410.65,
           "salary_1": 73446.67,
           "recruitment_1": 0.05,
@@ -8159,10 +9030,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1293.59,
           "salary_1": 63866.67,
           "recruitment_1": 0.05,
@@ -8234,7 +9112,54 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -8313,7 +9238,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 6,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -8385,18 +9310,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Berlin": {
     "name": "Berlin",
-    "total_fte": 109,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1393.02,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -8468,10 +9400,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 17,
+          "fte": 0,
           "price_1": 1393.24,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -8543,10 +9482,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 20,
+          "fte": 0,
           "price_1": 1489.61,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -8618,10 +9564,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 24,
+          "fte": 0,
           "price_1": 1568.88,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -8693,10 +9646,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 15,
+          "fte": 0,
           "price_1": 1723.02,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -8768,10 +9728,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1636.63,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -8843,12 +9810,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1393.24,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -8920,10 +9914,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1489.61,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -8995,10 +9996,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1568.88,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -9070,10 +10078,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1723.02,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -9145,10 +10160,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1636.63,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -9220,10 +10242,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1612.29,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -9295,12 +10324,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "AM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1723.02,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -9372,10 +10428,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1489.61,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -9447,10 +10510,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1568.88,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -9522,7 +10592,64 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -9601,7 +10728,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 4,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -9673,18 +10800,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Copenhagen": {
     "name": "Copenhagen",
-    "total_fte": 94,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 7,
+          "fte": 0,
           "price_1": 1350.58,
           "salary_1": 64666.8,
           "recruitment_1": 0.05,
@@ -9756,10 +10890,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 15,
+          "fte": 0,
           "price_1": 1444.76,
           "salary_1": 65401.65,
           "recruitment_1": 0.05,
@@ -9831,10 +10972,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 22,
+          "fte": 0,
           "price_1": 1460.37,
           "salary_1": 69810.75,
           "recruitment_1": 0.05,
@@ -9906,10 +11054,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 12,
+          "fte": 0,
           "price_1": 1641.77,
           "salary_1": 76424.4,
           "recruitment_1": 0.05,
@@ -9981,10 +11136,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 11,
+          "fte": 0,
           "price_1": 1710.32,
           "salary_1": 84140.32,
           "recruitment_1": 0.05,
@@ -10056,10 +11218,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1771.44,
           "salary_1": 99204.75,
           "recruitment_1": 0.05,
@@ -10131,10 +11300,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 2147.98,
           "salary_1": 108022.95,
           "recruitment_1": 0.05,
@@ -10206,10 +11382,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2057.58,
           "salary_1": 126394.2,
           "recruitment_1": 0.05,
@@ -10281,12 +11464,19 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1444.76,
           "salary_1": 65401.65,
           "recruitment_1": 0.05,
@@ -10358,10 +11548,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1460.37,
           "salary_1": 69810.75,
           "recruitment_1": 0.05,
@@ -10433,10 +11630,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1641.77,
           "salary_1": 76424.4,
           "recruitment_1": 0.05,
@@ -10508,10 +11712,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1710.32,
           "salary_1": 84140.32,
           "recruitment_1": 0.05,
@@ -10583,10 +11794,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1771.44,
           "salary_1": 99204.75,
           "recruitment_1": 0.05,
@@ -10658,10 +11876,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2147.98,
           "salary_1": 108022.95,
           "recruitment_1": 0.05,
@@ -10733,10 +11958,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2057.58,
           "salary_1": 126394.2,
           "recruitment_1": 0.05,
@@ -10808,12 +12040,29 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1444.76,
           "salary_1": 65401.65,
           "recruitment_1": 0.05,
@@ -10885,10 +12134,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1460.37,
           "salary_1": 69810.75,
           "recruitment_1": 0.05,
@@ -10960,10 +12216,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1641.77,
           "salary_1": 76424.4,
           "recruitment_1": 0.05,
@@ -11035,10 +12298,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1771.44,
           "salary_1": 99204.75,
           "recruitment_1": 0.05,
@@ -11110,7 +12380,54 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -11189,7 +12506,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 4,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -11261,18 +12578,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Zurich": {
     "name": "Zurich",
-    "total_fte": 43,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1576.92,
           "salary_1": 99582.6,
           "recruitment_1": 0.05,
@@ -11344,10 +12668,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1310.86,
           "salary_1": 104854.62,
           "recruitment_1": 0.05,
@@ -11419,10 +12750,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1904.61,
           "salary_1": 110126.64,
           "recruitment_1": 0.05,
@@ -11494,10 +12832,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 9,
+          "fte": 0,
           "price_1": 2016.25,
           "salary_1": 123013.8,
           "recruitment_1": 0.05,
@@ -11569,10 +12914,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 8,
+          "fte": 0,
           "price_1": 2150.4,
           "salary_1": 142344.54,
           "recruitment_1": 0.05,
@@ -11644,10 +12996,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 6,
+          "fte": 0,
           "price_1": 2161.06,
           "salary_1": 155231.7,
           "recruitment_1": 0.05,
@@ -11719,12 +13078,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1310.86,
           "salary_1": 104854.62,
           "recruitment_1": 0.05,
@@ -11796,10 +13182,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1904.61,
           "salary_1": 110126.64,
           "recruitment_1": 0.05,
@@ -11871,10 +13264,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2150.4,
           "salary_1": 142344.54,
           "recruitment_1": 0.05,
@@ -11946,10 +13346,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 2161.06,
           "salary_1": 155231.7,
           "recruitment_1": 0.05,
@@ -12021,12 +13428,59 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "A": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1576.92,
           "salary_1": 99582.6,
           "recruitment_1": 0.05,
@@ -12098,10 +13552,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1310.86,
           "salary_1": 104854.62,
           "recruitment_1": 0.05,
@@ -12173,7 +13634,74 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "C": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Operations": {
@@ -12252,7 +13780,7 @@
           "utr_12": 0.85,
           "progression_12": 0.0
         },
-        "fte": 1,
+        "fte": 0,
         "price_1": 80.0,
         "salary_1": 40000.0,
         "recruitment_1": 0.021,
@@ -12324,18 +13852,25 @@
         "recruitment_12": 0.021,
         "churn_12": 0.0149,
         "utr_12": 0.85,
-        "progression_12": 0
+        "progression_12": 0,
+        "month": 12,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Frankfurt": {
     "name": "Frankfurt",
-    "total_fte": 27,
-    "journey": "Emerging Office",
+    "total_fte": 0,
+    "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1343.03,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -12407,10 +13942,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1563.29,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -12482,10 +14024,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1506.49,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -12557,10 +14106,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1530.83,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -12632,10 +14188,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1725.0,
           "salary_1": 78257.46,
           "recruitment_1": 0.05,
@@ -12707,10 +14270,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1825.09,
           "salary_1": 90997.05,
           "recruitment_1": 0.05,
@@ -12782,10 +14352,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1825.09,
           "salary_1": 110347.63,
           "recruitment_1": 0.05,
@@ -12857,12 +14434,29 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1343.03,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -12934,10 +14528,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1563.29,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -13009,10 +14610,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1530.83,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -13084,12 +14692,69 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "C": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "A": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1343.03,
           "salary_1": 57558.38,
           "recruitment_1": 0.05,
@@ -13161,10 +14826,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1506.49,
           "salary_1": 59773.0,
           "recruitment_1": 0.05,
@@ -13236,10 +14908,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1530.83,
           "salary_1": 68105.26,
           "recruitment_1": 0.05,
@@ -13311,19 +14990,86 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
+      },
+      "Operations": {
+        "month": 12,
+        "fte": 0,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Amsterdam": {
     "name": "Amsterdam",
-    "total_fte": 23,
+    "total_fte": 0,
     "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1151.17,
           "salary_1": 43854.0,
           "recruitment_1": 0.05,
@@ -13395,10 +15141,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 5,
+          "fte": 0,
           "price_1": 1114.77,
           "salary_1": 46046.7,
           "recruitment_1": 0.05,
@@ -13470,10 +15223,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1296.0,
           "salary_1": 48239.4,
           "recruitment_1": 0.05,
@@ -13545,10 +15305,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1242.71,
           "salary_1": 55365.67,
           "recruitment_1": 0.05,
@@ -13620,10 +15387,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1324.28,
           "salary_1": 62930.49,
           "recruitment_1": 0.05,
@@ -13695,10 +15469,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrM": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1480.07,
           "salary_1": 91928.95,
           "recruitment_1": 0.05,
@@ -13770,12 +15551,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "A": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1151.17,
           "salary_1": 43854.0,
           "recruitment_1": 0.05,
@@ -13847,10 +15655,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1114.77,
           "salary_1": 46046.7,
           "recruitment_1": 0.05,
@@ -13922,10 +15737,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1296.0,
           "salary_1": 48239.4,
           "recruitment_1": 0.05,
@@ -13997,10 +15819,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1324.28,
           "salary_1": 62930.49,
           "recruitment_1": 0.05,
@@ -14072,10 +15901,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "PiP": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1972.77,
           "salary_1": 141922.51,
           "recruitment_1": 0.05,
@@ -14147,12 +15983,49 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "A": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1151.17,
           "salary_1": 43854.0,
           "recruitment_1": 0.05,
@@ -14224,10 +16097,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1114.77,
           "salary_1": 46046.7,
           "recruitment_1": 0.05,
@@ -14299,10 +16179,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1242.71,
           "salary_1": 55365.67,
           "recruitment_1": 0.05,
@@ -14374,19 +16261,86 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "C": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
+      },
+      "Operations": {
+        "month": 12,
+        "fte": 0,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Cologne": {
     "name": "Cologne",
-    "total_fte": 22,
+    "total_fte": 0,
     "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 4,
+          "fte": 0,
           "price_1": 1340.62,
           "salary_1": 42000.0,
           "recruitment_1": 0.05,
@@ -14458,10 +16412,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1438.96,
           "salary_1": 44000.0,
           "recruitment_1": 0.05,
@@ -14533,10 +16494,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1444.0,
           "salary_1": 48000.0,
           "recruitment_1": 0.05,
@@ -14608,10 +16576,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1562.96,
           "salary_1": 53000.0,
           "recruitment_1": 0.05,
@@ -14683,10 +16658,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1762.93,
           "salary_1": 58000.0,
           "recruitment_1": 0.05,
@@ -14758,10 +16740,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 3,
+          "fte": 0,
           "price_1": 1875.42,
           "salary_1": 70000.0,
           "recruitment_1": 0.05,
@@ -14833,12 +16822,39 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Sales": {
         "AC": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1438.96,
           "salary_1": 44000.0,
           "recruitment_1": 0.05,
@@ -14910,10 +16926,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 2,
+          "fte": 0,
           "price_1": 1444.0,
           "salary_1": 48000.0,
           "recruitment_1": 0.05,
@@ -14985,12 +17008,79 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
       },
       "Recruitment": {
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1444.0,
           "salary_1": 48000.0,
           "recruitment_1": 0.05,
@@ -15062,10 +17152,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "M": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1875.42,
           "salary_1": 70000.0,
           "recruitment_1": 0.05,
@@ -15137,19 +17234,96 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
+      },
+      "Operations": {
+        "month": 12,
+        "fte": 0,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
   "Toronto": {
     "name": "Toronto",
-    "total_fte": 5,
+    "total_fte": 0,
     "journey": "New Office",
     "roles": {
       "Consultant": {
         "A": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1467.63,
           "salary_1": 34943.5,
           "recruitment_1": 0.05,
@@ -15221,10 +17395,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1467.63,
           "salary_1": 38437.85,
           "recruitment_1": 0.05,
@@ -15296,10 +17477,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "C": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1467.63,
           "salary_1": 41932.2,
           "recruitment_1": 0.05,
@@ -15371,10 +17559,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "SrC": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1467.63,
           "salary_1": 48920.9,
           "recruitment_1": 0.05,
@@ -15446,10 +17641,17 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         },
         "AM": {
-          "fte": 1,
+          "fte": 0,
           "price_1": 1467.63,
           "salary_1": 55909.6,
           "recruitment_1": 0.05,
@@ -15521,8 +17723,219 @@
           "recruitment_12": 0.05,
           "churn_12": 0.0,
           "utr_12": 0.85,
-          "progression_12": 0.0
+          "progression_12": 0.0,
+          "month": 12,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
         }
+      },
+      "Sales": {
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "C": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        }
+      },
+      "Recruitment": {
+        "A": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "C": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrC": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "AM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "M": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "SrM": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        },
+        "PiP": {
+          "month": 12,
+          "fte": 0,
+          "price": 1100,
+          "salary": 42000,
+          "recruitment": 0.05,
+          "churn": 0,
+          "utr": 0.85,
+          "progression": 0.03
+        }
+      },
+      "Operations": {
+        "month": 12,
+        "fte": 0,
+        "price": 1100,
+        "salary": 42000,
+        "recruitment": 0.05,
+        "churn": 0,
+        "utr": 0.85,
+        "progression": 0.03
       }
     }
   },
