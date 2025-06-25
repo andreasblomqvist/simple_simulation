@@ -24,6 +24,11 @@ const menuItems: MenuProps['items'] = [
     icon: <BarChartOutlined />,
     label: <Link to="/insights">Insights</Link>,
   },
+  {
+    key: '/system-config',
+    icon: <SettingOutlined />,
+    label: <Link to="/system-config">System Config</Link>,
+  },
 ];
 
 export default function Sidebar() {

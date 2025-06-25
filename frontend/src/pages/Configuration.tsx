@@ -438,66 +438,58 @@ export default function Configuration() {
   // Handle global configuration change
   const handleGlobalChange = async (values: any) => {
     try {
-      const { role, levels, field, month, value, targetOffices, applyToAllMonthsGlobal } = values;
-      
+      const { role, levels, field, month, value, targetOffices } = values;
       if (!value && value !== 0) {
         message.error('Please enter a value');
         return;
       }
-
-      // If applying to all months, we don't need a specific month
-      const effectiveMonth = applyToAllMonthsGlobal ? 1 : month; // Use month 1 as default when applying to all months
-
       const newDraftChanges: any = {};
-      // Handle "All Offices" selection or use selected offices or all if none selected
       const officeList = targetOffices && targetOffices.includes('ALL_OFFICES') 
         ? offices 
         : targetOffices && targetOffices.length > 0 
-          ? targetOffices.filter((office: string) => office !== 'ALL_OFFICES') // Remove ALL_OFFICES from list if mixed selection
+          ? targetOffices.filter((office: string) => office !== 'ALL_OFFICES')
           : offices;
-      const levelList = levels && levels.length > 0 ? levels : [null]; // Use selected levels or null for no level
-      
-      // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
+      const levelList = levels && levels.length > 0 ? levels : [null];
       const isTotal = field === 'total';
       const backendField = isTotal ? 'fte' : field;
-      
+      // Detect if the field is a percentage
+      const group = LEVER_GROUPS.find(g => g.columns.some(c => c.key === field));
+      const col = group?.columns.find(c => c.key === field);
+      let backendValue = value;
+      if (col?.formatter === 'percentage') {
+        backendValue = value / 100;
+      }
       officeList.forEach((officeName: string) => {
         levelList.forEach((level: string | null) => {
-          if (applyToAllMonthsGlobal && !isTotal) {
-            // Apply to all 12 months for each office and level combination
+          if (month === 0 && !isTotal) {
             for (let m = 1; m <= 12; m++) {
               const monthSuffix = `_${m}`;
               const fieldWithMonth = `${backendField}${monthSuffix}`;
               const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
-              newDraftChanges[draftPath] = value;
+              newDraftChanges[draftPath] = backendValue;
             }
           } else {
-            // Apply to selected month only for each office and level combination
-            const monthSuffix = isTotal ? '' : `_${effectiveMonth}`;
+            const monthSuffix = isTotal ? '' : `_${month}`;
             const fieldWithMonth = `${backendField}${monthSuffix}`;
             const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
-            newDraftChanges[draftPath] = value;
+            newDraftChanges[draftPath] = backendValue;
           }
         });
       });
-
       setDraftChanges((prev: any) => ({
         ...prev,
         ...newDraftChanges
       }));
-      
       setHasChanges(true);
       setShowGlobalModal(false);
       globalForm.resetFields();
-      
       const changesCount = Object.keys(newDraftChanges).length;
       const levelText = levels && levels.length > 0 ? ` across ${levels.length} level(s)` : '';
-      const monthsText = applyToAllMonthsGlobal && !isTotal ? ' (all months)' : '';
+      const monthsText = month === 0 && !isTotal ? ' (all months)' : '';
       const officeText = targetOffices && targetOffices.includes('ALL_OFFICES') 
         ? `all ${officeList.length} offices` 
         : `${officeList.length} office(s)`;
       message.success(`✅ Applied ${formatValue(value, LEVER_GROUPS.find(g => g.columns.some(c => c.key === field))?.columns.find(c => c.key === field)?.formatter || 'number')} globally to ${officeText}${levelText}${monthsText}. ${changesCount} changes added to draft.`);
-      
     } catch (error) {
       console.error('[CONFIG] ❌ Error applying global change:', error);
       message.error('Failed to apply global configuration change');
@@ -507,18 +499,16 @@ export default function Configuration() {
   // Format value based on type
   const formatValue = (value: any, formatter: string) => {
     if (value === null || value === undefined || value === '') return '-';
-    
-    // Ensure value is a number before using number-specific methods
     const numValue = Number(value);
     if (isNaN(numValue)) {
-      return value; // Return as-is if not a number
+      return value;
     }
-
     switch (formatter) {
       case 'currency':
         return `${(numValue / 1000).toFixed(0)}k SEK`;
       case 'percentage':
-        return `${(numValue * 100).toFixed(1)}%`;
+        // If value is <= 1, treat as decimal (0.05 -> 5%), else treat as percent (5 -> 5%)
+        return `${(numValue <= 1 ? numValue * 100 : numValue).toFixed(1)}%`;
       case 'number':
         return numValue.toFixed(1);
       default:
@@ -528,12 +518,16 @@ export default function Configuration() {
 
   // Parse value based on type
   const parseValue = (str: string, formatter: string) => {
-    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    // Remove all non-numeric and non-dot characters
+    const cleaned = str.replace(/[^0-9.]/g, '');
+    if (cleaned === '') return 0;
+    const num = parseFloat(cleaned);
     if (isNaN(num)) return 0;
     switch (formatter) {
       case 'currency':
         return num * 1000;
       case 'percentage':
+        // Always interpret as percent: 5 => 0.05, 5% => 0.05
         return num / 100;
       default:
         return num;
@@ -1110,17 +1104,17 @@ export default function Configuration() {
                     {
                       required: true,
                       validator: (_, value) => {
-                        const applyToAllMonths = globalForm.getFieldValue('applyToAllMonthsGlobal');
-                        if (!applyToAllMonths && !value) {
-                          return Promise.reject(new Error('Please select a month or check "Apply to all months"'));
+                        if (!value && value !== 0) {
+                          return Promise.reject(new Error('Please select a month'));
                         }
                         return Promise.resolve();
                       },
                     },
                   ]}
-                  tooltip="Select specific month or check 'Apply to all months' below. For FTE values, month is ignored."
+                  tooltip="Select specific month or 'All months'. For FTE values, month is ignored."
                 >
                   <Select placeholder="Select month">
+                    <Option key={0} value={0}>All months</Option>
                     {MONTHS.map(month => (
                       <Option key={month.value} value={month.value}>
                         {month.label}
@@ -1168,29 +1162,16 @@ export default function Configuration() {
                </Col>
             </Row>
 
-            <Row>
-              <Col span={24}>
-                <Form.Item
-                  name="applyToAllMonthsGlobal"
-                  valuePropName="checked"
-                >
-                  <Checkbox>
-                    🔄 Apply to all 12 months (ignored for FTE values)
-                  </Checkbox>
-                </Form.Item>
-              </Col>
-            </Row>
-
-                         <div style={{ padding: '12px', backgroundColor: '#f0f2f5', borderRadius: '6px', marginTop: '16px' }}>
-               <Text type="secondary">
-                 <strong>💡 Examples:</strong><br/>
-                 • Set recruitment rate for level A to 3% - select "🌍 All Offices"<br/>
-                 • Update price for levels AC, C, SrC to 1500 SEK globally<br/>
-                 • Change churn rate for all consultant levels (leave levels empty)<br/>
-                 • Set UTR for Operations to 85% for specific offices (Stockholm, Munich)<br/>
-                 • Apply salary changes to multiple levels (A, AC, C) across all offices
-               </Text>
-             </div>
+            <Card size="small" bodyStyle={{ background: '#222', color: '#eee' }} style={{ marginTop: 16, borderRadius: 6 }} bordered={false}>
+              <Text style={{ color: '#eee' }}>
+                <strong>💡 Examples:</strong><br/>
+                • Set recruitment rate for level A to 3% - select "�� All Offices"<br/>
+                • Update price for levels AC, C, SrC to 1500 SEK globally<br/>
+                • Change churn rate for all consultant levels (leave levels empty)<br/>
+                • Set UTR for Operations to 85% for specific offices (Stockholm, Munich)<br/>
+                • Apply salary changes to multiple levels (A, AC, C) across all offices
+              </Text>
+            </Card>
           </Form>
         </Modal>
       </Card>
