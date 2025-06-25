@@ -273,9 +273,9 @@ const SimulationParametersForm: React.FC<SimulationParametersFormProps> = ({
             <Button 
               type="primary" 
               style={{ width: '100%', marginTop: 4 }}
-              disabled={!selectedAction || selectedLevels.length === 0 || selectedRate <= 0}
+              disabled={!selectedAction || selectedLevels.length === 0 || selectedRate < 0}
               onClick={() => {
-                if (!selectedAction || selectedLevels.length === 0 || selectedRate <= 0) return;
+                if (!selectedAction || selectedLevels.length === 0 || selectedRate < 0) return;
                 
                 const newActions = { ...levelActions };
                 
@@ -301,7 +301,7 @@ const SimulationParametersForm: React.FC<SimulationParametersFormProps> = ({
                 setSelectedRate(0);
               }}
             >
-              Add Action
+              {selectedRate === 0 ? 'Set to Zero' : 'Add Action'}
             </Button>
           </Col>
         </Row>
@@ -319,7 +319,10 @@ const SimulationParametersForm: React.FC<SimulationParametersFormProps> = ({
                 {levelActions.churn.map((action, index) => (
                   <div key={`churn-${index}`} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                     <span style={{ color: token.colorError, marginRight: 8 }}>🎯</span>
-                    <Text style={{ flex: 1 }}>{action.level} Churn: {action.rate}%/month</Text>
+                    <Text style={{ flex: 1 }}>
+                      {action.level} Churn: {action.rate}%/month
+                      {action.rate === 0 && <span style={{ color: token.colorWarning, marginLeft: 4 }}>(Zeroed)</span>}
+                    </Text>
                     <Button 
                       type="link" 
                       size="small" 
@@ -337,7 +340,10 @@ const SimulationParametersForm: React.FC<SimulationParametersFormProps> = ({
                 {levelActions.recruitment.map((action, index) => (
                   <div key={`recruitment-${index}`} style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
                     <span style={{ color: token.colorSuccess, marginRight: 8 }}>📈</span>
-                    <Text style={{ flex: 1 }}>{action.level} Recruitment: {action.rate}%/month</Text>
+                    <Text style={{ flex: 1 }}>
+                      {action.level} Recruitment: {action.rate}%/month
+                      {action.rate === 0 && <span style={{ color: token.colorWarning, marginLeft: 4 }}>(Zeroed)</span>}
+                    </Text>
                     <Button 
                       type="link" 
                       size="small" 

@@ -65,15 +65,36 @@ const InsightsTab: React.FC = () => {
     try {
       const values = await form.validateFields();
       
+      // Convert level actions to the format expected by the backend
+      const level_specific_churn: { [key: string]: number } = {};
+      const level_specific_recruitment: { [key: string]: number } = {};
+      
+      // Convert churn actions
+      levelActions.churn.forEach(action => {
+        level_specific_churn[action.level] = action.rate / 100; // Convert percentage to decimal
+      });
+      
+      // Convert recruitment actions
+      levelActions.recruitment.forEach(action => {
+        level_specific_recruitment[action.level] = action.rate / 100; // Convert percentage to decimal
+      });
+      
+      // Create the final simulation parameters
+      const simulationParams = {
+        ...values,
+        level_specific_churn,
+        level_specific_recruitment
+      };
+      
       // Save the configuration for potential exports
-      setLastSimulationConfig(values);
+      setLastSimulationConfig(simulationParams);
       
       const response = await fetch('/api/simulation/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(simulationParams),
       });
 
       if (!response.ok) {
