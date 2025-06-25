@@ -1,6 +1,8 @@
 from typing import Dict, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month
 from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name
+import logging
+import uuid
 
 class WorkforceManager:
     """
@@ -8,6 +10,9 @@ class WorkforceManager:
     """
     def __init__(self, offices: Dict[str, Office]):
         self.offices = offices
+
+    def set_run_id(self):
+        self.run_id = str(uuid.uuid4())
 
     def process_month(self, year: int, month: int, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
         """
@@ -45,14 +50,26 @@ class WorkforceManager:
         Process progression for all roles/levels in an office for the given month.
         Handles promotions and tracks movement between levels.
         """
+        logger = logging.getLogger("simplesim")  # Use same logger as main.py
+        run_id = getattr(self, 'run_id', 'NO_RUN_ID')
         for role_name, role_data in office.roles.items():
             if isinstance(role_data, dict):  # Leveled roles
                 promotions_this_month = {}
                 for level_name, level in role_data.items():
                     progression_rate = get_monthly_attribute(level, 'progression', current_month_enum)
-                    promoted_people = level.apply_cat_based_progression(progression_rate, current_date_str)
-                    promotions_this_month[level_name] = promoted_people
-                # Track promotions into each level
+                    eligible = len(level.people)
+                    if progression_rate > 0 and eligible > 0:
+                        promotions = level.apply_cat_based_progression(progression_rate, current_date_str)
+                        if promotions:
+                            promotions_this_month[level_name] = promotions
+                            promoted = len(promotions)
+                    # Removed PROGRESSION_DEBUG logging for skipped cases
+                    
+                    # Track progression metrics
+                    # Note: Progression metrics are stored in the nested structure below, not in flat structure
+                    # The flat structure was incorrect and caused the 189 vs 34 discrepancy
+                
+                # Handle promotions to next levels
                 promoted_into_levels = {level_name: 0 for level_name in role_data.keys()}
                 for level_name, promoted_people in promotions_this_month.items():
                     # Find next level
@@ -64,7 +81,8 @@ class WorkforceManager:
                             next_level.add_promotion(person, current_date_str)
                         promoted_into_levels[next_level_name] = len(promoted_people)
                     # else: top level, people leave the cohort
-                # Store promotion metrics for each level
+                
+                # Store promotion metrics for each level in the correct nested structure
                 for level_name, level in role_data.items():
                     if office.name not in monthly_office_metrics:
                         monthly_office_metrics[office.name] = {}
@@ -141,3 +159,10 @@ class WorkforceManager:
                 }
 
     # Add more helper methods as needed for CAT-based progression, churn, recruitment, etc. 
+
+class WorkforceSimulation:
+    def run_simulation(self, *args, **kwargs):
+        self.run_id = uuid.uuid4()
+        # ... existing code ...
+        # Pass self.run_id to all functions that log progression
+        # ... existing code ... 

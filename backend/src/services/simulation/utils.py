@@ -125,12 +125,17 @@ def determine_level_order(config_data: list) -> list:
 
 def get_journey_for_level(level_name: str) -> str:
     """Get the Journey enum for a given level name."""
-    from backend.config.default_config import JOURNEY_CLASSIFICATION
-    
-    for journey, levels in JOURNEY_CLASSIFICATION.items():
-        if level_name in levels:
-            return journey
-    return "Journey 1"  # Default 
+    # Simple journey mapping without default config
+    if level_name in ['A', 'AC', 'C']:
+        return "Journey 1"
+    elif level_name in ['SrC', 'AM']:
+        return "Journey 2"
+    elif level_name in ['M', 'SrM']:
+        return "Journey 3"
+    elif level_name == 'PiP':
+        return "Journey 4"
+    else:
+        return "Journey 1"
 
 def log_yearly_results(logger, year, yearly_snapshots, monthly_office_metrics, economic_params):
     logger.info("=" * 80)

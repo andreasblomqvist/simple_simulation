@@ -84,22 +84,19 @@ class Person:
             return f'CAT{cat_number}'
     
     def get_progression_probability(self, current_date: str, base_progression_rate: float, level_name: str) -> float:
-        """Calculate individual progression probability based on CAT and level"""
-        # Import here to avoid circular import
-        from backend.config.default_config import DEFAULT_RATES
+        """Calculate individual progression probability based on tenure"""
+        # Simple progression based on tenure - no CAT curves
+        tenure_months = self.get_level_tenure_months(current_date)
         
-        # Get CAT category
-        cat = self.get_cat_category(current_date)
+        # Minimum 6 months tenure required
+        if tenure_months < 6:
+            return 0.0
         
-        # Get CAT multiplier for this level
-        if level_name in DEFAULT_RATES['progression']['cat_curves']:
-            cat_multiplier = DEFAULT_RATES['progression']['cat_curves'][level_name].get(cat, 0.0)
-        else:
-            # Fallback for levels not in cat_curves (like PiP)
-            cat_multiplier = 1.0 if cat != 'CAT0' else 0.0
+        # Simple linear progression based on tenure
+        # More tenure = higher chance of progression
+        tenure_multiplier = min(2.0, tenure_months / 12.0)  # Cap at 2x for very long tenure
         
-        # Calculate actual progression probability
-        return base_progression_rate * cat_multiplier
+        return base_progression_rate * tenure_multiplier
 
 @dataclass
 class RoleData:
@@ -327,11 +324,8 @@ class Level:
     
     def get_eligible_for_progression(self, current_date: str) -> List[Person]:
         """Get people eligible for progression based on minimum tenure for this level"""
-        # Import here to avoid circular import
-        from backend.config.default_config import DEFAULT_RATES
-        
-        # Get minimum tenure for this level
-        minimum_tenure = DEFAULT_RATES['progression']['minimum_tenure'].get(self.name, 6)
+        # Simple 6-month minimum tenure for all levels
+        minimum_tenure = 6
         
         return [p for p in self.people if p.is_eligible_for_progression(current_date, minimum_tenure)]
     
@@ -368,7 +362,7 @@ class Level:
         
         promoted = []
         for person in eligible:
-            # Calculate individual progression probability based on CAT
+            # Calculate individual progression probability based on tenure
             individual_probability = person.get_progression_probability(
                 current_date, base_progression_rate, self.name
             )

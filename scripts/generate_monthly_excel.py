@@ -1,15 +1,25 @@
 import pandas as pd
-import sys
+import json
 import os
 from datetime import datetime
+import sys
 
-# Add parent directory to path to import config
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(parent_dir)
-sys.path.append(os.path.join(parent_dir, 'backend', 'config'))
+# Add the backend directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-from default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES
+from default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES
+
+def get_default_recruitment_rate(role_name, level_name):
+    """Get default recruitment rate - simplified without DEFAULT_RATES"""
+    return 0.01  # Simple 1% default
+
+def get_default_churn_rate(role_name, level_name):
+    """Get default churn rate - simplified without DEFAULT_RATES"""
+    return 0.014  # Simple 1.4% default
+
+def get_default_progression_rate(level_name):
+    """Get default progression rate - simplified without DEFAULT_RATES"""
+    return 0.0  # No default progression
 
 # Define the structure
 ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment']
@@ -50,34 +60,17 @@ for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
                     row[f'Salary_{month}'] = monthly_salary
                     
                     # Get recruitment rate for this role and level
-                    if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                        recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
-                    elif role_name in DEFAULT_RATES['recruitment']:
-                        recruitment_rate = DEFAULT_RATES['recruitment'][role_name]
-                    else:
-                        recruitment_rate = 0.01  # Default fallback
+                    recruitment_rate = get_default_recruitment_rate(role_name, level_name)
                     row[f'Recruitment_{month}'] = recruitment_rate
                     
                     # Get churn rate for this role and level
-                    churn_rate = DEFAULT_RATES.get('churn', 0.015)
+                    churn_rate = get_default_churn_rate(role_name, level_name)
                     row[f'Churn_{month}'] = churn_rate
                     
-                    row[f'UTR_{month}'] = DEFAULT_RATES['utr']
+                    row[f'UTR_{month}'] = 0.0  # Default UTR
                     
                     # Set progression rate based on level and month
-                    if month in DEFAULT_RATES['progression']['evaluation_months']:
-                        if level_name in ['M', 'SrM', 'PiP']:
-                            # M+ levels only progress in November
-                            if month == 11:
-                                progression_rate = DEFAULT_RATES['progression']['M_plus_rate']
-                            else:
-                                progression_rate = DEFAULT_RATES['progression']['non_evaluation_rate']
-                        else:
-                            # A-AM levels progress in May and November
-                            progression_rate = DEFAULT_RATES['progression']['A_AM_rate']
-                    else:
-                        progression_rate = DEFAULT_RATES['progression']['non_evaluation_rate']
-                    
+                    progression_rate = get_default_progression_rate(level_name)
                     row[f'Progression_{month}'] = progression_rate
                 
                 data.append(row)
@@ -105,12 +98,12 @@ for office_name, office_data in ACTUAL_OFFICE_LEVEL_DATA.items():
                 row[f'Salary_{month}'] = monthly_salary
                 
                 # Get Operations rates
-                operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.015)
-                operations_churn = DEFAULT_RATES.get('churn', 0.015)  # Use the single churn rate value
+                operations_recruitment = 0.015  # Default recruitment rate
+                operations_churn = 0.015  # Default churn rate
                 
                 row[f'Recruitment_{month}'] = operations_recruitment
                 row[f'Churn_{month}'] = operations_churn
-                row[f'UTR_{month}'] = DEFAULT_RATES['utr']
+                row[f'UTR_{month}'] = 0.0  # Default UTR
                 # Operations doesn't have progression
                 row[f'Progression_{month}'] = 0.0
             
@@ -129,7 +122,7 @@ df = df[basic_cols + monthly_cols]
 
 # Save to Excel with timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-filename = os.path.join(current_dir, f'office_config_monthly_{timestamp}.xlsx')
+filename = os.path.join(os.path.dirname(__file__), f'office_config_monthly_{timestamp}.xlsx')
 df.to_excel(filename, index=False)
 print(f"Excel file '{filename}' has been created successfully!")
 print(f"Total rows: {len(df)}")

@@ -125,6 +125,7 @@ export default function Configuration() {
       
       // Validate data structure
       if (!Array.isArray(data) || data.length === 0) {
+        console.log('[CONFIG] ⚠️  No office data received or invalid format');
         setOffices([]);
         setSelectedOffice('');
         setOfficeData({});
@@ -135,11 +136,24 @@ export default function Configuration() {
       
       // Extract office names and set the first one as selected if none is
       const officeNames = data.map((office: any) => office.name).sort();
+      console.log('[CONFIG] 🏢 Office names extracted:', officeNames);
       setOffices(officeNames);
       
-      const targetOffice = selectedOffice || officeNames[0];
-      if (!selectedOffice) {
+      // Always set the first office as selected if no office is currently selected
+      // or if the currently selected office is not in the new list
+      const targetOffice = selectedOffice && officeNames.includes(selectedOffice) 
+        ? selectedOffice 
+        : officeNames[0];
+      
+      console.log('[CONFIG] 🎯 Office selection:', { 
+        currentSelected: selectedOffice, 
+        availableOffices: officeNames, 
+        targetOffice: targetOffice 
+      });
+      
+      if (!selectedOffice || !officeNames.includes(selectedOffice)) {
         setSelectedOffice(targetOffice);
+        console.log('[CONFIG] ✅ Set selected office to:', targetOffice);
       }
       
       // Transform all offices data for UI consumption and store in a dictionary
@@ -147,6 +161,8 @@ export default function Configuration() {
         acc[office.name] = transformOfficeDataForUI(office);
         return acc;
       }, {});
+      
+      console.log('[CONFIG] 🔄 Transformed office data:', Object.keys(allOfficesData));
       
       setOfficeData(allOfficesData);
       setOriginalData(JSON.parse(JSON.stringify(allOfficesData))); // Deep copy

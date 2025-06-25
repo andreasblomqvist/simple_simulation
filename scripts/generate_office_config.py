@@ -7,12 +7,25 @@ Files are saved in the scripts directory with timestamp format: office_config_YY
 import sys
 import os
 from datetime import datetime
-
-# Add parent directory to path to import backend modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES, DEFAULT_RATES
 import pandas as pd
+import json
+
+# Add the backend directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+
+from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES
+
+def get_default_recruitment_rate(role_name, level_name):
+    """Get default recruitment rate - simplified without DEFAULT_RATES"""
+    return 0.01  # Simple 1% default
+
+def get_default_churn_rate(role_name, level_name):
+    """Get default churn rate - simplified without DEFAULT_RATES"""
+    return 0.014  # Simple 1.4% default
+
+def get_default_progression_rate(level_name):
+    """Get default progression rate - simplified without DEFAULT_RATES"""
+    return 0.0  # No default progression
 
 def generate_office_config():
     """Generate timestamped office configuration Excel file"""
@@ -33,23 +46,11 @@ def generate_office_config():
                         salary = base_salaries.get(level_name, 0.0)
                         
                         # Get rates
-                        if role_name in DEFAULT_RATES['recruitment'] and isinstance(DEFAULT_RATES['recruitment'][role_name], dict):
-                            recruitment_rate = DEFAULT_RATES['recruitment'][role_name].get(level_name, 0.01)
-                        else:
-                            recruitment_rate = 0.01
-                        
-                        if role_name in DEFAULT_RATES['churn'] and isinstance(DEFAULT_RATES['churn'][role_name], dict):
-                            churn_rate = DEFAULT_RATES['churn'][role_name].get(level_name, 0.014)
-                        elif role_name in DEFAULT_RATES['churn']:
-                            churn_rate = DEFAULT_RATES['churn'][role_name]
-                        else:
-                            churn_rate = 0.014
+                        recruitment_rate = get_default_recruitment_rate(role_name, level_name)
+                        churn_rate = get_default_churn_rate(role_name, level_name)
                         
                         # Set progression rate based on level
-                        if level_name in ['M', 'SrM', 'PiP']:
-                            progression_rate = DEFAULT_RATES['progression']['M_plus_rate']
-                        else:
-                            progression_rate = DEFAULT_RATES['progression']['A_AM_rate']
+                        progression_rate = get_default_progression_rate(level_name)
                         
                         # Create row
                         row = {
@@ -66,7 +67,7 @@ def generate_office_config():
                             row[f'Recruitment_{i}'] = recruitment_rate
                             row[f'Churn_{i}'] = churn_rate
                             row[f'Progression_{i}'] = progression_rate if i in [1, 6] else 0.0
-                            row[f'UTR_{i}'] = DEFAULT_RATES['utr']
+                            row[f'UTR_{i}'] = 0.0  # Assuming default UTR
                         
                         rows.append(row)
         
@@ -78,8 +79,8 @@ def generate_office_config():
             op_price = base_prices.get('Operations', 80.0)
             op_salary = base_salaries.get('Operations', 40000.0)
             
-            operations_recruitment = DEFAULT_RATES['recruitment'].get('Operations', 0.021)
-            operations_churn = DEFAULT_RATES['churn'].get('Operations', 0.0149)
+            operations_recruitment = get_default_recruitment_rate('Operations', None)
+            operations_churn = get_default_churn_rate('Operations', None)
             
             # Create row
             row = {
@@ -96,7 +97,7 @@ def generate_office_config():
                 row[f'Recruitment_{i}'] = operations_recruitment
                 row[f'Churn_{i}'] = operations_churn
                 row[f'Progression_{i}'] = 0.0  # Operations has no progression
-                row[f'UTR_{i}'] = DEFAULT_RATES['utr']
+                row[f'UTR_{i}'] = 0.0  # Assuming default UTR
             
             rows.append(row)
     
@@ -129,8 +130,8 @@ def generate_office_config():
     print(f"   Offices: {df['Office'].nunique()}")
     print(f"   Total rows: {len(df)}")
     print(f"   Operations rows: {len(df[df['Role'] == 'Operations'])}")
-    print(f"   Operations recruitment rate: {DEFAULT_RATES['recruitment']['Operations']}")
-    print(f"   Operations churn rate: {DEFAULT_RATES['churn']['Operations']}")
+    print(f"   Operations recruitment rate: {operations_recruitment}")
+    print(f"   Operations churn rate: {operations_churn}")
     
     return filepath
 

@@ -11,26 +11,15 @@ import hashlib
 from copy import deepcopy
 import logging
 
-# Import config from backend.config
-from backend.config.default_config import (
-    OFFICE_HEADCOUNT,
-    ROLE_DISTRIBUTION,
-    CONSULTANT_LEVEL_DISTRIBUTION,
-    DEFAULT_RATES,
-    BASE_PRICING,
-    BASE_SALARIES,
-    CURRENCY_CONFIG,
-    JOURNEY_CLASSIFICATION,
-    ACTUAL_OFFICE_LEVEL_DATA
-)
-
 # Import KPI service
 from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.config_service import config_service
 from backend.src.services.simulation.workforce import WorkforceManager
 from backend.src.services.simulation.office_manager import OfficeManager
-from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
-from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year
+from backend.src.services.simulation.models import (
+    Office, Level, RoleData, Month, Journey, OfficeJourney, Person
+)
+from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year, calculate_configuration_checksum, validate_configuration_completeness
 
 class Month(Enum):
     JAN = 1
@@ -99,22 +88,16 @@ class Person:
             return f'CAT{cat_number}'
     
     def get_progression_probability(self, current_date: str, base_progression_rate: float, level_name: str) -> float:
-        """Calculate individual progression probability based on CAT and level"""
-        # Import here to avoid circular import
-        from backend.config.default_config import DEFAULT_RATES
+        """Calculate individual progression probability based on tenure"""
+        # Simple progression based on tenure - no CAT curves
+        tenure_months = self.get_level_tenure_months(current_date)
         
-        # Get CAT category
-        cat = self.get_cat_category(current_date)
+        # Minimum 6 months tenure required
+        if tenure_months < 6:
+            return 0.0
         
-        # Get CAT multiplier for this level
-        if level_name in DEFAULT_RATES['progression']['cat_curves']:
-            cat_multiplier = DEFAULT_RATES['progression']['cat_curves'][level_name].get(cat, 0.0)
-        else:
-            # Fallback for levels not in cat_curves (like PiP)
-            cat_multiplier = 1.0 if cat != 'CAT0' else 0.0
-        
-        # Calculate actual progression probability
-        return base_progression_rate * cat_multiplier
+        # Simple progression - use base rate directly without multipliers
+        return base_progression_rate
 
 @dataclass
 class RoleData:
@@ -340,11 +323,8 @@ class Level:
     
     def get_eligible_for_progression(self, current_date: str) -> List[Person]:
         """Get people eligible for progression based on minimum tenure for this level"""
-        # Import here to avoid circular import
-        from backend.config.default_config import DEFAULT_RATES
-        
-        # Get minimum tenure for this level
-        minimum_tenure = DEFAULT_RATES['progression']['minimum_tenure'].get(self.name, 6)
+        # Simple 6-month minimum tenure for all levels
+        minimum_tenure = 6
         
         return [p for p in self.people if p.is_eligible_for_progression(current_date, minimum_tenure)]
     
@@ -381,7 +361,7 @@ class Level:
         
         promoted = []
         for person in eligible:
-            # Calculate individual progression probability based on CAT
+            # Calculate individual progression probability based on tenure
             individual_probability = person.get_progression_probability(
                 current_date, base_progression_rate, self.name
             )
@@ -549,9 +529,6 @@ class SimulationEngine:
                     # Handle roles with levels (Consultant, Sales, Recruitment)
                     office.roles[role_name] = {}
                     for level_name, level_config in role_data.items():
-                        # Determine progression months (e.g., June and December)
-                        progression_months = [Month.JUN, Month.DEC]
-
                         # Create Level object
                         journey_name = self._get_journey_for_level(level_name)
                         
@@ -562,36 +539,17 @@ class SimulationEngine:
                                 monthly_key = f'{key}_{i}'
                                 config_value = level_config.get(monthly_key, None)
                                 if key == 'progression':
-                                    # Only use config value if it is not None and not 0.0
-                                    if config_value is not None and config_value != 0.0:
-                                        level_attributes[monthly_key] = config_value
-                                    else:
-                                        # Use default progression rates for evaluation months
-                                        if i in DEFAULT_RATES['progression']['evaluation_months']:
-                                            if level_name == 'C':
-                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2
-                                            elif level_name == 'SrC':
-                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
-                                            elif level_name == 'AM':
-                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
-                                            elif level_name == 'M':
-                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
-                                            elif level_name == 'SrM':
-                                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
-                                            else:
-                                                progression_rate = 0.10
-                                            level_attributes[monthly_key] = progression_rate
-                                        else:
-                                            level_attributes[monthly_key] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                                    # Use config value if provided, otherwise 0.0
+                                    level_attributes[monthly_key] = config_value if config_value is not None else 0.0
                                 elif key == 'utr':
-                                    level_attributes[monthly_key] = level_config.get(monthly_key, level_config.get(key, DEFAULT_RATES['utr']))
+                                    level_attributes[monthly_key] = level_config.get(monthly_key, level_config.get(key, 0.0))
                                 else:
                                     level_attributes[monthly_key] = config_value if config_value is not None else level_config.get(key, 0.0)
                         
                         level = Level(
                             name=level_name,
                             journey=journey_name,
-                            progression_months=progression_months,
+                            progression_months=[Month(i) for i in range(1, 13)],
                             **level_attributes
                         )
                         
@@ -624,10 +582,17 @@ class SimulationEngine:
 
     def _get_journey_for_level(self, level_name: str) -> Journey:
         """Get the Journey enum for a given level name."""
-        for journey, levels in JOURNEY_CLASSIFICATION.items():
-            if level_name in levels:
-                return Journey(journey)
-        return Journey.JOURNEY_1 # Default
+        # Simple journey mapping without default config
+        if level_name in ['A', 'AC', 'C']:
+            return Journey.JOURNEY_1
+        elif level_name in ['SrC', 'AM']:
+            return Journey.JOURNEY_2
+        elif level_name in ['M', 'SrM']:
+            return Journey.JOURNEY_3
+        elif level_name == 'PiP':
+            return Journey.JOURNEY_4
+        else:
+            return Journey.JOURNEY_1
 
     def _initialize_offices(self):
         """Initializes all offices with default data"""
@@ -650,26 +615,8 @@ class SimulationEngine:
                 # Calculate progression rates for all 12 months
                 progression_rates = {}
                 for i in range(1, 13):
-                    if i in DEFAULT_RATES['progression']['evaluation_months']:
-                        # Get the appropriate base rate for this level
-                        progression_rate = 0.0
-                        if level_name == 'C':
-                            progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2  # Half-yearly to semi-annual
-                        elif level_name == 'SrC':
-                            progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
-                        elif level_name == 'AM':
-                            progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
-                        elif level_name == 'M':
-                            progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
-                        elif level_name == 'SrM':
-                            progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
-                        else:
-                            progression_rate = 0.10  # Default fallback for A/AC levels
-                        
-                        progression_rates[f'progression_{i}'] = progression_rate
-                    else:
-                        # Other months have no progression
-                        progression_rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                    # Set all progression rates to 0.0 by default
+                    progression_rates[f'progression_{i}'] = 0.0
                 
                 level = Level(
                     name=level_name,
@@ -723,7 +670,6 @@ class SimulationEngine:
             office.roles['Consultant'] = {}
             for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
                 journey = self._get_journey_for_level(level_name)
-                progression_months = [Month.JUN, Month.DEC]
                 
                 # Combine global, office, and level-specific levers
                 level_levers = office_levers.get('Consultant', {}).get(level_name, {})
@@ -739,33 +685,14 @@ class SimulationEngine:
                         # Use lever value
                         progression_rates[f'progression_{i}'] = lever_progression
                     else:
-                        # Calculate default progression rate
-                        if i in DEFAULT_RATES['progression']['evaluation_months']:
-                            # Get the appropriate base rate for this level
-                            progression_rate = 0.0
-                            if level_name == 'C':
-                                progression_rate = DEFAULT_RATES['progression']['base_rates']['C->SrC'] / 2  # Half-yearly to semi-annual
-                            elif level_name == 'SrC':
-                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrC->AM'] / 2
-                            elif level_name == 'AM':
-                                progression_rate = DEFAULT_RATES['progression']['base_rates']['AM->M'] / 2
-                            elif level_name == 'M':
-                                progression_rate = DEFAULT_RATES['progression']['base_rates']['M->SrM'] / 2
-                            elif level_name == 'SrM':
-                                progression_rate = DEFAULT_RATES['progression']['base_rates']['SrM->PiP'] / 2
-                            else:
-                                progression_rate = 0.10  # Default fallback for A/AC levels
-                            
-                            progression_rates[f'progression_{i}'] = progression_rate
-                        else:
-                            # Other months have no progression
-                            progression_rates[f'progression_{i}'] = DEFAULT_RATES['progression']['non_evaluation_rate']
+                        # Set to 0.0 if no lever specified
+                        progression_rates[f'progression_{i}'] = 0.0
 
                 # Create level with combined levers
                 level = Level(
                     name=level_name,
                     journey=journey,
-                    progression_months=progression_months,
+                    progression_months=[Month(i) for i in range(1, 13)],
                     # Apply progression rates
                     **progression_rates,
                     **{f'recruitment_{i}': level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', 0.0)) for i in range(1, 13)},
@@ -904,6 +831,7 @@ class SimulationEngine:
         simulation_start_date_str = f"{start_year}-{start_month}"
         # Initialize WorkforceManager
         workforce_manager = WorkforceManager(self.offices)
+        workforce_manager.set_run_id()  # Set unique run_id for this simulation run
         # Main simulation loop
         for year in range(start_year, end_year + 1):
             # Apply annual price and salary increase

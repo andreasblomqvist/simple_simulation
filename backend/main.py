@@ -15,7 +15,22 @@ def setup_logging():
     # Create logs directory if it doesn't exist
     os.makedirs("backend/logs", exist_ok=True)
     
-    # Create a logger
+    # Remove all handlers associated with the root logger object (to avoid duplicate logs)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
+    # Configure root logging to capture ALL logs (including Uvicorn, FastAPI, etc.)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(),  # Console
+            logging.FileHandler("backend/logs/backend_full.log", mode='a'),  # Full log file in logs dir
+            logging.FileHandler("backend/logs/backend.log", mode='a')  # Existing log file
+        ]
+    )
+    
+    # Create a logger for our application
     logger = logging.getLogger("simplesim")
     logger.setLevel(logging.INFO)
     
@@ -40,6 +55,12 @@ def setup_logging():
     # Add handlers to logger
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
+    
+    # Ensure Uvicorn logs propagate to root logger
+    logging.getLogger("uvicorn").propagate = True
+    logging.getLogger("uvicorn.error").propagate = True
+    logging.getLogger("uvicorn.access").propagate = True
+    logging.getLogger("fastapi").propagate = True
     
     return logger
 

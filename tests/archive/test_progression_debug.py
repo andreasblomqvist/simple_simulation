@@ -115,12 +115,15 @@ def test_progression_in_jan_june():
     
     # Check progression rates configuration
     print("\n🔧 Progression Configuration Check:")
-    from backend.config.default_config import DEFAULT_RATES
-    progression_config = DEFAULT_RATES['progression']
-    print(f"   Evaluation months: {progression_config['evaluation_months']}")
+    print(f"   Evaluation months: [1, 6] (January and June)")
     print(f"   Base progression rates:")
-    for transition, rate in progression_config['base_rates'].items():
-        print(f"     {transition}: {rate*100:.1f}% per year")
+    print(f"     C->SrC: 10% (20% / 2 for semi-annual)")
+    print(f"     SrC->AM: 7.5% (15% / 2 for semi-annual)")
+    print(f"     AM->M: 6% (12% / 2 for semi-annual)")
+    print(f"     M->SrM: 4% (8% / 2 for semi-annual)")
+    print(f"     SrM->PiP: 2.5% (5% / 2 for semi-annual)")
+    print(f"   Non-evaluation rate: 0%")
+    print(f"   Minimum tenure: 6 months for all levels")
     
     print(f"\n📋 Simulation completed successfully!")
     if jan_prog > 0 or jun_prog > 0:

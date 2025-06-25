@@ -1,14 +1,5 @@
 from typing import Dict, List, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
-from backend.config.default_config import (
-    OFFICE_HEADCOUNT,
-    ROLE_DISTRIBUTION,
-    CONSULTANT_LEVEL_DISTRIBUTION,
-    DEFAULT_RATES,
-    BASE_PRICING,
-    BASE_SALARIES,
-    JOURNEY_CLASSIFICATION
-)
 
 class OfficeManager:
     """
@@ -51,7 +42,6 @@ class OfficeManager:
             else:
                 office.roles[role_name] = {}
                 for level_name, level_config in role_data.items():
-                    progression_months = [Month.JUN, Month.DEC]
                     journey_name = self.get_journey_for_level(level_name)
                     level_attributes = {}
                     for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
@@ -60,15 +50,12 @@ class OfficeManager:
                             if monthly_key in level_config:
                                 level_attributes[monthly_key] = level_config[monthly_key]
                             else:
-                                if key == 'utr':
-                                    default_value = level_config.get(key, DEFAULT_RATES['utr'])
-                                else:
-                                    default_value = level_config.get(key, 0.0)
+                                default_value = level_config.get(key, 0.0)
                                 level_attributes[monthly_key] = default_value
                     level = Level(
                         name=level_name,
                         journey=journey_name,
-                        progression_months=progression_months,
+                        progression_months=[Month(i) for i in range(1, 13)],
                         **level_attributes
                     )
                     level_fte = level_config.get('fte', 0)
@@ -91,7 +78,14 @@ class OfficeManager:
 
     @staticmethod
     def get_journey_for_level(level_name: str) -> Journey:
-        for journey, levels in JOURNEY_CLASSIFICATION.items():
-            if level_name in levels:
-                return Journey(journey)
-        return Journey.JOURNEY_1 
+        # Simple journey mapping without default config
+        if level_name in ['A', 'AC', 'C']:
+            return Journey.JOURNEY_1
+        elif level_name in ['SrC', 'AM']:
+            return Journey.JOURNEY_2
+        elif level_name in ['M', 'SrM']:
+            return Journey.JOURNEY_3
+        elif level_name == 'PiP':
+            return Journey.JOURNEY_4
+        else:
+            return Journey.JOURNEY_1 
