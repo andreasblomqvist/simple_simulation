@@ -30,7 +30,6 @@ spec:
             anders.thall@netlight.com
             joakim.brunzell@netlight.com
             katri.junna@netlight.com
-            moritz.gnisia@netlight.com
         service:
           annotations:
             k8s.grafana.com/metrics.portNumber: "44180"
