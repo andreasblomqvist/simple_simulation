@@ -1,5 +1,8 @@
 from typing import Dict, List, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
+from backend.config.progression_config import PROGRESSION_CONFIG
+import random
+from datetime import datetime, timedelta
 
 class OfficeManager:
     """
@@ -24,6 +27,10 @@ class OfficeManager:
         office_name = office_config.get('name', 'Unknown Office')
         total_fte = office_config.get('total_fte', 0)
         office = Office.create_office(office_name, total_fte)
+        
+        # Set seed for deterministic results
+        random.seed(42)
+        
         for role_name, role_data in office_config.get('roles', {}).items():
             if role_name == 'Operations':
                 op_fte = role_data.get('fte', 0)
@@ -35,9 +42,9 @@ class OfficeManager:
                     setattr(operations_role, f'salary_{i}', salary)
                     setattr(operations_role, f'price_{i}', price)
                     setattr(operations_role, f'utr_{i}', utr)
-                initialization_date_str = "2023-01"
-                for _ in range(int(op_fte)):
-                    operations_role.add_new_hire(initialization_date_str, "Operations", office_name)
+                
+                # Realistic initialization for Operations
+                self._initialize_realistic_people(operations_role, int(op_fte), "Operations", office_name)
                 office.roles['Operations'] = operations_role
             else:
                 office.roles[role_name] = {}
@@ -52,18 +59,90 @@ class OfficeManager:
                             else:
                                 default_value = level_config.get(key, 0.0)
                                 level_attributes[monthly_key] = default_value
+                    # FIX: Use progression_months from PROGRESSION_CONFIG
+                    progression_months = PROGRESSION_CONFIG.get(level_name, {}).get('progression_months', [1])
                     level = Level(
                         name=level_name,
                         journey=journey_name,
-                        progression_months=[Month(i) for i in range(1, 13)],
+                        progression_months=[Month(m) for m in progression_months],
                         **level_attributes
                     )
                     level_fte = level_config.get('fte', 0)
-                    initialization_date_str = "2023-01"
-                    for _ in range(int(level_fte)):
-                        level.add_new_hire(initialization_date_str, role_name, office_name)
+                    
+                    # Realistic initialization for leveled roles
+                    self._initialize_realistic_people(level, int(level_fte), role_name, office_name)
                     office.roles[role_name][level_name] = level
         return office
+
+    def _initialize_realistic_people(self, level_or_role, fte_count: int, role_name: str, office_name: str):
+        """
+        Initialize people with realistic start dates and career histories.
+        
+        For leveled roles, creates people with appropriate time on level.
+        For flat roles (Operations), creates people with distributed start dates.
+        """
+        if fte_count <= 0:
+            return
+            
+        # Base date for simulation start (current state)
+        base_date = datetime(2025, 1, 1)  # January 2025
+        
+        # Career path table for realistic time on level distribution
+        career_paths = {
+            'A': {'time_on_level': 6, 'start_tenure': 0, 'end_tenure': 6},
+            'AC': {'time_on_level': 9, 'start_tenure': 6, 'end_tenure': 15},
+            'C': {'time_on_level': 18, 'start_tenure': 15, 'end_tenure': 33},
+            'SrC': {'time_on_level': 18, 'start_tenure': 33, 'end_tenure': 51},
+            'AM': {'time_on_level': 48, 'start_tenure': 51, 'end_tenure': 99},
+            'M': {'time_on_level': 48, 'start_tenure': 99, 'end_tenure': 147},
+            'SrM': {'time_on_level': 120, 'start_tenure': 147, 'end_tenure': 267},
+            'Pi': {'time_on_level': 12, 'start_tenure': 267, 'end_tenure': 279},
+            'P': {'time_on_level': 1000, 'start_tenure': 279, 'end_tenure': 1279},
+            'X': {'time_on_level': 1000, 'start_tenure': 1279, 'end_tenure': 1279},
+            'OPE': {'time_on_level': 1000, 'start_tenure': 1279, 'end_tenure': 2279},
+        }
+        
+        for i in range(fte_count):
+            if hasattr(level_or_role, 'name') and level_or_role.name in career_paths:
+                # This is a leveled role - create realistic career history
+                level_name = level_or_role.name
+                career_path = career_paths[level_name]
+                
+                # Generate realistic time on level (with some variation)
+                avg_time_on_level = career_path['time_on_level']
+                time_on_level = max(1, int(random.normalvariate(avg_time_on_level, avg_time_on_level * 0.3)))
+                
+                # Calculate career start date based on time on level
+                career_start_date = base_date - timedelta(days=time_on_level * 30)  # Approximate months
+                level_start_date = base_date - timedelta(days=time_on_level * 30)
+                
+                # Add some variation to career start (people join at different times)
+                career_variation = random.randint(-12, 12)  # ±12 months
+                career_start_date += timedelta(days=career_variation * 30)
+                
+                # Ensure level start is after career start
+                if level_start_date < career_start_date:
+                    level_start_date = career_start_date
+                
+                # Create person with realistic dates
+                person = level_or_role.add_new_hire(
+                    career_start_date.strftime("%Y-%m"),
+                    role_name,
+                    office_name
+                )
+                person.level_start = level_start_date.strftime("%Y-%m")
+                
+            else:
+                # This is a flat role (Operations) - just distribute start dates
+                # Operations people typically have 1-5 years of experience
+                months_of_experience = random.randint(6, 60)  # 6 months to 5 years
+                start_date = base_date - timedelta(days=months_of_experience * 30)
+                
+                person = level_or_role.add_new_hire(
+                    start_date.strftime("%Y-%m"),
+                    role_name,
+                    office_name
+                )
 
     @staticmethod
     def determine_level_order(config_data: List[Dict]) -> List[str]:

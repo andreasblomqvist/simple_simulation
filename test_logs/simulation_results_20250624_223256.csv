@@ -1,0 +1,25 @@
+# SimpleSim Simulation Results - 20250624_223256
+# Generated: 2025-06-24 22:32:56
+# Economic Parameters: Working Hours=160, Absence=5.0%, Utilization=85.0%, Employment Cost Rate=40.0%, Other Expense=100,000 SEK/month
+
+=== OFFICE SUMMARY ===
+Office,Year,Total FTE,Consultants,Revenue (SEK),Salary Cost (SEK),Employment Cost (SEK),EBITDA (SEK),Margin (%)
+Stockholm,2025,821,120,230699520,76800000,107520000,123179520,53.4
+Gothenburg,2025,245,26,48372480,17880000,25032000,23340480,48.3
+
+=== WORKFORCE DETAILS ===
+Office,Year,Role,Level,FTE,Salary (SEK/month),Hourly Rate (SEK)
+Stockholm,2025,Consultant,A,72,45000,1200
+Stockholm,2025,Consultant,AC,48,55000,1300
+Stockholm,2025,Operations,N/A,13,40000,N/A
+Gothenburg,2025,Consultant,A,26,45000,1200
+Gothenburg,2025,Operations,N/A,8,40000,N/A
+
+=== FINANCIAL METRICS ===
+Year,Total System FTE,Total Revenue (SEK),Total Salary Cost (SEK),Total Employment Cost (SEK),Other Expenses (SEK),Total Costs (SEK),EBITDA (SEK),EBITDA Margin (%)
+2025,1066,279072000,94680000,132552000,1200000,133752000,145320000,52.1
+
+=== MONTHLY PROGRESSION ===
+Office,Year-Month,Total FTE,Consultants,Operations,Sales,Recruitment
+2025,1,0,0,0,0,0
+2025,2,0,0,0,0,0

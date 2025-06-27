@@ -1,0 +1,7 @@
+Year,Month,Office,Role,Level,FTE,Recruited,Churned,Progressed_Out,Progressed_In,Net_Change
+2025,1,Stockholm,Consultant,A,69,5,2,3,0,0
+2025,1,Stockholm,Consultant,AC,45,2,1,1,3,3
+2025,1,Gothenburg,Consultant,A,25,2,1,1,0,0
+2025,2,Stockholm,Consultant,A,72,3,1,2,1,1
+2025,2,Stockholm,Consultant,AC,48,1,0,2,2,1
+2025,2,Gothenburg,Consultant,A,26,1,0,1,1,1

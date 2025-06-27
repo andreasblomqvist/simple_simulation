@@ -56,13 +56,25 @@ class WorkforceManager:
             if isinstance(role_data, dict):  # Leveled roles
                 promotions_this_month = {}
                 for level_name, level in role_data.items():
-                    progression_rate = get_monthly_attribute(level, 'progression', current_month_enum)
-                    eligible = len(level.people)
-                    if progression_rate > 0 and eligible > 0:
-                        promotions = level.apply_cat_based_progression(progression_rate, current_date_str)
-                        if promotions:
-                            promotions_this_month[level_name] = promotions
-                            promoted = len(promotions)
+                    # Check if this is a progression month for this level
+                    if level.is_progression_month(current_month_enum.value):
+                        eligible = len(level.get_eligible_for_progression(current_date_str))
+                        if eligible > 0:
+                            promotions = level.apply_cat_based_progression(current_date_str)
+                            if promotions:
+                                promotions_this_month[level_name] = promotions
+                                promoted = len(promotions)
+                                # Store detailed promotion info for test script
+                                if 'promotion_details' not in monthly_office_metrics[office.name][current_date_str]:
+                                    monthly_office_metrics[office.name][current_date_str]['promotion_details'] = []
+                                for person, months_on_level, cat_number in promotions:
+                                    monthly_office_metrics[office.name][current_date_str]['promotion_details'].append({
+                                        'role': role_name,
+                                        'level': level_name,
+                                        'months_on_level': months_on_level,
+                                        'cat': cat_number,
+                                        'date': current_date_str
+                                    })
                     # Removed PROGRESSION_DEBUG logging for skipped cases
                     
                     # Track progression metrics
@@ -77,7 +89,7 @@ class WorkforceManager:
                     next_level_name = get_next_level_name(level_name, level_order)
                     next_level = role_data.get(next_level_name) if next_level_name else None
                     if next_level:
-                        for person in promoted_people:
+                        for person, _, _ in promoted_people:
                             next_level.add_promotion(person, current_date_str)
                         promoted_into_levels[next_level_name] = len(promoted_people)
                     # else: top level, people leave the cohort

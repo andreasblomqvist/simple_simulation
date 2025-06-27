@@ -1,0 +1,6 @@
+Year,Office,Role,Level,FTE_Start,FTE_End,FTE_Change,Recruited,Churned,Progressed_Out,Progressed_In,Salary_SEK,Price_SEK
+2025,Stockholm,Consultant,A,69,72,3,8,3,5,1,45000,1200
+2025,Stockholm,Consultant,AC,45,48,3,3,1,3,5,55000,1300
+2025,Stockholm,Operations,N/A,12,13,1,1,0,0,0,40000,0
+2025,Gothenburg,Consultant,A,25,26,1,3,1,2,1,45000,1200
+2025,Gothenburg,Operations,N/A,8,8,0,0,0,0,0,40000,0

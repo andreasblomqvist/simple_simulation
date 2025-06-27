@@ -1,0 +1,40 @@
+================================================================================
+SIMPLE SIMULATION RUN SUMMARY
+================================================================================
+Run Timestamp: 20250624_223022
+Generated: 2025-06-24 22:30:22
+
+ECONOMIC PARAMETERS:
+----------------------------------------
+Working Hours per Month: 160
+Unplanned Absence: 5.0%
+Utilization Rate: 85.0%
+Employment Cost Rate: 40.0%
+Other Expense: 100,000 SEK/month
+
+SIMULATION RESULTS:
+----------------------------------------
+Year: 2025
+  Offices: 2
+  Stockholm: 821 FTE, 230,699,520 SEK revenue, 131,915,520 SEK EBITDA
+  Gothenburg: 245 FTE, 48,372,480 SEK revenue, 28,716,480 SEK EBITDA
+
+TOTALS:
+----------------------------------------
+Total Offices: 2
+Total FTE: 1066
+Total Revenue: 279,072,000 SEK
+Total EBITDA: 160,632,000 SEK
+Overall Margin: 57.6%
+
+FILES GENERATED:
+----------------------------------------
+1. office_summary_20250624_223022.csv - Office-level summary data
+2. workforce_details_20250624_223022.csv - Detailed workforce data
+3. financial_metrics_20250624_223022.csv - Financial metrics by level
+4. monthly_progression_20250624_223022.csv - Monthly progression data
+5. run_summary_20250624_223022.txt - This summary file
+
+================================================================================
+END OF SUMMARY
+================================================================================

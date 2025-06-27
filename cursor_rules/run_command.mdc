@@ -1,0 +1,89 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor Rule: run_command
+
+## Purpose
+This rule governs how commands, server management, and git operations are handled in this project to ensure safety, reproducibility, and developer control.
+
+---
+
+## Git Operations & Commit Rules
+- **NEVER** commit or push without explicit user permission.
+- **ALWAYS** ask the user for permission before any git operations.
+- **WAIT** for explicit user confirmation before proceeding.
+- **ONLY** commit/push when the user explicitly requests it (e.g., "commit", "push", "save changes").
+- **FORBIDDEN:**
+  - Auto-committing or auto-pushing after code changes.
+  - Assuming user wants git operations.
+  - Proceeding without explicit confirmation.
+
+**Example Workflow:**
+```
+AI: I've made the changes. Would you like me to commit and push these changes?
+User: yes, commit and push
+AI: [proceeds with git add, commit, and push]
+```
+
+---
+
+## Server Management & Terminal Usage
+- **Always run development servers in Cursor's Terminal windows** for better workflow integration.
+- **Recommended Terminal Setup:**
+  - Terminal 1: Backend Server (uvicorn) with logging
+  - Terminal 2: Frontend Server (npm/vite) with logging
+  - Terminal 3: Commands, testing, git operations
+  - Terminal 4: Log tailing (optional)
+- **Before starting servers, check for existing instances** (use `lsof`, `ps`, or `pkill` as appropriate).
+- **Kill existing server instances if needed** before starting new ones.
+- **Use provided scripts** for starting/stopping servers when possible:
+  - `./scripts/start-servers-with-logs.sh`
+  - `./scripts/start-backend-with-logs.sh`
+  - `./scripts/start-frontend-with-logs.sh`
+  - `./scripts/restart-servers.sh`
+
+---
+
+## Manual Startup (if scripts unavailable)
+- **Backend:**
+  ```bash
+  PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+  ```
+- **Frontend:**
+  ```bash
+  cd frontend && npm run dev
+  ```
+
+---
+
+## Log Management
+- Backend logs: `backend/logs/backend.log`
+- Frontend logs: `frontend/logs/frontend.log`
+- Use `tail -f` to monitor logs in real time.
+
+---
+
+## Emergency Server Restart
+- Kill all servers and restart with:
+  ```bash
+  pkill -f uvicorn && pkill -f vite && sleep 3
+  ./scripts/start-servers-with-logs.sh
+  ```
+
+---
+
+## Quick Server Status Check
+- Use `curl` to check backend and frontend health endpoints.
+- Use `lsof` or `ps` to check for running processes on ports 8000 (backend) and 3000 (frontend).
+
+---
+
+## Testing Year Navigation Features
+- Access the Year Navigation Demo at `http://localhost:3000/year-demo`.
+- Run backend tests for year-based features:
+  ```bash
+  python3 -m pytest backend/tests/unit/test_year_based_simulation.py
+  ```
+
