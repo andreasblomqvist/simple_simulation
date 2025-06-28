@@ -102,6 +102,7 @@ const InsightsTab: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('[SIMULATION] API response:', data); // Debug log
       setSimulationData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');

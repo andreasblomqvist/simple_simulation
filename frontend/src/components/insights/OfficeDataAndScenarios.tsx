@@ -128,6 +128,18 @@ const OfficeDetails: React.FC<OfficeDetailsProps> = ({
     const offices = simulationData.years[selectedYear].offices;
     const officeNames = Object.keys(offices);
 
+    // Debug logging
+    console.log('[OFFICE DEBUG] offices:', offices);
+    console.log('[OFFICE DEBUG] officeNames:', officeNames);
+    console.log('[OFFICE DEBUG] selectedOffice:', selectedOffice);
+
+    // Ensure selectedOffice is valid
+    React.useEffect(() => {
+      if (officeNames.length > 0 && (!selectedOffice || !officeNames.includes(selectedOffice))) {
+        setSelectedOffice(officeNames[0]);
+      }
+    }, [officeNames, selectedOffice, setSelectedOffice]);
+
     // Prepare table data for the selected office
     const getTableData = () => {
       if (!selectedOffice || !offices[selectedOffice]?.levels) return [];
