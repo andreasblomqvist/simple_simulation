@@ -1,3 +1,91 @@
+# Scripts Directory
+
+This directory contains organized scripts for the SimpleSim project, categorized by their purpose.
+
+## Directory Structure
+
+### `/analysis/`
+Scripts for analyzing simulation results, data patterns, and performance metrics.
+- `analyze_initial_tenure.py` - Analyze initial tenure distribution
+- `analyze_progression.py` - Analyze career progression patterns
+- `analyze_stockholm_margins.py` - Analyze Stockholm office margins
+- `analyze_tenure_distribution.py` - Analyze tenure distribution across levels
+
+### `/debug/`
+Scripts for debugging specific issues and investigating problems.
+- `debug_ac_am_progression.py` - Debug AC/AM progression issues
+- `debug_actual_financials.py` - Debug financial calculations
+- `debug_event_logs.py` - Debug event logging system
+- `debug_financial_issue.py` - Debug financial calculation issues
+- `debug_kpi_calculation.py` - Debug KPI calculation issues
+- `debug_kpi_simple.py` - Simple KPI debugging
+- `debug_monthly_metrics.py` - Debug monthly metric calculations
+- `debug_negative_financials.py` - Debug negative financial values
+- `debug_progression_issue.py` - Debug progression system issues
+- `debug_recruitment_issue.py` - Debug recruitment system issues
+- `debug_simulation.py` - General simulation debugging
+
+### `/export/`
+Scripts for exporting data and results.
+- Scripts moved from root directory
+
+### `/import/`
+Scripts for importing data and configurations.
+- Scripts moved from root directory
+
+### `/test/`
+Test scripts for validating functionality.
+- `test_3year_simulation.py` - Test 3-year simulation scenarios
+- `test_csv_logging.py` - Test CSV logging functionality
+- `test_ebitda_debug.py` - Test EBITDA calculations
+- `test_edge_cases_event_logs.py` - Test edge cases in event logging
+- `test_engine_debug.py` - Test simulation engine
+- `test_event_logging_extended.py` - Extended event logging tests
+- `test_event_logging.py` - Basic event logging tests
+- `test_excel_export_results.py` - Test Excel export functionality
+- `test_fixed_progression.py` - Test fixed progression system
+- `test_formatting.py` - Test data formatting
+- `test_kpi_display.py` - Test KPI display functionality
+- `test_realistic_initialization.py` - Test realistic initialization
+- `test_realistic_simulation.py` - Test realistic simulation scenarios
+- `test_refactored_engine.py` - Test refactored simulation engine
+- `test_single_vs_multi_year.py` - Test single vs multi-year simulations
+- `test_tenure_debug.py` - Test tenure debugging
+- `test_ui_simulation.py` - Test UI simulation functionality
+
+### `/utilities/`
+General utility scripts for various tasks.
+- `conservative_balanced_strategy.py` - Generate conservative balanced strategy
+- `deep_log_analysis.py` - Deep analysis of simulation logs
+- `import_config.py` - Import configuration from Excel
+- `validate_event_logs.py` - Validate event log format and content
+- `validate_excel_export.py` - Validate Excel export functionality
+
+## Usage
+
+Run scripts from the project root directory:
+
+```bash
+# Analysis scripts
+python scripts/analysis/analyze_initial_tenure.py
+
+# Debug scripts
+python scripts/debug/debug_financial_issue.py
+
+# Test scripts
+python scripts/test/test_3year_simulation.py
+
+# Utility scripts
+python scripts/utilities/import_config.py
+```
+
+## Notes
+
+- All scripts should be run from the project root directory
+- Scripts may require specific Python packages (see requirements.txt)
+- Some scripts may generate output files in the `logs/` directory
+- Test scripts should be run with pytest for proper test discovery
+
 # SimpleSim Server Management Scripts
 
 This directory contains scripts to manage the SimpleSim application servers.

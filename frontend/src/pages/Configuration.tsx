@@ -32,7 +32,8 @@ const LEVER_GROUPS = [
     defaultMonth: 1,
     columns: [
       { key: 'total', label: 'FTE', formatter: 'number' }
-    ]
+    ],
+    applicableRoles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
   },
   { 
     key: 'financial', 
@@ -42,7 +43,8 @@ const LEVER_GROUPS = [
     columns: [
       { key: 'price', label: 'Price', formatter: 'currency' },
       { key: 'salary', label: 'Salary', formatter: 'currency' }
-    ]
+    ],
+    applicableRoles: ['Consultant'] // Only consultants have billable rates
   },
   { 
     key: 'hr_metrics', 
@@ -52,7 +54,8 @@ const LEVER_GROUPS = [
     columns: [
       { key: 'recruitment', label: 'Recruitment', formatter: 'percentage' },
       { key: 'churn', label: 'Churn', formatter: 'percentage' }
-    ]
+    ],
+    applicableRoles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
   },
   { 
     key: 'progression', 
@@ -61,7 +64,8 @@ const LEVER_GROUPS = [
     defaultMonth: 5,
     columns: [
       { key: 'progression', label: 'Progression', formatter: 'percentage' }
-    ]
+    ],
+    applicableRoles: ['Consultant'] // Only consultants have career progression
   },
   { 
     key: 'operations', 
@@ -70,7 +74,8 @@ const LEVER_GROUPS = [
     defaultMonth: 1,
     columns: [
       { key: 'utr', label: 'UTR', formatter: 'percentage' }
-    ]
+    ],
+    applicableRoles: ['Consultant'] // Only consultants have utilization rates
   }
 ];
 
@@ -202,8 +207,20 @@ export default function Configuration() {
     }
   }, [selectedOffice]);
 
-  // Helper to get value from either draft changes or original data
+  // Helper to check if a field is applicable to a role
+  const isFieldApplicableToRole = (role: string, field: string) => {
+    const group = LEVER_GROUPS.find(g => g.columns.some(col => col.key === field));
+    if (!group) return true; // If no group found, allow it
+    
+    return group.applicableRoles.includes(role);
+  };
+
   const getValue = (role: string, level: string | null, field: string, month: number) => {
+    // Check if this field is applicable to the role
+    if (!isFieldApplicableToRole(role, field)) {
+      return 0; // Return 0 for non-applicable fields
+    }
+
     // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
     const isTotal = field === 'total';
     const backendField = isTotal ? 'fte' : field; // Map 'total' to 'fte' for backend compatibility
@@ -228,6 +245,11 @@ export default function Configuration() {
 
   // Helper to set value in draft changes
   const setValue = (role: string, level: string | null, field: string, month: number, value: number) => {
+    // Check if this field is applicable to the role
+    if (!isFieldApplicableToRole(role, field)) {
+      return; // Don't allow setting values for non-applicable fields
+    }
+
     // Special case for 'total' field - it doesn't have month variants and maps to 'fte' in backend
     const isTotal = field === 'total';
     const backendField = isTotal ? 'fte' : field; // Map 'total' to 'fte' for backend compatibility
@@ -697,6 +719,7 @@ export default function Configuration() {
             }
             
             const isChanged = hasChanged(record.role, record.level, firstCol.key, month);
+            const isApplicable = isFieldApplicableToRole(record.role, firstCol.key);
             
             return (
               <InputNumber
@@ -705,11 +728,14 @@ export default function Configuration() {
                 onChange={(value) => setValue(record.role, record.level, firstCol.key, month, value || 0)}
                 style={{ 
                   width: '100%', 
-                  borderColor: isChanged ? '#ffa940' : undefined
+                  borderColor: isChanged ? '#ffa940' : undefined,
+                  backgroundColor: !isApplicable ? '#f5f5f5' : undefined
                 }}
                 precision={firstCol.formatter === 'currency' ? 0 : 3}
                 formatter={val => formatValue(val, firstCol.formatter)}
                 parser={str => parseValue(String(str), firstCol.formatter)}
+                disabled={!isApplicable}
+                title={!isApplicable ? `Not applicable for ${record.role} role` : undefined}
               />
             );
           }
@@ -745,6 +771,7 @@ export default function Configuration() {
             }
             
             const isChanged = hasChanged(record.role, record.level, col.key, month);
+            const isApplicable = isFieldApplicableToRole(record.role, col.key);
             
             return (
               <InputNumber
@@ -753,11 +780,14 @@ export default function Configuration() {
                 onChange={(value) => setValue(record.role, record.level, col.key, month, value || 0)}
                 style={{ 
                   width: '100%', 
-                  borderColor: isChanged ? '#ffa940' : undefined
+                  borderColor: isChanged ? '#ffa940' : undefined,
+                  backgroundColor: !isApplicable ? '#f5f5f5' : undefined
                 }}
                 precision={col.formatter === 'currency' ? 0 : 3}
                 formatter={val => formatValue(val, col.formatter)}
                 parser={str => parseValue(String(str), col.formatter)}
+                disabled={!isApplicable}
+                title={!isApplicable ? `Not applicable for ${record.role} role` : undefined}
               />
             );
           }
@@ -984,13 +1014,25 @@ export default function Configuration() {
             <Col xs={24} md={12}>
               <Title level={5}>Column Groups:</Title>
               <ul>
-                <li><strong>👥 Headcount:</strong> Current FTE levels</li>
-                <li><strong>💰 Financial:</strong> Price & Salary for selected month</li>
-                <li><strong>📊 HR Metrics:</strong> Recruitment & Churn rates for selected month</li>
-                <li><strong>📈 Progression:</strong> Progression rates (typically May/November)</li>
-                <li><strong>⚙️ Operations:</strong> Utilization rates for selected month</li>
+                <li><strong>👥 Headcount:</strong> Current FTE levels (all roles)</li>
+                <li><strong>💰 Financial:</strong> Price & Salary for selected month (Consultant only)</li>
+                <li><strong>📊 HR Metrics:</strong> Recruitment & Churn rates for selected month (all roles)</li>
+                <li><strong>📈 Progression:</strong> Progression rates (Consultant only, typically May/November)</li>
+                <li><strong>⚙️ Operations:</strong> Utilization rates for selected month (Consultant only)</li>
               </ul>
             </Col>
+            <Col xs={24} md={12}>
+              <Title level={5}>Role-Specific Fields:</Title>
+              <ul>
+                <li><strong>Consultant:</strong> All fields available (FTE, Price, Salary, Recruitment, Churn, Progression, UTR)</li>
+                <li><strong>Sales:</strong> FTE, Recruitment, Churn only</li>
+                <li><strong>Recruitment:</strong> FTE, Recruitment, Churn only</li>
+                <li><strong>Operations:</strong> FTE, Recruitment, Churn only</li>
+              </ul>
+            </Col>
+          </Row>
+          <Divider />
+          <Row gutter={16}>
             <Col xs={24} md={12}>
               <Title level={5}>Value Formats:</Title>
               <ul>
@@ -1000,9 +1042,6 @@ export default function Configuration() {
                 <li><strong>UTR:</strong> Utilization percentage (e.g., 85%)</li>
               </ul>
             </Col>
-          </Row>
-          <Divider />
-          <Row gutter={16}>
             <Col xs={24} md={12}>
               <Title level={5}>Month Selection:</Title>
               <ul>
@@ -1013,6 +1052,9 @@ export default function Configuration() {
                 <li><strong>Real-time updates:</strong> Changes immediately reflect in the table</li>
               </ul>
             </Col>
+          </Row>
+          <Divider />
+          <Row gutter={16}>
             <Col xs={24} md={12}>
               <Title level={5}>Advanced Features:</Title>
               <ul>
@@ -1021,6 +1063,15 @@ export default function Configuration() {
                 <li><strong>Group expand/collapse:</strong> Focus on specific metrics</li>
                 <li><strong>Export functionality:</strong> Save current configuration with all changes</li>
                 <li><strong>Reset options:</strong> Discard changes or reset to original</li>
+              </ul>
+            </Col>
+            <Col xs={24} md={12}>
+              <Title level={5}>Field Restrictions:</Title>
+              <ul>
+                <li><strong>Disabled fields:</strong> Grayed out fields are not applicable to the selected role</li>
+                <li><strong>Non-billable roles:</strong> Sales, Recruitment, and Operations don't have billable rates (Price/Salary)</li>
+                <li><strong>UTR restrictions:</strong> Only consultants have utilization rates</li>
+                <li><strong>Progression:</strong> Only consultants have career progression</li>
               </ul>
             </Col>
           </Row>
