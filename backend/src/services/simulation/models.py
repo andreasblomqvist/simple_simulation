@@ -327,21 +327,44 @@ class Level:
         self.people.append(person)
     
     def is_progression_month(self, current_month: int) -> bool:
-        months = PROGRESSION_CONFIG.get(self.name, {}).get('progression_months', [1])
-        return current_month in months
+        """Check if the given month is a progression month for this level"""
+        # Import here to avoid circular imports
+        from backend.config.progression_config import PROGRESSION_CONFIG
+        
+        if self.name in PROGRESSION_CONFIG:
+            progression_months = PROGRESSION_CONFIG[self.name]['progression_months']
+            return current_month in progression_months
+        
+        # Fallback to checking if any progression rate is > 0 for this month
+        progression_rate = getattr(self, f'progression_{current_month}', 0.0)
+        return progression_rate > 0.0
 
     def get_minimum_tenure(self) -> int:
-        return PROGRESSION_CONFIG.get(self.name, {}).get('start_tenure', 0)
+        """Get minimum tenure required for progression from progression config"""
+        from backend.config.progression_config import PROGRESSION_CONFIG
+        return PROGRESSION_CONFIG.get(self.name, {}).get('time_on_level', 6)
 
     def get_journey(self) -> str:
+        """Get journey for this level from progression config"""
+        from backend.config.progression_config import PROGRESSION_CONFIG
         return PROGRESSION_CONFIG.get(self.name, {}).get('journey', None)
 
     def get_eligible_for_progression(self, current_date: str):
-        # Only allow progression in configured months
-        month = int(current_date.split('-')[1])
-        if not self.is_progression_month(month):
+        """Get people eligible for progression based on minimum tenure and progression months"""
+        # Import here to avoid circular imports
+        from backend.config.progression_config import PROGRESSION_CONFIG
+        
+        # Check if this is a progression month
+        current_month = int(current_date.split('-')[1])
+        if not self.is_progression_month(current_month):
             return []
-        min_tenure = self.get_minimum_tenure()
+        
+        # Get minimum tenure from progression config
+        if self.name in PROGRESSION_CONFIG:
+            min_tenure = PROGRESSION_CONFIG[self.name]['time_on_level']
+        else:
+            min_tenure = 6  # Default fallback
+        
         # Only allow people with tenure >= min_tenure
         return [p for p in self.people if p.get_level_tenure_months(current_date) >= min_tenure]
     
@@ -370,25 +393,46 @@ class Level:
         return self.apply_cat_based_progression(current_date)
     
     def apply_cat_based_progression(self, current_date: str):
-        """Apply LAF-based progression with individual probabilities, return promoted people and their CAT info"""
+        """Apply CAT-based progression with individual probabilities, return promoted people and their CAT info"""
+        # Import here to avoid circular imports
+        from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+        
         eligible = self.get_eligible_for_progression(current_date)
         if len(eligible) == 0:
             return []
+        
         promoted = []
         current_month = int(current_date.split('-')[1])
-        is_valid_month = current_month in [m.value for m in self.progression_months]
+        
         for person in eligible:
-            individual_probability = person.get_progression_probability(current_date, self.name)
+            # Calculate individual progression probability based on CAT curves
+            tenure_months = person.get_level_tenure_months(current_date)
+            
+            # Determine CAT category
+            if tenure_months < 6:
+                cat = 'CAT0'
+                cat_number = 0
+            else:
+                cat_number = min(60, 6 * ((tenure_months // 6)))
+                cat = f'CAT{cat_number}'
+            
+            # Get probability from CAT curve
+            if self.name in CAT_CURVES:
+                individual_probability = CAT_CURVES[self.name].get(cat, 0.0)
+            else:
+                individual_probability = 0.0
+            
             if random.random() < individual_probability:
-                months_on_level = person.get_level_tenure_months(current_date)
-                cat_number = 6 * ((months_on_level // 6))
-                promoted.append((person, months_on_level, cat_number))
+                promoted.append((person, tenure_months, cat_number))
                 if self.name == 'AM':
-                    print(f"[AM PROMOTION DEBUG] Month={current_month}, Allowed={is_valid_month}, MonthsOnLevel={months_on_level}, CAT=CAT{cat_number}, Prob={individual_probability}")
+                    print(f"[AM PROMOTION DEBUG] Month={current_month}, MonthsOnLevel={tenure_months}, CAT=CAT{cat_number}, Prob={individual_probability}")
+        
         if promoted:
-            print(f"[DEBUG] Promotion: Level={self.name}, Month={current_month}, Allowed={is_valid_month}, Promoted={len(promoted)}")
+            print(f"[DEBUG] Promotion: Level={self.name}, Month={current_month}, Promoted={len(promoted)}")
+        
         for person, _, _ in promoted:
             self.people.remove(person)
+        
         return promoted
     
     def get_average_career_tenure(self, current_date: str) -> float:

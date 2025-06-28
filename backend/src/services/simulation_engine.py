@@ -20,6 +20,7 @@ from backend.src.services.simulation.models import (
     Office, Level, RoleData, Month, Journey, OfficeJourney, Person
 )
 from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year, calculate_configuration_checksum, validate_configuration_completeness
+from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
 
 class Month(Enum):
     JAN = 1
@@ -88,15 +89,31 @@ class Person:
             return f'CAT{cat_number}'
     
     def get_progression_probability(self, current_date: str, base_progression_rate: float, level_name: str) -> float:
-        """Calculate individual progression probability based on tenure"""
-        # Simple progression based on tenure - no CAT curves
+        """Calculate individual progression probability based on CAT curves from progression_config"""
         tenure_months = self.get_level_tenure_months(current_date)
         
-        # Minimum 6 months tenure required
+        # Check minimum tenure requirement from progression config
+        if level_name in PROGRESSION_CONFIG:
+            min_tenure = PROGRESSION_CONFIG[level_name]['time_on_level']
+            if tenure_months < min_tenure:
+                return 0.0
+        
+        # Use CAT curves for progression probability
+        if level_name in CAT_CURVES:
+            # Determine CAT category
+            if tenure_months < 6:
+                cat = 'CAT0'
+            else:
+                cat_number = min(60, 6 * ((tenure_months // 6)))
+                cat = f'CAT{cat_number}'
+            
+            # Get probability from CAT curve
+            probability = CAT_CURVES[level_name].get(cat, 0.0)
+            return probability
+        
+        # Fallback to simple progression if not found in CAT curves
         if tenure_months < 6:
             return 0.0
-        
-        # Simple progression - use base rate directly without multipliers
         return base_progression_rate
 
 @dataclass
@@ -323,8 +340,14 @@ class Level:
     
     def get_eligible_for_progression(self, current_date: str) -> List[Person]:
         """Get people eligible for progression based on minimum tenure for this level"""
-        # Simple 6-month minimum tenure for all levels
-        minimum_tenure = 6
+        # Import here to avoid circular imports
+        from backend.config.progression_config import PROGRESSION_CONFIG
+        
+        # Get minimum tenure from progression config
+        if self.name in PROGRESSION_CONFIG:
+            minimum_tenure = PROGRESSION_CONFIG[self.name]['time_on_level']
+        else:
+            minimum_tenure = 6  # Default fallback
         
         return [p for p in self.people if p.is_eligible_for_progression(current_date, minimum_tenure)]
     
@@ -350,28 +373,43 @@ class Level:
         
         # Calculate implied rate from count
         progression_rate = progression_count / len(eligible) if len(eligible) > 0 else 0.0
-        return self.apply_cat_based_progression(progression_rate, current_date)
+        return self.apply_cat_based_progression(current_date)
     
-    def apply_cat_based_progression(self, base_progression_rate: float, current_date: str) -> List[Person]:
-        """Apply CAT-based progression with individual probabilities, return promoted people"""
+    def apply_cat_based_progression(self, current_date: str) -> List[Tuple[Person, int, int]]:
+        """Apply CAT-based progression with individual probabilities, return promoted people with CAT info"""
+        # Import here to avoid circular imports
+        from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+        
         eligible = self.get_eligible_for_progression(current_date)
         
-        if base_progression_rate <= 0 or len(eligible) == 0:
+        if len(eligible) == 0:
             return []
         
         promoted = []
         for person in eligible:
-            # Calculate individual progression probability based on tenure
-            individual_probability = person.get_progression_probability(
-                current_date, base_progression_rate, self.name
-            )
+            # Calculate individual progression probability based on CAT curves
+            tenure_months = person.get_level_tenure_months(current_date)
+            
+            # Determine CAT category
+            if tenure_months < 6:
+                cat = 'CAT0'
+                cat_number = 0
+            else:
+                cat_number = min(60, 6 * ((tenure_months // 6)))
+                cat = f'CAT{cat_number}'
+            
+            # Get probability from CAT curve
+            if self.name in CAT_CURVES:
+                individual_probability = CAT_CURVES[self.name].get(cat, 0.0)
+            else:
+                individual_probability = 0.0
             
             # Apply random chance
             if random.random() < individual_probability:
-                promoted.append(person)
+                promoted.append((person, tenure_months, cat_number))
         
         # Remove promoted people from this level
-        for person in promoted:
+        for person, _, _ in promoted:
             self.people.remove(person)
         
         return promoted
@@ -387,6 +425,19 @@ class Level:
         if len(self.people) == 0:
             return 0.0
         return sum(p.get_level_tenure_months(current_date) for p in self.people) / len(self.people)
+
+    def is_progression_month(self, month: int) -> bool:
+        """Check if the given month is a progression month for this level"""
+        # Import here to avoid circular imports
+        from backend.config.progression_config import PROGRESSION_CONFIG
+        
+        if self.name in PROGRESSION_CONFIG:
+            progression_months = PROGRESSION_CONFIG[self.name]['progression_months']
+            return month in progression_months
+        
+        # Fallback to checking if any progression rate is > 0 for this month
+        progression_rate = getattr(self, f'progression_{month}', 0.0)
+        return progression_rate > 0.0
 
 @dataclass
 class Office:
@@ -480,7 +531,7 @@ class SimulationEngine:
 
     def _initialize_offices_from_config_service(self):
         """Initialize offices and their roles/levels from the configuration service."""
-        config_dict = self.config_service.get_configuration()
+        config_dict = self.config_service.get_config()
         # Convert dict to list format expected by the rest of the method
         config_data = []
         for office_name, office_config in config_dict.items():
@@ -804,24 +855,45 @@ class SimulationEngine:
                       lever_plan: Optional[Dict] = None,
                       economic_params: Optional[EconomicParameters] = None) -> Dict:
         """
-        Runs the simulation month by month.
-        - Applies annual price and salary increases.
-        - Calculates recruitment, churn, and progression for each level.
-        - Updates the number of people in each level.
-        - Stores monthly results.
+        Run the simulation for the specified period.
+        
+        Args:
+            start_year: Starting year
+            start_month: Starting month (1-12)
+            end_year: Ending year
+            end_month: Ending month (1-12)
+            price_increase: Annual price increase percentage
+            salary_increase: Annual salary increase percentage
+            lever_plan: Optional lever plan to apply
+            economic_params: Optional economic parameters for KPI calculations
+            
+        Returns:
+            Dictionary containing simulation results
         """
-        print(f"[ENGINE] Starting simulation from {start_year}-{start_month} to {end_year}-{end_month}")
-        # Use provided economic parameters or defaults
-        econ_params = economic_params or EconomicParameters()
-        # Re-initialize state based on config service before every run
-        self.reinitialize_with_config()
-
-        # Apply levers if a plan is provided
+        print(f"🚀 [ENGINE] Starting simulation: {start_year}-{start_month:02d} to {end_year}-{end_month:02d}")
+        
+        # Reset simulation state
+        self.reset_simulation_state()
+        
+        # Use realistic initialization from OfficeManager instead of hardcoded dates
+        self.offices = self.office_manager.initialize_offices_from_config()
+        
+        # Apply lever plan if provided
         if lever_plan:
             self._apply_levers_to_existing_offices(lever_plan)
-
-        # Use a deterministic seed for random operations if provided
-        random_seed = lever_plan.get('random_seed') if lever_plan else None
+        
+        # Calculate configuration checksum for reproducibility
+        config_checksum = calculate_configuration_checksum(self.offices)
+        print(f"🔍 [ENGINE] Configuration checksum: {config_checksum}")
+        
+        # Validate configuration completeness
+        validation_result = validate_configuration_completeness(self.offices)
+        if not validation_result['is_complete']:
+            print(f"⚠️  [ENGINE] Configuration validation warnings: {validation_result['warnings']}")
+        
+        # Set random seed for deterministic results
+        random_seed = int(hashlib.md5(config_checksum.encode()).hexdigest(), 16) % (2**32)
+        
         if random_seed is not None:
             random.seed(random_seed)
             print(f"[ENGINE] Using deterministic random seed: {random_seed}")
@@ -829,9 +901,14 @@ class SimulationEngine:
         yearly_snapshots = {}
         monthly_office_metrics = {} # To store detailed monthly snapshots for each level
         simulation_start_date_str = f"{start_year}-{start_month}"
+        
         # Initialize WorkforceManager
         workforce_manager = WorkforceManager(self.offices)
         workforce_manager.set_run_id()  # Set unique run_id for this simulation run
+        
+        # Update office manager to use the same event logger
+        self.office_manager.event_logger = workforce_manager.event_logger
+        
         # Main simulation loop
         for year in range(start_year, end_year + 1):
             # Apply annual price and salary increase
@@ -873,79 +950,73 @@ class SimulationEngine:
             
             # After completing all months for the year, recalculate total_fte for each office
             print(f"[ENGINE] Recalculating total FTE for all offices after year {year}")
-            for office_name, office in self.offices.items():
-                old_total_fte = office.total_fte
-                new_total_fte = self._recalculate_office_total_fte(office)
-                if old_total_fte != new_total_fte:
-                    print(f"[ENGINE] {office_name}: FTE corrected from {old_total_fte} to {new_total_fte}")
+            for office in self.offices.values():
+                office.total_fte = self._recalculate_office_total_fte(office)
             
-            # Store a snapshot of the offices at the end of the year
-            office_snapshots = {}
-            for office_name, office in self.offices.items():
-                office_snapshots[office_name] = {
+            # Take yearly snapshot
+            for office in self.offices.values():
+                yearly_snapshots.setdefault(str(year), {})[office.name] = {
                     'total_fte': office.total_fte,
                     'name': office.name,
                     'journey': office.journey.value,
-                    'levels': self._get_office_level_snapshot(office, monthly_office_metrics, simulation_start_date_str, f"{year}-12")
+                    'levels': self._get_office_level_snapshot(
+                        office, monthly_office_metrics, f"{year}-01", f"{year}-12"
+                    )
                 }
-            yearly_snapshots[str(year)] = office_snapshots
             
-            # Log detailed yearly results
-            self._log_yearly_results(year, yearly_snapshots, monthly_office_metrics, econ_params)
+            # Log yearly results
+            if economic_params:
+                self._log_yearly_results(year, yearly_snapshots, monthly_office_metrics, economic_params)
         
-        # End of month loop
-        
-        # Structure results at the end of the simulation
-        simulation_results = {
-            'start_year': start_year,
-            'end_year': end_year,
-            'years': {}
-        }
-
-        # Create the complex structure that the frontend expects
-        print(f"[ENGINE] Creating complex data structure for frontend compatibility...")
-        try:
+        # Structure final results
+        if economic_params:
             yearly_results = self._structure_yearly_results(
-                yearly_snapshots, 
-                monthly_office_metrics, 
-                start_year, 
-                end_year,
-                econ_params
+                yearly_snapshots, monthly_office_metrics, start_year, end_year, economic_params
             )
-            simulation_results['years'] = yearly_results
-            print(f"[ENGINE] ✅ Created complex structure: {len(yearly_results)} years, {len(self.offices)} offices")
-            
-        except Exception as e:
-            print(f"[ENGINE] ❌ Error creating complex structure: {e}")
-            import traceback
-            traceback.print_exc()
-            # Create minimal fallback
-            simulation_results['years'] = {
-                str(year): {
-                    'offices': {},
-                    'total_fte': 0,
-                    'total_revenue': 0.0,
-                    'total_salary_costs': 0.0,
-                    'total_employment_costs': 0.0,
-                    'total_other_expenses': 0.0,
-                    'total_costs': 0.0,
-                    'ebitda': 0.0,
-                    'margin': 0.0,
-                    'avg_hourly_rate': 0.0
-                } for year in range(start_year, end_year + 1)
+            # Wrap yearly_results in the expected structure with 'years' key
+            self.simulation_results = {
+                'years': yearly_results,
+                'simulation_period': {
+                    'start': f"{start_year}-{start_month:02d}",
+                    'end': f"{end_year}-{end_month:02d}",
+                    'duration_months': (end_year - start_year) * 12 + (end_month - start_month + 1)
+                },
+                'configuration': {
+                    'checksum': config_checksum,
+                    'validation': validation_result
+                },
+                'event_logger': workforce_manager.get_event_logger() if hasattr(workforce_manager, 'get_event_logger') else None
             }
-
-        # Storing results in the instance
-        self.simulation_results = simulation_results
+        else:
+            # Create basic results structure without KPI calculations
+            # Structure yearly_snapshots to match expected format with 'offices' key
+            structured_yearly_results = {}
+            for year_str, office_snapshots in yearly_snapshots.items():
+                structured_yearly_results[year_str] = {
+                    'offices': office_snapshots,
+                    'total_fte': sum(
+                        office_data.get('total_fte', 0) if isinstance(office_data, dict) else 0
+                        for office_data in office_snapshots.values()
+                    )
+                }
+            
+            self.simulation_results = {
+                'years': structured_yearly_results,  # Use structured data with 'offices' key
+                'simulation_period': {
+                    'start': f"{start_year}-{start_month:02d}",
+                    'end': f"{end_year}-{end_month:02d}",
+                    'duration_months': (end_year - start_year) * 12 + (end_month - start_month + 1)
+                },
+                'configuration': {
+                    'checksum': config_checksum,
+                    'validation': validation_result
+                },
+                'monthly_office_metrics': monthly_office_metrics,
+                'event_logger': workforce_manager.get_event_logger() if hasattr(workforce_manager, 'get_event_logger') else None
+            }
         
-        simulation_duration_months = ((end_year - start_year) * 12) + (end_month - start_month) + 1
-
-        # Note: KPIs will be calculated separately by the KPI service
-        # This maintains separation of concerns - simulation engine handles workforce dynamics only
-        simulation_results['kpis'] = None
-
-        print("[ENGINE] Simulation finished.")
-        return simulation_results
+        print(f"✅ [ENGINE] Simulation completed successfully")
+        return self.simulation_results
     
     def _get_office_level_snapshot(self, office: Office, monthly_office_metrics: Dict, start_date_str: str, end_date_str: str) -> Dict[str, Any]:
         """
@@ -1229,31 +1300,15 @@ class SimulationEngine:
     def _log_system_kpis(self, year_data: Dict, economic_params: EconomicParameters):
         log_system_kpis(self.yearly_logger, year_data, economic_params)
 
-def calculate_configuration_checksum(offices: Dict[str, Office]) -> str:
+def calculate_configuration_checksum(offices: Dict[str, 'Office']) -> str:
     """
     Calculates a checksum for the initial office configuration to detect changes.
     This helps in deciding whether to re-run a baseline simulation.
+    Uses only the raw config data to avoid circular references.
     """
-    # Create a deep copy to avoid modifying the original data
-    offices_copy = deepcopy(offices)
-
-    # Convert the configuration to a JSON string for hashing
-    # Using a custom serializer to handle dataclasses
-    def json_default(o):
-        if hasattr(o, '__dict__'):
-            return o.__dict__
-        if isinstance(o, (datetime,)):
-            return o.isoformat()
-        if isinstance(o, Enum):
-            return o.value
-        raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
-
-    config_string = json.dumps(
-        {name: office for name, office in offices_copy.items()}, 
-        sort_keys=True, 
-        default=json_default
-    )
-
+    from backend.src.services.config_service import config_service
+    config_data = config_service.get_config()
+    config_string = json.dumps(config_data, sort_keys=True)
     return hashlib.md5(config_string.encode('utf-8')).hexdigest()
 
 
