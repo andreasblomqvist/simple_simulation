@@ -79,8 +79,10 @@ class ConfigService:
         except Exception as e:
             print(f"❌ [CONFIG] Error saving configuration: {e}")
     
-    def get_configuration(self) -> Dict[str, Any]:
-        """Get the current configuration (from cache if valid, otherwise from file)"""
+    def get_config(self):
+        """Return the current configuration. If _config_data is set, use it; otherwise, load from file."""
+        if hasattr(self, '_config_data') and self._config_data is not None:
+            return self._config_data
         return self._load_from_file()
     
     def update_configuration(self, updates: Dict[str, Any]) -> int:
@@ -91,7 +93,7 @@ class ConfigService:
         Flat: {"Stockholm.Consultant.A.progression_1": 0.225}
         """
         # Load current configuration
-        current_config = self._load_from_file()
+        current_config = self.get_config()
         updated_count = 0
         
         # Check if this is flat format (dot-notation keys)
@@ -184,7 +186,7 @@ class ConfigService:
     
     def set_value(self, office: str, role: str, level: str, attribute: str, value: Any):
         """Set a specific configuration value and save to file"""
-        config = self._load_from_file()
+        config = self.get_config()
         
         # Initialize nested structure if needed
         if office not in config:
@@ -207,7 +209,7 @@ class ConfigService:
         print(f"[CONFIG_SERVICE] Starting Excel import with {len(df)} rows...")
         
         # Load existing configuration instead of starting with empty dict
-        config = self._load_from_file()
+        config = self.get_config()
         updated_count = 0
         
         # Track which offices are being updated from Excel
@@ -316,12 +318,12 @@ class ConfigService:
     
     def get_office_names(self) -> List[str]:
         """Get list of office names"""
-        config = self._load_from_file()
+        config = self.get_config()
         return list(config.keys())
     
     def get_office_config(self, office_name: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific office"""
-        config = self._load_from_file()
+        config = self.get_config()
         return config.get(office_name)
     
     def clear_configuration(self):
@@ -335,6 +337,12 @@ class ConfigService:
         print("🗑️ [CONFIG] Clearing configuration cache")
         self._cached_config = None
         self._file_mtime = None
+
+    def _load_config_from_file(self):
+        """Load configuration from the default file."""
+        config_path = os.path.join(os.path.dirname(__file__), '../../config/office_configuration.json')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
 # Global instance
 config_service = ConfigService() 

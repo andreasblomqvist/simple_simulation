@@ -91,7 +91,7 @@ def load_default_configuration():
         logger.info(f"Imported {updated_count} configuration rows")
         
         # Verify import
-        config = config_service.get_configuration()
+        config = config_service.get_config()
         logger.info(f"Configuration service now has {len(config)} offices")
         
         if len(config) > 0:
@@ -133,7 +133,7 @@ async def startup_event():
     if os.path.exists(json_config_file):
         logger.info(f"Found existing configuration file: {json_config_file}")
         # Load from existing JSON file (don't overwrite with Excel)
-        config = config_service.get_configuration()
+        config = config_service.get_config()
         if len(config) > 0:
             total_fte = sum(office.get('total_fte', 0) for office in config.values())
             logger.info(f"Loaded {len(config)} offices from JSON file")

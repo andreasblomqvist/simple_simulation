@@ -18,7 +18,7 @@ def set_engine(engine):
 @router.get("/config")
 def get_office_config():
     """Get configuration data from configuration service (NOT simulation engine)"""
-    config_dict = config_service.get_configuration()
+    config_dict = config_service.get_config()
     # Convert dictionary to array for frontend compatibility
     return list(config_dict.values())
 
@@ -59,9 +59,9 @@ def validate_office_configuration():
     
     try:
         # Get configuration from configuration service (NOT simulation engine)
-        config = config_service.get_configuration()
+        config_dict = config_service.get_config()
         
-        if not config:
+        if not config_dict:
             return {
                 "status": "empty",
                 "message": "No configuration data found",
@@ -76,12 +76,12 @@ def validate_office_configuration():
             }
         
         # Calculate summary from configuration service data
-        total_offices = len(config)
+        total_offices = len(config_dict)
         total_roles = 0
         total_levels = 0
         total_fte = 0
         
-        for office_name, office_data in config.items():
+        for office_name, office_data in config_dict.items():
             if 'roles' in office_data:
                 for role_name, role_data in office_data['roles'].items():
                     total_roles += 1
@@ -116,9 +116,9 @@ def get_office_configuration_checksum():
     
     try:
         # Get configuration from configuration service (NOT simulation engine)
-        config = config_service.get_configuration()
+        config_dict = config_service.get_config()
         
-        if not config:
+        if not config_dict:
             return {
                 "checksum": "empty",
                 "total_offices": 0,
@@ -127,10 +127,10 @@ def get_office_configuration_checksum():
             }
         
         # Calculate simple checksum and totals from configuration service data
-        total_offices = len(config)
+        total_offices = len(config_dict)
         total_fte = 0
         
-        for office_name, office_data in config.items():
+        for office_name, office_data in config_dict.items():
             if 'total_fte' in office_data:
                 total_fte += office_data['total_fte']
         
@@ -156,7 +156,7 @@ def _serialize_role_data(role_data) -> dict:
 @router.get("/")
 def list_offices():
     """Get offices from configuration service (NOT simulation engine)"""
-    config_dict = config_service.get_configuration()
+    config_dict = config_service.get_config()
     
     offices_out = []
     for office_data in config_dict.values():
@@ -181,7 +181,7 @@ async def export_office_config(export_request: dict):
     """Export all office configuration to Excel file in import-compatible format"""
     try:
         # Get all configuration data
-        config_dict = config_service.get_configuration()
+        config_dict = config_service.get_config()
         
         # Apply any unsaved changes if requested
         unsaved_changes = export_request.get('unsavedChanges', {})

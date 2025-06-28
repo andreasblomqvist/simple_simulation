@@ -19,7 +19,7 @@ def root():
 @router.get("/health")
 def health_check():
     """Health check endpoint with configuration service status"""
-    config = config_service.get_configuration()
+    config = config_service.get_config()
     total_fte = sum(office.get('total_fte', 0) for office in config.values()) if config else 0
     office_names = list(config.keys()) if config else []
     
