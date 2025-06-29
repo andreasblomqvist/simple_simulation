@@ -344,5 +344,9 @@ class ConfigService:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
+    def get_configuration(self):
+        """Alias for get_config, for compatibility with code expecting get_configuration."""
+        return self.get_config()
+
 # Global instance
 config_service = ConfigService() 
