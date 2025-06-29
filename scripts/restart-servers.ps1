@@ -74,7 +74,7 @@ Start-Sleep -Seconds 5
 # Step 4: Start backend server
 Write-Host "Starting backend server..."
 $env:PYTHONPATH = "."
-$backend = Start-Process -FilePath "python" -ArgumentList @("-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000") -PassThru -WindowStyle Hidden
+$backend = Start-Process -FilePath "python" -ArgumentList @("-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000") -RedirectStandardOutput "backend_output.log" -RedirectStandardError "backend_error.log" -PassThru -WindowStyle Hidden
 $backendPid = $backend.Id
 Write-Host "Backend process started with PID: $backendPid"
 

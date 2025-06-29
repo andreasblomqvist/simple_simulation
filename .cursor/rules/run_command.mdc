@@ -1,215 +1,309 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: false
 ---
-### Full Development Environment
+# Run Command Instructions for SimpleSim
 
-## Git Operations & Commit Rules
+## Overview
+This document provides instructions for properly running commands in the SimpleSim project, specifically addressing PowerShell syntax and common command patterns.
 
-**CRITICAL: Never commit or push without explicit user permission**
+## PowerShell Command Syntax
 
-**Git Operation Rules:**
-- **NEVER** execute `git commit` or `git push` automatically
-- **ALWAYS** ask user for permission before any git operations
-- **WAIT** for explicit user confirmation before proceeding
-- **ONLY** commit/push when user explicitly requests it
-
-**Required User Prompts:**
-- "Would you like me to commit these changes?"
-- "Should I push this to the remote repository?"
-- "Do you want me to commit and push these changes?"
-
-**User Confirmation Examples:**
-- User says: "yes", "commit", "push", "commit and push"
-- User says: "save changes", "save to git"
-- User explicitly requests git operations
-
-**Forbidden Actions:**
-- Auto-committing after making code changes
-- Auto-pushing after commits
-- Assuming user wants git operations
-- Proceeding without explicit confirmation
-
-**Example Workflow:**
-```
-AI: I've made the changes to fix the growth calculation. Would you like me to commit and push these changes?
-User: yes, commit and push
-AI: [proceeds with git add, commit, and push]
-```
-
-## Cursor Terminal Window Organization
-
-**IMPORTANT: Always run development servers in Cursor's Terminal windows for better workflow integration.**
-
-**Recommended Terminal Setup:**
-- **Terminal 1**: Backend Server (uvicorn) with logging
-- **Terminal 2**: Frontend Server (npm/vite) with logging  
-- **Terminal 3**: Commands, testing, git operations
-- **Terminal 4**: Log tailing (optional)
-
-**To open Terminal windows in Cursor:**
-- Press `Cmd+Shift+` ` (backtick) or go to View → Terminal
-- Use `Cmd+Shift+5` to split terminal or click the `+` icon
-- Use `Cmd+1`, `Cmd+2`, etc. to switch between terminal tabs
-
-**Benefits of using Cursor Terminal:**
-- Server output visible alongside code
-- Integrated error handling and debugging
-- Easy server restart when code changes
-- Better context for AI assistance
-- Persistent logs for debugging
-
-## Server Management & Troubleshooting
-
-**Before starting servers, check for existing instances:**
+### ❌ WRONG - Unix/Bash Style (Don't Use)
 ```bash
-# Check if backend server is already running on port 8000
-lsof -i :8000
-# Or check for uvicorn processes
-ps aux | grep uvicorn | grep -v grep
-
-# Check if frontend server is running on port 3000
-lsof -i :3000
-# Or check for node/vite processes
-ps aux | grep "vite\|npm run dev" | grep -v grep
+# These will fail in PowerShell
+cd .. && python -m uvicorn backend.main:app --reload --port 8000
+npm start && echo "Started"
 ```
 
-**Kill existing server instances if needed:**
-```bash
-# Kill backend server (uvicorn)
-pkill -f uvicorn
-# Or more aggressive:
-ps aux | grep uvicorn | grep -v grep | awk '{print $2}' | xargs kill -9
+### ✅ CORRECT - PowerShell Style (Use These)
+```powershell
+# Use semicolons for command chaining
+cd ..; python -m uvicorn backend.main:app --reload --port 8000
 
-# Kill frontend server (if needed)
-pkill -f "npm run dev"
-pkill -f vite
+# Or use separate commands
+cd ..
+python -m uvicorn backend.main:app --reload --port 8000
 
-# Kill all servers at once
-pkill -f uvicorn && pkill -f vite
+# For conditional execution
+if ($?) { echo "Command succeeded" }
 ```
 
-## Server Startup with Logging
+## Common Commands for SimpleSim
 
-### Option 1: Combined Startup (Recommended)
-```bash
-# Start both servers with logging in background
-./scripts/start-servers-with-logs.sh
+### Backend Development
 
-# The script will show you the log file paths and tail commands
+#### Start Backend Server
+```powershell
+# From project root
+python -m uvicorn backend.main:app --reload --port 8000
+
+# With specific host
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Option 2: Individual Server Startup
-
-1. **Start the backend server with logging (from project root):**
-   ```bash
-   # Terminal 1 - Backend with Logging
-   ./scripts/start-backend-with-logs.sh
-   ```
-   
-   **Verify backend startup:**
-   - Look for: `INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`
-   - Look for: `INFO:     Started reloader process`
-   - Look for: `INFO:     Started server process`
-   - Test endpoint: `curl http://localhost:8000/health`
-   
-   **Common backend startup issues:**
-   - `Address already in use`: Kill existing uvicorn processes (see above)
-   - `ModuleNotFoundError`: Ensure virtual environment is activated
-   - Config errors: Check for syntax errors in `.py` files
-
-2. **Start the frontend server with logging (from project root):**
-   ```bash
-   # Terminal 2 - Frontend with Logging
-   ./scripts/start-frontend-with-logs.sh
-   ```
-   
-   **Verify frontend startup:**
-   - Look for: `VITE v5.x.x ready in XXXms`
-   - Look for: `Local: http://localhost:3000/`
-   - Look for: `Network: use --host to expose`
-   - Test in browser: Open `http://localhost:3000`
-   
-   **Common frontend startup issues:**
-   - `EADDRINUSE :::3000`: Kill existing node/vite processes
-   - `npm: command not found`: Install Node.js and npm
-   - Dependencies issues: Run `npm install` in frontend directory
-
-### Option 3: Manual Startup (Legacy)
-```bash
-# Terminal 1 - Backend (manual)
-PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 2 - Frontend (manual)
-cd frontend && npm run dev
+#### Test Backend Import
+```powershell
+python -c "from backend.main import app; print('Backend import successful')"
 ```
 
-## Log Management
-
-**Log file locations:**
-- Backend logs: `backend/logs/backend.log`
-- Frontend logs: `frontend/logs/frontend.log`
-
-**Tail log commands (after starting servers):**
-```bash
-# Tail backend logs only
-tail -f backend/logs/backend.log
-
-# Tail frontend logs only
-tail -f frontend/logs/frontend.log
-
-# Tail both logs together
-tail -f backend/logs/backend.log frontend/logs/frontend_*.log
-
-# Tail latest log files (most recent timestamp)
-tail -f $(ls -t backend/logs/backend.log | head -1) $(ls -t frontend/logs/frontend_*.log | head -1)
+#### Run Backend Tests
+```powershell
+cd backend
+python -m pytest tests/ -v
 ```
 
-**Log file management:**
-```bash
-# List all log files
-ls -la backend/logs/
-ls -la frontend/logs/
+### Frontend Development
 
-# Clean old log files (keep last 10)
-ls -t backend/logs/backend_*.log | tail -n +11 | xargs rm -f
-ls -t frontend/logs/frontend_*.log | tail -n +11 | xargs rm -f
+#### Start Frontend Server
+```powershell
+cd frontend
+npm start
 ```
 
-## Quick Server Status Check
-
-```bash
-# Check both servers are running
-curl -s http://localhost:8000/health && echo "✅ Backend OK" || echo "❌ Backend DOWN"
-curl -s http://localhost:3000 && echo "✅ Frontend OK" || echo "❌ Frontend DOWN"
-
-# Check what's running on the ports
-echo "Port 8000 (Backend):" && lsof -i :8000
-echo "Port 3000 (Frontend):" && lsof -i :3000
-
-# Check latest log files
-echo "Latest backend log:" && ls -t backend/logs/backend_*.log | head -1
-echo "Latest frontend log:" && ls -t frontend/logs/frontend_*.log | head -1
+#### Install Frontend Dependencies
+```powershell
+cd frontend
+npm install
 ```
 
-## Emergency Server Restart
-
-**When servers are stuck or ports are in use:**
-```bash
-# Nuclear option - kill everything and restart
-pkill -f uvicorn && pkill -f vite && sleep 3
-./scripts/start-servers-with-logs.sh
+#### Build Frontend
+```powershell
+cd frontend
+npm run build
 ```
 
-### Testing the Year Navigation Features
+### Database/Configuration
 
-1. **Access the Year Navigation Demo:**
-   - Navigate to `http://localhost:3000/year-demo`
-   - Test year-by-year navigation and enhanced KPI cards
-   - Explore year-over-year change indicators and trend visualizations
+#### Generate Office Configuration
+```powershell
+cd scripts
+python generate_monthly_excel.py
+```
 
-2. **Run backend tests for year-based features:**
-   ```bash
-   python3 -m pytest backend/tests/unit/test_year_based_simulation.py
-   ```
+#### Verify Configuration
+```powershell
+python verify_config.py
+```
+
+### Git Operations
+
+#### Add and Commit Changes
+```powershell
+git add .
+git commit -m "Your commit message"
+git push origin master
+```
+
+#### Check Status
+```powershell
+git status
+git log --oneline -10
+```
+
+### File Operations
+
+#### Copy Files (PowerShell)
+```powershell
+Copy-Item source.txt destination.txt
+Copy-Item -Recurse source_folder destination_folder
+```
+
+#### Remove Files/Directories
+```powershell
+Remove-Item file.txt
+Remove-Item -Recurse -Force directory_name
+```
+
+#### Rename Files/Directories
+```powershell
+Rename-Item old_name new_name
+```
+
+### Network Testing
+
+#### Test API Endpoints
+```powershell
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Test with Invoke-WebRequest (more PowerShell native)
+Invoke-WebRequest -Uri "http://localhost:8000/health" -Method GET
+
+# POST request with JSON
+Invoke-WebRequest -Uri "http://localhost:8000/simulation/run" -Method POST -ContentType "application/json" -Body '{"start_year":2025,"start_month":1,"end_year":2025,"end_month":3,"price_increase":0.03,"salary_increase":0.03}'
+```
+
+#### Check Running Processes
+```powershell
+# Check if backend is running
+netstat -ano | findstr :8000
+
+# Check if frontend is running  
+netstat -ano | findstr :3000
+
+# Get process details
+Get-Process | Where-Object {$_.ProcessName -like "*python*"}
+```
+
+### Environment Management
+
+#### Python Virtual Environment
+```powershell
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+.venv\Scripts\Activate.ps1
+
+# Deactivate
+deactivate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+#### Node.js Environment
+```powershell
+# Check versions
+node --version
+npm --version
+
+# Clear npm cache
+npm cache clean --force
+```
+
+## Project Structure Commands
+
+### Navigate Project
+```powershell
+# Go to project root
+cd C:\Users\andre\Code\SimpleSim
+
+# Navigate to backend
+cd backend
+
+# Navigate to frontend  
+cd frontend
+
+# Navigate to scripts
+cd scripts
+
+# Go back to parent
+cd ..
+
+# Go to specific subdirectory
+cd backend\routers
+```
+
+### List Directory Contents
+```powershell
+# Basic listing
+ls
+
+# Detailed listing
+Get-ChildItem | Format-Table Name, Length, LastWriteTime
+
+# Show hidden files
+Get-ChildItem -Force
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. "Token '&&' is not a valid statement separator"
+**Problem**: Using Unix/Bash syntax in PowerShell
+**Solution**: Use semicolon (`;`) or separate commands
+
+#### 2. "Module not found" errors
+**Problem**: Python path issues
+**Solution**: 
+```powershell
+# Run from project root
+cd C:\Users\andre\Code\SimpleSim
+python -c "import sys; print(sys.path)"
+```
+
+#### 3. Port already in use
+**Problem**: Previous server still running
+**Solution**:
+```powershell
+# Find process using port
+netstat -ano | findstr :8000
+
+# Kill process (replace PID with actual process ID)
+taskkill /PID 12345 /F
+```
+
+#### 4. Permission denied
+**Problem**: PowerShell execution policy
+**Solution**:
+```powershell
+# Check current policy
+Get-ExecutionPolicy
+
+# Set policy (run as administrator)
+Set-ExecutionPolicy RemoteSigned
+```
+
+## Best Practices
+
+### 1. Always Use Full Paths
+```powershell
+# Good
+cd C:\Users\andre\Code\SimpleSim
+python -m uvicorn backend.main:app --reload --port 8000
+
+# Avoid relative path confusion
+```
+
+### 2. Check Current Directory
+```powershell
+# Show current location
+pwd
+Get-Location
+```
+
+### 3. Use Background Processes for Servers
+```powershell
+# Start backend in background (for development)
+Start-Process powershell -ArgumentList "-Command", "python -m uvicorn backend.main:app --reload --port 8000"
+```
+
+### 4. Environment Variables
+```powershell
+# Set environment variables
+$env:PYTHONPATH = "C:\Users\andre\Code\SimpleSim"
+$env:NODE_ENV = "development"
+
+# Check environment variables
+$env:PATH
+```
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Start Backend | `python -m uvicorn backend.main:app --reload --port 8000` |
+| Start Frontend | `cd frontend; npm start` |
+| Test Backend | `curl http://localhost:8000/health` |
+| Generate Config | `cd scripts; python generate_monthly_excel.py` |
+| Git Commit | `git add .; git commit -m "message"; git push origin master` |
+| Check Ports | `netstat -ano \| findstr :8000` |
+| Current Dir | `pwd` |
+| List Files | `ls` or `Get-ChildItem` |
+
+## Notes
+
+- Always run commands from the correct directory context
+- Use PowerShell-native commands when possible
+- Check process status before starting servers
+- Use virtual environments for Python dependencies
+- Keep terminal sessions organized (separate for backend/frontend)
+
+---
+
+*Last updated: June 2025*
+*Project: SimpleSim Organization Growth Simulator*
