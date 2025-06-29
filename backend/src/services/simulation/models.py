@@ -12,7 +12,6 @@ from enum import Enum
 from datetime import datetime
 import uuid
 import random
-from backend.config.default_config import DEFAULT_RATES
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../config'))
