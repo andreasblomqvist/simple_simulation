@@ -96,19 +96,7 @@ def set_monthly_attribute(obj, attribute_base: str, month: Month, value: float) 
 
 
 def get_next_level_name(current_level: str, level_order: list) -> str:
-<<<<<<< HEAD
-    """Get the name of the next level in the progression path using PROGRESSION_CONFIG"""
-    # Import here to avoid circular imports
-    from backend.config.progression_config import PROGRESSION_CONFIG
-    
-    # Use the progression configuration to get the next level
-    if current_level in PROGRESSION_CONFIG:
-        return PROGRESSION_CONFIG[current_level]['next_level']
-    
-    # Fallback to the old method if not found in config
-=======
     """Get the name of the next level in the progression path"""
->>>>>>> gitlab/master
     try:
         current_index = level_order.index(current_level)
         if current_index + 1 < len(level_order):

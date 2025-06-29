@@ -1,17 +1,13 @@
 from typing import Dict, List, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
-<<<<<<< HEAD
 from backend.config.progression_config import PROGRESSION_CONFIG
 import random
 from datetime import datetime, timedelta
-=======
->>>>>>> gitlab/master
 
 class OfficeManager:
     """
     Handles office, role, and level initialization and configuration.
     """
-<<<<<<< HEAD
     def __init__(self, config_service, event_logger=None):
         self.config_service = config_service
         self.offices: Dict[str, Office] = {}
@@ -20,15 +16,6 @@ class OfficeManager:
 
     def initialize_offices_from_config(self):
         config_dict = self.config_service.get_config()
-=======
-    def __init__(self, config_service):
-        self.config_service = config_service
-        self.offices: Dict[str, Office] = {}
-        self.level_order: List[str] = []
-
-    def initialize_offices_from_config(self):
-        config_dict = self.config_service.get_configuration()
->>>>>>> gitlab/master
         config_data = [office_config for office_config in config_dict.values()]
         self.level_order = self.determine_level_order(config_data)
         self.offices = {}
@@ -41,13 +28,10 @@ class OfficeManager:
         office_name = office_config.get('name', 'Unknown Office')
         total_fte = office_config.get('total_fte', 0)
         office = Office.create_office(office_name, total_fte)
-<<<<<<< HEAD
         
         # Set seed for deterministic results
         random.seed(42)
         
-=======
->>>>>>> gitlab/master
         for role_name, role_data in office_config.get('roles', {}).items():
             if role_name == 'Operations':
                 op_fte = role_data.get('fte', 0)
@@ -59,15 +43,9 @@ class OfficeManager:
                     setattr(operations_role, f'salary_{i}', salary)
                     setattr(operations_role, f'price_{i}', price)
                     setattr(operations_role, f'utr_{i}', utr)
-<<<<<<< HEAD
                 
                 # Realistic initialization for Operations
                 self._initialize_realistic_people(operations_role, int(op_fte), "Operations", office_name, "2025-01")
-=======
-                initialization_date_str = "2023-01"
-                for _ in range(int(op_fte)):
-                    operations_role.add_new_hire(initialization_date_str, "Operations", office_name)
->>>>>>> gitlab/master
                 office.roles['Operations'] = operations_role
             else:
                 office.roles[role_name] = {}
@@ -82,7 +60,6 @@ class OfficeManager:
                             else:
                                 default_value = level_config.get(key, 0.0)
                                 level_attributes[monthly_key] = default_value
-<<<<<<< HEAD
                     # FIX: Use progression_months from PROGRESSION_CONFIG
                     progression_months = PROGRESSION_CONFIG.get(level_name, {}).get('progression_months', [1])
                     level = Level(
@@ -235,21 +212,6 @@ class OfficeManager:
                         recruitment_rate=None  # Initial population, no rate
                     )
 
-=======
-                    level = Level(
-                        name=level_name,
-                        journey=journey_name,
-                        progression_months=[Month(i) for i in range(1, 13)],
-                        **level_attributes
-                    )
-                    level_fte = level_config.get('fte', 0)
-                    initialization_date_str = "2023-01"
-                    for _ in range(int(level_fte)):
-                        level.add_new_hire(initialization_date_str, role_name, office_name)
-                    office.roles[role_name][level_name] = level
-        return office
-
->>>>>>> gitlab/master
     @staticmethod
     def determine_level_order(config_data: List[Dict]) -> List[str]:
         levels = set()
