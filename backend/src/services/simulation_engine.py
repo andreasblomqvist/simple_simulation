@@ -903,9 +903,8 @@ class SimulationEngine:
         simulation_start_date_str = f"{start_year}-{start_month}"
         
         # Initialize WorkforceManager
-        workforce_manager = WorkforceManager(self.offices)
-        workforce_manager.set_run_id()  # Set unique run_id for this simulation run
-        
+        simulation_run_id = str(uuid.uuid4())
+        workforce_manager = WorkforceManager(self.offices, run_id=simulation_run_id)
         # Update office manager to use the same event logger
         self.office_manager.event_logger = workforce_manager.event_logger
         

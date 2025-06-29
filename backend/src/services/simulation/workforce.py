@@ -3,16 +3,31 @@ from backend.src.services.simulation.models import Office, Level, RoleData, Mont
 from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name
 import logging
 import uuid
+from backend.src.services.simulation.event_logger import EventLogger
 
 class WorkforceManager:
     """
     Handles all workforce dynamics: progression, recruitment, churn, and people movement.
     """
-    def __init__(self, offices: Dict[str, Office]):
+    def __init__(self, offices: Dict[str, Office], run_id: str = None):
         self.offices = offices
+        self.run_id = run_id or str(uuid.uuid4())
+        self.event_logger = EventLogger(self.run_id)
 
     def set_run_id(self):
         self.run_id = str(uuid.uuid4())
+
+    def get_event_logger(self):
+        """Return the event logger instance for external access"""
+        return self.event_logger
+
+    def get_events_summary(self):
+        """Return a summary of all logged events"""
+        return self.event_logger.get_events_summary() if self.event_logger else {}
+
+    def get_all_events(self):
+        """Return all logged events as a list"""
+        return self.event_logger.get_all_events() if self.event_logger else []
 
     def process_month(self, year: int, month: int, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
         """
@@ -75,6 +90,20 @@ class WorkforceManager:
                                         'cat': cat_number,
                                         'date': current_date_str
                                     })
+                                    
+                                    # Log promotion event
+                                    next_level_name = get_next_level_name(level_name, list(role_data.keys()))
+                                    if next_level_name:
+                                        self.event_logger.log_promotion(
+                                            person=person,
+                                            current_date=current_date_str,
+                                            from_level=level_name,
+                                            to_level=next_level_name,
+                                            role=role_name,
+                                            office=office.name,
+                                            cat_category=f"CAT{cat_number}",
+                                            progression_probability=None  # Could be calculated if needed
+                                        )
                     # Removed PROGRESSION_DEBUG logging for skipped cases
                     
                     # Track progression metrics
@@ -121,13 +150,33 @@ class WorkforceManager:
                     churn_to_apply = int(level.fractional_churn)
                     level.fractional_churn -= churn_to_apply
                     churned = level.apply_churn(churn_to_apply)
+                    
+                    # Log churn events
+                    for person in churned:
+                        self.event_logger.log_churn(
+                            person=person,
+                            current_date=current_date_str,
+                            role=role_name,
+                            office=office.name,
+                            churn_rate=churn_rate
+                        )
+                    
                     # Recruitment
                     recruitment_rate = get_monthly_attribute(level, 'recruitment', current_month_enum)
                     level.fractional_recruitment += level.total * recruitment_rate
                     recruits_to_add = int(level.fractional_recruitment)
                     level.fractional_recruitment -= recruits_to_add
                     for _ in range(recruits_to_add):
-                        level.add_new_hire(current_date_str, role_name, office.name)
+                        new_person = level.add_new_hire(current_date_str, role_name, office.name)
+                        # Log recruitment event
+                        self.event_logger.log_recruitment(
+                            person=new_person,
+                            current_date=current_date_str,
+                            role=role_name,
+                            office=office.name,
+                            recruitment_rate=recruitment_rate
+                        )
+                    
                     # Update metrics
                     if office.name not in monthly_office_metrics:
                         monthly_office_metrics[office.name] = {}
@@ -152,13 +201,33 @@ class WorkforceManager:
                 churn_to_apply = int(role_data.fractional_churn)
                 role_data.fractional_churn -= churn_to_apply
                 churned = role_data.apply_churn(churn_to_apply)
+                
+                # Log churn events
+                for person in churned:
+                    self.event_logger.log_churn(
+                        person=person,
+                        current_date=current_date_str,
+                        role=role_name,
+                        office=office.name,
+                        churn_rate=churn_rate
+                    )
+                
                 # Recruitment
                 recruitment_rate = get_monthly_attribute(role_data, 'recruitment', current_month_enum)
                 role_data.fractional_recruitment += role_data.total * recruitment_rate
                 recruits_to_add = int(role_data.fractional_recruitment)
                 role_data.fractional_recruitment -= recruits_to_add
                 for _ in range(recruits_to_add):
-                    role_data.add_new_hire(current_date_str, role_name, office.name)
+                    new_person = role_data.add_new_hire(current_date_str, role_name, office.name)
+                    # Log recruitment event
+                    self.event_logger.log_recruitment(
+                        person=new_person,
+                        current_date=current_date_str,
+                        role=role_name,
+                        office=office.name,
+                        recruitment_rate=recruitment_rate
+                    )
+                
                 # Update metrics
                 if office.name not in monthly_office_metrics:
                     monthly_office_metrics[office.name] = {}
