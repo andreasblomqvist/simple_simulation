@@ -1,7 +1,10 @@
 from typing import Dict, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month
 from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name
+<<<<<<< HEAD
 from backend.src.services.simulation.event_logger import EventLogger
+=======
+>>>>>>> gitlab/master
 import logging
 import uuid
 
@@ -11,11 +14,17 @@ class WorkforceManager:
     """
     def __init__(self, offices: Dict[str, Office]):
         self.offices = offices
+<<<<<<< HEAD
         self.event_logger = None  # Will be initialized when run_id is set
 
     def set_run_id(self):
         self.run_id = str(uuid.uuid4())
         self.event_logger = EventLogger(self.run_id)
+=======
+
+    def set_run_id(self):
+        self.run_id = str(uuid.uuid4())
+>>>>>>> gitlab/master
 
     def process_month(self, year: int, month: int, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
         """
@@ -59,6 +68,7 @@ class WorkforceManager:
             if isinstance(role_data, dict):  # Leveled roles
                 promotions_this_month = {}
                 for level_name, level in role_data.items():
+<<<<<<< HEAD
                     # Check if this is a progression month for this level
                     if level.is_progression_month(current_month_enum.value):
                         eligible = len(level.get_eligible_for_progression(current_date_str))
@@ -101,6 +111,15 @@ class WorkforceManager:
                                         'cat': cat_number,
                                         'date': current_date_str
                                     })
+=======
+                    progression_rate = get_monthly_attribute(level, 'progression', current_month_enum)
+                    eligible = len(level.people)
+                    if progression_rate > 0 and eligible > 0:
+                        promotions = level.apply_cat_based_progression(progression_rate, current_date_str)
+                        if promotions:
+                            promotions_this_month[level_name] = promotions
+                            promoted = len(promotions)
+>>>>>>> gitlab/master
                     # Removed PROGRESSION_DEBUG logging for skipped cases
                     
                     # Track progression metrics
@@ -110,11 +129,20 @@ class WorkforceManager:
                 # Handle promotions to next levels
                 promoted_into_levels = {level_name: 0 for level_name in role_data.keys()}
                 for level_name, promoted_people in promotions_this_month.items():
+<<<<<<< HEAD
                     # Find next level using progression config
                     next_level_name = get_next_level_name(level_name, list(role_data.keys()))
                     next_level = role_data.get(next_level_name) if next_level_name else None
                     if next_level:
                         for person, _, _ in promoted_people:
+=======
+                    # Find next level
+                    level_order = list(role_data.keys())
+                    next_level_name = get_next_level_name(level_name, level_order)
+                    next_level = role_data.get(next_level_name) if next_level_name else None
+                    if next_level:
+                        for person in promoted_people:
+>>>>>>> gitlab/master
                             next_level.add_promotion(person, current_date_str)
                         promoted_into_levels[next_level_name] = len(promoted_people)
                     # else: top level, people leave the cohort
@@ -146,6 +174,7 @@ class WorkforceManager:
                     churn_to_apply = int(level.fractional_churn)
                     level.fractional_churn -= churn_to_apply
                     churned = level.apply_churn(churn_to_apply)
+<<<<<<< HEAD
                     
                     # Log churn events
                     if self.event_logger and churned:
@@ -158,11 +187,14 @@ class WorkforceManager:
                                 churn_rate=churn_rate
                             )
                     
+=======
+>>>>>>> gitlab/master
                     # Recruitment
                     recruitment_rate = get_monthly_attribute(level, 'recruitment', current_month_enum)
                     level.fractional_recruitment += level.total * recruitment_rate
                     recruits_to_add = int(level.fractional_recruitment)
                     level.fractional_recruitment -= recruits_to_add
+<<<<<<< HEAD
                     recruited_people = []
                     for _ in range(recruits_to_add):
                         person = level.add_new_hire(current_date_str, role_name, office.name)
@@ -179,6 +211,10 @@ class WorkforceManager:
                                 recruitment_rate=recruitment_rate
                             )
                     
+=======
+                    for _ in range(recruits_to_add):
+                        level.add_new_hire(current_date_str, role_name, office.name)
+>>>>>>> gitlab/master
                     # Update metrics
                     if office.name not in monthly_office_metrics:
                         monthly_office_metrics[office.name] = {}
@@ -203,6 +239,7 @@ class WorkforceManager:
                 churn_to_apply = int(role_data.fractional_churn)
                 role_data.fractional_churn -= churn_to_apply
                 churned = role_data.apply_churn(churn_to_apply)
+<<<<<<< HEAD
                 
                 # Log churn events for flat roles
                 if self.event_logger and churned:
@@ -215,11 +252,14 @@ class WorkforceManager:
                             churn_rate=churn_rate
                         )
                 
+=======
+>>>>>>> gitlab/master
                 # Recruitment
                 recruitment_rate = get_monthly_attribute(role_data, 'recruitment', current_month_enum)
                 role_data.fractional_recruitment += role_data.total * recruitment_rate
                 recruits_to_add = int(role_data.fractional_recruitment)
                 role_data.fractional_recruitment -= recruits_to_add
+<<<<<<< HEAD
                 recruited_people = []
                 for _ in range(recruits_to_add):
                     person = role_data.add_new_hire(current_date_str, role_name, office.name)
@@ -236,6 +276,10 @@ class WorkforceManager:
                             recruitment_rate=recruitment_rate
                         )
                 
+=======
+                for _ in range(recruits_to_add):
+                    role_data.add_new_hire(current_date_str, role_name, office.name)
+>>>>>>> gitlab/master
                 # Update metrics
                 if office.name not in monthly_office_metrics:
                     monthly_office_metrics[office.name] = {}
@@ -247,10 +291,13 @@ class WorkforceManager:
                     'churned': churn_to_apply
                 }
 
+<<<<<<< HEAD
     def get_event_logger(self) -> EventLogger:
         """Get the event logger instance"""
         return self.event_logger
 
+=======
+>>>>>>> gitlab/master
     # Add more helper methods as needed for CAT-based progression, churn, recruitment, etc. 
 
 class WorkforceSimulation:

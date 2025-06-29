@@ -20,7 +20,10 @@ from backend.src.services.simulation.models import (
     Office, Level, RoleData, Month, Journey, OfficeJourney, Person
 )
 from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year, calculate_configuration_checksum, validate_configuration_completeness
+<<<<<<< HEAD
 from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+=======
+>>>>>>> gitlab/master
 
 class Month(Enum):
     JAN = 1
@@ -89,6 +92,7 @@ class Person:
             return f'CAT{cat_number}'
     
     def get_progression_probability(self, current_date: str, base_progression_rate: float, level_name: str) -> float:
+<<<<<<< HEAD
         """Calculate individual progression probability based on CAT curves from progression_config"""
         tenure_months = self.get_level_tenure_months(current_date)
         
@@ -114,6 +118,17 @@ class Person:
         # Fallback to simple progression if not found in CAT curves
         if tenure_months < 6:
             return 0.0
+=======
+        """Calculate individual progression probability based on tenure"""
+        # Simple progression based on tenure - no CAT curves
+        tenure_months = self.get_level_tenure_months(current_date)
+        
+        # Minimum 6 months tenure required
+        if tenure_months < 6:
+            return 0.0
+        
+        # Simple progression - use base rate directly without multipliers
+>>>>>>> gitlab/master
         return base_progression_rate
 
 @dataclass
@@ -340,6 +355,7 @@ class Level:
     
     def get_eligible_for_progression(self, current_date: str) -> List[Person]:
         """Get people eligible for progression based on minimum tenure for this level"""
+<<<<<<< HEAD
         # Import here to avoid circular imports
         from backend.config.progression_config import PROGRESSION_CONFIG
         
@@ -348,6 +364,10 @@ class Level:
             minimum_tenure = PROGRESSION_CONFIG[self.name]['time_on_level']
         else:
             minimum_tenure = 6  # Default fallback
+=======
+        # Simple 6-month minimum tenure for all levels
+        minimum_tenure = 6
+>>>>>>> gitlab/master
         
         return [p for p in self.people if p.is_eligible_for_progression(current_date, minimum_tenure)]
     
@@ -387,6 +407,7 @@ class Level:
         
         promoted = []
         for person in eligible:
+<<<<<<< HEAD
             # Calculate individual progression probability based on CAT curves
             tenure_months = person.get_level_tenure_months(current_date)
             
@@ -403,6 +424,12 @@ class Level:
                 individual_probability = CAT_CURVES[self.name].get(cat, 0.0)
             else:
                 individual_probability = 0.0
+=======
+            # Calculate individual progression probability based on tenure
+            individual_probability = person.get_progression_probability(
+                current_date, base_progression_rate, self.name
+            )
+>>>>>>> gitlab/master
             
             # Apply random chance
             if random.random() < individual_probability:
@@ -855,6 +882,7 @@ class SimulationEngine:
                       lever_plan: Optional[Dict] = None,
                       economic_params: Optional[EconomicParameters] = None) -> Dict:
         """
+<<<<<<< HEAD
         Run the simulation for the specified period.
         
         Args:
@@ -879,6 +907,21 @@ class SimulationEngine:
         self.offices = self.office_manager.initialize_offices_from_config()
         
         # Apply lever plan if provided
+=======
+        Runs the simulation month by month.
+        - Applies annual price and salary increases.
+        - Calculates recruitment, churn, and progression for each level.
+        - Updates the number of people in each level.
+        - Stores monthly results.
+        """
+        print(f"[ENGINE] Starting simulation from {start_year}-{start_month} to {end_year}-{end_month}")
+        # Use provided economic parameters or defaults
+        econ_params = economic_params or EconomicParameters()
+        # Re-initialize state based on config service before every run
+        self.reinitialize_with_config()
+
+        # Apply levers if a plan is provided
+>>>>>>> gitlab/master
         if lever_plan:
             self._apply_levers_to_existing_offices(lever_plan)
         
@@ -901,6 +944,7 @@ class SimulationEngine:
         yearly_snapshots = {}
         monthly_office_metrics = {} # To store detailed monthly snapshots for each level
         simulation_start_date_str = f"{start_year}-{start_month}"
+<<<<<<< HEAD
         
         # Initialize WorkforceManager
         workforce_manager = WorkforceManager(self.offices)
@@ -909,6 +953,11 @@ class SimulationEngine:
         # Update office manager to use the same event logger
         self.office_manager.event_logger = workforce_manager.event_logger
         
+=======
+        # Initialize WorkforceManager
+        workforce_manager = WorkforceManager(self.offices)
+        workforce_manager.set_run_id()  # Set unique run_id for this simulation run
+>>>>>>> gitlab/master
         # Main simulation loop
         for year in range(start_year, end_year + 1):
             # Apply annual price and salary increase
@@ -950,12 +999,25 @@ class SimulationEngine:
             
             # After completing all months for the year, recalculate total_fte for each office
             print(f"[ENGINE] Recalculating total FTE for all offices after year {year}")
+<<<<<<< HEAD
             for office in self.offices.values():
                 office.total_fte = self._recalculate_office_total_fte(office)
             
             # Take yearly snapshot
             for office in self.offices.values():
                 yearly_snapshots.setdefault(str(year), {})[office.name] = {
+=======
+            for office_name, office in self.offices.items():
+                old_total_fte = office.total_fte
+                new_total_fte = self._recalculate_office_total_fte(office)
+                if old_total_fte != new_total_fte:
+                    print(f"[ENGINE] {office_name}: FTE corrected from {old_total_fte} to {new_total_fte}")
+            
+            # Store a snapshot of the offices at the end of the year
+            office_snapshots = {}
+            for office_name, office in self.offices.items():
+                office_snapshots[office_name] = {
+>>>>>>> gitlab/master
                     'total_fte': office.total_fte,
                     'name': office.name,
                     'journey': office.journey.value,
@@ -963,10 +1025,62 @@ class SimulationEngine:
                         office, monthly_office_metrics, f"{year}-01", f"{year}-12"
                     )
                 }
+<<<<<<< HEAD
             
             # Log yearly results
             if economic_params:
                 self._log_yearly_results(year, yearly_snapshots, monthly_office_metrics, economic_params)
+=======
+            yearly_snapshots[str(year)] = office_snapshots
+            
+            # Log detailed yearly results
+            self._log_yearly_results(year, yearly_snapshots, monthly_office_metrics, econ_params)
+        
+        # End of month loop
+        
+        # Structure results at the end of the simulation
+        simulation_results = {
+            'start_year': start_year,
+            'end_year': end_year,
+            'years': {}
+        }
+
+        # Create the complex structure that the frontend expects
+        print(f"[ENGINE] Creating complex data structure for frontend compatibility...")
+        try:
+            yearly_results = self._structure_yearly_results(
+                yearly_snapshots, 
+                monthly_office_metrics, 
+                start_year, 
+                end_year,
+                econ_params
+            )
+            simulation_results['years'] = yearly_results
+            print(f"[ENGINE] ✅ Created complex structure: {len(yearly_results)} years, {len(self.offices)} offices")
+            
+        except Exception as e:
+            print(f"[ENGINE] ❌ Error creating complex structure: {e}")
+            import traceback
+            traceback.print_exc()
+            # Create minimal fallback
+            simulation_results['years'] = {
+                str(year): {
+                    'offices': {},
+                    'total_fte': 0,
+                    'total_revenue': 0.0,
+                    'total_salary_costs': 0.0,
+                    'total_employment_costs': 0.0,
+                    'total_other_expenses': 0.0,
+                    'total_costs': 0.0,
+                    'ebitda': 0.0,
+                    'margin': 0.0,
+                    'avg_hourly_rate': 0.0
+                } for year in range(start_year, end_year + 1)
+            }
+
+        # Storing results in the instance
+        self.simulation_results = simulation_results
+>>>>>>> gitlab/master
         
         # Structure final results
         if economic_params:
@@ -1300,7 +1414,11 @@ class SimulationEngine:
     def _log_system_kpis(self, year_data: Dict, economic_params: EconomicParameters):
         log_system_kpis(self.yearly_logger, year_data, economic_params)
 
+<<<<<<< HEAD
 def calculate_configuration_checksum(offices: Dict[str, 'Office']) -> str:
+=======
+def calculate_configuration_checksum(offices: Dict[str, Office]) -> str:
+>>>>>>> gitlab/master
     """
     Calculates a checksum for the initial office configuration to detect changes.
     This helps in deciding whether to re-run a baseline simulation.

@@ -7,6 +7,8 @@ import os
 import pandas as pd
 import logging
 from datetime import datetime
+import logging
+from datetime import datetime
 from backend.src.services.config_service import config_service
 
 # Configure logging
@@ -126,8 +128,11 @@ app.add_middleware(
 async def startup_event():
     """Load configuration data during FastAPI startup"""
     logger.info("FastAPI server starting up...")
+    """Load configuration data during FastAPI startup"""
+    logger.info("FastAPI server starting up...")
     
     # Check if JSON configuration file already exists from previous user uploads
+    json_config_file = "backend/config/office_configuration.json"
     json_config_file = "backend/config/office_configuration.json"
     
     if os.path.exists(json_config_file):
@@ -139,12 +144,25 @@ async def startup_event():
             logger.info(f"Loaded {len(config)} offices from JSON file")
             logger.info(f"Total FTE across all offices: {total_fte}")
             logger.info("Configuration loaded successfully from existing file")
+            logger.info(f"Loaded {len(config)} offices from JSON file")
+            logger.info(f"Total FTE across all offices: {total_fte}")
+            logger.info("Configuration loaded successfully from existing file")
         else:
             logger.warning("JSON file exists but is empty, loading from Excel...")
             success = load_default_configuration()
             if not success:
                 logger.warning("Configuration loading failed - server will start with empty configuration")
+            logger.warning("JSON file exists but is empty, loading from Excel...")
+            success = load_default_configuration()
+            if not success:
+                logger.warning("Configuration loading failed - server will start with empty configuration")
     else:
+        logger.info("No existing configuration file found, loading from Excel...")
+        success = load_default_configuration()
+        if success:
+            logger.info("Configuration loaded successfully from Excel")
+        else:
+            logger.warning("Configuration loading failed - server will start with empty configuration")
         logger.info("No existing configuration file found, loading from Excel...")
         success = load_default_configuration()
         if success:
@@ -167,7 +185,10 @@ def legacy_simulate(req: simulation.SimulationRequest):
     """Legacy simulation endpoint for backward compatibility"""
     logger.debug(f"Legacy /simulate endpoint called with: {req.start_year}-{req.start_month} to {req.end_year}-{req.end_month}")
     logger.debug(f"Office overrides provided: {req.office_overrides is not None}")
+    logger.debug(f"Legacy /simulate endpoint called with: {req.start_year}-{req.start_month} to {req.end_year}-{req.end_month}")
+    logger.debug(f"Office overrides provided: {req.office_overrides is not None}")
     if req.office_overrides:
+        logger.debug(f"Office override keys: {list(req.office_overrides.keys())}")
         logger.debug(f"Office override keys: {list(req.office_overrides.keys())}")
     return simulation.run_simulation(req)
 

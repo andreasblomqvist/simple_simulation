@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag, Space, Tooltip, Divider, Checkbox, Modal } from 'antd';
 import { UploadOutlined, DownloadOutlined, SaveOutlined, ReloadOutlined, EditOutlined, CalendarOutlined, GlobalOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Typography, Form, Select, Button, InputNumber, Table, Upload, message, Tag, Space, Tooltip, Divider, Checkbox, Modal } from 'antd';
+import { UploadOutlined, DownloadOutlined, SaveOutlined, ReloadOutlined, EditOutlined, CalendarOutlined, GlobalOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -99,6 +101,10 @@ export default function Configuration() {
   const [showGlobalModal, setShowGlobalModal] = useState(false);
   const [globalForm] = Form.useForm();
   
+  // Global configuration modal state
+  const [showGlobalModal, setShowGlobalModal] = useState(false);
+  const [globalForm] = Form.useForm();
+  
   // Month selection state per group
   const [selectedMonths, setSelectedMonths] = useState<Record<string, number>>(() => {
     const initialMonths: Record<string, number> = {};
@@ -127,6 +133,7 @@ export default function Configuration() {
       
       console.log('[CONFIG] 🎛️  Using pure configuration service (engine never modifies config)');
       console.log('[CONFIG] 📥 Received data:', { type: Array.isArray(data), length: data.length, offices: data.map((o: any) => o.name) });
+      console.log('[CONFIG] 📥 Received data:', { type: Array.isArray(data), length: data.length, offices: data.map((o: any) => o.name) });
       
       // Validate data structure
       if (!Array.isArray(data) || data.length === 0) {
@@ -137,10 +144,19 @@ export default function Configuration() {
         setOriginalData({});
         message.warning('No office configurations found. Please upload an Excel file.');
         return;
+        console.log('[CONFIG] ⚠️  No office data received or invalid format');
+        setOffices([]);
+        setSelectedOffice('');
+        setOfficeData({});
+        setOriginalData({});
+        message.warning('No office configurations found. Please upload an Excel file.');
+        return;
       }
       
       // Extract office names and set the first one as selected if none is
+      // Extract office names and set the first one as selected if none is
       const officeNames = data.map((office: any) => office.name).sort();
+      console.log('[CONFIG] 🏢 Office names extracted:', officeNames);
       console.log('[CONFIG] 🏢 Office names extracted:', officeNames);
       setOffices(officeNames);
       
@@ -157,10 +173,43 @@ export default function Configuration() {
       });
       
       if (!selectedOffice || !officeNames.includes(selectedOffice)) {
+      // Always set the first office as selected if no office is currently selected
+      // or if the currently selected office is not in the new list
+      const targetOffice = selectedOffice && officeNames.includes(selectedOffice) 
+        ? selectedOffice 
+        : officeNames[0];
+      
+      console.log('[CONFIG] 🎯 Office selection:', { 
+        currentSelected: selectedOffice, 
+        availableOffices: officeNames, 
+        targetOffice: targetOffice 
+      });
+      
+      if (!selectedOffice || !officeNames.includes(selectedOffice)) {
         setSelectedOffice(targetOffice);
+        console.log('[CONFIG] ✅ Set selected office to:', targetOffice);
         console.log('[CONFIG] ✅ Set selected office to:', targetOffice);
       }
       
+      // Transform all offices data for UI consumption and store in a dictionary
+      const allOfficesData = data.reduce((acc: any, office: any) => {
+        acc[office.name] = transformOfficeDataForUI(office);
+        return acc;
+      }, {});
+      
+      console.log('[CONFIG] 🔄 Transformed office data:', Object.keys(allOfficesData));
+      
+      setOfficeData(allOfficesData);
+      setOriginalData(JSON.parse(JSON.stringify(allOfficesData))); // Deep copy
+      
+      // Clear any draft changes since we're loading fresh data
+      setDraftChanges({});
+      setHasChanges(false);
+      
+      console.log(`[CONFIG] 📊 Loaded data for ${data.length} offices. Currently viewing: ${targetOffice}`);
+      
+      // Update refresh timestamp
+      setLastRefreshTime(new Date());
       // Transform all offices data for UI consumption and store in a dictionary
       const allOfficesData = data.reduce((acc: any, office: any) => {
         acc[office.name] = transformOfficeDataForUI(office);
@@ -193,7 +242,11 @@ export default function Configuration() {
   useEffect(() => {
     fetchOffices();
   }, []); // Remove fetchOffices from dependency array to prevent re-fetch on every render
+  }, []); // Remove fetchOffices from dependency array to prevent re-fetch on every render
 
+  // Re-fetch data ONLY when selectedOffice changes AND its data is not already loaded
+  // This logic is now handled by the main fetchOffices, which gets all data at once.
+  // We just need to ensure the component re-renders if the selected office changes.
   // Re-fetch data ONLY when selectedOffice changes AND its data is not already loaded
   // This logic is now handled by the main fetchOffices, which gets all data at once.
   // We just need to ensure the component re-renders if the selected office changes.
@@ -204,7 +257,14 @@ export default function Configuration() {
       // We could reset draft changes here if desired when switching offices.
       setDraftChanges({});
       setHasChanges(false);
+    if (selectedOffice && officeData[selectedOffice]) {
+      console.log(`[CONFIG] 🔄 Switched view to: ${selectedOffice}`);
+      // No need to re-fetch, data is already in state.
+      // We could reset draft changes here if desired when switching offices.
+      setDraftChanges({});
+      setHasChanges(false);
     }
+  }, [selectedOffice]);
   }, [selectedOffice]);
 
   // Helper to check if a field is applicable to a role
@@ -234,10 +294,15 @@ export default function Configuration() {
     
     const currentOfficeData = officeData[selectedOffice];
     if (!currentOfficeData?.roles?.[role]) return '';
+    const currentOfficeData = officeData[selectedOffice];
+    if (!currentOfficeData?.roles?.[role]) return '';
     
     if (level && currentOfficeData.roles[role][level]) {
       return currentOfficeData.roles[role][level][fieldWithMonth] ?? currentOfficeData.roles[role][level][backendField] ?? '';
+    if (level && currentOfficeData.roles[role][level]) {
+      return currentOfficeData.roles[role][level][fieldWithMonth] ?? currentOfficeData.roles[role][level][backendField] ?? '';
     } else if (!level) {
+      return currentOfficeData.roles[role][fieldWithMonth] ?? currentOfficeData.roles[role][backendField] ?? '';
       return currentOfficeData.roles[role][fieldWithMonth] ?? currentOfficeData.roles[role][backendField] ?? '';
     }
     return '';
@@ -518,17 +583,81 @@ export default function Configuration() {
     }
   };
 
+  // Handle global configuration change
+  const handleGlobalChange = async (values: any) => {
+    try {
+      const { role, levels, field, month, value, targetOffices } = values;
+      if (!value && value !== 0) {
+        message.error('Please enter a value');
+        return;
+      }
+      const newDraftChanges: any = {};
+      const officeList = targetOffices && targetOffices.includes('ALL_OFFICES') 
+        ? offices 
+        : targetOffices && targetOffices.length > 0 
+          ? targetOffices.filter((office: string) => office !== 'ALL_OFFICES')
+          : offices;
+      const levelList = levels && levels.length > 0 ? levels : [null];
+      const isTotal = field === 'total';
+      const backendField = isTotal ? 'fte' : field;
+      // Detect if the field is a percentage
+      const group = LEVER_GROUPS.find(g => g.columns.some(c => c.key === field));
+      const col = group?.columns.find(c => c.key === field);
+      let backendValue = value;
+      if (col?.formatter === 'percentage') {
+        backendValue = value / 100;
+      }
+      officeList.forEach((officeName: string) => {
+        levelList.forEach((level: string | null) => {
+          if (month === 0 && !isTotal) {
+            for (let m = 1; m <= 12; m++) {
+              const monthSuffix = `_${m}`;
+              const fieldWithMonth = `${backendField}${monthSuffix}`;
+              const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
+              newDraftChanges[draftPath] = backendValue;
+            }
+          } else {
+            const monthSuffix = isTotal ? '' : `_${month}`;
+            const fieldWithMonth = `${backendField}${monthSuffix}`;
+            const draftPath = `${officeName}.${role}${level ? `.${level}` : ''}.${fieldWithMonth}`;
+            newDraftChanges[draftPath] = backendValue;
+          }
+        });
+      });
+      setDraftChanges((prev: any) => ({
+        ...prev,
+        ...newDraftChanges
+      }));
+      setHasChanges(true);
+      setShowGlobalModal(false);
+      globalForm.resetFields();
+      const changesCount = Object.keys(newDraftChanges).length;
+      const levelText = levels && levels.length > 0 ? ` across ${levels.length} level(s)` : '';
+      const monthsText = month === 0 && !isTotal ? ' (all months)' : '';
+      const officeText = targetOffices && targetOffices.includes('ALL_OFFICES') 
+        ? `all ${officeList.length} offices` 
+        : `${officeList.length} office(s)`;
+      message.success(`✅ Applied ${formatValue(value, LEVER_GROUPS.find(g => g.columns.some(c => c.key === field))?.columns.find(c => c.key === field)?.formatter || 'number')} globally to ${officeText}${levelText}${monthsText}. ${changesCount} changes added to draft.`);
+    } catch (error) {
+      console.error('[CONFIG] ❌ Error applying global change:', error);
+      message.error('Failed to apply global configuration change');
+    }
+  };
+
   // Format value based on type
   const formatValue = (value: any, formatter: string) => {
     if (value === null || value === undefined || value === '') return '-';
     const numValue = Number(value);
     if (isNaN(numValue)) {
       return value;
+      return value;
     }
     switch (formatter) {
       case 'currency':
         return `${(numValue / 1000).toFixed(0)}k SEK`;
       case 'percentage':
+        // If value is <= 1, treat as decimal (0.05 -> 5%), else treat as percent (5 -> 5%)
+        return `${(numValue <= 1 ? numValue * 100 : numValue).toFixed(1)}%`;
         // If value is <= 1, treat as decimal (0.05 -> 5%), else treat as percent (5 -> 5%)
         return `${(numValue <= 1 ? numValue * 100 : numValue).toFixed(1)}%`;
       case 'number':
@@ -544,11 +673,16 @@ export default function Configuration() {
     const cleaned = str.replace(/[^0-9.]/g, '');
     if (cleaned === '') return 0;
     const num = parseFloat(cleaned);
+    // Remove all non-numeric and non-dot characters
+    const cleaned = str.replace(/[^0-9.]/g, '');
+    if (cleaned === '') return 0;
+    const num = parseFloat(cleaned);
     if (isNaN(num)) return 0;
     switch (formatter) {
       case 'currency':
         return num * 1000;
       case 'percentage':
+        // Always interpret as percent: 5 => 0.05, 5% => 0.05
         // Always interpret as percent: 5 => 0.05, 5% => 0.05
         return num / 100;
       default:
@@ -560,9 +694,12 @@ export default function Configuration() {
   const getAggregatedFTE = (roleName: string) => {
     const currentOfficeData = officeData[selectedOffice];
     if (!currentOfficeData || !currentOfficeData.roles || !currentOfficeData.roles[roleName]) {
+    const currentOfficeData = officeData[selectedOffice];
+    if (!currentOfficeData || !currentOfficeData.roles || !currentOfficeData.roles[roleName]) {
       return 0;
     }
     
+    const roleData = currentOfficeData.roles[roleName];
     const roleData = currentOfficeData.roles[roleName];
     
     // Handle 'Operations' which has a flat structure
@@ -579,10 +716,12 @@ export default function Configuration() {
     if (!officeData[selectedOffice]) return [];
 
     const currentOfficeData = officeData[selectedOffice];
+    const currentOfficeData = officeData[selectedOffice];
     const rows: any[] = [];
 
     // --- 1. Handle Roles with Levels (e.g., Consultant, Sales) ---
     ROLES_WITH_LEVELS.forEach(roleName => {
+      const roleData = currentOfficeData.roles[roleName];
       const roleData = currentOfficeData.roles[roleName];
       if (!roleData) return;
 
@@ -613,7 +752,22 @@ export default function Configuration() {
           });
         });
         parentRow.children.push(childRow);
+        // Always show the row, even if FTE is 0
+        const childRow: any = {
+          key: `${roleName}-${levelName}`,
+          role: levelName,
+          isParent: false
+        };
+        // Populate data for each column in the group
+        LEVER_GROUPS.forEach(group => {
+          group.columns.forEach(col => {
+            childRow[`${col.key}_${group.key}`] = getValue(roleName, levelName, col.key, selectedMonths[group.key]);
+          });
+        });
+        parentRow.children.push(childRow);
       });
+      // Always push the parent row (even if all children are zero)
+      rows.push(parentRow);
       // Always push the parent row (even if all children are zero)
       rows.push(parentRow);
     });
@@ -627,13 +781,25 @@ export default function Configuration() {
         role: operationsRoleName,
         isParent: false, // Treat as a single row, not expandable
       };
+    // --- 2. Handle Roles without Levels (e.g., Operations) ---
+    const operationsRoleName = 'Operations';
+    const operationsData = currentOfficeData.roles[operationsRoleName];
+    if (operationsData) {
+      const operationsRow: any = {
+        key: operationsRoleName,
+        role: operationsRoleName,
+        isParent: false, // Treat as a single row, not expandable
+      };
       LEVER_GROUPS.forEach(group => {
         group.columns.forEach(col => {
+          operationsRow[`${col.key}_${group.key}`] = getValue(operationsRoleName, null, col.key, selectedMonths[group.key]);
           operationsRow[`${col.key}_${group.key}`] = getValue(operationsRoleName, null, col.key, selectedMonths[group.key]);
         });
       });
       rows.push(operationsRow);
+      rows.push(operationsRow);
     }
+
 
     return rows;
   };
@@ -870,6 +1036,16 @@ export default function Configuration() {
               🌍 Global Configuration
             </Button>
           </Col>
+          <Col>
+            <Button 
+              type="primary"
+              icon={<GlobalOutlined />} 
+              onClick={() => setShowGlobalModal(true)}
+              disabled={importing || loading || offices.length === 0}
+            >
+              🌍 Global Configuration
+            </Button>
+          </Col>
           <Col flex="auto" />
           <Col>
             <Space>
@@ -958,6 +1134,7 @@ export default function Configuration() {
           <Col span={24}>
             <Text type="secondary">
               • <strong>Orange highlights</strong> indicate modified values
+              • <strong>🌍 Global Configuration:</strong> Set values across multiple offices and levels at once (e.g., recruitment rate for levels A, AC, C = 3%)
               • <strong>🌍 Global Configuration:</strong> Set values across multiple offices and levels at once (e.g., recruitment rate for levels A, AC, C = 3%)
               • <strong>Click group headers</strong> to expand/collapse columns  
               • <strong>Month dropdowns</strong> 📅 control which month's data is shown/edited
@@ -1059,6 +1236,7 @@ export default function Configuration() {
               <Title level={5}>Advanced Features:</Title>
               <ul>
                 <li><strong>🌍 Global Configuration:</strong> Apply values to multiple offices simultaneously</li>
+                <li><strong>🌍 Global Configuration:</strong> Apply values to multiple offices simultaneously</li>
                 <li><strong>Draft mode:</strong> All changes are saved as drafts until applied</li>
                 <li><strong>Group expand/collapse:</strong> Focus on specific metrics</li>
                 <li><strong>Export functionality:</strong> Save current configuration with all changes</li>
@@ -1076,6 +1254,155 @@ export default function Configuration() {
             </Col>
           </Row>
         </Card>
+
+        {/* Global Configuration Modal */}
+        <Modal
+          title="🌍 Global Configuration"
+          open={showGlobalModal}
+          onCancel={() => {
+            setShowGlobalModal(false);
+            globalForm.resetFields();
+          }}
+          onOk={() => globalForm.submit()}
+          okText="Apply Globally"
+          cancelText="Cancel"
+          width={600}
+        >
+          <Form
+            form={globalForm}
+            layout="vertical"
+            onFinish={handleGlobalChange}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Role"
+                  name="role"
+                  rules={[{ required: true, message: 'Please select a role' }]}
+                >
+                  <Select placeholder="Select role">
+                    {ROLES.map(role => (
+                      <Option key={role} value={role}>{role}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Levels (Optional)"
+                  name="levels"
+                  tooltip="Select multiple levels or leave empty for Operations role or to apply to all levels"
+                >
+                  <Select 
+                    mode="multiple"
+                    placeholder="Select levels (optional)" 
+                    allowClear
+                  >
+                    {LEVELS.map(level => (
+                      <Option key={level} value={level}>{level}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Field"
+                  name="field"
+                  rules={[{ required: true, message: 'Please select a field' }]}
+                >
+                  <Select placeholder="Select field to change">
+                    {LEVER_GROUPS.flatMap(group => 
+                      group.columns.map(col => (
+                        <Option key={col.key} value={col.key}>
+                          {group.icon} {col.label} ({group.label})
+                        </Option>
+                      ))
+                    )}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Month"
+                  name="month"
+                  dependencies={['applyToAllMonthsGlobal']}
+                  rules={[
+                    {
+                      required: true,
+                      validator: (_, value) => {
+                        if (!value && value !== 0) {
+                          return Promise.reject(new Error('Please select a month'));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
+                  tooltip="Select specific month or 'All months'. For FTE values, month is ignored."
+                >
+                  <Select placeholder="Select month">
+                    <Option key={0} value={0}>All months</Option>
+                    {MONTHS.map(month => (
+                      <Option key={month.value} value={month.value}>
+                        {month.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Value"
+                  name="value"
+                  rules={[{ required: true, message: 'Please enter a value' }]}
+                  tooltip="Enter in display format (e.g., 3% for recruitment, 120k for salary)"
+                >
+                  <InputNumber 
+                    placeholder="Enter value"
+                    style={{ width: '100%' }}
+                    precision={3}
+                  />
+                </Form.Item>
+              </Col>
+                             <Col span={12}>
+                 <Form.Item
+                   label="Target Offices"
+                   name="targetOffices"
+                   tooltip="Select specific offices or choose 'All Offices'"
+                 >
+                   <Select
+                     mode="multiple"
+                     placeholder="Select offices"
+                     allowClear
+                   >
+                     <Option key="ALL_OFFICES" value="ALL_OFFICES">
+                       🌍 All Offices ({offices.length} offices)
+                     </Option>
+                     {offices.map(office => (
+                       <Option key={office} value={office}>{office}</Option>
+                     ))}
+                   </Select>
+                 </Form.Item>
+               </Col>
+            </Row>
+
+            <Card size="small" bodyStyle={{ background: '#222', color: '#eee' }} style={{ marginTop: 16, borderRadius: 6 }} bordered={false}>
+              <Text style={{ color: '#eee' }}>
+                <strong>💡 Examples:</strong><br/>
+                • Set recruitment rate for level A to 3% - select "�� All Offices"<br/>
+                • Update price for levels AC, C, SrC to 1500 SEK globally<br/>
+                • Change churn rate for all consultant levels (leave levels empty)<br/>
+                • Set UTR for Operations to 85% for specific offices (Stockholm, Munich)<br/>
+                • Apply salary changes to multiple levels (A, AC, C) across all offices
+              </Text>
+            </Card>
+          </Form>
+        </Modal>
 
         {/* Global Configuration Modal */}
         <Modal

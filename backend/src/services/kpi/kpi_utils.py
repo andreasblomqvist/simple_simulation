@@ -11,7 +11,11 @@ from backend.src.services.config_service import ConfigService
 def get_baseline_data() -> Dict[str, Any]:
     """Get baseline data from current configuration to avoid using hardcoded values"""
     config_service = ConfigService()
+<<<<<<< HEAD
     current_config = config_service.get_config()
+=======
+    current_config = config_service.get_configuration()
+>>>>>>> gitlab/master
     
     baseline = {
         'offices': [],
