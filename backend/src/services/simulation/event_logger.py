@@ -17,6 +17,7 @@ class EventType(Enum):
     RECRUITMENT = "recruitment"
     PROMOTION = "promotion"
     CHURN = "churn"
+    GRADUATION = "graduation"
 
 @dataclass
 class PersonEvent:
@@ -130,6 +131,26 @@ class EventLogger:
             role=role,
             office=office,
             churn_rate=churn_rate
+        )
+        self.events.append(event)
+        self._write_event_to_csv(event)
+    
+    def log_graduation(self, person, current_date: str, role: str, office: str, 
+                      from_level: str):
+        """Log a graduation event (when someone graduates from top level)"""
+        event = PersonEvent(
+            event_id=self._get_next_event_id(),
+            person_id=person.id,
+            event_type=EventType.CHURN,  # Use CHURN type but with special handling
+            date=current_date,
+            total_tenure_months=person.get_career_tenure_months(current_date),
+            time_on_level_months=person.get_level_tenure_months(current_date),
+            level=from_level,
+            role=role,
+            office=office,
+            churn_rate=None,  # Graduation, not churn
+            from_level=from_level,
+            to_level="GRADUATED"  # Mark as graduated
         )
         self.events.append(event)
         self._write_event_to_csv(event)

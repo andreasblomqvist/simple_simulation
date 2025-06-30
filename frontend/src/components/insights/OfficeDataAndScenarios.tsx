@@ -122,17 +122,103 @@ const OfficeDetails: React.FC<OfficeDetailsProps> = ({
   selectedOffice,
   setSelectedOffice
 }) => {
+  // Helper function to aggregate data across all offices
+  const aggregateOfficesData = (offices: any) => {
+    const aggregatedLevels: any = {};
+    
+    // Iterate through all offices to build aggregated structure
+    Object.values(offices).forEach((office: any) => {
+      if (!office.levels) return;
+      
+      Object.entries(office.levels).forEach(([roleName, roleData]: [string, any]) => {
+        if (!aggregatedLevels[roleName]) {
+          aggregatedLevels[roleName] = {};
+        }
+        
+        if (typeof roleData === 'object' && !Array.isArray(roleData)) {
+          // Hierarchical role (has levels like A, AC, C, etc.)
+          Object.entries(roleData).forEach(([levelName, levelArray]: [string, any]) => {
+            if (!aggregatedLevels[roleName][levelName]) {
+              aggregatedLevels[roleName][levelName] = [];
+            }
+            
+            if (Array.isArray(levelArray) && levelArray.length > 0) {
+              // Aggregate monthly data
+              levelArray.forEach((monthData: any, monthIndex: number) => {
+                if (!aggregatedLevels[roleName][levelName][monthIndex]) {
+                  aggregatedLevels[roleName][levelName][monthIndex] = {
+                    total: 0,
+                    recruited: 0,
+                    churned: 0,
+                    progressed_in: 0,
+                    progressed_out: 0,
+                    price: monthData.price || 0,
+                    utr: monthData.utr || 0
+                  };
+                }
+                
+                const aggregated = aggregatedLevels[roleName][levelName][monthIndex];
+                aggregated.total += monthData.total || 0;
+                aggregated.recruited += monthData.recruited || 0;
+                aggregated.churned += monthData.churned || 0;
+                aggregated.progressed_in += monthData.progressed_in || 0;
+                aggregated.progressed_out += monthData.progressed_out || 0;
+              });
+            }
+          });
+        } else if (Array.isArray(roleData) && roleData.length > 0) {
+          // Flat role (like Operations)
+          if (!aggregatedLevels[roleName]) {
+            aggregatedLevels[roleName] = [];
+          }
+          
+          roleData.forEach((monthData: any, monthIndex: number) => {
+            if (!aggregatedLevels[roleName][monthIndex]) {
+              aggregatedLevels[roleName][monthIndex] = {
+                total: 0,
+                recruited: 0,
+                churned: 0,
+                progressed_in: 0,
+                progressed_out: 0,
+                price: monthData.price || 0,
+                salary: monthData.salary || 0,
+                utr: monthData.utr || 0
+              };
+            }
+            
+            const aggregated = aggregatedLevels[roleName][monthIndex];
+            aggregated.total += monthData.total || 0;
+            aggregated.recruited += monthData.recruited || 0;
+            aggregated.churned += monthData.churned || 0;
+            aggregated.progressed_in += monthData.progressed_in || 0;
+            aggregated.progressed_out += monthData.progressed_out || 0;
+          });
+        }
+      });
+    });
+    
+    return { levels: aggregatedLevels };
+  };
+
   const renderOfficeData = () => {
     if (!simulationData?.years?.[selectedYear]?.offices) return null;
 
     const offices = simulationData.years[selectedYear].offices;
     const officeNames = Object.keys(offices);
 
-    // Prepare table data for the selected office
+    // Prepare table data for the selected office or aggregated data
     const getTableData = () => {
-      if (!selectedOffice || !offices[selectedOffice]?.levels) return [];
+      let officeData: any;
+      
+      if (selectedOffice === 'All Offices') {
+        // Use aggregated data
+        officeData = aggregateOfficesData(offices);
+      } else {
+        // Use individual office data
+        if (!selectedOffice || !offices[selectedOffice]?.levels) return [];
+        officeData = offices[selectedOffice];
+      }
 
-      const officeData = offices[selectedOffice];
       const tableData: any[] = [];
 
       Object.entries(officeData.levels).forEach(([roleName, roleData]: [string, any]) => {
@@ -296,13 +382,14 @@ const OfficeDetails: React.FC<OfficeDetailsProps> = ({
             onChange={setSelectedOffice}
             style={{ width: 200, marginLeft: 8 }}
           >
+            <Option key="all" value="All Offices">All Offices</Option>
             {officeNames.map(name => (
               <Option key={name} value={name}>{name}</Option>
             ))}
           </Select>
         </div>
 
-        {selectedOffice && offices[selectedOffice] && (
+        {selectedOffice && (
           <div>
             <div style={{ marginBottom: 16 }}>
               <Title level={4}>{selectedOffice} - {selectedYear}</Title>

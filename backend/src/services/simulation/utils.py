@@ -114,11 +114,12 @@ def determine_level_order(config_data: list) -> list:
             if role_name != 'Operations':
                 levels.update(role_data.keys())
     
-    # Use a standard, sorted progression path
-    standard_order = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP']
+    # Use the actual level order from the configuration
+    # This matches the order in office_configuration.json
+    actual_order = ['A', 'AC', 'AM', 'C', 'SrC', 'M', 'SrM', 'PiP']
     
-    # Filter and sort found levels according to the standard order
-    sorted_levels = [level for level in standard_order if level in levels]
+    # Filter and sort found levels according to the actual order
+    sorted_levels = [level for level in actual_order if level in levels]
     
     return sorted_levels
 

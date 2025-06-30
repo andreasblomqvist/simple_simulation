@@ -123,6 +123,26 @@ const KPIDisplays: React.FC<KPIDisplaysProps> = ({
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
                 <Title level={4} style={{ margin: 0, color: token.colorSuccess }}>
+                  {growth.total_growth_absolute > 0 ? '+' : ''}{growth.total_growth_absolute}
+                </Title>
+                <Text type="secondary">FTE Growth vs Start</Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <div style={{ textAlign: 'center' }}>
+                <Title level={4} style={{ margin: 0, color: token.colorWarning }}>
+                  {growth.total_growth_percent > 0 ? '+' : ''}{growth.total_growth_percent.toFixed(1)}%
+                </Title>
+                <Text type="secondary">FTE Growth % vs Start</Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <div style={{ textAlign: 'center' }}>
+                <Title level={4} style={{ margin: 0, color: token.colorInfo }}>
                   {growth.non_debit_ratio.toFixed(1)}%
                 </Title>
                 <Text type="secondary">Non-Debit Ratio</Text>

@@ -4,52 +4,61 @@
 Write-Host "SimpleSim Server Restart Script (Windows)"
 Write-Host "========================================="
 
-# Function to kill processes by name
+# Set the correct Python path where packages are installed
+$pythonPath = "C:\Users\andre\AppData\Local\Programs\Python\Python313\python.exe"
+
+# Function to kill processes by name with better error handling
 function Kill-ByName {
     param($name)
-    $procs = Get-Process | Where-Object { $_.ProcessName -like $name }
-    foreach ($proc in $procs) {
-        Write-Host "Killing process: $($proc.ProcessName) (PID $($proc.Id))"
-        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    try {
+        $procs = Get-Process | Where-Object { $_.ProcessName -like $name } -ErrorAction SilentlyContinue
+        if ($procs) {
+            foreach ($proc in $procs) {
+                Write-Host "Killing process: $($proc.ProcessName) (PID $($proc.Id))"
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            }
+        } else {
+            Write-Host "No processes found matching: $name"
+        }
+    } catch {
+        Write-Host "Error killing processes matching $name : $($_.Exception.Message)"
     }
 }
 
-# Function to kill processes by port
+# Function to kill processes by port with better error handling
 function Kill-ByPort {
     param($port)
-    $conns = netstat -ano | Select-String ":$port"
-    foreach ($conn in $conns) {
-        $procId = ($conn -split '\s+')[-1]
-        if ($procId -match '^\d+$') {
-            Write-Host "Killing process on port $port (PID $procId)"
-            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    try {
+        $conns = netstat -ano 2>$null | Select-String ":$port\s" -ErrorAction SilentlyContinue
+        if ($conns) {
+            foreach ($conn in $conns) {
+                $parts = $conn -split '\s+'
+                $procId = $parts[-1]
+                if ($procId -match '^\d+$') {
+                    Write-Host "Killing process on port $port (PID $procId)"
+                    Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+                }
+            }
+        } else {
+            Write-Host "No processes found on port: $port"
         }
-    }
-}
-
-# Function to check if a port is in use
-function Test-Port {
-    param($port)
-    try {
-        $conn = netstat -ano | Select-String ":$port\s"
-        return $conn -ne $null
     } catch {
-        return $false
+        Write-Host "Error checking port $port : $($_.Exception.Message)"
     }
 }
 
-# Function to test health endpoint
+# Function to test health endpoint with timeout
 function Test-HealthEndpoint {
-    param($url)
+    param($url, $timeout = 3)
     try {
-        $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 3 -ErrorAction Stop
+        $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec $timeout -ErrorAction Stop
         return $true
     } catch {
         return $false
     }
 }
 
-# Step 1: Kill existing server processes
+# Step 1: Kill existing server processes (with better error handling)
 Write-Host "Killing existing server processes..."
 Kill-ByName "uvicorn*"
 Kill-ByName "python*"
@@ -64,24 +73,58 @@ foreach ($port in 3000,3001,3002,3003,8000,8001) {
 
 # Step 2: Clear Python cache
 Write-Host "Clearing Python cache..."
-Get-ChildItem -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Get-ChildItem -Recurse -Filter "*.pyc" | Remove-Item -Force -ErrorAction SilentlyContinue
+try {
+    Get-ChildItem -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Recurse -Filter "*.pyc" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Write-Host "Python cache cleared"
+} catch {
+    Write-Host "Error clearing Python cache: $($_.Exception.Message)"
+}
 
 # Step 3: Wait for processes to fully terminate
 Write-Host "Waiting for processes to terminate..."
-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 3
 
-# Step 4: Start backend server
+# Step 4: Check if we're in the right directory
+if (-not (Test-Path "backend")) {
+    Write-Host "ERROR: backend directory not found. Please run this script from the project root."
+    exit 1
+}
+
+if (-not (Test-Path "frontend")) {
+    Write-Host "ERROR: frontend directory not found. Please run this script from the project root."
+    exit 1
+}
+
+# Step 5: Verify Python and uvicorn are available
+Write-Host "Verifying Python and uvicorn installation..."
+try {
+    $uvicornVersion = & $pythonPath -m uvicorn --version 2>&1
+    Write-Host "✅ Using Python: $uvicornVersion"
+} catch {
+    Write-Host "ERROR: uvicorn not found. Please install requirements: pip install -r backend/requirements.txt"
+    exit 1
+}
+
+# Step 6: Start backend server in visible window
 Write-Host "Starting backend server..."
 $env:PYTHONPATH = "."
-$backend = Start-Process -FilePath "python" -ArgumentList @("-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000") -RedirectStandardOutput "backend_output.log" -RedirectStandardError "backend_error.log" -PassThru -WindowStyle Hidden
-$backendPid = $backend.Id
-Write-Host "Backend process started with PID: $backendPid"
 
-# Step 5: Wait for backend to start
+try {
+    $backend = Start-Process -FilePath $pythonPath -ArgumentList @("-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000") -PassThru -WindowStyle Normal
+    $backendPid = $backend.Id
+    Write-Host "Backend process started with PID: $backendPid in visible window"
+} catch {
+    Write-Host "ERROR: Failed to start backend server: $($_.Exception.Message)"
+    exit 1
+}
+
+# Step 7: Wait for backend to start (with better timeout handling)
 Write-Host "Waiting for backend to start..."
 $backendStarted = $false
-for ($i = 0; $i -lt 30; $i++) {
+$maxAttempts = 30
+
+for ($i = 0; $i -lt $maxAttempts; $i++) {
     Start-Sleep -Seconds 1
     
     # Check if process is still running
@@ -94,18 +137,19 @@ for ($i = 0; $i -lt 30; $i++) {
     
     # Test health endpoint
     if (Test-HealthEndpoint "http://localhost:8000/health") {
-        Write-Host "Backend server is running on http://localhost:8000"
+        Write-Host "✅ Backend server is running on http://localhost:8000"
         $backendStarted = $true
         break
     }
     
-    Write-Host "Waiting for backend... ($($i+1)/30)"
+    if (($i + 1) % 5 -eq 0) {
+        Write-Host "Waiting for backend... ($($i+1)/$maxAttempts)"
+    }
 }
 
 if (-not $backendStarted) {
-    Write-Host "ERROR: Backend server failed to start within 30 seconds"
+    Write-Host "ERROR: Backend server failed to start within $maxAttempts seconds"
     Write-Host "Backend PID: $backendPid"
-    Write-Host "Checking if process is still running..."
     try {
         $proc = Get-Process -Id $backendPid -ErrorAction Stop
         Write-Host "Backend process is running but not responding on health endpoint"
@@ -116,9 +160,24 @@ if (-not $backendStarted) {
     exit 1
 }
 
-# Step 6: Start frontend server
+# Step 8: Start frontend server in visible window
 Write-Host "Starting frontend server..."
 Push-Location frontend
+
+# Check if package.json exists
+if (-not (Test-Path "package.json")) {
+    Write-Host "ERROR: package.json not found in frontend directory"
+    Pop-Location
+    exit 1
+}
+
+# Check if dev script exists
+$packageJson = Get-Content "package.json" | ConvertFrom-Json
+if (-not $packageJson.scripts.dev) {
+    Write-Host "ERROR: 'dev' script not found in package.json"
+    Pop-Location
+    exit 1
+}
 
 # Clear Vite cache first
 if (Test-Path "node_modules/.vite") {
@@ -128,18 +187,26 @@ if (Test-Path "dist") {
     Remove-Item -Recurse -Force "dist" -ErrorAction SilentlyContinue
 }
 
-# Start frontend with proper error handling
-$frontend = Start-Process -FilePath "npm" -ArgumentList @("run", "dev") -PassThru -WindowStyle Hidden
-$frontendPid = $frontend.Id
-Write-Host "Frontend process started with PID: $frontendPid"
+# Start frontend with proper error handling in visible window
+try {
+    $frontend = Start-Process -FilePath "npm" -ArgumentList @("run", "dev") -PassThru -WindowStyle Normal
+    $frontendPid = $frontend.Id
+    Write-Host "Frontend process started with PID: $frontendPid in visible window"
+} catch {
+    Write-Host "ERROR: Failed to start frontend server: $($_.Exception.Message)"
+    Pop-Location
+    exit 1
+}
+
 Pop-Location
 
-# Step 7: Wait for frontend to start (longer wait for Vite)
+# Step 9: Wait for frontend to start (with better detection)
 Write-Host "Waiting for frontend to start (this may take up to 60 seconds)..."
 $frontendStarted = $false
 $frontendPort = $null
+$maxAttempts = 60
 
-for ($i = 0; $i -lt 60; $i++) {
+for ($i = 0; $i -lt $maxAttempts; $i++) {
     Start-Sleep -Seconds 1
     
     # Check if frontend process is still running
@@ -153,9 +220,9 @@ for ($i = 0; $i -lt 60; $i++) {
     # Try to find which port the frontend is using
     foreach ($port in 3000,3001,3002,3003) {
         try {
-            $response = Invoke-WebRequest -Uri "http://localhost:$port" -UseBasicParsing -TimeoutSec 2
+            $response = Invoke-WebRequest -Uri "http://localhost:$port" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
             if ($response.StatusCode -eq 200) {
-                Write-Host "Frontend server is running on http://localhost:$port"
+                Write-Host "✅ Frontend server is running on http://localhost:$port"
                 $frontendStarted = $true
                 $frontendPort = $port
                 break
@@ -168,14 +235,13 @@ for ($i = 0; $i -lt 60; $i++) {
     }
     
     if (($i + 1) % 10 -eq 0) {
-        Write-Host "Still waiting for frontend... ($($i+1)/60)"
+        Write-Host "Still waiting for frontend... ($($i+1)/$maxAttempts)"
     }
 }
 
 if (-not $frontendStarted) {
-    Write-Host "ERROR: Frontend server failed to start within 60 seconds"
+    Write-Host "ERROR: Frontend server failed to start within $maxAttempts seconds"
     Write-Host "Frontend PID: $frontendPid"
-    Write-Host "Checking if process is still running..."
     try {
         $proc = Get-Process -Id $frontendPid -ErrorAction Stop
         Write-Host "Frontend process is still running but not responding on expected ports"
@@ -188,8 +254,10 @@ if (-not $frontendStarted) {
 
 Write-Host ""
 Write-Host "✅ Server restart complete!"
-Write-Host "Backend: http://localhost:8000 (PID: $backendPid)"
-Write-Host "Frontend: http://localhost:$frontendPort (PID: $frontendPid)"
+Write-Host "Backend: http://localhost:8000 (PID: $backendPid) - Running in visible window"
+Write-Host "Frontend: http://localhost:$frontendPort (PID: $frontendPid) - Running in visible window"
+Write-Host ""
+Write-Host "Both servers are now running in separate terminal windows where you can see their output."
 Write-Host ""
 Write-Host "To stop servers manually:"
 Write-Host "   Backend: Stop-Process -Id $backendPid"

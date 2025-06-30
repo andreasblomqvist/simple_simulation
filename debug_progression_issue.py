@@ -1,86 +1,83 @@
 #!/usr/bin/env python3
 """
-Debug script to investigate progression logic issues.
+Debug script to test promotion logic and identify where people are being lost
 """
 
 import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
-
+sys.path.append('.')
 from backend.src.services.simulation_engine import SimulationEngine
 from backend.src.services.config_service import ConfigService
 
 def debug_progression_issue():
-    """Debug the progression logic issue"""
-    print("🔍 Debugging progression logic issue...")
+    """Debug the promotion logic to find where people are being lost"""
     
-    # Initialize services
+    print("🔍 PROGRESSION LOGIC DEBUG")
+    print("=" * 50)
+    
+    # Run a short simulation with detailed logging
+    engine = SimulationEngine()
+    
+    # Get initial state
     config_service = ConfigService()
-    engine = SimulationEngine(config_service)
+    config = config_service.get_configuration()
+    starting_fte = sum(office.get('total_fte', 0) for office in config.values())
+    print(f"📊 Starting FTE: {starting_fte}")
     
-    # Check if offices are initialized
-    print(f"📊 Number of offices: {len(engine.offices)}")
+    # Run simulation for just 1 year to see what happens
+    results = engine.run_simulation(2025, 1, 2025, 12)
     
-    # Check each office and its levels
-    total_people = 0
+    # Check final state
+    final_fte = sum(office.total_fte for office in engine.offices.values())
+    print(f"📊 Final FTE: {final_fte}")
+    print(f"📊 Net change: {final_fte - starting_fte}")
+    
+    # Check each office
+    print("\n📋 Office breakdown:")
     for office_name, office in engine.offices.items():
-        print(f"\n🏢 Office: {office_name}")
-        print(f"   Total FTE: {office.total_fte}")
+        print(f"  {office_name}: {office.total_fte}")
         
+        # Check each role
         for role_name, role_data in office.roles.items():
             if isinstance(role_data, dict):  # Leveled roles
-                print(f"   📋 Role: {role_name} (leveled)")
+                role_total = sum(level.total for level in role_data.values())
+                print(f"    {role_name}: {role_total}")
                 for level_name, level in role_data.items():
-                    people_count = len(level.people)
-                    total_people += people_count
-                    print(f"     - {level_name}: {people_count} people")
-                    
-                    # Check progression rates
-                    progression_1 = getattr(level, 'progression_1', 0.0)
-                    progression_6 = getattr(level, 'progression_6', 0.0)
-                    print(f"       Progression rates: Jan={progression_1:.1%}, Jun={progression_6:.1%}")
-                    
-                    # Check if people are eligible for progression
-                    if people_count > 0:
-                        eligible = level.get_eligible_for_progression("2025-01")
-                        print(f"       Eligible for progression: {len(eligible)}/{people_count}")
-                        
-                        # Check CAT categories
-                        if len(eligible) > 0:
-                            sample_person = eligible[0]
-                            cat = sample_person.get_cat_category("2025-01")
-                            prob = sample_person.get_progression_probability("2025-01", progression_1, level_name)
-                            print(f"       Sample CAT: {cat}, Progression probability: {prob:.1%}")
+                    print(f"      {level_name}: {level.total}")
             else:  # Flat roles
-                people_count = len(role_data.people)
-                total_people += people_count
-                print(f"   📋 Role: {role_name} (flat): {people_count} people")
+                print(f"    {role_name}: {role_data.total}")
     
-    print(f"\n📊 Total people across all offices: {total_people}")
+    # Check event log
+    print("\n📋 Event log summary:")
+    event_logger = engine.workforce_manager.get_event_logger()
+    if event_logger:
+        events = event_logger.get_all_events()
+        recruitment_count = len([e for e in events if e.event_type.value == 'recruitment'])
+        churn_count = len([e for e in events if e.event_type.value == 'churn'])
+        promotion_count = len([e for e in events if e.event_type.value == 'promotion'])
+        
+        print(f"  Recruitments: {recruitment_count}")
+        print(f"  Churn: {churn_count}")
+        print(f"  Promotions: {promotion_count}")
+        
+        # Check if promotions are being logged correctly
+        if promotion_count > 0:
+            print(f"  Promotion details:")
+            for event in events:
+                if event.event_type.value == 'promotion':
+                    print(f"    {event.date}: {event.from_level} -> {event.to_level} ({event.office})")
     
-    if total_people == 0:
-        print("❌ PROBLEM: No people in any levels! This is why progression isn't working.")
-        print("   The levels need to be populated with people during initialization.")
-        return False
+    # Calculate expected FTE
+    expected_fte = starting_fte + recruitment_count - churn_count
+    print(f"\n📊 Expected FTE (start + recruits - churn): {expected_fte}")
+    print(f"📊 Actual FTE: {final_fte}")
+    print(f"📊 Discrepancy: {final_fte - expected_fte}")
     
-    # Test progression logic directly
-    print("\n🧪 Testing progression logic directly...")
-    for office_name, office in engine.offices.items():
-        for role_name, role_data in office.roles.items():
-            if isinstance(role_data, dict):  # Leveled roles
-                for level_name, level in role_data.items():
-                    if len(level.people) > 0:
-                        print(f"   Testing {office_name}.{role_name}.{level_name}")
-                        
-                        # Test progression
-                        progression_rate = getattr(level, 'progression_1', 0.0)
-                        if progression_rate > 0:
-                            promoted = level.apply_cat_based_progression(progression_rate, "2025-01")
-                            print(f"     Applied progression rate {progression_rate:.1%}: {len(promoted)} people promoted")
-                        else:
-                            print(f"     No progression rate set (rate: {progression_rate:.1%})")
-    
-    return True
+    if final_fte != expected_fte:
+        print(f"\n❌ PEOPLE ARE BEING LOST!")
+        print(f"   The discrepancy of {expected_fte - final_fte} people suggests:")
+        print(f"   1. People are being removed during promotions but not logged")
+        print(f"   2. People are being lost in the promotion transfer logic")
+        print(f"   3. There's a bug in the workforce management code")
 
 if __name__ == "__main__":
     debug_progression_issue() 

@@ -42,6 +42,22 @@ class YearComparisonRequest(BaseModel):
     year2: int
     include_monthly_data: Optional[bool] = False
 
+class CatProgressionData(BaseModel):
+    """CAT progression data structure"""
+    key: str
+    level: str
+    CAT0: Optional[float] = 0.0
+    CAT6: Optional[float] = 0.0
+    CAT12: Optional[float] = 0.0
+    CAT18: Optional[float] = 0.0
+    CAT24: Optional[float] = 0.0
+    CAT30: Optional[float] = 0.0
+    CAT36: Optional[float] = 0.0
+    CAT42: Optional[float] = 0.0
+    CAT48: Optional[float] = 0.0
+    CAT54: Optional[float] = 0.0
+    CAT60: Optional[float] = 0.0
+
 def _build_lever_plan(office_overrides: Dict[str, Dict[str, Any]]) -> Dict:
     """Convert office overrides to lever plan format"""
     lever_plan = {}
@@ -529,4 +545,96 @@ def export_simulation_to_excel(params: SimulationRequest):
         print(f"❌ [EXPORT] Excel export failed: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Excel export failed: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Excel export failed: {str(e)}")
+
+@router.get("/system/cat-progression")
+def get_cat_progression():
+    """Get CAT progression data from progression_config.py"""
+    try:
+        from backend.config.progression_config import CAT_CURVES
+        
+        # Convert CAT_CURVES to the format expected by frontend
+        cat_data = []
+        for level, cat_curves in CAT_CURVES.items():
+            row_data = {
+                'key': level,
+                'level': level,
+            }
+            # Add all CAT categories
+            for cat in ['CAT0', 'CAT6', 'CAT12', 'CAT18', 'CAT24', 'CAT30', 'CAT36', 'CAT42', 'CAT48', 'CAT54', 'CAT60']:
+                row_data[cat] = cat_curves.get(cat, 0.0)
+            
+            cat_data.append(row_data)
+        
+        return cat_data
+        
+    except Exception as e:
+        print(f"❌ [CAT] Failed to get CAT progression data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get CAT progression data: {str(e)}")
+
+@router.post("/system/cat-progression")
+def update_cat_progression(cat_data: List[CatProgressionData]):
+    """Update CAT progression data in progression_config.py"""
+    try:
+        from backend.config.progression_config import CAT_CURVES
+        
+        # Convert frontend data back to CAT_CURVES format
+        updated_cat_curves = {}
+        for row in cat_data:
+            level = row.level
+            updated_cat_curves[level] = {}
+            
+            # Add all CAT categories
+            for cat in ['CAT0', 'CAT6', 'CAT12', 'CAT18', 'CAT24', 'CAT30', 'CAT36', 'CAT42', 'CAT48', 'CAT54', 'CAT60']:
+                value = getattr(row, cat, 0.0)
+                if value is not None:
+                    updated_cat_curves[level][cat] = value
+        
+        # Update the CAT_CURVES in the progression_config module
+        import backend.config.progression_config as progression_config
+        progression_config.CAT_CURVES = updated_cat_curves
+        
+        # Write the updated configuration back to the file
+        config_file_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'progression_config.py')
+        
+        # Read the current file content
+        with open(config_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Generate the new CAT_CURVES content
+        cat_curves_content = "CAT_CURVES = {\n"
+        for level, cat_curves in updated_cat_curves.items():
+            cat_curves_content += f"    '{level}': {{"
+            cat_items = []
+            for cat, value in cat_curves.items():
+                cat_items.append(f"'{cat}': {value}")
+            cat_curves_content += ", ".join(cat_items)
+            cat_curves_content += "},\n"
+        cat_curves_content += "}"
+        
+        # Replace the existing CAT_CURVES section in the file
+        import re
+        # Find the CAT_CURVES section and replace it
+        pattern = r'CAT_CURVES\s*=\s*\{[^}]*\}'
+        if re.search(pattern, content, re.DOTALL):
+            # Replace existing CAT_CURVES
+            new_content = re.sub(pattern, cat_curves_content, content, flags=re.DOTALL)
+        else:
+            # Add CAT_CURVES at the end of the file
+            new_content = content + "\n\n" + cat_curves_content
+        
+        # Write the updated content back to the file
+        with open(config_file_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        
+        print(f"✅ [CAT] CAT progression data updated successfully and saved to file")
+        print(f"[CAT] Updated levels: {list(updated_cat_curves.keys())}")
+        print(f"[CAT] File updated: {config_file_path}")
+        
+        return {"message": "CAT progression data updated successfully and saved to file", "updated_levels": list(updated_cat_curves.keys())}
+        
+    except Exception as e:
+        print(f"❌ [CAT] Failed to update CAT progression data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to update CAT progression data: {str(e)}") 

@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month
-from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name
+from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name, determine_level_order
 import logging
 import uuid
 from backend.src.services.simulation.event_logger import EventLogger
@@ -113,15 +113,25 @@ class WorkforceManager:
                 # Handle promotions to next levels
                 promoted_into_levels = {level_name: 0 for level_name in role_data.keys()}
                 for level_name, promoted_people in promotions_this_month.items():
-                    # Find next level
-                    level_order = list(role_data.keys())
+                    # Find next level using proper level order
+                    level_order = determine_level_order([{'roles': {role_name: role_data}}])
                     next_level_name = get_next_level_name(level_name, level_order)
                     next_level = role_data.get(next_level_name) if next_level_name else None
                     if next_level:
                         for person, _, _ in promoted_people:
                             next_level.add_promotion(person, current_date_str)
                         promoted_into_levels[next_level_name] = len(promoted_people)
-                    # else: top level, people leave the cohort
+                    else:
+                        # Top level - people graduate/leave the cohort
+                        # Log these as churn events so they don't disappear without tracking
+                        for person, _, _ in promoted_people:
+                            self.event_logger.log_churn(
+                                person=person,
+                                current_date=current_date_str,
+                                role=role_name,
+                                office=office.name,
+                                churn_rate=None  # Graduation, not churn
+                            )
                 
                 # Store promotion metrics for each level in the correct nested structure
                 for level_name, level in role_data.items():
