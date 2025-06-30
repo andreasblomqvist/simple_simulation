@@ -24,6 +24,7 @@ interface SimulationResults {
   years: Record<string, any>;
   summary: any;
   kpis: any;
+  result_file?: string; // Optional field for the saved result filename
 }
 
 interface YearNavigationRequest {
@@ -136,6 +137,36 @@ class SimulationApiService {
     }
 
     return response.json();
+  }
+
+  /**
+   * Download a simulation result file
+   */
+  async downloadSimulationFile(filename: string): Promise<void> {
+    const response = await fetch(`/api/simulation/download/${filename}`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+
+    // Create a blob from the response
+    const blob = await response.blob();
+    
+    // Create a download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 
   /**

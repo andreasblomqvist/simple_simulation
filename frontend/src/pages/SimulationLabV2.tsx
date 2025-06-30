@@ -304,29 +304,28 @@ const SimulationLabV2: React.FC = () => {
   };
 
   const handleExportSimulation = async () => {
-    if (!lastSimulationConfig) {
-      message.error('No simulation has been run yet. Please run a simulation first.');
+    if (!simulationResults) {
+      message.error('No simulation results to export');
       return;
     }
 
     try {
       setExportLoading(true);
+      console.log('[SIMULATION] 📊 Starting Excel export...');
       
-      // Use the same parameters as the last simulation (already in correct decimal format)
+      // Use the same parameters as the last simulation run
       const exportParams = {
-        start_year: lastSimulationConfig.start_year,
-        start_month: lastSimulationConfig.start_month,
-        end_year: lastSimulationConfig.end_year,
-        end_month: lastSimulationConfig.end_month,
-        price_increase: lastSimulationConfig.price_increase, // Already in decimal format
-        salary_increase: lastSimulationConfig.salary_increase, // Already in decimal format
-        unplanned_absence: lastSimulationConfig.unplanned_absence, // Already in decimal format
-        hy_working_hours: lastSimulationConfig.hy_working_hours,
-        other_expense: lastSimulationConfig.other_expense,
-        office_overrides: lastSimulationConfig.office_overrides
+        start_year: parseInt(activeYear),
+        start_month: 1,
+        end_year: parseInt(activeYear) + Math.ceil(simulationDuration / 12),
+        end_month: simulationDuration % 12 || 12,
+        price_increase: priceIncrease / 100,
+        salary_increase: salaryIncrease / 100,
+        unplanned_absence: unplannedAbsence / 100,
+        hy_working_hours: workingHours,
+        other_expense: otherExpense,
+        office_overrides: lastSimulationConfig?.office_overrides || {}
       };
-
-      console.log('[EXPORT] Starting Excel export with params:', exportParams);
 
       const response = await fetch('/api/simulation/export/excel', {
         method: 'POST',
@@ -337,37 +336,38 @@ const SimulationLabV2: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Export failed: ${errorText}`);
+        throw new Error(`Export failed: ${response.statusText}`);
       }
 
-      // Create blob and download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
-      // Get filename from Content-Disposition header or use default
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = 'SimulationExport.xlsx';
-      if (contentDisposition && contentDisposition.includes('filename=')) {
-        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
-      }
-      
-      link.download = filename;
+      link.download = `simulation_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      message.success(`Simulation results exported successfully as ${filename}`);
-      console.log('[EXPORT] ✅ Excel export completed successfully');
-
+      message.success('Excel export completed successfully!');
+      console.log('[SIMULATION] ✅ Excel export completed');
     } catch (error) {
-      console.error('[EXPORT] ❌ Export failed:', error);
-      message.error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('[SIMULATION] ❌ Excel export failed:', error);
+      message.error('Excel export failed. Please try again.');
     } finally {
       setExportLoading(false);
+    }
+  };
+
+  const handleDownloadJsonFile = async (filename: string) => {
+    try {
+      console.log(`[SIMULATION] 📥 Downloading JSON file: ${filename}`);
+      await simulationApi.downloadSimulationFile(filename);
+      message.success('JSON file downloaded successfully!');
+      console.log('[SIMULATION] ✅ JSON download completed');
+    } catch (error) {
+      console.error('[SIMULATION] ❌ JSON download failed:', error);
+      message.error('Failed to download JSON file. Please try again.');
     }
   };
 
@@ -1195,6 +1195,33 @@ const SimulationLabV2: React.FC = () => {
                 <TabPane tab={`Year ${year} ${year === activeYear ? '(Active)' : ''}`} key={year} />
               ))}
             </Tabs>
+            
+            {/* Result File Information */}
+            {simulationResults?.result_file && (
+              <Alert
+                message="Simulation Results Saved"
+                description={
+                  <div>
+                    <p>Results have been saved to: <strong>{simulationResults.result_file}</strong></p>
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                      You can use this filename to verify the simulation using the analysis scripts.
+                    </p>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      onClick={() => handleDownloadJsonFile(simulationResults.result_file!)}
+                      style={{ marginTop: '8px' }}
+                    >
+                      Download JSON File
+                    </Button>
+                  </div>
+                }
+                type="success"
+                showIcon
+                style={{ marginBottom: '16px' }}
+              />
+            )}
           </div>
         ) : (
           <div style={{ 

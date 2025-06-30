@@ -1,16 +1,18 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
 from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.cache_service import simulation_cache
 from backend.src.services.excel_export_service import ExcelExportService
+from backend.src.services.json_export_service import JSONExportService
 from datetime import datetime
 from backend.src.services.config_service import config_service
 import io
 import tempfile
 import os
+import json
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
@@ -208,6 +210,17 @@ def run_simulation(params: SimulationRequest):
         print(f"✅ [SIMULATION] Completed successfully! Duration: {simulation_duration_months} months")
         print(f"[SIMULATION] Years in results: {list(results['years'].keys())}")
         print(f"[SIMULATION] =================== SIMULATION COMPLETE ===================\n")
+        
+        # Save results to file and get filename
+        result_filename = _save_simulation_results_to_file(results)
+        
+        # Add filename to response if available
+        if result_filename:
+            results['result_file'] = result_filename
+            print(f"📁 [SIMULATION] Result file: {result_filename}")
+        else:
+            results['result_file'] = None
+            print(f"⚠️ [SIMULATION] Could not save result file")
         
         return results
     
@@ -547,6 +560,153 @@ def export_simulation_to_excel(params: SimulationRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Excel export failed: {str(e)}")
 
+@router.get("/download/{filename}")
+def download_simulation_file(filename: str):
+    """Download a simulation result file"""
+    try:
+        # Validate filename to prevent directory traversal
+        if not filename.startswith("simulation_results_") or not filename.endswith(".json"):
+            raise HTTPException(status_code=400, detail="Invalid filename format")
+        
+        # Construct file path
+        filepath = os.path.join(os.getcwd(), filename)
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Return file as download
+        return FileResponse(
+            path=filepath,
+            filename=filename,
+            media_type="application/json"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ [DOWNLOAD] Failed to download file {filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+
+@router.post("/export/json")
+def export_simulation_to_json(params: SimulationRequest, scenario_metadata: Optional[Dict[str, Any]] = None):
+    """Export comprehensive simulation results to JSON format"""
+    try:
+        print(f"\n🚀 [JSON EXPORT] =================== NEW JSON EXPORT ===================")
+        print(f"[JSON EXPORT] 📅 Timeframe: {params.start_year}-{params.start_month:02d} to {params.end_year}-{params.end_month:02d}")
+        print(f"[JSON EXPORT] 📊 Economic Parameters:")
+        print(f"[JSON EXPORT]   💰 Price Increase: {params.price_increase:.1%}")
+        print(f"[JSON EXPORT]   💵 Salary Increase: {params.salary_increase:.1%}")
+        print(f"[JSON EXPORT]   🕒 Working Hours/Month: {params.hy_working_hours}")
+        print(f"[JSON EXPORT]   😴 Unplanned Absence: {params.unplanned_absence:.1%}")
+        print(f"[JSON EXPORT]   🏭 Employment Cost Rate: {params.employment_cost_rate:.1%}")
+        print(f"[JSON EXPORT]   📋 Other Expense: {params.other_expense:,} SEK/month")
+        
+        # Parse office overrides (lever plan) - same logic as Excel export
+        lever_plan = None
+        if params.office_overrides:
+            office_levers = {}
+            total_overrides = 0
+            print(f"[JSON EXPORT] 🎛️  Office Overrides Applied:")
+            for office_name, office_lever_data in params.office_overrides.items():
+                office_levers[office_name] = {}
+                office_override_count = 0
+                for lever_key, lever_value in office_lever_data.items():
+                    # Parse lever key like "recruitment_AM" -> role="Consultant", level="AM", attribute="recruitment"
+                    if '_' in lever_key:
+                        parts = lever_key.split('_')
+                        if len(parts) == 2:
+                            attribute, level = parts
+                            # Default to Consultant role for level-based overrides
+                            role = "Consultant"
+                            
+                            if role not in office_levers[office_name]:
+                                office_levers[office_name][role] = {}
+                            if level not in office_levers[office_name][role]:
+                                office_levers[office_name][role][level] = {}
+                            
+                            # Apply to all 12 months
+                            for month in range(1, 13):
+                                office_levers[office_name][role][level][f"{attribute}_{month}"] = lever_value
+                            
+                            print(f"[JSON EXPORT]     📍 {office_name} → {role} {level} {attribute}: {lever_value:.1%}")
+                            office_override_count += 1
+                            total_overrides += 1
+                
+                if office_override_count == 0:
+                    print(f"[JSON EXPORT]     📍 {office_name} → No overrides")
+            
+            # Wrap office levers in the expected structure
+            lever_plan = {
+                "offices": office_levers
+            }
+            
+            print(f"[JSON EXPORT] 🎛️  Total Lever Overrides: {total_overrides}")
+        else:
+            print(f"[JSON EXPORT] 🎛️  Office Overrides: None (using default config)")
+        
+        print(f"[JSON EXPORT] ================================================================\n")
+        
+        # Reset engine state for fresh simulation
+        engine.reset_simulation_state()
+        
+        # Create economic parameters from frontend request  
+        economic_params = EconomicParameters.from_simulation_request(params)
+        
+        # Run the simulation
+        results = engine.run_simulation(
+            start_year=params.start_year,
+            start_month=params.start_month,
+            end_year=params.end_year,
+            end_month=params.end_month,
+            price_increase=params.price_increase,
+            salary_increase=params.salary_increase,
+            lever_plan=lever_plan,
+            economic_params=economic_params
+        )
+        
+        print(f"✅ [JSON EXPORT] Simulation completed, generating comprehensive JSON...")
+        
+        # Create JSON export service
+        json_export_service = JSONExportService()
+        
+        # Generate comprehensive JSON results
+        comprehensive_results = json_export_service.export_simulation_results(
+            simulation_results=results,
+            scenario_metadata=scenario_metadata
+        )
+        
+        print(f"✅ [JSON EXPORT] Comprehensive JSON generated successfully")
+        print(f"[JSON EXPORT] Data sections included:")
+        print(f"[JSON EXPORT]   📊 Metadata")
+        print(f"[JSON EXPORT]   📅 Time series data")
+        print(f"[JSON EXPORT]   📈 Summary metrics")
+        print(f"[JSON EXPORT]   📝 Event data")
+        print(f"[JSON EXPORT]   🎯 KPI data")
+        print(f"[JSON EXPORT]   🏢 Office analysis")
+        print(f"[JSON EXPORT]   📋 Level analysis")
+        print(f"[JSON EXPORT]   🚀 Journey analysis")
+        print(f"[JSON EXPORT]   🔄 Movement analysis")
+        
+        # Save comprehensive results to file
+        result_filename = _save_simulation_results_to_file(comprehensive_results)
+        
+        # Add filename to response if available
+        if result_filename:
+            comprehensive_results['result_file'] = result_filename
+            print(f"📁 [JSON EXPORT] Result file: {result_filename}")
+        else:
+            comprehensive_results['result_file'] = None
+            print(f"⚠️ [JSON EXPORT] Could not save result file")
+        
+        return comprehensive_results
+        
+    except Exception as e:
+        print(f"❌ [JSON EXPORT] JSON export failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"JSON export failed: {str(e)}")
+
 @router.get("/system/cat-progression")
 def get_cat_progression():
     """Get CAT progression data from progression_config.py"""
@@ -637,4 +797,21 @@ def update_cat_progression(cat_data: List[CatProgressionData]):
         print(f"❌ [CAT] Failed to update CAT progression data: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to update CAT progression data: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to update CAT progression data: {str(e)}")
+
+def _save_simulation_results_to_file(results: Dict[str, Any]) -> str:
+    """Save simulation results to a JSON file and return the filename"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"simulation_results_{timestamp}.json"
+    
+    # Save to the project root directory
+    filepath = os.path.join(os.getcwd(), filename)
+    
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False, default=str)
+        print(f"✅ [SIMULATION] Results saved to: {filename}")
+        return filename
+    except Exception as e:
+        print(f"⚠️ [SIMULATION] Failed to save results to file: {e}")
+        return None 

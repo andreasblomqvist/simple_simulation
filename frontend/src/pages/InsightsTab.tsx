@@ -7,6 +7,8 @@ import {
   OfficeDetails,
   QuickScenarios 
 } from '../components/insights';
+import { useTheme } from '../components/ThemeContext';
+import { simulationApi } from '../services/simulationApi';
 
 const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
@@ -178,6 +180,18 @@ const InsightsTab: React.FC = () => {
     }
   };
 
+  const handleDownloadJsonFile = async (filename: string) => {
+    try {
+      console.log(`[INSIGHTS] 📥 Downloading JSON file: ${filename}`);
+      await simulationApi.downloadSimulationFile(filename);
+      message.success('JSON file downloaded successfully!');
+      console.log('[INSIGHTS] ✅ JSON download completed');
+    } catch (error) {
+      console.error('[INSIGHTS] ❌ JSON download failed:', error);
+      message.error('Failed to download JSON file. Please try again.');
+    }
+  };
+
   const formatNumber = (value: number) => {
     if (value >= 1000000) {
       return `${(value / 1000000).toFixed(1)}M SEK`;
@@ -259,6 +273,33 @@ const InsightsTab: React.FC = () => {
 
       {simulationData && !loading && (
         <>
+          {/* Result File Information */}
+          {simulationData?.result_file && (
+            <Alert
+              message="Simulation Results Saved"
+              description={
+                <div>
+                  <p>Results have been saved to: <strong>{simulationData.result_file}</strong></p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                    You can use this filename to verify the simulation using the analysis scripts.
+                  </p>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => handleDownloadJsonFile(simulationData.result_file!)}
+                    style={{ marginTop: '8px' }}
+                  >
+                    Download JSON File
+                  </Button>
+                </div>
+              }
+              type="success"
+              showIcon
+              style={{ marginBottom: '24px' }}
+            />
+          )}
+          
           {/* Year Selector - Always at the top */}
           {simulationData?.years && Object.keys(simulationData.years).length > 0 && (
             <Card size="small" style={{ marginBottom: 24, textAlign: 'center' }}>
