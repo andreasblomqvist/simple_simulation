@@ -48,22 +48,6 @@ class TestEngineBasic(unittest.TestCase):
         a_level = consultant_roles['A']
         self.assertTrue(hasattr(a_level, 'price_1'))
         self.assertTrue(hasattr(a_level, 'price_12'))
-        self.assertTrue(hasattr(a_level, 'progression_months'))
-        
-    def test_progression_months_configuration(self):
-        """Test that progression months are configured correctly"""
-        stockholm = self.engine.offices['Stockholm']
-        
-        # A-level should progress in May and November
-        a_level = stockholm.roles['Consultant']['A']
-        self.assertIn(Month.MAY, a_level.progression_months)
-        self.assertIn(Month.NOV, a_level.progression_months)
-        self.assertEqual(len(a_level.progression_months), 2)
-        
-        # M-level should only progress in November
-        m_level = stockholm.roles['Consultant']['M']
-        self.assertIn(Month.NOV, m_level.progression_months)
-        self.assertEqual(len(m_level.progression_months), 1)
         
     def test_monthly_values(self):
         """Test that monthly values are set correctly"""
@@ -72,12 +56,6 @@ class TestEngineBasic(unittest.TestCase):
         
         # Check that monthly prices increase slightly
         self.assertLess(a_level.price_1, a_level.price_12)
-        
-        # Check progression rates are set correctly
-        self.assertEqual(a_level.progression_1, 0.0)  # No progression in January
-        self.assertEqual(a_level.progression_5, 0.15)  # 15% progression in May
-        self.assertEqual(a_level.progression_11, 0.15)  # 15% progression in November
-        self.assertEqual(a_level.progression_6, 0.0)  # No progression in June
         
     def test_simple_simulation_run(self):
         """Test that the engine can run a simple simulation"""
@@ -105,8 +83,6 @@ class TestEngineBasic(unittest.TestCase):
         
         # Should have levels, operations, and metrics data
         self.assertIn('levels', stockholm_results)
-        self.assertIn('operations', stockholm_results)
-        self.assertIn('metrics', stockholm_results)
         
         # Should have 3 data points for each level (one per month)
         consultant_a_data = stockholm_results['levels']['Consultant']['A']

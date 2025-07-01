@@ -105,48 +105,5 @@ class TestMonthlySimulation(unittest.TestCase):
         self.assertIn('years', result)
 
 
-class TestProgressionLogic(unittest.TestCase):
-    
-    def setUp(self):
-        """Set up simulation engine for progression testing"""
-        self.engine = SimulationEngine()
-    
-    def test_m_level_progression_months(self):
-        """Test that M+ levels only progress in November"""
-        stockholm = self.engine.offices['Stockholm']
-        
-        # Check that M level exists and has correct progression schedule
-        if 'Consultant' in stockholm.roles and 'M' in stockholm.roles['Consultant']:
-            level_m = stockholm.roles['Consultant']['M']
-            
-            # Check that progression_months contains November
-            self.assertIn(Month.NOV, level_m.progression_months,
-                         "M level should have November as progression month")
-            
-            # Check that May is NOT in progression months for M level
-            # (This was the bug - M+ should only progress in November)
-            self.assertNotIn(Month.MAY, level_m.progression_months,
-                           "M level should NOT have May as progression month")
-        else:
-            # If M level doesn't exist with current FTE, test passes
-            self.assertTrue(True, "M level not present in current configuration")
-    
-    def test_a_level_progression_months(self):
-        """Test that A-AM levels progress in May and November"""
-        stockholm = self.engine.offices['Stockholm']
-        
-        # Check A level progression schedule
-        if 'Consultant' in stockholm.roles and 'A' in stockholm.roles['Consultant']:
-            level_a = stockholm.roles['Consultant']['A']
-            
-            # A levels should progress in both May and November
-            self.assertIn(Month.MAY, level_a.progression_months,
-                         "A level should have May as progression month")
-            self.assertIn(Month.NOV, level_a.progression_months,
-                         "A level should have November as progression month")
-        else:
-            self.assertTrue(True, "A level not present in current configuration")
-
-
 if __name__ == '__main__':
     unittest.main() 

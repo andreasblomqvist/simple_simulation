@@ -29,6 +29,86 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 debug_logger.addHandler(console_handler)
 
+def get_effective_recruitment_value(obj, month: int, current_fte: int) -> Tuple[int, str, Dict[str, Any]]:
+    """
+    Get effective recruitment value based on precedence rules.
+    Returns (value, method_used, details) where method_used is 'absolute' or 'percentage'.
+    """
+    # Check for absolute value first
+    abs_field = f"recruitment_abs_{month}"
+    abs_value = getattr(obj, abs_field, None)
+    
+    if abs_value is not None:
+        details = {
+            "method": "absolute",
+            "absolute_value": abs_value,
+            "percentage_value": getattr(obj, f"recruitment_{month}", None),
+            "current_fte": current_fte,
+            "field_used": abs_field
+        }
+        return int(abs_value), "absolute", details
+    
+    # Fall back to percentage calculation
+    pct_field = f"recruitment_{month}"
+    pct_value = getattr(obj, pct_field, 0.0)
+    calculated_value = int(pct_value * current_fte)
+    
+    details = {
+        "method": "percentage",
+        "absolute_value": None,
+        "percentage_value": pct_value,
+        "current_fte": current_fte,
+        "calculated_value": calculated_value,
+        "field_used": pct_field
+    }
+    
+    # Log warning if neither field is present
+    if pct_value == 0.0 and not hasattr(obj, pct_field):
+        debug_logger.warning(f"No recruitment value found for month {month}, using 0")
+        details["warning"] = f"No recruitment_{month} field found, defaulting to 0"
+    
+    return calculated_value, "percentage", details
+
+def get_effective_churn_value(obj, month: int, current_fte: int) -> Tuple[int, str, Dict[str, Any]]:
+    """
+    Get effective churn value based on precedence rules.
+    Returns (value, method_used, details) where method_used is 'absolute' or 'percentage'.
+    """
+    # Check for absolute value first
+    abs_field = f"churn_abs_{month}"
+    abs_value = getattr(obj, abs_field, None)
+    
+    if abs_value is not None:
+        details = {
+            "method": "absolute",
+            "absolute_value": abs_value,
+            "percentage_value": getattr(obj, f"churn_{month}", None),
+            "current_fte": current_fte,
+            "field_used": abs_field
+        }
+        return int(abs_value), "absolute", details
+    
+    # Fall back to percentage calculation
+    pct_field = f"churn_{month}"
+    pct_value = getattr(obj, pct_field, 0.0)
+    calculated_value = int(pct_value * current_fte)
+    
+    details = {
+        "method": "percentage",
+        "absolute_value": None,
+        "percentage_value": pct_value,
+        "current_fte": current_fte,
+        "calculated_value": calculated_value,
+        "field_used": pct_field
+    }
+    
+    # Log warning if neither field is present
+    if pct_value == 0.0 and not hasattr(obj, pct_field):
+        debug_logger.warning(f"No churn value found for month {month}, using 0")
+        details["warning"] = f"No churn_{month} field found, defaulting to 0"
+    
+    return calculated_value, "percentage", details
+
 @dataclass
 class WorkforceLevel:
     """Represents a workforce level with FTE and tenure tracking"""
@@ -41,7 +121,6 @@ class WorkforceLevel:
         # Add tenure months for new FTE (simplified: assume new hires have 0 tenure)
         for _ in range(int(amount)):
             self.tenure_months.append(tenure)
-        debug_logger.debug(f"  ADDED {amount:.2f} FTE (tenure={tenure}), new total: {self.fte:.2f}")
     
     def remove_fte(self, amount: float):
         """Remove FTE (simplified: remove from end of tenure list)"""
@@ -52,7 +131,6 @@ class WorkforceLevel:
         for _ in range(int(amount)):
             if self.tenure_months:
                 self.tenure_months.pop()
-        debug_logger.debug(f"  REMOVED {amount:.2f} FTE, new total: {self.fte:.2f}")
     
     def get_tenure_distribution(self) -> Dict[str, int]:
         """Get tenure distribution for progression calculations"""
@@ -141,34 +219,19 @@ class WorkforceManager:
         Process progression for all roles/levels in an office for the given month.
         Handles promotions and tracks movement between levels.
         """
-        debug_logger.info(f"\n{'='*60}")
-        debug_logger.info(f"PROCESSING PROGRESSION - {office.name} - {current_date_str}")
-        debug_logger.info(f"{'='*60}")
-        
-        logger = logging.getLogger("simplesim")  # Use same logger as main.py
-        run_id = getattr(self, 'run_id', 'NO_RUN_ID')
         for role_name, role_data in office.roles.items():
-            debug_logger.info(f"\n--- ROLE: {role_name} ---")
-            
             if isinstance(role_data, dict):  # Leveled roles
                 promotions_this_month = {}
                 for level_name, level in role_data.items():
-                    debug_logger.info(f"\n  LEVEL: {level_name}")
-                    debug_logger.info(f"    Starting FTE: {level.total:.2f}")
-                    
                     # Check if this is a progression month for this level
                     if level.is_progression_month(current_month_enum.value):
-                        debug_logger.info(f"    PROGRESSION MONTH - Processing...")
-                        
                         eligible = len(level.get_eligible_for_progression(current_date_str))
-                        debug_logger.info(f"    Eligible for progression: {eligible}")
                         
                         if eligible > 0:
                             promotions = level.apply_cat_based_progression(current_date_str)
                             if promotions:
                                 promotions_this_month[level_name] = promotions
                                 promoted = len(promotions)
-                                debug_logger.info(f"    Promotions applied: {promoted}")
                                 
                                 # Store detailed promotion info for test script
                                 if 'promotion_details' not in monthly_office_metrics[office.name][current_date_str]:
@@ -196,36 +259,23 @@ class WorkforceManager:
                                             progression_probability=None  # Could be calculated if needed
                                         )
                         else:
-                            debug_logger.info(f"    No eligible people for progression")
+                            pass
                     else:
-                        debug_logger.info(f"    Not a progression month for this level")
+                        pass
                     
-                    debug_logger.info(f"    FTE after progression: {level.total:.2f}")
-                    
-                    # Track progression metrics
-                    # Note: Progression metrics are stored in the nested structure below, not in flat structure
-                    # The flat structure was incorrect and caused the 189 vs 34 discrepancy
-                
                 # Handle promotions to next levels
                 promoted_into_levels = {level_name: 0 for level_name in role_data.keys()}
                 for level_name, promoted_people in promotions_this_month.items():
-                    debug_logger.info(f"\n  HANDLING PROMOTIONS FROM: {level_name}")
-                    debug_logger.info(f"    People promoted: {len(promoted_people)}")
-                    
                     # Find next level using proper level order
                     level_order = determine_level_order([{'roles': {role_name: role_data}}])
                     next_level_name = get_next_level_name(level_name, level_order)
-                    debug_logger.info(f"    Next level: {next_level_name}")
                     
                     next_level = role_data.get(next_level_name) if next_level_name else None
                     if next_level:
-                        debug_logger.info(f"    Adding {len(promoted_people)} people to {next_level_name}")
                         for person, _, _ in promoted_people:
                             next_level.add_promotion(person, current_date_str)
                         promoted_into_levels[next_level_name] = len(promoted_people)
-                        debug_logger.info(f"    {next_level_name} FTE after promotions: {next_level.total:.2f}")
                     else:
-                        debug_logger.info(f"    No next level - people graduate/leave")
                         # Top level - people graduate/leave the cohort
                         # Log these as churn events so they don't disappear without tracking
                         for person, _, _ in promoted_people:
@@ -250,44 +300,28 @@ class WorkforceManager:
                         'progressed_in': promoted_into_levels.get(level_name, 0),
                     }
                     
-                    debug_logger.info(f"    {level_name} final metrics:")
-                    debug_logger.info(f"      Progressed out: {len(promotions_this_month.get(level_name, []))}")
-                    debug_logger.info(f"      Progressed in: {promoted_into_levels.get(level_name, 0)}")
-                    debug_logger.info(f"      Final FTE: {level.total:.2f}")
+        # Log office total
+        office_total_fte = 0
+        for role_name, role_data in office.roles.items():
+            if isinstance(role_data, dict):
+                for level in role_data.values():
+                    office_total_fte += level.total
+            else:
+                office_total_fte += role_data.total
         
-        debug_logger.info(f"{'='*60}")
 
     def process_churn_and_recruitment(self, office: Office, current_month_enum: Month, current_date_str: str, monthly_office_metrics: Dict[str, Any]):
         """
         Process churn and recruitment for all roles/levels in an office for the given month.
         Updates FTE and stores metrics.
         """
-        debug_logger.info(f"\n{'='*60}")
-        debug_logger.info(f"PROCESSING CHURN & RECRUITMENT - {office.name} - {current_date_str}")
-        debug_logger.info(f"{'='*60}")
-        
         for role_name, role_data in office.roles.items():
-            debug_logger.info(f"\n--- ROLE: {role_name} ---")
-            
             if isinstance(role_data, dict):  # Leveled roles
                 for level_name, level in role_data.items():
-                    debug_logger.info(f"\n  LEVEL: {level_name}")
-                    debug_logger.info(f"    Starting FTE: {level.total:.2f}")
-                    
-                    # Churn
-                    churn_rate = get_monthly_attribute(level, 'churn', current_month_enum)
-                    debug_logger.info(f"    Churn rate: {churn_rate:.4f} ({churn_rate*100:.2f}%)")
-                    debug_logger.info(f"    Previous fractional churn: {level.fractional_churn:.4f}")
-                    
-                    level.fractional_churn += level.total * churn_rate
-                    churn_to_apply = int(level.fractional_churn)
-                    level.fractional_churn -= churn_to_apply
-                    
-                    debug_logger.info(f"    New fractional churn: {level.fractional_churn:.4f}")
-                    debug_logger.info(f"    Churn to apply: {churn_to_apply}")
+                    # Churn - using new absolute/percentage logic
+                    churn_to_apply, churn_method, churn_details = get_effective_churn_value(level, current_month_enum.value, level.total)
                     
                     churned = level.apply_churn(churn_to_apply)
-                    debug_logger.info(f"    FTE after churn: {level.total:.2f}")
                     
                     # Log churn events
                     for person in churned:
@@ -296,20 +330,11 @@ class WorkforceManager:
                             current_date=current_date_str,
                             role=role_name,
                             office=office.name,
-                            churn_rate=churn_rate
+                            churn_rate=None  # Method used is tracked separately
                         )
                     
-                    # Recruitment
-                    recruitment_rate = get_monthly_attribute(level, 'recruitment', current_month_enum)
-                    debug_logger.info(f"    Recruitment rate: {recruitment_rate:.4f} ({recruitment_rate*100:.2f}%)")
-                    debug_logger.info(f"    Previous fractional recruitment: {level.fractional_recruitment:.4f}")
-                    
-                    level.fractional_recruitment += level.total * recruitment_rate
-                    recruits_to_add = int(level.fractional_recruitment)
-                    level.fractional_recruitment -= recruits_to_add
-                    
-                    debug_logger.info(f"    New fractional recruitment: {level.fractional_recruitment:.4f}")
-                    debug_logger.info(f"    Recruits to add: {recruits_to_add}")
+                    # Recruitment - using new absolute/percentage logic
+                    recruits_to_add, recruitment_method, recruitment_details = get_effective_recruitment_value(level, current_month_enum.value, level.total)
                     
                     for _ in range(recruits_to_add):
                         new_person = level.add_new_hire(current_date_str, role_name, office.name)
@@ -319,11 +344,8 @@ class WorkforceManager:
                             current_date=current_date_str,
                             role=role_name,
                             office=office.name,
-                            recruitment_rate=recruitment_rate
+                            recruitment_rate=None  # Method used is tracked separately
                         )
-                    
-                    debug_logger.info(f"    FTE after recruitment: {level.total:.2f}")
-                    debug_logger.info(f"    NET CHANGE: {recruits_to_add - churn_to_apply:+.0f} FTE")
                     
                     # Update metrics
                     if office.name not in monthly_office_metrics:
@@ -337,29 +359,20 @@ class WorkforceManager:
                     monthly_office_metrics[office.name][current_date_str][role_name][level_name].update({
                         'total_fte': level.total,
                         'recruited': recruits_to_add,
+                        'recruitment_method': recruitment_method,
+                        'recruitment_details': recruitment_details,
                         'churned': churn_to_apply,
+                        'churn_method': churn_method,
+                        'churn_details': churn_details,
                         'price': get_monthly_attribute(level, 'price', current_month_enum),
                         'salary': get_monthly_attribute(level, 'salary', current_month_enum),
                         'utr': get_monthly_attribute(level, 'utr', current_month_enum),
                     })
             else:  # Flat roles
-                debug_logger.info(f"\n  FLAT ROLE: {role_name}")
-                debug_logger.info(f"    Starting FTE: {role_data.total:.2f}")
-                
-                # Churn
-                churn_rate = get_monthly_attribute(role_data, 'churn', current_month_enum)
-                debug_logger.info(f"    Churn rate: {churn_rate:.4f} ({churn_rate*100:.2f}%)")
-                debug_logger.info(f"    Previous fractional churn: {role_data.fractional_churn:.4f}")
-                
-                role_data.fractional_churn += role_data.total * churn_rate
-                churn_to_apply = int(role_data.fractional_churn)
-                role_data.fractional_churn -= churn_to_apply
-                
-                debug_logger.info(f"    New fractional churn: {role_data.fractional_churn:.4f}")
-                debug_logger.info(f"    Churn to apply: {churn_to_apply}")
+                # Churn - using new absolute/percentage logic
+                churn_to_apply, churn_method, churn_details = get_effective_churn_value(role_data, current_month_enum.value, role_data.total)
                 
                 churned = role_data.apply_churn(churn_to_apply)
-                debug_logger.info(f"    FTE after churn: {role_data.total:.2f}")
                 
                 # Log churn events
                 for person in churned:
@@ -368,20 +381,11 @@ class WorkforceManager:
                         current_date=current_date_str,
                         role=role_name,
                         office=office.name,
-                        churn_rate=churn_rate
+                        churn_rate=None  # Method used is tracked separately
                     )
                 
-                # Recruitment
-                recruitment_rate = get_monthly_attribute(role_data, 'recruitment', current_month_enum)
-                debug_logger.info(f"    Recruitment rate: {recruitment_rate:.4f} ({recruitment_rate*100:.2f}%)")
-                debug_logger.info(f"    Previous fractional recruitment: {role_data.fractional_recruitment:.4f}")
-                
-                role_data.fractional_recruitment += role_data.total * recruitment_rate
-                recruits_to_add = int(role_data.fractional_recruitment)
-                role_data.fractional_recruitment -= recruits_to_add
-                
-                debug_logger.info(f"    New fractional recruitment: {role_data.fractional_recruitment:.4f}")
-                debug_logger.info(f"    Recruits to add: {recruits_to_add}")
+                # Recruitment - using new absolute/percentage logic
+                recruits_to_add, recruitment_method, recruitment_details = get_effective_recruitment_value(role_data, current_month_enum.value, role_data.total)
                 
                 for _ in range(recruits_to_add):
                     new_person = role_data.add_new_hire(current_date_str, role_name, office.name)
@@ -391,11 +395,8 @@ class WorkforceManager:
                         current_date=current_date_str,
                         role=role_name,
                         office=office.name,
-                        recruitment_rate=recruitment_rate
+                        recruitment_rate=None  # Method used is tracked separately
                     )
-                
-                debug_logger.info(f"    FTE after recruitment: {role_data.total:.2f}")
-                debug_logger.info(f"    NET CHANGE: {recruits_to_add - churn_to_apply:+.0f} FTE")
                 
                 # Update metrics
                 if office.name not in monthly_office_metrics:
@@ -405,7 +406,11 @@ class WorkforceManager:
                 monthly_office_metrics[office.name][current_date_str][role_name] = {
                     'total_fte': role_data.total,
                     'recruited': recruits_to_add,
-                    'churned': churn_to_apply
+                    'recruitment_method': recruitment_method,
+                    'recruitment_details': recruitment_details,
+                    'churned': churn_to_apply,
+                    'churn_method': churn_method,
+                    'churn_details': churn_details
                 }
         
         # Log office total
@@ -417,9 +422,6 @@ class WorkforceManager:
             else:
                 office_total_fte += role_data.total
         
-        debug_logger.info(f"\n--- OFFICE TOTAL: {office.name} ---")
-        debug_logger.info(f"    Total FTE: {office_total_fte:.2f}")
-        debug_logger.info(f"{'='*60}")
 
     # Add more helper methods as needed for CAT-based progression, churn, recruitment, etc. 
 

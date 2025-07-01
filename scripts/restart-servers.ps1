@@ -162,43 +162,43 @@ if (-not $backendStarted) {
 
 # Step 8: Start frontend server in visible window
 Write-Host "Starting frontend server..."
-Push-Location frontend
 
 # Check if package.json exists
-if (-not (Test-Path "package.json")) {
+if (-not (Test-Path "frontend/package.json")) {
     Write-Host "ERROR: package.json not found in frontend directory"
-    Pop-Location
     exit 1
 }
 
 # Check if dev script exists
-$packageJson = Get-Content "package.json" | ConvertFrom-Json
+$packageJson = Get-Content "frontend/package.json" | ConvertFrom-Json
 if (-not $packageJson.scripts.dev) {
     Write-Host "ERROR: 'dev' script not found in package.json"
-    Pop-Location
     exit 1
 }
 
-# Clear Vite cache first
-if (Test-Path "node_modules/.vite") {
-    Remove-Item -Recurse -Force "node_modules/.vite" -ErrorAction SilentlyContinue
-}
-if (Test-Path "dist") {
-    Remove-Item -Recurse -Force "dist" -ErrorAction SilentlyContinue
+# Ensure node_modules exists, otherwise run npm install
+if (-not (Test-Path "frontend/node_modules")) {
+    Write-Host "node_modules not found, running npm install..."
+    Start-Process -FilePath "npm" -ArgumentList @("install") -WorkingDirectory "frontend" -Wait -WindowStyle Normal
 }
 
-# Start frontend with proper error handling in visible window
+# Clear Vite cache first
+if (Test-Path "frontend/node_modules/.vite") {
+    Remove-Item -Recurse -Force "frontend/node_modules/.vite" -ErrorAction SilentlyContinue
+}
+if (Test-Path "frontend/dist") {
+    Remove-Item -Recurse -Force "frontend/dist" -ErrorAction SilentlyContinue
+}
+
+# Start frontend with proper error handling in visible window, in the correct directory
 try {
-    $frontend = Start-Process -FilePath "npm" -ArgumentList @("run", "dev") -PassThru -WindowStyle Normal
+    $frontend = Start-Process -FilePath "npm" -ArgumentList @("run", "dev") -WorkingDirectory "frontend" -PassThru -WindowStyle Normal
     $frontendPid = $frontend.Id
     Write-Host "Frontend process started with PID: $frontendPid in visible window"
 } catch {
     Write-Host "ERROR: Failed to start frontend server: $($_.Exception.Message)"
-    Pop-Location
     exit 1
 }
-
-Pop-Location
 
 # Step 9: Wait for frontend to start (with better detection)
 Write-Host "Waiting for frontend to start (this may take up to 60 seconds)..."

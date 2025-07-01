@@ -1,5 +1,19 @@
 # Task List: Scenario Runner Implementation
 
+## Absolute Input Data UI (Baseline)
+
+- [ ] 0.0 Absolute Input Data UI
+  - [ ] 0.1 Design spreadsheet-like grid component for absolute starters/leavers input
+  - [ ] 0.2 Implement tabs for 'Recruitment (Starters)' and 'Leavers (Churn)'
+  - [ ] 0.3 Add import (Excel/CSV), paste, and clear functionality
+  - [ ] 0.4 Add validation for numeric input, no negatives, highlight errors
+  - [ ] 0.5 Add summary row (totals per role, optional)
+  - [ ] 0.6 Implement 'Load from Service' button to fetch baseline data from backend
+  - [ ] 0.7 Implement 'Save Baseline' to persist input data to backend
+  - [ ] 0.8 Integrate baseline input step into Scenario Runner flow (step 1)
+  - [ ] 0.9 Ensure baseline is referenced by all scenarios and warn if changed
+  - [ ] 0.10 Add unit tests for grid component and data service
+
 ## Relevant Files
 
 - `frontend/src/pages/ScenarioRunner.tsx` - Main scenario runner page component

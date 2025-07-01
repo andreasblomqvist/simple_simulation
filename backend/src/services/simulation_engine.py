@@ -118,7 +118,6 @@ class Person:
 
 @dataclass
 class RoleData:
-    # Monthly recruitment rates (1-12)
     recruitment_1: float = 0.0
     recruitment_2: float = 0.0
     recruitment_3: float = 0.0
@@ -131,7 +130,6 @@ class RoleData:
     recruitment_10: float = 0.0
     recruitment_11: float = 0.0
     recruitment_12: float = 0.0
-    # Monthly churn rates (1-12)
     churn_1: float = 0.0
     churn_2: float = 0.0
     churn_3: float = 0.0
@@ -144,7 +142,6 @@ class RoleData:
     churn_10: float = 0.0
     churn_11: float = 0.0
     churn_12: float = 0.0
-    # Monthly prices (1-12)
     price_1: float = 0.0
     price_2: float = 0.0
     price_3: float = 0.0
@@ -157,7 +154,6 @@ class RoleData:
     price_10: float = 0.0
     price_11: float = 0.0
     price_12: float = 0.0
-    # Monthly salaries (1-12)
     salary_1: float = 0.0
     salary_2: float = 0.0
     salary_3: float = 0.0
@@ -170,7 +166,6 @@ class RoleData:
     salary_10: float = 0.0
     salary_11: float = 0.0
     salary_12: float = 0.0
-    # Monthly UTR (1-12)
     utr_1: float = 1.0
     utr_2: float = 1.0
     utr_3: float = 1.0
@@ -183,9 +178,31 @@ class RoleData:
     utr_10: float = 1.0
     utr_11: float = 1.0
     utr_12: float = 1.0
-    # Individual tracking
+    recruitment_abs_1: Optional[int] = None
+    recruitment_abs_2: Optional[int] = None
+    recruitment_abs_3: Optional[int] = None
+    recruitment_abs_4: Optional[int] = None
+    recruitment_abs_5: Optional[int] = None
+    recruitment_abs_6: Optional[int] = None
+    recruitment_abs_7: Optional[int] = None
+    recruitment_abs_8: Optional[int] = None
+    recruitment_abs_9: Optional[int] = None
+    recruitment_abs_10: Optional[int] = None
+    recruitment_abs_11: Optional[int] = None
+    recruitment_abs_12: Optional[int] = None
+    churn_abs_1: Optional[int] = None
+    churn_abs_2: Optional[int] = None
+    churn_abs_3: Optional[int] = None
+    churn_abs_4: Optional[int] = None
+    churn_abs_5: Optional[int] = None
+    churn_abs_6: Optional[int] = None
+    churn_abs_7: Optional[int] = None
+    churn_abs_8: Optional[int] = None
+    churn_abs_9: Optional[int] = None
+    churn_abs_10: Optional[int] = None
+    churn_abs_11: Optional[int] = None
+    churn_abs_12: Optional[int] = None
     people: List[Person] = field(default_factory=list)
-    # Fractional accumulation for deterministic results
     fractional_recruitment: float = 0.0
     fractional_churn: float = 0.0
     
@@ -229,22 +246,6 @@ class RoleData:
 class Level:
     name: str
     journey: Journey
-    # Which months progression occurs
-    progression_months: List[Month]
-    # Monthly progression rates (1-12)
-    progression_1: float  # percentage
-    progression_2: float  # percentage
-    progression_3: float  # percentage
-    progression_4: float  # percentage
-    progression_5: float  # percentage
-    progression_6: float  # percentage
-    progression_7: float  # percentage
-    progression_8: float  # percentage
-    progression_9: float  # percentage
-    progression_10: float  # percentage
-    progression_11: float  # percentage
-    progression_12: float  # percentage
-    # Monthly recruitment rates (1-12)
     recruitment_1: float  # percentage
     recruitment_2: float  # percentage
     recruitment_3: float  # percentage
@@ -257,7 +258,6 @@ class Level:
     recruitment_10: float  # percentage
     recruitment_11: float  # percentage
     recruitment_12: float  # percentage
-    # Monthly churn rates (1-12)
     churn_1: float       # percentage
     churn_2: float       # percentage
     churn_3: float       # percentage
@@ -267,10 +267,9 @@ class Level:
     churn_7: float       # percentage
     churn_8: float       # percentage
     churn_9: float       # percentage
-    churn_10: float       # percentage
-    churn_11: float       # percentage
-    churn_12: float       # percentage
-    # Monthly prices (1-12)
+    churn_10: float      # percentage
+    churn_11: float      # percentage
+    churn_12: float      # percentage
     price_1: float
     price_2: float
     price_3: float
@@ -283,7 +282,6 @@ class Level:
     price_10: float
     price_11: float
     price_12: float
-    # Monthly salaries (1-12)
     salary_1: float
     salary_2: float
     salary_3: float
@@ -296,7 +294,6 @@ class Level:
     salary_10: float
     salary_11: float
     salary_12: float
-    # Monthly UTR (1-12)
     utr_1: float        # percentage
     utr_2: float        # percentage
     utr_3: float        # percentage
@@ -309,9 +306,31 @@ class Level:
     utr_10: float       # percentage
     utr_11: float       # percentage
     utr_12: float       # percentage
-    # Individual tracking
+    recruitment_abs_1: Optional[int] = None
+    recruitment_abs_2: Optional[int] = None
+    recruitment_abs_3: Optional[int] = None
+    recruitment_abs_4: Optional[int] = None
+    recruitment_abs_5: Optional[int] = None
+    recruitment_abs_6: Optional[int] = None
+    recruitment_abs_7: Optional[int] = None
+    recruitment_abs_8: Optional[int] = None
+    recruitment_abs_9: Optional[int] = None
+    recruitment_abs_10: Optional[int] = None
+    recruitment_abs_11: Optional[int] = None
+    recruitment_abs_12: Optional[int] = None
+    churn_abs_1: Optional[int] = None
+    churn_abs_2: Optional[int] = None
+    churn_abs_3: Optional[int] = None
+    churn_abs_4: Optional[int] = None
+    churn_abs_5: Optional[int] = None
+    churn_abs_6: Optional[int] = None
+    churn_abs_7: Optional[int] = None
+    churn_abs_8: Optional[int] = None
+    churn_abs_9: Optional[int] = None
+    churn_abs_10: Optional[int] = None
+    churn_abs_11: Optional[int] = None
+    churn_abs_12: Optional[int] = None
     people: List[Person] = field(default_factory=list)
-    # Fractional accumulation for deterministic results
     fractional_recruitment: float = 0.0
     fractional_churn: float = 0.0
     
@@ -585,11 +604,11 @@ class SimulationEngine:
                         
                         # Build monthly attributes from config
                         level_attributes = {}
-                        for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
+                        for key in ['recruitment', 'churn', 'price', 'salary', 'utr']:
                             for i in range(1, 13):
                                 monthly_key = f'{key}_{i}'
                                 config_value = level_config.get(monthly_key, None)
-                                if key == 'progression':
+                                if key == 'recruitment':
                                     # Use config value if provided, otherwise 0.0
                                     level_attributes[monthly_key] = config_value if config_value is not None else 0.0
                                 elif key == 'utr':
@@ -600,7 +619,7 @@ class SimulationEngine:
                         level = Level(
                             name=level_name,
                             journey=journey_name,
-                            progression_months=[Month(i) for i in range(1, 13)],
+            
                             **level_attributes
                         )
                         
@@ -660,21 +679,11 @@ class SimulationEngine:
             for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
                 # Get journey for this level
                 journey = self._get_journey_for_level(level_name)
-                # Progression occurs in June and December
-                progression_months = [Month.JUN, Month.DEC]
-                
-                # Calculate progression rates for all 12 months
-                progression_rates = {}
-                for i in range(1, 13):
-                    # Set all progression rates to 0.0 by default
-                    progression_rates[f'progression_{i}'] = 0.0
+                # Progression is handled by CAT-based system
                 
                 level = Level(
                     name=level_name,
                     journey=journey,
-                    progression_months=progression_months,
-                    # Set progression rates for all 12 months
-                    **progression_rates,
                     **{f'recruitment_{i}': 0.0 for i in range(1, 13)},
                     **{f'churn_{i}': 0.0 for i in range(1, 13)},
                     **{f'price_{i}': BASE_PRICING.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
@@ -726,26 +735,10 @@ class SimulationEngine:
                 level_levers = office_levers.get('Consultant', {}).get(level_name, {})
                 global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
 
-                # Calculate progression rates for all 12 months
-                progression_rates = {}
-                for i in range(1, 13):
-                    # Check if lever overrides the default progression rate
-                    lever_progression = level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', None))
-                    
-                    if lever_progression is not None:
-                        # Use lever value
-                        progression_rates[f'progression_{i}'] = lever_progression
-                    else:
-                        # Set to 0.0 if no lever specified
-                        progression_rates[f'progression_{i}'] = 0.0
-
                 # Create level with combined levers
                 level = Level(
                     name=level_name,
                     journey=journey,
-                    progression_months=[Month(i) for i in range(1, 13)],
-                    # Apply progression rates
-                    **progression_rates,
                     **{f'recruitment_{i}': level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', 0.0)) for i in range(1, 13)},
                     **{f'churn_{i}': level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', 0.0)) for i in range(1, 13)},
                     **{f'price_{i}': level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', BASE_PRICING.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
@@ -798,14 +791,12 @@ class SimulationEngine:
                         
                         for i in range(1, 13):
                             # Prioritize office-specific, then global, then default
-                            progression_rate = level_levers.get(f'progression_{i}', global_level_levers.get(f'progression_{i}', getattr(level, f'progression_{i}')))
                             recruitment_rate = level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', getattr(level, f'recruitment_{i}')))
                             churn_rate = level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', getattr(level, f'churn_{i}')))
                             price = level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', getattr(level, f'price_{i}')))
                             salary = level_levers.get(f'salary_{i}', global_level_levers.get(f'salary_{i}', getattr(level, f'salary_{i}')))
                             utr = level_levers.get(f'utr_{i}', global_level_levers.get(f'utr_{i}', getattr(level, f'utr_{i}')))
                             
-                            setattr(level, f'progression_{i}', progression_rate)
                             setattr(level, f'recruitment_{i}', recruitment_rate)
                             setattr(level, f'churn_{i}', churn_rate)
                             setattr(level, f'price_{i}', price)
@@ -1326,7 +1317,7 @@ def validate_configuration_completeness(offices: Dict[str, Office]) -> Dict[str,
                 for level_name, level in role_data.items():
                     level_issues = []
                     for i in range(1, 13):
-                        for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
+                        for key in ['recruitment', 'churn', 'price', 'salary', 'utr']:
                             if not hasattr(level, f'{key}_{i}'):
                                 level_issues.append(f"Missing '{key}' for month {i}")
                     if level_issues:

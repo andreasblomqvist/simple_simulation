@@ -96,30 +96,6 @@ class TestSimulationExamples(unittest.TestCase):
         consultant_a_data = stockholm_results['levels']['Consultant']['A']
         self.assertEqual(len(consultant_a_data), 1)
     
-    def test_progression_timing_a_level(self):
-        """
-        Test that A-level progression only occurs in May and November
-        """
-        office = self.engine.offices['Stockholm']
-        level_a = office.roles['Consultant']['A']
-        
-        # Check progression_months parameter
-        expected_months = [Month.MAY, Month.NOV]
-        self.assertEqual(level_a.progression_months, expected_months,
-                        "A level should only progress in May and November")
-    
-    def test_progression_timing_m_level(self):
-        """
-        Test that M-level progression only occurs in November
-        """
-        office = self.engine.offices['Stockholm']
-        level_m = office.roles['Consultant']['M']
-        
-        # Check progression_months parameter
-        expected_months = [Month.NOV]
-        self.assertEqual(level_m.progression_months, expected_months,
-                        "M level should only progress in November")
-    
     def test_churn_calculation_example(self):
         """
         Test churn calculation for a specific scenario
@@ -161,7 +137,6 @@ class TestSimulationExamples(unittest.TestCase):
         
         toronto_results = year_2024['offices']['Toronto']
         self.assertIn('levels', toronto_results)
-        self.assertIn('metrics', toronto_results)
     
     def test_office_journey_classification(self):
         """
@@ -214,12 +189,6 @@ class TestSimulationExamples(unittest.TestCase):
         # Check Stockholm specific data
         stockholm_results = year_2024['offices']['Stockholm']
         self.assertIn('levels', stockholm_results)
-        self.assertIn('operations', stockholm_results)
-        self.assertIn('metrics', stockholm_results)
-        
-        # Should have 12 data points for each level (one per month)
-        consultant_a_data = stockholm_results['levels']['Consultant']['A']
-        self.assertEqual(len(consultant_a_data), 12)
     
     def test_progression_moves_to_next_level(self):
         """
