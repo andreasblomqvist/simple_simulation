@@ -1,90 +1,125 @@
-# Scripts Directory
+# Scripts Directory Organization
 
-This directory contains organized scripts for the SimpleSim project, categorized by their purpose.
+This directory contains Python scripts organized by their purpose and functionality.
 
 ## Directory Structure
 
-### `/analysis/`
-Scripts for analyzing simulation results, data patterns, and performance metrics.
-- `analyze_initial_tenure.py` - Analyze initial tenure distribution
-- `analyze_progression.py` - Analyze career progression patterns
+### `/analysis/` - Data Analysis Scripts
+Scripts for analyzing simulation results, logs, and data patterns.
+
+**Scripts:**
+- `analyze_debug_log_by_year.py` - Analyze debug simulation logs by year to identify growth issues
+- `analyze_debug_log_detailed.py` - Detailed analysis of debug logs with comprehensive metrics
+- `analyze_debug_log_simple.py` - Simple analysis of debug logs for basic insights
+- `analyze_event_log.py` - Analyze event logs for recruitment, churn, and progression patterns
+- `analyze_simulation_rec_churn_table_enhanced.py` - Enhanced analysis of recruitment and churn data
+- `analyze_simulation_rec_churn_table.py` - Basic analysis of recruitment and churn data
+- `analyze_simulation_json.py` - Analyze simulation JSON results
+- `analyze_simulation_json_yearly.py` - Analyze yearly simulation JSON results
+- `analyze_growth_issue.py` - Analyze growth issues in simulation results
+- `analyze_recruitment_rates.py` - Analyze recruitment rates and patterns
+- `analyze_tenure_distribution.py` - Analyze tenure distribution patterns
+- `analyze_progression.py` - Analyze progression patterns
 - `analyze_stockholm_margins.py` - Analyze Stockholm office margins
-- `analyze_tenure_distribution.py` - Analyze tenure distribution across levels
+- `analyze_initial_tenure.py` - Analyze initial tenure distribution
+- `verify_simulation_rates_vs_growth.py` - Verify simulation rates against growth
+- `verify_simulation_results.py` - Verify simulation results accuracy
 
-### `/debug/`
-Scripts for debugging specific issues and investigating problems.
-- `debug_ac_am_progression.py` - Debug AC/AM progression issues
-- `debug_actual_financials.py` - Debug financial calculations
-- `debug_event_logs.py` - Debug event logging system
-- `debug_financial_issue.py` - Debug financial calculation issues
-- `debug_kpi_calculation.py` - Debug KPI calculation issues
-- `debug_kpi_simple.py` - Simple KPI debugging
-- `debug_monthly_metrics.py` - Debug monthly metric calculations
-- `debug_negative_financials.py` - Debug negative financial values
-- `debug_progression_issue.py` - Debug progression system issues
-- `debug_recruitment_issue.py` - Debug recruitment system issues
+### `/debug/` - Debugging Scripts
+Scripts for debugging simulation issues, data discrepancies, and engine problems.
+
+**Scripts:**
+- `debug_fte_discrepancy.py` - Debug FTE discrepancies between event logs and simulation results
+- `debug_progression_issue.py` - Debug progression logic and issues
+- `debug_promotion_analysis.py` - Analyze promotion patterns and issues
 - `debug_simulation.py` - General simulation debugging
+- `debug_recruitment_issue.py` - Debug recruitment-related issues
+- `debug_monthly_metrics.py` - Debug monthly metric calculations
+- `debug_negative_financials.py` - Debug negative financial results
+- `debug_kpi_simple.py` - Simple KPI debugging
+- `debug_financial_issue.py` - Debug financial calculation issues
+- `debug_kpi_calculation.py` - Debug KPI calculation logic
+- `debug_event_logs.py` - Debug event logging functionality
+- `debug_actual_financials.py` - Debug actual financial data
+- `debug_ac_am_progression.py` - Debug AC/AM progression logic
 
-### `/export/`
-Scripts for exporting data and results.
-- Scripts moved from root directory
+### `/test/` - Testing Scripts
+Scripts for testing various components, functionality, and edge cases.
 
-### `/import/`
-Scripts for importing data and configurations.
-- Scripts moved from root directory
-
-### `/test/`
-Test scripts for validating functionality.
-- `test_3year_simulation.py` - Test 3-year simulation scenarios
-- `test_csv_logging.py` - Test CSV logging functionality
-- `test_ebitda_debug.py` - Test EBITDA calculations
-- `test_edge_cases_event_logs.py` - Test edge cases in event logging
-- `test_engine_debug.py` - Test simulation engine
-- `test_event_logging_extended.py` - Extended event logging tests
-- `test_event_logging.py` - Basic event logging tests
-- `test_excel_export_results.py` - Test Excel export functionality
-- `test_fixed_progression.py` - Test fixed progression system
-- `test_formatting.py` - Test data formatting
-- `test_kpi_display.py` - Test KPI display functionality
-- `test_realistic_initialization.py` - Test realistic initialization
+**Scripts:**
+- `test_download_functionality.py` - Test download and export functionality
+- `test_verification.py` - Test verification processes
+- `test_json_export.py` - Test JSON export functionality
+- `test_ui_simulation.py` - Test UI simulation integration
+- `test_tenure_debug.py` - Test tenure-related functionality
+- `test_single_vs_multi_year.py` - Test single vs multi-year simulation
 - `test_realistic_simulation.py` - Test realistic simulation scenarios
 - `test_refactored_engine.py` - Test refactored simulation engine
-- `test_single_vs_multi_year.py` - Test single vs multi-year simulations
-- `test_tenure_debug.py` - Test tenure debugging
-- `test_ui_simulation.py` - Test UI simulation functionality
+- `test_realistic_initialization.py` - Test realistic initialization
+- `test_kpi_display.py` - Test KPI display functionality
+- `test_fixed_progression.py` - Test fixed progression logic
+- `test_formatting.py` - Test formatting functionality
+- `test_excel_export_results.py` - Test Excel export results
+- `test_event_logging_extended.py` - Extended event logging tests
+- `test_event_logging.py` - Basic event logging tests
+- `test_edge_cases_event_logs.py` - Test edge cases in event logging
+- `test_engine_debug.py` - Test engine debugging functionality
+- `test_ebitda_debug.py` - Test EBITDA debugging
+- `test_csv_logging.py` - Test CSV logging functionality
+- `test_3year_simulation.py` - Test 3-year simulation scenarios
 
-### `/utilities/`
-General utility scripts for various tasks.
-- `conservative_balanced_strategy.py` - Generate conservative balanced strategy
-- `deep_log_analysis.py` - Deep analysis of simulation logs
-- `import_config.py` - Import configuration from Excel
-- `validate_event_logs.py` - Validate event log format and content
-- `validate_excel_export.py` - Validate Excel export functionality
+### `/fixes/` - Configuration and Data Fixes
+Scripts for fixing configuration issues, data problems, and applying patches.
 
-## Usage
+**Scripts:**
+- `fix_operations.py` - Fix operations-related configuration issues
+- `fix_simulation_rates.py` - Fix simulation rates based on debugging analysis
+- `patch_office_config.py` - Patch office configuration files
+- `patch_utr.py` - Patch UTR (Utilization, Tenure, Revenue) data
+- `set_consultant_recruitment_churn.py` - Set consultant recruitment and churn rates
+- `set_non_consultant_prices_to_zero.py` - Set non-consultant prices to zero
 
-Run scripts from the project root directory:
+### `/utilities/` - Utility Scripts
+General utility scripts for data retrieval, running processes, and checking systems.
+
+**Scripts:**
+- `get_recruitment_churn_totals.py` - Get recruitment and churn totals
+- `run_debug_simulation.py` - Run debug simulations
+- `check_ui_discrepancy.py` - Check UI discrepancies
+- `run_and_verify_simulation.py` - Run and verify simulation results
+- `generate_monthly_excel.py` - Generate monthly Excel reports
+- `generate_office_config.py` - Generate office configuration files
+- `generate_office_config_cat_progression.py` - Generate office config with progression data
+
+## Usage Guidelines
+
+1. **Analysis Scripts**: Use these to understand simulation results, identify patterns, and generate insights
+2. **Debug Scripts**: Use these when investigating issues or discrepancies in the simulation engine
+3. **Test Scripts**: Use these to verify functionality, test edge cases, and ensure system reliability
+4. **Fix Scripts**: Use these to apply configuration fixes and data corrections
+5. **Utility Scripts**: Use these for general data retrieval and system checks
+
+## Running Scripts
+
+Most scripts can be run directly from their respective directories:
 
 ```bash
-# Analysis scripts
-python scripts/analysis/analyze_initial_tenure.py
+# Example: Run an analysis script
+python scripts/analysis/analyze_debug_log_by_year.py
 
-# Debug scripts
-python scripts/debug/debug_financial_issue.py
+# Example: Run a debug script
+python scripts/debug/debug_fte_discrepancy.py
 
-# Test scripts
-python scripts/test/test_3year_simulation.py
-
-# Utility scripts
-python scripts/utilities/import_config.py
+# Example: Run a test script
+python scripts/test/test_json_export.py
 ```
 
 ## Notes
 
-- All scripts should be run from the project root directory
-- Scripts may require specific Python packages (see requirements.txt)
-- Some scripts may generate output files in the `logs/` directory
-- Test scripts should be run with pytest for proper test discovery
+- All scripts are designed to work with the SimpleSim project structure
+- Most scripts include proper error handling and logging
+- Scripts in the `/test/` directory are particularly useful for regression testing
+- Scripts in the `/fixes/` directory should be run carefully as they modify configuration data
 
 # SimpleSim Server Management Scripts
 
