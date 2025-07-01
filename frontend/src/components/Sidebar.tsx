@@ -20,6 +20,11 @@ const menuItems: MenuProps['items'] = [
     label: <Link to="/insights">Insights</Link>,
   },
   {
+    key: '/scenario-runner',
+    icon: <RocketOutlined />,
+    label: <Link to="/scenario-runner">Scenario Runner</Link>,
+  },
+  {
     key: '/system-config',
     icon: <SettingOutlined />,
     label: <Link to="/system-config">System Config</Link>,

@@ -13,6 +13,7 @@ import SimulationLabV2 from './pages/SimulationLabV2';
 import Settings from './pages/Settings';
 import InsightsTab from './pages/InsightsTab';
 import SystemConfig from './pages/SystemConfig';
+import ScenarioRunner from './pages/ScenarioRunner';
 
 import { ThemeProvider } from './components/ThemeContext';
 import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
@@ -47,6 +48,7 @@ function MainApp() {
                   <Route path="/lab" element={<SimulationLabV2 />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/insights" element={<InsightsTab />} />
+                  <Route path="/scenario-runner" element={<ScenarioRunner />} />
                   <Route path="/system-config" element={<SystemConfig />} />
                 </Routes>
               </Layout>
