@@ -1,0 +1,24 @@
+{
+  "passed": [
+    "\u2705 simulation_period section present",
+    "\u2705 configuration section present"
+  ],
+  "warnings": [],
+  "errors": [
+    "\u274c Missing metadata section",
+    "\u274c Missing time_series_data section",
+    "\u274c Missing summary_metrics section",
+    "\u274c Missing event_data section",
+    "\u274c Missing kpi_data section",
+    "\u274c Missing office_analysis section",
+    "\u274c Missing level_analysis section"
+  ],
+  "summary": {
+    "total_checks": 9,
+    "passed": 2,
+    "warnings": 0,
+    "errors": 7,
+    "success_rate": 22.22222222222222,
+    "verification_timestamp": "2025-06-30T11:59:18.727845"
+  }
+}

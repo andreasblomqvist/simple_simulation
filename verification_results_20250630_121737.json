@@ -1,0 +1,29 @@
+{
+  "passed": [
+    "\u2705 years section present",
+    "\u2705 simulation_period section present",
+    "\u2705 configuration section present",
+    "\u2705 monthly_office_metrics section present",
+    "\u2705 Years data covers 3 years: 2025-2027",
+    "\u2705 Monthly office metrics present",
+    "\u2705 Growth calculated: 2245 \u2192 2973 (+728)",
+    "\u2705 Reasonable growth: 32.4%",
+    "\u2705 FTE consistency: 2245 \u2192 2973",
+    "\u2705 Years data complete: 3 years"
+  ],
+  "warnings": [
+    "\u26a0\ufe0f Event data not available for recruitment/churn verification",
+    "\u26a0\ufe0f Event data not available for progression verification",
+    "\u26a0\ufe0f KPI data not available for financial verification",
+    "\u26a0\ufe0f No events logged"
+  ],
+  "errors": [],
+  "summary": {
+    "total_checks": 14,
+    "passed": 10,
+    "warnings": 4,
+    "errors": 0,
+    "success_rate": 71.42857142857143,
+    "verification_timestamp": "2025-06-30T12:17:37.797268"
+  }
+}
