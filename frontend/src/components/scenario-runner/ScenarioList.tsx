@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Button, List, Typography, Space, Popconfirm } from 'antd';
+import { Button, List, Typography, Space, Popconfirm } from 'antd';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -36,7 +36,8 @@ interface ScenarioListProps {
 
 const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, onCompare, onExport, onView }) => {
   return (
-    <Card title={<Title level={4} style={{ margin: 0 }}>Scenario Runner</Title>} style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ marginLeft: 24, marginRight: 24 }}>
+      <Title level={4} style={{ margin: 0 }}>Scenario Runner</Title>
       <Paragraph>
         Create and compare different organizational growth scenarios to make informed decisions about your growth strategy.
       </Paragraph>
@@ -75,7 +76,7 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
         <Button onClick={onCompare}>Compare Scenarios</Button>
         <Button onClick={onExport}>Export Results</Button>
       </Space>
-    </Card>
+    </div>
   );
 };
 

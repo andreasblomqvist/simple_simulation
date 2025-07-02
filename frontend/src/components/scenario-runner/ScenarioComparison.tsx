@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Table, Checkbox, Button, Typography, Space, List } from 'antd';
+import { Table, Checkbox, Button, Typography, Space, List } from 'antd';
 
 const { Title } = Typography;
 
@@ -50,7 +50,7 @@ interface ScenarioComparisonProps {
   onBack: () => void;
 }
 
-const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({ onBack }) => {
+export default function ScenarioComparison(props: ScenarioComparisonProps) {
   const [selected, setSelected] = useState<number[]>([1, 2]);
 
   const handleCheck = (id: number, checked: boolean) => {
@@ -83,7 +83,8 @@ const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({ onBack }) => {
   });
 
   return (
-    <Card title={<Title level={4} style={{ margin: 0 }}>Scenario Comparison</Title>} style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ marginLeft: 24, marginRight: 24, marginTop: 16 }}>
+      <Title level={4} style={{ margin: 0 }}>Scenario Comparison</Title>
       <List
         header={<b>Select scenarios to compare:</b>}
         dataSource={mockScenarios}
@@ -110,10 +111,8 @@ const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({ onBack }) => {
         scroll={{ x: true }}
       />
       <Space>
-        <Button onClick={onBack}>Back</Button>
+        <Button onClick={props.onBack}>Back</Button>
       </Space>
-    </Card>
+    </div>
   );
-};
-
-export default ScenarioComparison; 
+} 

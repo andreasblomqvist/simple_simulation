@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Table, InputNumber, Typography, Alert, Card } from 'antd';
+import { Tabs, Table, InputNumber, Typography, Alert } from 'antd';
 
 const { TabPane } = Tabs;
 const { Text } = Typography;
@@ -244,7 +244,7 @@ const getYearlyGroupedData = (data: Record<string, Record<string, number | undef
   return grouped;
 };
 
-const BaselineInputGrid: React.FC = () => {
+export default function BaselineInputGrid(props) {
   const [activeTab, setActiveTab] = useState<'recruitment' | 'leavers'>('recruitment');
   const [recruitmentData, setRecruitmentData] = useState(initRecruitmentData());
   const [leaversData, setLeaversData] = useState(initLeaversData());
@@ -305,7 +305,7 @@ const BaselineInputGrid: React.FC = () => {
   };
 
   return (
-    <Card style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ marginLeft: 24, marginRight: 24 }}>
       <Tabs
         activeKey={activeTab}
         onChange={key => setActiveTab(key as 'recruitment' | 'leavers')}
@@ -347,8 +347,6 @@ const BaselineInputGrid: React.FC = () => {
       {validationError && (
         <Alert message={validationError} type="error" showIcon style={{ marginTop: 16 }} />
       )}
-    </Card>
+    </div>
   );
-};
-
-export default BaselineInputGrid; 
+} 

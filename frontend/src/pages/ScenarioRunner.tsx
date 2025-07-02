@@ -1,76 +1,83 @@
 import React, { useState } from 'react';
-import { Card, Typography, Divider, Button, Steps } from 'antd';
+import { Card, Typography, Divider, Tabs, Form, Input, Button } from 'antd';
 import BaselineInputGrid from '../components/scenario-runner/BaselineInputGrid';
 import ScenarioList from '../components/scenario-runner/ScenarioList';
 import ScenarioLevers from '../components/scenario-runner/ScenarioLevers';
 import ResultsTable from '../components/scenario-runner/ResultsTable';
 import ScenarioComparison from '../components/scenario-runner/ScenarioComparison';
 
-const { Title, Paragraph } = Typography;
-const { Step } = Steps;
+const { Title } = Typography;
+const { TabPane } = Tabs;
 
-const ScenarioCreationForm = ({ onNext, onBack }: { onNext: () => void, onBack: () => void }) => (
-  <Card title="Create New Scenario">
-    <Paragraph>Scenario details form (name, description, time range, office scope)...</Paragraph>
-    <Button onClick={onBack} style={{ marginRight: 8 }}>Back</Button>
-    <Button type="primary" onClick={onNext}>Next: Baseline Input</Button>
-  </Card>
+const ScenarioCreationForm = () => (
+  <div style={{ marginLeft: 24, marginRight: 24 }}>
+    <Form layout="vertical">
+      <Form.Item label="Scenario Name" required>
+        <Input placeholder="Enter scenario name" />
+      </Form.Item>
+      <Form.Item label="Description">
+        <Input.TextArea placeholder="Describe this scenario (optional)" rows={3} />
+      </Form.Item>
+      <Form.Item label="Time Range" required>
+        <Input placeholder="e.g. 2025-2030" />
+      </Form.Item>
+      <Form.Item label="Office Scope" required>
+        <Input placeholder="e.g. Group, Stockholm, Munich" />
+      </Form.Item>
+      <Button type="primary">Save Scenario</Button>
+    </Form>
+  </div>
 );
 
-const steps = [
-  { title: 'Scenario List' },
-  { title: 'Scenario Creation' },
-  { title: 'Baseline Input' },
-  { title: 'Scenario Levers' },
-  { title: 'Results' },
-  { title: 'Comparison' },
-];
+const cardStyle = { marginTop: 16 };
+const cardBodyStyle = { padding: '12px 0 0 0' };
 
 const ScenarioRunner: React.FC = () => {
-  const [current, setCurrent] = useState(0);
+  const [activeKey, setActiveKey] = useState('list');
 
-  const goTo = (idx: number) => setCurrent(idx);
-  const next = () => setCurrent(prev => Math.min(prev + 1, steps.length - 1));
-  const prev = () => setCurrent(prev => Math.max(prev - 1, 0));
-
-  // Handler for 'View' button: jump to Scenario Levers step (index 3)
+  // Handler for 'View' button: jump to Levers & Results tab
   const handleViewScenario = (id: number) => {
-    setCurrent(3);
+    setActiveKey('levers');
     // In the future, load scenario data by id here
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ marginTop: 16, padding: '0 24px 24px 24px' }}>
       <Title level={2}>Scenario Runner</Title>
-      <Steps current={current} style={{ marginBottom: 32 }}>
-        {steps.map(s => <Step key={s.title} title={s.title} />)}
-      </Steps>
-      <Divider />
-      {current === 0 && (
-        <ScenarioList
-          onNext={next}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          onCompare={() => {}}
-          onExport={() => {}}
-          onView={handleViewScenario}
-        />
-      )}
-      {current === 1 && <ScenarioCreationForm onNext={() => next()} onBack={prev} />}
-      {current === 2 && (
-        <Card title="Step 1: Baseline Input Data" style={{ maxWidth: 1200, margin: '0 auto', marginBottom: 32 }}>
-          <BaselineInputGrid />
-          <div style={{ textAlign: 'right', marginTop: 24 }}>
-            <Button onClick={prev} style={{ marginRight: 8 }}>Back</Button>
-            <Button type="primary" size="large" onClick={next}>
-              Next: Scenario Levers
-            </Button>
+      <Tabs activeKey={activeKey} onChange={setActiveKey} type="card" style={{ marginBottom: 32 }}>
+        <TabPane tab="Scenarios" key="list">
+          <div style={{ marginLeft: 24, marginRight: 24 }}>
+            <ScenarioList
+              onNext={() => setActiveKey('create')}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onCompare={() => setActiveKey('compare')}
+              onExport={() => {}}
+              onView={handleViewScenario}
+            />
           </div>
-        </Card>
-      )}
-      {current === 3 && <ScenarioLevers onNext={next} onBack={prev} />}
-      {current === 4 && <ResultsTable onNext={next} onBack={prev} />}
-      {current === 5 && <ScenarioComparison onBack={prev} />}
+        </TabPane>
+        <TabPane tab="Scenario Creation" key="create">
+          <ScenarioCreationForm />
+        </TabPane>
+        <TabPane tab="Baseline Input" key="baseline">
+          <div style={{ marginLeft: 24, marginRight: 24, marginTop: 16 }}>
+            <BaselineInputGrid />
+          </div>
+        </TabPane>
+        <TabPane tab="Levers & Results" key="levers">
+          <div style={{ marginLeft: 24, marginRight: 24, marginTop: 16 }}>
+            <ScenarioLevers onNext={() => {}} onBack={() => {}} />
+            <Divider />
+            <ResultsTable onNext={() => {}} onBack={() => {}} />
+          </div>
+        </TabPane>
+        <TabPane tab="Comparison" key="compare">
+          <div style={{ marginLeft: 24, marginRight: 24, marginTop: 16 }}>
+            <ScenarioComparison onBack={() => {}} />
+          </div>
+        </TabPane>
+      </Tabs>
     </div>
   );
 };
