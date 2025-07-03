@@ -10,6 +10,11 @@ const { Title, Text } = Typography;
 
 const menuItems: MenuProps['items'] = [
   {
+    key: '/system-config',
+    icon: <SettingOutlined />,
+    label: <Link to="/system-config">System Config</Link>,
+  },
+  {
     key: '/config',
     icon: <SettingOutlined />,
     label: <Link to="/config">Configuration</Link>,
@@ -23,11 +28,6 @@ const menuItems: MenuProps['items'] = [
     key: '/scenario-runner',
     icon: <RocketOutlined />,
     label: <Link to="/scenario-runner">Scenario Runner</Link>,
-  },
-  {
-    key: '/system-config',
-    icon: <SettingOutlined />,
-    label: <Link to="/system-config">System Config</Link>,
   },
 ];
 

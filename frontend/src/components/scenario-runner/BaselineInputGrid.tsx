@@ -244,7 +244,7 @@ const getYearlyGroupedData = (data: Record<string, Record<string, number | undef
   return grouped;
 };
 
-export default function BaselineInputGrid(props) {
+export default function BaselineInputGrid() {
   const [activeTab, setActiveTab] = useState<'recruitment' | 'leavers'>('recruitment');
   const [recruitmentData, setRecruitmentData] = useState(initRecruitmentData());
   const [leaversData, setLeaversData] = useState(initLeaversData());

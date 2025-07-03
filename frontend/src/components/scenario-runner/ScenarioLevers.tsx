@@ -47,20 +47,31 @@ const catLabels = {
 };
 
 interface ScenarioLeversProps {
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  levers?: LeverState;
+  readOnly?: boolean;
 }
 
-const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack }) => {
+const getCompleteLevers = (input?: LeverState): LeverState => {
+  return LEVERS.reduce((acc, lever) => {
+    acc[lever] = ROLES.reduce((racc, role) => {
+      racc[role] = input?.[lever]?.[role] ?? defaultValue;
+      return racc;
+    }, {} as Record<string, number>);
+    return acc;
+  }, {} as LeverState);
+};
+
+const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers: externalLevers, readOnly = false }) => {
   const [levers, setLevers] = useState<LeverState>(() =>
-    LEVERS.reduce((acc, lever) => {
-      acc[lever] = ROLES.reduce((racc, role) => {
-        racc[role] = defaultValue;
-        return racc;
-      }, {} as Record<string, number>);
-      return acc;
-    }, {} as LeverState)
+    getCompleteLevers(externalLevers)
   );
+
+  // If externalLevers changes, update state
+  React.useEffect(() => {
+    if (externalLevers) setLevers(getCompleteLevers(externalLevers));
+  }, [externalLevers]);
 
   const handleSlider = (lever: LeverType, role: string, value: number) => {
     setLevers(prev => ({
@@ -113,26 +124,32 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack }) => {
                 </Tooltip>
               )}
             </Col>
-            <Col>
-              <Button size="small" onClick={() => handleReset(lever)}>Reset All</Button>
-            </Col>
+            {!readOnly && (
+              <Col>
+                <Button size="small" onClick={() => handleReset(lever)}>Reset All</Button>
+              </Col>
+            )}
           </Row>
         ),
         dataIndex: lever,
         key: lever,
         width: 250,
         render: (_: any, record: any) => (
-          <Space>
-            <Slider
-              min={min}
-              max={max}
-              step={step}
-              value={levers[lever][record.role]}
-              onChange={val => handleSlider(lever, record.role, val as number)}
-              style={{ width: 120 }}
-            />
+          readOnly ? (
             <span style={{ width: 40, display: 'inline-block', textAlign: 'right' }}>{levers[lever][record.role].toFixed(2)}</span>
-          </Space>
+          ) : (
+            <Space>
+              <Slider
+                min={min}
+                max={max}
+                step={step}
+                value={levers[lever][record.role]}
+                onChange={val => handleSlider(lever, record.role, val as number)}
+                style={{ width: 120 }}
+              />
+              <span style={{ width: 40, display: 'inline-block', textAlign: 'right' }}>{levers[lever][record.role].toFixed(2)}</span>
+            </Space>
+          )
         ),
       },
       lever !== 'Progression' ? {
@@ -207,38 +224,36 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack }) => {
     ]),
   ];
   // Filter out any null columns (from Progression non-matches)
-  const filteredColumns = columns.filter(Boolean);
-
-  const dataSource = ROLES.map(role => ({
-    key: role,
-    role,
-    Recruitment: levers.Recruitment[role],
-    'Recruitment-actual': baselineValues.Recruitment[role] * levers.Recruitment[role],
-    Churn: levers.Churn[role],
-    'Churn-actual': baselineValues.Churn[role] * levers.Churn[role],
-    Progression: levers.Progression[role],
-  }));
+  const filteredColumns = columns.filter((col): col is NonNullable<typeof col> => col !== null);
 
   return (
-    <div style={{ marginLeft: 24, marginRight: 24 }}>
-      <Card title={<Title level={4} style={{ margin: 0 }}>Scenario Levers</Title>}>
-        <Table
-          columns={filteredColumns}
-          dataSource={dataSource}
-          pagination={false}
-          size="middle"
-          bordered
-          scroll={{ x: true }}
-          style={{ marginBottom: 24 }}
-        />
-        
-        <Space>
-          <Button onClick={onBack}>Back</Button>
-          <Button type="primary" onClick={onNext}>Next: Results</Button>
-        </Space>
-      </Card>
+    <div>
+      <Table
+        columns={filteredColumns}
+        dataSource={ROLES.map(role => ({
+          key: role,
+          role,
+          Recruitment: levers.Recruitment[role],
+          'Recruitment-actual': baselineValues.Recruitment[role] * levers.Recruitment[role],
+          Churn: levers.Churn[role],
+          'Churn-actual': baselineValues.Churn[role] * levers.Churn[role],
+          Progression: levers.Progression[role],
+        }))}
+        pagination={false}
+        size="middle"
+        bordered
+        scroll={{ x: true }}
+        style={{ marginBottom: 24 }}
+      />
+      {(!readOnly && (onNext || onBack)) && (
+        <div style={{ textAlign: 'right' }}>
+          {onBack && <Button onClick={onBack} style={{ marginRight: 8 }}>Back</Button>}
+          {onNext && <Button type="primary" onClick={onNext}>Run Simulation</Button>}
+        </div>
+      )}
     </div>
   );
 };
 
-export default ScenarioLevers; 
+export default ScenarioLevers;
+export { getCompleteLevers }; 

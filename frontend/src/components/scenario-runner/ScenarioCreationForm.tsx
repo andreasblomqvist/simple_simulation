@@ -1,32 +1,100 @@
-import React, { useState } from 'react';
-import { Card, Form, Input, Button, Radio, Select, Typography, Space } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Radio, Select, Typography, Space, message, Spin } from 'antd';
+import type { ScenarioDefinition, TimeRange, OfficeName } from '../../types/scenarios';
+import { scenarioApi } from '../../services/scenarioApi';
 
 const { Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-const mockOffices = [
-  { label: 'Stockholm', value: 'stockholm' },
-  { label: 'Oslo', value: 'oslo' },
-  { label: 'Munich', value: 'munich' },
-  { label: 'Copenhagen', value: 'copenhagen' },
-];
-
 interface ScenarioCreationFormProps {
-  onNext: (values: any) => void;
+  scenario?: ScenarioDefinition;
+  onNext: (result: { scenarioId: string; scenario: ScenarioDefinition }) => void;
   onBack: () => void;
+  loading?: boolean;
 }
 
-const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onBack }) => {
+const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, onNext, onBack, loading = false }) => {
   const [form] = Form.useForm();
   const [officeScope, setOfficeScope] = useState<'group' | 'individual'>('group');
+  const [availableOffices, setAvailableOffices] = useState<OfficeName[]>([]);
+  const [loadingOffices, setLoadingOffices] = useState(true);
 
-  const handleFinish = (values: any) => {
-    onNext(values);
+  useEffect(() => {
+    loadAvailableOffices();
+  }, []);
+
+  useEffect(() => {
+    if (scenario && scenario.time_range) {
+      form.setFieldsValue({
+        name: scenario.name,
+        description: scenario.description || '',
+        startYear: scenario.time_range.start_year,
+        endYear: scenario.time_range.end_year,
+        startMonth: scenario.time_range.start_month,
+        endMonth: scenario.time_range.end_month,
+        officeScope: scenario.office_scope && scenario.office_scope.includes('Group') ? 'group' : 'individual',
+        offices: scenario.office_scope ? scenario.office_scope.filter(office => office !== 'Group') : [],
+      });
+      setOfficeScope(scenario.office_scope && scenario.office_scope.includes('Group') ? 'group' : 'individual');
+    }
+  }, [scenario, form]);
+
+  const loadAvailableOffices = async () => {
+    try {
+      setLoadingOffices(true);
+      const offices = await scenarioApi.getAvailableOffices();
+      setAvailableOffices(offices);
+    } catch (error) {
+      message.error('Failed to load available offices: ' + (error as Error).message);
+    } finally {
+      setLoadingOffices(false);
+    }
   };
 
+  const handleFinish = async (values: any) => {
+    const timeRange: TimeRange = {
+      start_year: values.startYear,
+      start_month: values.startMonth || 1,
+      end_year: values.endYear,
+      end_month: values.endMonth || 12,
+    };
+
+    const officeScopeList: OfficeName[] = officeScope === 'group' 
+      ? ['Group'] 
+      : values.offices || [];
+
+    const scenarioDefinition: ScenarioDefinition = {
+      name: values.name,
+      description: values.description,
+      time_range: timeRange,
+      office_scope: officeScopeList,
+      levers: {}, // Will be populated in the next step
+      economic_params: {}, // Will be populated in the next step
+    };
+
+    try {
+      const scenarioId = await scenarioApi.createScenario(scenarioDefinition);
+      onNext({ scenarioId, scenario: scenarioDefinition });
+    } catch (error) {
+      message.error('Failed to create scenario: ' + (error as Error).message);
+    }
+  };
+
+  if (loadingOffices) {
+    return (
+      <div style={{ padding: '50px 0' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16 }}>Loading available offices...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Card title={<Title level={4} style={{ margin: 0 }}>Create New Scenario</Title>} style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div>
+      <Title level={4} style={{ margin: 0, marginBottom: 24 }}>Create New Scenario</Title>
       <Form
         form={form}
         layout="vertical"
@@ -36,6 +104,8 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onB
           description: '',
           startYear: 2025,
           endYear: 2027,
+          startMonth: 1,
+          endMonth: 12,
           officeScope: 'group',
           offices: [],
         }}
@@ -47,13 +117,14 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onB
         >
           <Input placeholder="e.g. Oslo Growth Plan 2025-2027" />
         </Form.Item>
+        
         <Form.Item
           label="Description"
           name="description"
-          rules={[{ required: true, message: 'Please enter a description' }]}
         >
-          <TextArea rows={2} placeholder="Describe the scenario..." />
+          <TextArea rows={2} placeholder="Describe the scenario (optional)" />
         </Form.Item>
+        
         <Space style={{ display: 'flex', marginBottom: 16 }}>
           <Form.Item
             label="Start Year"
@@ -64,13 +135,38 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onB
             <Input type="number" min={2020} max={2100} style={{ width: 100 }} />
           </Form.Item>
           <Form.Item
+            label="Start Month"
+            name="startMonth"
+            rules={[{ required: true, message: 'Start month required' }]}
+            style={{ marginRight: 16 }}
+          >
+            <Select style={{ width: 100 }}>
+              {Array.from({ length: 12 }, (_, i) => (
+                <Option key={i + 1} value={i + 1}>{i + 1}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
             label="End Year"
             name="endYear"
             rules={[{ required: true, message: 'End year required' }]}
+            style={{ marginRight: 16 }}
           >
             <Input type="number" min={2020} max={2100} style={{ width: 100 }} />
           </Form.Item>
+          <Form.Item
+            label="End Month"
+            name="endMonth"
+            rules={[{ required: true, message: 'End month required' }]}
+          >
+            <Select style={{ width: 100 }}>
+              {Array.from({ length: 12 }, (_, i) => (
+                <Option key={i + 1} value={i + 1}>{i + 1}</Option>
+              ))}
+            </Select>
+          </Form.Item>
         </Space>
+        
         <Form.Item label="Office Scope" name="officeScope">
           <Radio.Group
             onChange={e => setOfficeScope(e.target.value)}
@@ -80,6 +176,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onB
             <Radio value="individual">Individual Offices</Radio>
           </Radio.Group>
         </Form.Item>
+        
         {officeScope === 'individual' && (
           <Form.Item
             label="Select Offices"
@@ -87,18 +184,21 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ onNext, onB
             rules={[{ required: true, message: 'Select at least one office' }]}
           >
             <Select mode="multiple" placeholder="Choose offices">
-              {mockOffices.map(o => (
-                <Option key={o.value} value={o.value}>{o.label}</Option>
+              {availableOffices.filter(office => office !== 'Group').map(office => (
+                <Option key={office} value={office}>{office}</Option>
               ))}
             </Select>
           </Form.Item>
         )}
+        
         <Form.Item style={{ marginTop: 24 }}>
           <Button onClick={onBack} style={{ marginRight: 8 }}>Back</Button>
-          <Button type="primary" htmlType="submit">Next: Baseline Input</Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Next: Configure Levers
+          </Button>
         </Form.Item>
       </Form>
-    </Card>
+    </div>
   );
 };
 

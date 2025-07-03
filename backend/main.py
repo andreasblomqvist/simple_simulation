@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from backend.src.services.simulation_engine import SimulationEngine
-from backend.routers import simulation, offices, health
+from backend.routers import simulation, offices, health, scenarios
 from backend.src.routes import mcp_routes
 import os
 import pandas as pd
@@ -177,6 +177,7 @@ engine = SimulationEngine()
 app.include_router(health.router)
 app.include_router(simulation.router)
 app.include_router(offices.router)
+app.include_router(scenarios.router)
 app.include_router(mcp_routes.router)
 
 # Legacy endpoint for backward compatibility

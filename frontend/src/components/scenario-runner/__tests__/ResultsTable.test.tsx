@@ -1,0 +1,365 @@
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render } from '../../../test/test-utils';
+import ResultsTable from '../ResultsTable';
+import { scenarioApi } from '../../../services/scenarioApi';
+
+// Mock the scenarioApi
+vi.mock('../../../services/scenarioApi', () => ({
+  scenarioApi: {
+    runScenarioById: vi.fn(),
+  },
+}));
+
+// Mock simulation results data
+const mockSimulationResults = {
+  scenario_id: 'test-scenario-123',
+  scenario_name: 'Test Scenario',
+  execution_time: 2.5,
+  status: 'success' as const,
+  results: {
+    years: {
+      '2025': {
+        offices: {
+          Stockholm: {
+            total_fte: 100,
+            roles: {},
+            financial: {
+              net_sales: 1000000,
+              total_salary_costs: 800000,
+              ebitda: 200000,
+              margin: 0.20,
+              avg_hourly_rate: 1200,
+              avg_utr: 0.85,
+            },
+            growth: {
+              total_growth_percent: 20.0,
+              total_growth_absolute: 20,
+              non_debit_ratio: 0.15,
+            },
+          },
+        },
+      },
+      '2026': {
+        offices: {
+          Stockholm: {
+            total_fte: 120,
+            roles: {},
+            financial: {
+              net_sales: 1200000,
+              total_salary_costs: 960000,
+              ebitda: 240000,
+              margin: 0.20,
+              avg_hourly_rate: 1200,
+              avg_utr: 0.85,
+            },
+            growth: {
+              total_growth_percent: 20.0,
+              total_growth_absolute: 20,
+              non_debit_ratio: 0.15,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+describe('ResultsTable', () => {
+  const mockOnNext = vi.fn();
+  const mockOnBack = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock the API response
+    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(mockSimulationResults);
+  });
+
+  it('renders simulation results table', async () => {
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Check that scenario data is displayed
+    expect(screen.getByText('2025')).toBeInTheDocument();
+    expect(screen.getByText('2026')).toBeInTheDocument();
+  });
+
+  it('displays KPI metrics correctly', async () => {
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/fte/i)).toBeInTheDocument();
+    });
+
+    // Check that KPI metrics are displayed
+    expect(screen.getByText(/fte/i)).toBeInTheDocument();
+    expect(screen.getByText(/sales/i)).toBeInTheDocument();
+    expect(screen.getByText(/ebitda/i)).toBeInTheDocument();
+    expect(screen.getByText(/growth/i)).toBeInTheDocument();
+  });
+
+  it('formats financial values correctly', async () => {
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Check that financial values are formatted
+    expect(screen.getByText(/1,000,000/)).toBeInTheDocument(); // Sales
+    expect(screen.getByText(/200,000/)).toBeInTheDocument(); // EBITDA
+    expect(screen.getByText(/20\.0%/)).toBeInTheDocument(); // Margin
+  });
+
+  it('shows loading state while fetching data', () => {
+    // Mock a slow API response
+    vi.mocked(scenarioApi.runScenarioById).mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve(mockSimulationResults), 100))
+    );
+
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Should show loading indicator
+    expect(screen.getByRole('progressbar') || screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it('handles API errors gracefully', async () => {
+    // Mock API error
+    vi.mocked(scenarioApi.runScenarioById).mockRejectedValue(new Error('API Error'));
+
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for error to be displayed
+    await waitFor(() => {
+      expect(screen.getByText(/error/i) || screen.getByText(/failed/i)).toBeInTheDocument();
+    });
+  });
+
+  it('calls onNext when next button is clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Find and click the next button
+    const nextButton = screen.getByText(/next/i) || screen.getByText(/continue/i);
+    await user.click(nextButton);
+
+    expect(mockOnNext).toHaveBeenCalled();
+  });
+
+  it('calls onBack when back button is clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Find and click the back button
+    const backButton = screen.getByText(/back/i);
+    await user.click(backButton);
+
+    expect(mockOnBack).toHaveBeenCalled();
+  });
+
+  it('allows office selection when multiple offices are available', async () => {
+    // Mock data with multiple offices
+    const multiOfficeResults = {
+      ...mockSimulationResults,
+      results: {
+        years: {
+          '2025': {
+            offices: {
+              Stockholm: mockSimulationResults.results.years['2025'].offices.Stockholm,
+              Gothenburg: {
+                total_fte: 80,
+                roles: {},
+                financial: {
+                  net_sales: 800000,
+                  total_salary_costs: 640000,
+                  ebitda: 160000,
+                  margin: 0.20,
+                  avg_hourly_rate: 1200,
+                  avg_utr: 0.85,
+                },
+                growth: {
+                  total_growth_percent: 15.0,
+                  total_growth_absolute: 15,
+                  non_debit_ratio: 0.15,
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(multiOfficeResults);
+
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Check that office selector is present
+    const officeSelect = screen.getByRole('combobox');
+    expect(officeSelect).toBeInTheDocument();
+  });
+
+  it('handles empty scenario data gracefully', async () => {
+    // Mock empty results
+    const emptyResults = {
+      scenario_id: 'empty-scenario',
+      scenario_name: 'Empty Scenario',
+      execution_time: 0,
+      status: 'success' as const,
+      results: {
+        years: {},
+      },
+    };
+
+    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(emptyResults);
+
+    render(
+      <ResultsTable
+        scenarioId="empty-scenario"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for component to handle empty data
+    await waitFor(() => {
+      expect(screen.getByText(/no data/i) || screen.getByText(/empty/i)).toBeInTheDocument();
+    });
+  });
+
+  it('provides responsive table layout', async () => {
+    render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Check that table renders without errors
+    expect(screen.getByText('2025')).toBeInTheDocument();
+    expect(screen.getByText('2026')).toBeInTheDocument();
+  });
+
+  it('handles invalid scenario ID', async () => {
+    // Mock API error for invalid scenario
+    vi.mocked(scenarioApi.runScenarioById).mockRejectedValue(new Error('Scenario not found'));
+
+    render(
+      <ResultsTable
+        scenarioId="invalid-scenario-id"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for error to be displayed
+    await waitFor(() => {
+      expect(screen.getByText(/error/i) || screen.getByText(/not found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('updates when scenario ID changes', async () => {
+    const { rerender } = render(
+      <ResultsTable
+        scenarioId="test-scenario-123"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Wait for first scenario to load
+    await waitFor(() => {
+      expect(screen.getByText(/kpi/i)).toBeInTheDocument();
+    });
+
+    // Change scenario ID
+    rerender(
+      <ResultsTable
+        scenarioId="test-scenario-456"
+        onNext={mockOnNext}
+        onBack={mockOnBack}
+      />
+    );
+
+    // Should call API again with new scenario ID
+    expect(scenarioApi.runScenarioById).toHaveBeenCalledWith('test-scenario-456');
+  });
+}); 

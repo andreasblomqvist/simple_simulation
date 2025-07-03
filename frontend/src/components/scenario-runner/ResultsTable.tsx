@@ -38,27 +38,31 @@ function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey:
   
   const yearData = data.years[year.toString()];
   const officeData = yearData.offices[office];
-  
+  console.log('getKPIValue:', { year, office, kpiKey, yearData, officeData });
   if (!officeData) return 0;
   
+  // All KPIs are under officeData.kpis
+  const kpis = officeData.kpis || {};
+
   switch (kpiKey) {
     case 'FTE':
       return officeData.total_fte;
     case 'Sales':
-      return officeData.financial?.net_sales || 0;
+      return kpis.financial?.net_sales || 0;
     case 'EBITDA':
-      return officeData.financial?.ebitda || 0;
+      return kpis.financial?.ebitda || 0;
     case 'EBITDA%':
-      return officeData.financial?.margin || 0;
+      return kpis.financial?.margin ? kpis.financial.margin * 100 : 0; // Convert to percent if needed
     case 'Growth%':
-      return officeData.growth?.total_growth_percent || 0;
+      return kpis.growth?.total_growth_percent || 0;
     case 'J-1':
+      return kpis.journeys?.journey_percentages?.["Journey 1"] || 0;
     case 'J-2':
+      return kpis.journeys?.journey_percentages?.["Journey 2"] || 0;
     case 'J-3':
+      return kpis.journeys?.journey_percentages?.["Journey 3"] || 0;
     case 'J-4':
-      // Journey percentages would need to be calculated from role data
-      // For now, return 0 - this would need to be implemented based on actual data structure
-      return 0;
+      return kpis.journeys?.journey_percentages?.["Journey 4"] || 0;
     default:
       return 0;
   }
@@ -68,14 +72,25 @@ function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey:
 function formatValue(value: number, kpiKey: string): string {
   const kpi = kpis.find(k => k.key === kpiKey);
   if (!kpi) return String(value);
-  
+
+  // Helper for M/B formatting
+  const formatLargeNumber = (num: number) => {
+    if (Math.abs(num) >= 1_000_000_000) {
+      return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + 'B';
+    }
+    if (Math.abs(num) >= 1_000_000) {
+      return (num / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
+    }
+    return num.toLocaleString();
+  };
+
   switch (kpi.unit) {
     case 'percentage':
       return `${value.toFixed(1)}%`;
     case 'currency':
-      return `${value.toLocaleString('en-US', { style: 'currency', currency: 'SEK', minimumFractionDigits: 0 })}`;
+      return `SEK ${formatLargeNumber(value)}`;
     case 'count':
-      return value.toLocaleString();
+      return formatLargeNumber(value);
     default:
       return String(value);
   }
@@ -95,39 +110,84 @@ function getDeltaCell(scenarioVal: number, baselineVal: number | undefined, isPe
   return <span style={{ color, fontSize: 13 }}>{absStr} <span style={{ color: '#aaa', fontSize: 12 }}>{pctStr}</span></span>;
 }
 
+// Helper function to extract Group/global KPI value from simulation results
+function getGroupKPIValue(data: SimulationResults | null, kpiKey: string, year: number): number {
+  if (!data || !data.years[year.toString()]) return 0;
+  // Prefer yearly_kpis if available, else fallback to years[year].kpis
+  const yearlyKpis = data.kpis?.yearly_kpis?.[year.toString()];
+  const yearKpis = data.years[year.toString()].kpis;
+  const kpis = yearlyKpis || yearKpis || {};
+  switch (kpiKey) {
+    case 'FTE':
+      return kpis.financial?.total_consultants || 0; // or another global FTE field
+    case 'Sales':
+      return kpis.financial?.net_sales || 0;
+    case 'EBITDA':
+      return kpis.financial?.ebitda || 0;
+    case 'EBITDA%':
+      return kpis.financial?.margin ? kpis.financial.margin * 100 : 0;
+    case 'Growth%':
+      return kpis.growth?.total_growth_percent || 0;
+    case 'J-1':
+      return kpis.journeys?.journey_percentages?.["Journey 1"] || 0;
+    case 'J-2':
+      return kpis.journeys?.journey_percentages?.["Journey 2"] || 0;
+    case 'J-3':
+      return kpis.journeys?.journey_percentages?.["Journey 3"] || 0;
+    case 'J-4':
+      return kpis.journeys?.journey_percentages?.["Journey 4"] || 0;
+    default:
+      return 0;
+  }
+}
+
 // Helper function to build table data from simulation results
-function buildTableData(scenarioData: SimulationResults | null, office: OfficeName): TableRow[] {
+function buildTableData(
+  scenarioData: SimulationResults | null,
+  office: OfficeName | 'Group'
+): TableRow[] {
   if (!scenarioData) return [];
-  
+
   const rows: TableRow[] = [];
   const years = Object.keys(scenarioData.years).sort();
-  
   // Use the first year as baseline
   const baselineYear = years[0];
   const baselineYearNum = parseInt(baselineYear);
-  
+
   kpis.forEach(kpi => {
     // Main scenario row
     const mainRow: TableRow = { kpi: kpi.label, isDelta: false };
     years.forEach(year => {
       const yearNum = parseInt(year);
-      const value = getKPIValue(scenarioData, office, kpi.key, yearNum);
+      let value = 0;
+      if (office === 'Group') {
+        value = getGroupKPIValue(scenarioData, kpi.key, yearNum);
+      } else {
+        value = getKPIValue(scenarioData, office, kpi.key, yearNum);
+      }
       mainRow[year] = formatValue(value, kpi.key);
     });
     rows.push(mainRow);
-    
+
     // Delta row (comparing each year to the first year)
     const deltaRow: TableRow = { kpi: 'Δ', isDelta: true };
     years.forEach(year => {
       const yearNum = parseInt(year);
-      const scenarioVal = getKPIValue(scenarioData, office, kpi.key, yearNum);
-      const baselineVal = getKPIValue(scenarioData, office, kpi.key, baselineYearNum);
+      let scenarioVal = 0;
+      let baselineVal = 0;
+      if (office === 'Group') {
+        scenarioVal = getGroupKPIValue(scenarioData, kpi.key, yearNum);
+        baselineVal = getGroupKPIValue(scenarioData, kpi.key, baselineYearNum);
+      } else {
+        scenarioVal = getKPIValue(scenarioData, office, kpi.key, yearNum);
+        baselineVal = getKPIValue(scenarioData, office, kpi.key, baselineYearNum);
+      }
       const isPercent = kpi.unit === 'percentage';
       deltaRow[year] = getDeltaCell(scenarioVal, baselineVal, isPercent);
     });
     rows.push(deltaRow);
   });
-  
+
   return rows;
 }
 
@@ -145,7 +205,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         setLoading(true);
         setError(null);
         // Load scenario results
+        console.log('Running scenario with ID:', scenarioId);
         const results = await scenarioApi.runScenarioById(scenarioId);
+        console.log('Scenario API results:', results);
         setScenarioData(results.results);
         // Extract available offices from the data
         if (results.results && Object.keys(results.results.years).length > 0) {

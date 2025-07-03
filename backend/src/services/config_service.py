@@ -15,7 +15,10 @@ class OfficeConfig:
     roles: Dict[str, Any]
 
 class ConfigService:
-    def __init__(self, config_file_path: str = "backend/config/office_configuration.json"):
+    def __init__(self, config_file_path: str = None):
+        # Use environment variable if available, otherwise use default
+        if config_file_path is None:
+            config_file_path = os.environ.get("CONFIG_FILE_PATH", "backend/config/office_configuration.json")
         self.config_file_path = config_file_path
         self.ensure_config_directory()
         self._cached_config: Optional[Dict[str, Any]] = None
