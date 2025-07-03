@@ -42,6 +42,12 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
 
   const handleDelete = async (scenarioId: ScenarioId) => {
     try {
+      // Validate scenario ID
+      if (!scenarioId || scenarioId === 'undefined' || scenarioId === 'null') {
+        message.error('Invalid scenario ID');
+        return;
+      }
+      
       await scenarioApi.deleteScenario(scenarioId);
       message.success('Scenario deleted successfully');
       loadScenarios(); // Reload the list
@@ -52,6 +58,12 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
 
   const handleExport = async (scenarioId: ScenarioId) => {
     try {
+      // Validate scenario ID
+      if (!scenarioId || scenarioId === 'undefined' || scenarioId === 'null') {
+        message.error('Invalid scenario ID');
+        return;
+      }
+      
       const blob = await scenarioApi.exportScenarioResults(scenarioId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -130,7 +142,13 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
           <Button 
             key="view" 
             icon={<EyeOutlined />}
-            onClick={() => navigate(`/scenario-runner/${item.id}`)}
+            onClick={() => {
+              if (item.id && item.id !== 'undefined' && item.id !== 'null') {
+                navigate(`/scenario-runner/${item.id}`);
+              } else {
+                message.error('Invalid scenario ID');
+              }
+            }}
           >
             View
           </Button>
@@ -138,7 +156,13 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
             key="edit" 
             type="link" 
             icon={<EditOutlined />}
-            onClick={() => onEdit && onEdit(item.id)}
+            onClick={() => {
+              if (item.id && item.id !== 'undefined' && item.id !== 'null') {
+                onEdit && onEdit(item.id);
+              } else {
+                message.error('Invalid scenario ID');
+              }
+            }}
           >
             Edit
           </Button>
@@ -146,7 +170,13 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
             key="export" 
             type="link" 
             icon={<ExportOutlined />}
-            onClick={() => handleExport(item.id)}
+            onClick={() => {
+              if (item.id && item.id !== 'undefined' && item.id !== 'null') {
+                handleExport(item.id);
+              } else {
+                message.error('Invalid scenario ID');
+              }
+            }}
           >
             Export
           </Button>
@@ -154,7 +184,13 @@ const ScenarioList: React.FC<ScenarioListProps> = ({ onNext, onEdit, onDelete, o
             key="delete"
             title="Delete this scenario?"
             description="This action cannot be undone."
-            onConfirm={() => handleDelete(item.id)}
+            onConfirm={() => {
+              if (item.id && item.id !== 'undefined' && item.id !== 'null') {
+                handleDelete(item.id);
+              } else {
+                message.error('Invalid scenario ID');
+              }
+            }}
             okText="Yes"
             cancelText="No"
           >

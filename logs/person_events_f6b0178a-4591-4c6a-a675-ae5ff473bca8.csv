@@ -1,0 +1,6 @@
+event_id,person_id,event_type,date,total_tenure_months,time_on_level_months,level,role,office,from_level,to_level,cat_category,progression_probability,churn_rate,recruitment_rate
+f6b0178a-4591-4c6a-a675-ae5ff473bca8_000001,21186ac3-26eb-497e-87d4-f4af976b6cf1,promotion,2024-1,80,30,AM,Consultant,Stockholm,AM,C,CAT30,,,
+f6b0178a-4591-4c6a-a675-ae5ff473bca8_000002,eded41e0-a717-4912-82c2-984b94516c8a,promotion,2024-1,80,30,AM,Consultant,Stockholm,AM,C,CAT30,,,
+f6b0178a-4591-4c6a-a675-ae5ff473bca8_000003,d6bd2f69-5f80-434f-94b7-03787eaad183,promotion,2024-1,81,31,AM,Consultant,Stockholm,AM,C,CAT30,,,
+f6b0178a-4591-4c6a-a675-ae5ff473bca8_000004,09e07575-78c1-47eb-95db-b870af229c88,promotion,2024-1,84,34,AM,Consultant,Berlin,AM,M,CAT30,,,
+f6b0178a-4591-4c6a-a675-ae5ff473bca8_000005,13ae1a37-84d6-4467-819d-07175aa1b90e,promotion,2024-1,128,31,M,Consultant,Copenhagen,M,SrM,CAT30,,,

@@ -105,24 +105,9 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Fetch configuration status from API
   const refreshConfigStatus = async () => {
-    try {
-      const response = await fetch('/api/offices/config/validation');
-      if (response.ok) {
-        const data = await response.json();
-        setConfigStatus({
-          checksum: data.checksum,
-          status: data.status,
-          summary: data.summary,
-          timestamp: data.timestamp
-        });
-      } else {
-        console.error('Failed to fetch config status:', response.statusText);
-        setConfigStatus(null);
-      }
-    } catch (error) {
-      console.error('Error fetching config status:', error);
-      setConfigStatus(null);
-    }
+    // Removed call to /api/offices/config/validation as endpoint no longer exists
+    // const response = await fetch('/api/offices/config/validation');
+    // ... existing code ...
   };
 
   // Auto-refresh configuration status

@@ -1,0 +1,22 @@
+{
+  "id": "6585b4c8-e9f8-4043-bc27-db53db2d290e",
+  "definition": {
+    "name": "test",
+    "description": "",
+    "time_range": {
+      "start_year": 2025,
+      "start_month": 1,
+      "end_year": 2027,
+      "end_month": 12
+    },
+    "office_scope": [
+      "Group"
+    ],
+    "levers": {},
+    "economic_params": {},
+    "created_at": "2025-07-03 19:30:03.189234",
+    "updated_at": "2025-07-03 19:30:03.192408"
+  },
+  "created_at": "2025-07-03T19:30:03.189234",
+  "updated_at": "2025-07-03T19:30:03.192408"
+}

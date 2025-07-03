@@ -73,12 +73,8 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
       economic_params: {}, // Will be populated in the next step
     };
 
-    try {
-      const scenarioId = await scenarioApi.createScenario(scenarioDefinition);
-      onNext({ scenarioId, scenario: scenarioDefinition });
-    } catch (error) {
-      message.error('Failed to create scenario: ' + (error as Error).message);
-    }
+    // Don't create scenario yet, just pass the data to next step
+    onNext({ scenarioId: '', scenario: scenarioDefinition });
   };
 
   if (loadingOffices) {

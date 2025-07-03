@@ -7,6 +7,10 @@ from unittest.mock import patch
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from services.simulation_engine import SimulationEngine, Month, OfficeJourney, Journey, Level, RoleData
+from services.scenario_service import ScenarioService
+from services.config_service import ConfigService
+from services.scenario_service import ScenarioService
+from services.config_service import ConfigService
 
 class TestSimulationExamples(unittest.TestCase):
     """
@@ -17,6 +21,13 @@ class TestSimulationExamples(unittest.TestCase):
     def setUp(self):
         """Set up a simulation engine for testing"""
         self.engine = SimulationEngine()
+        # Create scenario service to load offices
+        self.config_service = ConfigService()
+        self.scenario_service = ScenarioService(self.config_service)
+        # Load offices from config
+        config = self.config_service.get_config()
+        progression_config = self.scenario_service.load_progression_config()
+        self.offices = self.scenario_service.create_offices_from_config(config, progression_config)
     
     def test_processing_order_may_evaluation_month(self):
         """
@@ -24,16 +35,19 @@ class TestSimulationExamples(unittest.TestCase):
         Order: Churn → Progression → Recruitment
         """
         # Get Stockholm office and level A
-        stockholm = self.engine.offices['Stockholm']
+        stockholm = self.offices['Stockholm']
         level_a = stockholm.roles['Consultant']['A']
         
         # Store initial count - we can't modify total directly as it's read-only
         initial_count = level_a.total
         
         # Run a single month simulation for May
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=5,
-            end_year=2024, end_month=5
+            end_year=2024, end_month=5,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check that simulation completed successfully
@@ -56,7 +70,7 @@ class TestSimulationExamples(unittest.TestCase):
         
         # Check structure of the data point
         data_point = consultant_a_data[0]
-        self.assertIn('total', data_point)
+        self.assertIn('fte', data_point)
         self.assertIn('price', data_point)
         self.assertIn('salary', data_point)
     
@@ -66,16 +80,19 @@ class TestSimulationExamples(unittest.TestCase):
         Order: Churn → Progression → Recruitment (no progression in January)
         """
         # Get Stockholm office and level A
-        stockholm = self.engine.offices['Stockholm']
+        stockholm = self.offices['Stockholm']
         level_a = stockholm.roles['Consultant']['A']
         
         # Store initial count
         initial_count = level_a.total
         
         # Run a single month simulation for January
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=1
+            end_year=2024, end_month=1,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check that simulation completed successfully
@@ -100,16 +117,19 @@ class TestSimulationExamples(unittest.TestCase):
         """
         Test churn calculation for a specific scenario
         """
-        stockholm = self.engine.offices['Stockholm']
+        stockholm = self.offices['Stockholm']
         level_a = stockholm.roles['Consultant']['A']
         
         # Get initial count
         initial_count = level_a.total
         
         # Run simulation
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=1
+            end_year=2024, end_month=1,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check that simulation ran
@@ -120,13 +140,16 @@ class TestSimulationExamples(unittest.TestCase):
         Test that small offices (like Toronto) work correctly with minimal staff
         """
         # Check Toronto office specifically since it's a new office (5 FTE)
-        toronto = self.engine.offices['Toronto']
+        toronto = self.offices['Toronto']
         self.assertEqual(toronto.journey, OfficeJourney.NEW)
         
         # Run simulation for a few months
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=3
+            end_year=2024, end_month=3,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         year_2024 = result['years']['2024']

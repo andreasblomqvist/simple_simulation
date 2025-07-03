@@ -4,6 +4,7 @@ import os
 from backend.src.services.excel_export_service import ExcelExportService
 from backend.src.services.kpi_service import AllKPIs, FinancialKPIs, GrowthKPIs, JourneyKPIs, YearlyKPIs
 from dataclasses import asdict
+from backend.src.services.simulation.models import Month
 
 @pytest.fixture
 def sample_kpis():
@@ -98,24 +99,32 @@ def sample_simulation_results():
         'A': Level(
             name='A',
             journey=Journey.JOURNEY_1,
-
-
+            # Progression fields
+            progression_months=[Month.MAY, Month.NOV],
+            progression_1=0.0, progression_2=0.0, progression_3=0.0, progression_4=0.0,
+            progression_5=0.1, progression_6=0.0, progression_7=0.0, progression_8=0.0,
+            progression_9=0.0, progression_10=0.0, progression_11=0.1, progression_12=0.0,
+            # Recruitment fields
             recruitment_1=0.0, recruitment_2=0.0, recruitment_3=0.0,
             recruitment_4=0.0, recruitment_5=0.0, recruitment_6=0.0,
             recruitment_7=0.0, recruitment_8=0.0, recruitment_9=0.0,
             recruitment_10=0.0, recruitment_11=0.0, recruitment_12=0.0,
+            # Churn fields
             churn_1=0.0, churn_2=0.0, churn_3=0.0,
             churn_4=0.0, churn_5=0.0, churn_6=0.0,
             churn_7=0.0, churn_8=0.0, churn_9=0.0,
             churn_10=0.0, churn_11=0.0, churn_12=0.0,
+            # Price fields
             price_1=0.0, price_2=0.0, price_3=0.0,
             price_4=0.0, price_5=0.0, price_6=0.0,
             price_7=0.0, price_8=0.0, price_9=0.0,
             price_10=0.0, price_11=0.0, price_12=0.0,
+            # Salary fields
             salary_1=0.0, salary_2=0.0, salary_3=0.0,
             salary_4=0.0, salary_5=0.0, salary_6=0.0,
             salary_7=0.0, salary_8=0.0, salary_9=0.0,
             salary_10=0.0, salary_11=0.0, salary_12=0.0,
+            # UTR fields
             utr_1=1.0, utr_2=1.0, utr_3=1.0,
             utr_4=1.0, utr_5=1.0, utr_6=1.0,
             utr_7=1.0, utr_8=1.0, utr_9=1.0,

@@ -11,10 +11,11 @@ class ScenarioDefinition(BaseModel):
     description: str = Field(..., description="Scenario description")
     time_range: Dict[str, int] = Field(..., description="Start and end year/month")
     office_scope: List[str] = Field(..., description="List of offices to include in scenario")
-    levers: Dict[str, Dict[str, float]] = Field(..., description="Lever multipliers by type and level")
+    levers: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Lever multipliers by type and level")
     economic_params: Optional[Dict[str, float]] = Field(default=None, description="Economic parameters")
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = Field(default_factory=datetime.now)
+    baseline_input: Optional[Dict[str, Any]] = None
     
     @field_validator('time_range')
     @classmethod
@@ -37,6 +38,8 @@ class ScenarioDefinition(BaseModel):
     @field_validator('levers')
     @classmethod
     def validate_levers(cls, v):
+        if not v:
+            return v  # Allow empty dict
         valid_lever_types = {'recruitment', 'churn', 'progression'}
         if not all(lever_type in valid_lever_types for lever_type in v.keys()):
             raise ValueError(f"Lever types must be one of: {valid_lever_types}")

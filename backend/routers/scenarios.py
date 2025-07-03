@@ -9,6 +9,7 @@ from typing import List, Dict, Any
 import logging
 
 from ..src.services.scenario_service import ScenarioService
+from ..src.services.config_service import config_service
 from ..src.services.scenario_models import (
     ScenarioDefinition,
     ScenarioRequest,
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
 # Create scenario service instance
-scenario_service = ScenarioService()
+scenario_service = ScenarioService(config_service)
 
 @router.get("/health")
 async def health_check():
@@ -39,12 +40,21 @@ async def health_check():
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Service unhealthy: {str(e)}")
 
-@router.post("/create", response_model=Dict[str, str])
+@router.post("/create", response_model=dict)
 async def create_scenario(scenario_def: ScenarioDefinition):
-    """Create a new scenario definition."""
+    """Create a new scenario."""
     try:
+        # Check if scenario name already exists
+        if scenario_service.scenario_name_exists(scenario_def.name):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Scenario with name '{scenario_def.name}' already exists. Please choose a different name."
+            )
+        
         scenario_id = scenario_service.create_scenario(scenario_def)
         return {"scenario_id": scenario_id, "message": "Scenario created successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating scenario: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create scenario: {str(e)}")
@@ -128,6 +138,10 @@ async def compare_scenarios(request: ScenarioComparisonRequest):
 async def get_scenario(scenario_id: str):
     """Get a specific scenario definition."""
     try:
+        # Validate scenario ID
+        if not scenario_id or scenario_id in ['undefined', 'null']:
+            raise HTTPException(status_code=400, detail=f"Invalid scenario ID: {scenario_id}")
+        
         scenario = scenario_service.get_scenario(scenario_id)
         if not scenario:
             raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
@@ -138,10 +152,33 @@ async def get_scenario(scenario_id: str):
         logger.error(f"Error getting scenario {scenario_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get scenario: {str(e)}")
 
+@router.put("/{scenario_id}")
+async def update_scenario(scenario_id: str, scenario_def: ScenarioDefinition):
+    """Update an existing scenario definition."""
+    try:
+        # Validate scenario ID
+        if not scenario_id or scenario_id in ['undefined', 'null']:
+            raise HTTPException(status_code=400, detail=f"Invalid scenario ID: {scenario_id}")
+        
+        success = scenario_service.update_scenario(scenario_id, scenario_def)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
+        
+        return {"message": f"Scenario {scenario_id} updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating scenario {scenario_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update scenario: {str(e)}")
+
 @router.delete("/{scenario_id}")
 async def delete_scenario(scenario_id: str):
     """Delete a scenario and its results."""
     try:
+        # Validate scenario ID
+        if not scenario_id or scenario_id in ['undefined', 'null']:
+            raise HTTPException(status_code=400, detail=f"Invalid scenario ID: {scenario_id}")
+        
         success = scenario_service.delete_scenario(scenario_id)
         if not success:
             raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
@@ -162,16 +199,11 @@ async def get_scenario_results(scenario_id: str):
         if not scenario:
             raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
         
-        # Try to load saved results
-        import os
-        results_file = os.path.join(scenario_service.storage_dir, f"{scenario_id}_results.json")
+        # Get saved results using the service method
+        results = scenario_service.get_scenario_results(scenario_id)
         
-        if not os.path.exists(results_file):
+        if results is None:
             raise HTTPException(status_code=404, detail=f"No results found for scenario: {scenario_id}")
-        
-        import json
-        with open(results_file, 'r') as f:
-            results = json.load(f)
         
         return {
             "scenario_id": scenario_id,

@@ -51,63 +51,6 @@ async def import_office_config(file: UploadFile = File(...)):
         "updated": updated_count
     }
 
-@router.get("/config/validation")
-def validate_office_configuration():
-    """Validate office configuration integrity and return report"""
-    from datetime import datetime
-    from fastapi import HTTPException
-    
-    try:
-        # Get configuration from configuration service (NOT simulation engine)
-        config_dict = config_service.get_config()
-        
-        if not config_dict:
-            return {
-                "status": "empty",
-                "message": "No configuration data found",
-                "timestamp": datetime.now().isoformat(),
-                "summary": {
-                    "total_offices": 0,
-                    "total_roles": 0,
-                    "total_levels": 0,
-                    "total_fte": 0,
-                    "missing_data_count": 0
-                }
-            }
-        
-        # Calculate summary from configuration service data
-        total_offices = len(config_dict)
-        total_roles = 0
-        total_levels = 0
-        total_fte = 0
-        
-        for office_name, office_data in config_dict.items():
-            if 'roles' in office_data:
-                for role_name, role_data in office_data['roles'].items():
-                    total_roles += 1
-                    if isinstance(role_data, dict):
-                        # All roles have levels structure (including Operations with "nan")
-                        for level_name, level_data in role_data.items():
-                            total_levels += 1
-                            if isinstance(level_data, dict) and 'fte' in level_data:
-                                total_fte += level_data['fte']
-        
-        return {
-            "status": "valid",
-            "message": "Configuration loaded successfully",
-            "timestamp": datetime.now().isoformat(),
-            "summary": {
-                "total_offices": total_offices,
-                "total_roles": total_roles,
-                "total_levels": total_levels,
-                "total_fte": total_fte,
-                "missing_data_count": 0
-            }
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Configuration validation failed: {str(e)}")
-
 @router.get("/config/checksum")
 def get_office_configuration_checksum():
     """Get just the configuration checksum for quick integrity checks"""

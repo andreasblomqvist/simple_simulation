@@ -16,15 +16,15 @@
 
 ## Results Table (All Years, All KPIs, Per Office)
 
-- [ ] 1.0 Results Table Implementation
-  - [ ] 1.1 Update backend to return all KPIs (financial and journey) for each office and for 'Group' (company-wide) for all years
-  - [ ] 1.2 Update frontend to render a spreadsheet-style table:
-    - [ ] 1.2.1 Rows: Each KPI (FTE, Growth%, Sales, EBITDA, EBITDA%, J-1, J-2, J-3, etc.) for each office and for 'Group'
-    - [ ] 1.2.2 Columns: Each year in the scenario
-    - [ ] 1.2.3 Office column: 'Group' for company-wide, then each office
-    - [ ] 1.2.4 KPI column: All relevant KPIs
-  - [ ] 1.3 Ensure table is easy to scan, copy, and compare
-  - [ ] 1.4 (Optional) Add expand/collapse for offices if many exist
+- [x] 1.0 Results Table Implementation
+  - [x] 1.1 Update backend to return all KPIs (financial and journey) for each office and for 'Group' (company-wide) for all years
+  - [x] 1.2 Update frontend to render a spreadsheet-style table:
+    - [x] 1.2.1 Rows: Each KPI (FTE, Growth%, Sales, EBITDA, EBITDA%, J-1, J-2, J-3, etc.) for each office and for 'Group'
+    - [x] 1.2.2 Columns: Each year in the scenario
+    - [x] 1.2.3 Office column: 'Group' for company-wide, then each office
+    - [x] 1.2.4 KPI column: All relevant KPIs
+  - [x] 1.3 Ensure table is easy to scan, copy, and compare
+  - [x] 1.4 (Optional) Add expand/collapse for offices if many exist
   - [ ] 1.5 Add unit/integration tests for results table rendering
 
 ## Relevant Files
@@ -48,20 +48,21 @@
 
 ## Tasks
 
-- [ ] 1.0 Backend Infrastructure Setup
-  - [ ] 1.1 Create scenario data models and types in Python
-  - [ ] 1.2 Create scenario service with CRUD operations
-  - [ ] 1.3 Create scenario router with API endpoints
-  - [ ] 1.4 Set up scenario data storage directory structure
-  - [ ] 1.5 Add scenario endpoints to main FastAPI app
-  - [ ] 1.6 Create scenario validation logic for lever inputs
-- [ ] 2.0 Frontend Core Components
-  - [ ] 2.1 Create TypeScript types for scenario data structures
-  - [ ] 2.2 Create main ScenarioRunner page component
-  - [ ] 2.3 Create ScenarioEditor component with form controls
-  - [ ] 2.4 Create ScenarioList component for saved scenarios
-  - [ ] 2.5 Create ScenarioResults component for displaying outcomes
-  - [ ] 2.6 Create scenario API service for backend communication
+- [x] 1.0 Backend Infrastructure Setup
+  - [x] 1.1 Create scenario data models and types in Python
+  - [x] 1.2 Create scenario service with CRUD operations
+  - [x] 1.3 Create scenario router with API endpoints
+  - [x] 1.4 Set up scenario data storage directory structure
+  - [x] 1.5 Add scenario endpoints to main FastAPI app
+  - [x] 1.6 Create scenario validation logic for lever inputs
+  - [x] 1.7 Create comprehensive unit tests for scenario service
+- [x] 2.0 Frontend Core Components
+  - [x] 2.1 Create TypeScript types for scenario data structures
+  - [x] 2.2 Create main ScenarioRunner page component
+  - [x] 2.3 Create ScenarioEditor component with form controls
+  - [x] 2.4 Create ScenarioList component for saved scenarios
+  - [x] 2.5 Create ScenarioResults component for displaying outcomes
+  - [x] 2.6 Create scenario API service for backend communication
 - [ ] 3.0 Scenario Management System
   - [ ] 3.1 Implement scenario creation with name, description, and settings
   - [ ] 3.2 Implement level-specific lever controls (recruitment, churn, progression)

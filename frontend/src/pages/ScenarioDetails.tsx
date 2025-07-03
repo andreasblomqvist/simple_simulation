@@ -21,7 +21,12 @@ const ScenarioDetails: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        if (!id) throw new Error('No scenario ID provided');
+        if (!id) {
+          throw new Error('No scenario ID provided');
+        }
+        if (id === 'undefined' || id === 'null') {
+          throw new Error('Invalid scenario ID');
+        }
         const data = await scenarioApi.getScenario(id);
         setScenario(data);
       } catch (err) {

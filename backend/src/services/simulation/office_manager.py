@@ -1,30 +1,39 @@
 from typing import Dict, List, Any
 from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
-from backend.config.progression_config import PROGRESSION_CONFIG
 import random
 from datetime import datetime, timedelta
 
 class OfficeManager:
     """
     Handles office, role, and level initialization and configuration.
+    No longer depends on config service - receives all data as parameters.
     """
-    def __init__(self, config_service, event_logger=None):
-        self.config_service = config_service
+    def __init__(self, event_logger=None):
         self.offices: Dict[str, Office] = {}
         self.level_order: List[str] = []
         self.event_logger = event_logger
 
-    def initialize_offices_from_config(self):
-        config_dict = self.config_service.get_config()
-        config_data = [office_config for office_config in config_dict.values()]
-        self.level_order = self.determine_level_order(config_data)
+    def create_offices_from_data(self, office_data: List[Dict[str, Any]], progression_config: Dict[str, Any] = None):
+        """
+        Create offices from provided office data instead of loading from config service.
+        
+        Args:
+            office_data: List of office configuration dictionaries
+            progression_config: Progression rules dict (optional, falls back to import if not provided)
+        """
+        # Fallback to import if progression_config not provided (for backward compatibility)
+        if progression_config is None:
+            from backend.config.progression_config import PROGRESSION_CONFIG
+            progression_config = PROGRESSION_CONFIG
+        
+        self.level_order = self.determine_level_order(office_data)
         self.offices = {}
-        for office_config in config_data:
-            office = self._create_office_from_config(office_config)
+        for office_config in office_data:
+            office = self._create_office_from_config(office_config, progression_config)
             self.offices[office.name] = office
         return self.offices
 
-    def _create_office_from_config(self, office_config: Dict[str, Any]) -> Office:
+    def _create_office_from_config(self, office_config: Dict[str, Any], progression_config: Dict[str, Any]) -> Office:
         office_name = office_config.get('name', 'Unknown Office')
         total_fte = office_config.get('total_fte', 0)
         office = Office.create_office(office_name, total_fte)
@@ -60,8 +69,8 @@ class OfficeManager:
                             else:
                                 default_value = level_config.get(key, 0.0)
                                 level_attributes[monthly_key] = default_value
-                    # FIX: Use progression_months from PROGRESSION_CONFIG
-                    progression_months = PROGRESSION_CONFIG.get(level_name, {}).get('progression_months', [1])
+                    # Use progression_months from passed progression_config
+                    progression_months = progression_config.get(level_name, {}).get('progression_months', [1])
                     level = Level(
                         name=level_name,
                         journey=journey_name,
@@ -235,4 +244,47 @@ class OfficeManager:
         elif level_name == 'PiP':
             return Journey.JOURNEY_4
         else:
-            return Journey.JOURNEY_1 
+            return Journey.JOURNEY_1
+
+    def validate_office_data(self, office_data: List[Dict[str, Any]]) -> None:
+        """
+        Validate the completeness and structure of office data.
+        Raises a ValueError with descriptive message if invalid.
+        """
+        if not isinstance(office_data, list):
+            raise ValueError("Office data must be a list")
+        
+        if len(office_data) == 0:
+            raise ValueError("Office data list cannot be empty")
+        
+        for i, office_config in enumerate(office_data):
+            if not isinstance(office_config, dict):
+                raise ValueError(f"Office config at index {i} must be a dictionary")
+            
+            # Check required fields
+            required_fields = ['name', 'total_fte', 'roles']
+            for field in required_fields:
+                if field not in office_config:
+                    raise ValueError(f"Office config at index {i} missing required field: {field}")
+            
+            # Validate roles structure
+            roles = office_config.get('roles', {})
+            if not isinstance(roles, dict):
+                raise ValueError(f"Office {office_config['name']} roles must be a dictionary")
+            
+            for role_name, role_data in roles.items():
+                if not isinstance(role_data, dict):
+                    raise ValueError(f"Office {office_config['name']} role {role_name} must be a dictionary")
+                
+                # Check for FTE field
+                if 'fte' not in role_data:
+                    raise ValueError(f"Office {office_config['name']} role {role_name} missing required field: fte")
+                
+                # For leveled roles, check level structure
+                if role_name != 'Operations':
+                    for level_name, level_config in role_data.items():
+                        if not isinstance(level_config, dict):
+                            raise ValueError(f"Office {office_config['name']} role {role_name} level {level_name} must be a dictionary")
+                        
+                        if 'fte' not in level_config:
+                            raise ValueError(f"Office {office_config['name']} role {role_name} level {level_name} missing required field: fte") 

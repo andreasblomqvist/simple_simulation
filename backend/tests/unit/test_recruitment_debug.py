@@ -6,23 +6,32 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from services.simulation_engine import SimulationEngine, Month
+from services.scenario_service import ScenarioService
+from services.config_service import ConfigService
 
 class TestRecruitmentDebug(unittest.TestCase):
     
     def setUp(self):
         """Set up a fresh simulation engine for each test"""
         self.engine = SimulationEngine()
+        # Create scenario service to load offices
+        self.config_service = ConfigService()
+        self.scenario_service = ScenarioService(self.config_service)
+        # Load offices from config
+        config = self.config_service.get_config()
+        progression_config = self.scenario_service.load_progression_config()
+        self.offices = self.scenario_service.create_offices_from_config(config, progression_config)
     
     def test_recruitment_calculation_simple(self):
         """
         Test basic recruitment calculation with a simple example
         """
         # Get an available office for testing
-        available_offices = list(self.engine.offices.keys())
+        available_offices = list(self.offices.keys())
         self.assertGreater(len(available_offices), 0, "Should have at least one office")
         
         test_office_name = available_offices[0]
-        test_office = self.engine.offices[test_office_name]
+        test_office = self.offices[test_office_name]
         
         # Find a consultant level that exists
         if 'Consultant' in test_office.roles and 'A' in test_office.roles['Consultant']:
@@ -32,10 +41,13 @@ class TestRecruitmentDebug(unittest.TestCase):
             initial_count = level_a.total
             self.assertGreater(initial_count, 0, f"Test office {test_office_name} should have A-level consultants")
             
-            # Run one month simulation
-            result = self.engine.run_simulation(
+            # Run one month simulation using the loaded offices
+            result = self.engine.run_simulation_with_offices(
                 start_year=2024, start_month=1,
-                end_year=2024, end_month=1
+                end_year=2024, end_month=1,
+                offices=self.offices,
+                progression_config=self.scenario_service.load_progression_config(),
+                cat_curves=self.scenario_service.load_cat_curves()
             )
             
             # Verify structure
@@ -51,7 +63,7 @@ class TestRecruitmentDebug(unittest.TestCase):
         """
         # Find an office with consultant roles
         test_office_name = None
-        for office_name, office in self.engine.offices.items():
+        for office_name, office in self.offices.items():
             if 'Consultant' in office.roles and len(office.roles['Consultant']) > 0:
                 test_office_name = office_name
                 break
@@ -60,9 +72,12 @@ class TestRecruitmentDebug(unittest.TestCase):
             self.skipTest("No office found with consultant roles")
             
         # Run simulation for a few months
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=3
+            end_year=2024, end_month=3,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check that results exist for our test office
@@ -79,7 +94,7 @@ class TestRecruitmentDebug(unittest.TestCase):
         """
         # Find a suitable office for testing
         test_office_name = None
-        for office_name, office in self.engine.offices.items():
+        for office_name, office in self.offices.items():
             if 'Consultant' in office.roles and 'A' in office.roles['Consultant']:
                 if office.roles['Consultant']['A'].total > 0:
                     test_office_name = office_name
@@ -89,9 +104,12 @@ class TestRecruitmentDebug(unittest.TestCase):
             self.skipTest("No suitable office found for testing")
         
         # Run simulation for several months
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=6
+            end_year=2024, end_month=6,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Verify we got results
@@ -114,7 +132,7 @@ class TestRecruitmentDebug(unittest.TestCase):
         """
         # Find an office with operations
         test_office_name = None
-        for office_name, office in self.engine.offices.items():
+        for office_name, office in self.offices.items():
             if 'Operations' in office.roles:
                 test_office_name = office_name
                 break
@@ -123,9 +141,12 @@ class TestRecruitmentDebug(unittest.TestCase):
             self.skipTest("No office found with operations")
         
         # Run simulation
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=2
+            end_year=2024, end_month=2,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check operations data exists
@@ -144,9 +165,12 @@ class TestRecruitmentDebug(unittest.TestCase):
         Test that recruitment debug logging provides useful information
         """
         # Capture any debug output during simulation
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=1
+            end_year=2024, end_month=1,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Basic structure check

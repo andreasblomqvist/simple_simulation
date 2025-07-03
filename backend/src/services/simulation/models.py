@@ -6,7 +6,7 @@ This module contains all the fundamental data structures used by the simulation:
 - Dataclasses for Person, RoleData, Level, and Office
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
@@ -16,7 +16,6 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../config'))
 from backend.config.laf_progression import LAF_PROGRESSION, PROGRESSION_LEVER
-from backend.config.progression_config import PROGRESSION_CONFIG, CAT_CURVES
 
 class Month(Enum):
     """Enumeration for months of the year"""
@@ -88,8 +87,20 @@ class Person:
             cat_number = min(30, 6 * ((tenure_months // 6)))
             return f'CAT{cat_number}'
     
-    def get_progression_probability(self, current_date: str, level_name: str) -> float:
-        """Calculate progression probability using CAT_CURVES from progression_config.py"""
+    def get_progression_probability(self, current_date: str, level_name: str, cat_curves: Optional[Dict[str, Any]] = None) -> float:
+        """
+        Calculate progression probability using CAT curves.
+        
+        Args:
+            current_date: Current date in YYYY-MM format
+            level_name: Name of the level (e.g., "A", "C", "AM")
+            cat_curves: CAT curves dict (optional, falls back to import if not provided)
+        """
+        # Fallback to import if parameter not provided (for backward compatibility)
+        if cat_curves is None:
+            from backend.config.progression_config import CAT_CURVES
+            cat_curves = CAT_CURVES
+        
         tenure_months = self.get_level_tenure_months(current_date)
         # CAT0 should always return 0.0 (no progression for < 6 months)
         if tenure_months < 6:
@@ -97,8 +108,8 @@ class Person:
         # Determine CAT group
         cat_number = 6 * ((tenure_months // 6))
         cat = f'CAT{cat_number}'
-        # Lookup probability from CAT_CURVES
-        prob = CAT_CURVES.get(level_name, {}).get(cat, 0.0)
+        # Lookup probability from CAT curves
+        prob = cat_curves.get(level_name, {}).get(cat, 0.0)
         return min(prob, 1.0)
 
 @dataclass
@@ -325,13 +336,21 @@ class Level:
         person.level_start = current_date
         self.people.append(person)
     
-    def is_progression_month(self, current_month: int) -> bool:
-        """Check if the given month is a progression month for this level"""
-        # Import here to avoid circular imports
-        from backend.config.progression_config import PROGRESSION_CONFIG
+    def is_progression_month(self, current_month: int, progression_config: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Check if the given month is a progression month for this level.
         
-        if self.name in PROGRESSION_CONFIG:
-            progression_months = PROGRESSION_CONFIG[self.name]['progression_months']
+        Args:
+            current_month: Month number (1-12)
+            progression_config: Progression rules dict (optional, falls back to import if not provided)
+        """
+        # Fallback to import if parameter not provided (for backward compatibility)
+        if progression_config is None:
+            from backend.config.progression_config import PROGRESSION_CONFIG
+            progression_config = PROGRESSION_CONFIG
+        
+        if self.name in progression_config:
+            progression_months = progression_config[self.name]['progression_months']
             return current_month in progression_months
         
         # Fallback to checking if any progression rate is > 0 for this month
@@ -348,19 +367,27 @@ class Level:
         from backend.config.progression_config import PROGRESSION_CONFIG
         return PROGRESSION_CONFIG.get(self.name, {}).get('journey', None)
 
-    def get_eligible_for_progression(self, current_date: str):
-        """Get people eligible for progression based on minimum tenure and progression months"""
-        # Import here to avoid circular imports
-        from backend.config.progression_config import PROGRESSION_CONFIG
+    def get_eligible_for_progression(self, current_date: str, progression_config: Optional[Dict[str, Any]] = None):
+        """
+        Get people eligible for progression based on minimum tenure and progression months.
+        
+        Args:
+            current_date: Current date in YYYY-MM format
+            progression_config: Progression rules dict (optional, falls back to import if not provided)
+        """
+        # Fallback to import if parameter not provided (for backward compatibility)
+        if progression_config is None:
+            from backend.config.progression_config import PROGRESSION_CONFIG
+            progression_config = PROGRESSION_CONFIG
         
         # Check if this is a progression month
         current_month = int(current_date.split('-')[1])
-        if not self.is_progression_month(current_month):
+        if not self.is_progression_month(current_month, progression_config):
             return []
         
         # Get minimum tenure from progression config
-        if self.name in PROGRESSION_CONFIG:
-            min_tenure = PROGRESSION_CONFIG[self.name]['time_on_level']
+        if self.name in progression_config:
+            min_tenure = progression_config[self.name]['time_on_level']
         else:
             min_tenure = 6  # Default fallback
         
@@ -391,12 +418,24 @@ class Level:
         progression_rate = progression_count / len(eligible) if len(eligible) > 0 else 0.0
         return self.apply_cat_based_progression(current_date)
     
-    def apply_cat_based_progression(self, current_date: str):
-        """Apply CAT-based progression with individual probabilities, return promoted people and their CAT info"""
-        # Import here to avoid circular imports
-        from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+    def apply_cat_based_progression(self, current_date: str, progression_config: Optional[Dict[str, Any]] = None, cat_curves: Optional[Dict[str, Any]] = None):
+        """
+        Apply CAT-based progression with individual probabilities, return promoted people and their CAT info.
         
-        eligible = self.get_eligible_for_progression(current_date)
+        Args:
+            current_date: Current date in YYYY-MM format
+            progression_config: Progression rules dict (optional, falls back to import if not provided)
+            cat_curves: CAT curves dict (optional, falls back to import if not provided)
+        """
+        # Fallback to import if parameters not provided (for backward compatibility)
+        if progression_config is None or cat_curves is None:
+            from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+            if cat_curves is None:
+                cat_curves = CAT_CURVES
+            if progression_config is None:
+                progression_config = PROGRESSION_CONFIG
+        
+        eligible = self.get_eligible_for_progression(current_date, progression_config)
         if len(eligible) == 0:
             return []
         
@@ -416,8 +455,8 @@ class Level:
                 cat = f'CAT{cat_number}'
             
             # Get probability from CAT curve
-            if self.name in CAT_CURVES:
-                individual_probability = CAT_CURVES[self.name].get(cat, 0.0)
+            if self.name in cat_curves:
+                individual_probability = cat_curves[self.name].get(cat, 0.0)
             else:
                 individual_probability = 0.0
             

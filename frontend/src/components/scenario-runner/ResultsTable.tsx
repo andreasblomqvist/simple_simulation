@@ -41,28 +41,31 @@ function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey:
   console.log('getKPIValue:', { year, office, kpiKey, yearData, officeData });
   if (!officeData) return 0;
   
-  // All KPIs are under officeData.kpis
+  // Access data directly from officeData (not under kpis)
+  const financial = officeData.financial || {};
+  const growth = officeData.growth || {};
   const kpis = officeData.kpis || {};
 
   switch (kpiKey) {
     case 'FTE':
-      return officeData.total_fte;
+      return officeData.total_fte || 0;
     case 'Sales':
-      return kpis.financial?.net_sales || 0;
+      return (financial as any).net_sales || (kpis as any).financial?.net_sales || 0;
     case 'EBITDA':
-      return kpis.financial?.ebitda || 0;
+      return (financial as any).ebitda || (kpis as any).financial?.ebitda || 0;
     case 'EBITDA%':
-      return kpis.financial?.margin ? kpis.financial.margin * 100 : 0; // Convert to percent if needed
+      const margin = (financial as any).margin || (kpis as any).financial?.margin;
+      return margin ? margin * 100 : 0; // Convert to percent
     case 'Growth%':
-      return kpis.growth?.total_growth_percent || 0;
+      return (growth as any).total_growth_percent || (kpis as any).growth?.total_growth_percent || 0;
     case 'J-1':
-      return kpis.journeys?.journey_percentages?.["Journey 1"] || 0;
+      return (kpis as any).journeys?.journey_percentages?.["Journey 1"] || 0;
     case 'J-2':
-      return kpis.journeys?.journey_percentages?.["Journey 2"] || 0;
+      return (kpis as any).journeys?.journey_percentages?.["Journey 2"] || 0;
     case 'J-3':
-      return kpis.journeys?.journey_percentages?.["Journey 3"] || 0;
+      return (kpis as any).journeys?.journey_percentages?.["Journey 3"] || 0;
     case 'J-4':
-      return kpis.journeys?.journey_percentages?.["Journey 4"] || 0;
+      return (kpis as any).journeys?.journey_percentages?.["Journey 4"] || 0;
     default:
       return 0;
   }
@@ -113,29 +116,61 @@ function getDeltaCell(scenarioVal: number, baselineVal: number | undefined, isPe
 // Helper function to extract Group/global KPI value from simulation results
 function getGroupKPIValue(data: SimulationResults | null, kpiKey: string, year: number): number {
   if (!data || !data.years[year.toString()]) return 0;
-  // Prefer yearly_kpis if available, else fallback to years[year].kpis
+  
+  // Try to get KPIs from the top-level kpis object first
   const yearlyKpis = data.kpis?.yearly_kpis?.[year.toString()];
-  const yearKpis = data.years[year.toString()].kpis;
-  const kpis = yearlyKpis || yearKpis || {};
+  if (yearlyKpis) {
+    switch (kpiKey) {
+      case 'FTE':
+        return yearlyKpis.financial?.total_consultants || 0;
+      case 'Sales':
+        return yearlyKpis.financial?.net_sales || 0;
+      case 'EBITDA':
+        return yearlyKpis.financial?.ebitda || 0;
+      case 'EBITDA%':
+        return yearlyKpis.financial?.margin ? yearlyKpis.financial.margin * 100 : 0;
+      case 'Growth%':
+        return yearlyKpis.growth?.total_growth_percent || 0;
+      case 'J-1':
+        return yearlyKpis.journeys?.journey_percentages?.["Journey 1"] || 0;
+      case 'J-2':
+        return yearlyKpis.journeys?.journey_percentages?.["Journey 2"] || 0;
+      case 'J-3':
+        return yearlyKpis.journeys?.journey_percentages?.["Journey 3"] || 0;
+      case 'J-4':
+        return yearlyKpis.journeys?.journey_percentages?.["Journey 4"] || 0;
+      default:
+        return 0;
+    }
+  }
+  
+  // Fallback: aggregate from all offices
+  const yearData = data.years[year.toString()];
+  const offices = Object.values(yearData.offices);
+  
   switch (kpiKey) {
     case 'FTE':
-      return kpis.financial?.total_consultants || 0; // or another global FTE field
+      return offices.reduce((sum, office) => sum + (office.total_fte || 0), 0);
     case 'Sales':
-      return kpis.financial?.net_sales || 0;
+      return offices.reduce((sum, office) => sum + ((office.financial?.net_sales as any) || 0), 0);
     case 'EBITDA':
-      return kpis.financial?.ebitda || 0;
+      return offices.reduce((sum, office) => sum + ((office.financial?.ebitda as any) || 0), 0);
     case 'EBITDA%':
-      return kpis.financial?.margin ? kpis.financial.margin * 100 : 0;
+      const totalSales = offices.reduce((sum, office) => sum + ((office.financial?.net_sales as any) || 0), 0);
+      const totalEbitda = offices.reduce((sum, office) => sum + ((office.financial?.ebitda as any) || 0), 0);
+      return totalSales > 0 ? (totalEbitda / totalSales) * 100 : 0;
     case 'Growth%':
-      return kpis.growth?.total_growth_percent || 0;
+      // For growth, we'll use the first office's growth data as a proxy
+      const firstOffice = offices[0];
+      return (firstOffice?.growth as any)?.total_growth_percent || 0;
     case 'J-1':
-      return kpis.journeys?.journey_percentages?.["Journey 1"] || 0;
     case 'J-2':
-      return kpis.journeys?.journey_percentages?.["Journey 2"] || 0;
     case 'J-3':
-      return kpis.journeys?.journey_percentages?.["Journey 3"] || 0;
     case 'J-4':
-      return kpis.journeys?.journey_percentages?.["Journey 4"] || 0;
+      // For journey data, we'll use the first office's journey data as a proxy
+      const firstOfficeKpis = offices[0]?.kpis;
+      const journeyNum = kpiKey.split('-')[1];
+      return (firstOfficeKpis as any)?.journeys?.journey_percentages?.[`Journey ${journeyNum}`] || 0;
     default:
       return 0;
   }

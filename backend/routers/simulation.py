@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from backend.src.services.simulation_engine import SimulationEngine
+from backend.src.services.scenario_service import ScenarioService
 from backend.src.services.kpi import KPIService, EconomicParameters
 from backend.src.services.cache_service import simulation_cache
 from backend.src.services.excel_export_service import ExcelExportService
@@ -18,6 +19,9 @@ router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 # Create engine instance (no injection needed with JSON file approach)
 engine = SimulationEngine()
+
+# Create scenario service instance for the new architecture
+scenario_service = ScenarioService(config_service)
 
 class SimulationRequest(BaseModel):
     start_year: int
@@ -161,17 +165,54 @@ def run_simulation(params: SimulationRequest):
         economic_params = EconomicParameters.from_simulation_request(params)
         print(f"[SIMULATION] Economic parameters created: {economic_params}")
         
-        # Run the simulation
-        results = engine.run_simulation(
-            start_year=params.start_year,
-            start_month=params.start_month,
-            end_year=params.end_year,
-            end_month=params.end_month,
-            price_increase=params.price_increase,
-            salary_increase=params.salary_increase,
-            lever_plan=lever_plan,
-            economic_params=economic_params
-        )
+        # Use ScenarioService to resolve scenario data and run simulation
+        print(f"🔄 [SIMULATION] Resolving scenario data using ScenarioService...")
+        try:
+            # Resolve scenario data (offices, progression rules, etc.)
+            scenario_data = scenario_service.resolve_scenario(
+                baseline_inputs={
+                    'price_increase': params.price_increase,
+                    'salary_increase': params.salary_increase
+                },
+                lever_plan=lever_plan
+            )
+            
+            offices = scenario_data['offices']
+            progression_config = scenario_data['progression_config']
+            cat_curves = scenario_data['cat_curves']
+            
+            print(f"✅ [SIMULATION] Scenario data resolved successfully")
+            print(f"[SIMULATION] Offices: {list(offices.keys())}")
+            print(f"[SIMULATION] Progression levels: {list(progression_config.keys())}")
+            
+            # Run the simulation using the new pure function approach
+            results = engine.run_simulation_with_offices(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                offices=offices,
+                progression_config=progression_config,
+                cat_curves=cat_curves,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                economic_params=economic_params
+            )
+            
+        except Exception as e:
+            print(f"❌ [SIMULATION] Scenario resolution failed: {e}")
+            # Fallback to old method for backward compatibility
+            print(f"🔄 [SIMULATION] Falling back to legacy simulation method...")
+            results = engine.run_simulation(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                lever_plan=lever_plan,
+                economic_params=economic_params
+            )
         
         # Calculate simulation duration in months
         start_date = datetime(params.start_year, params.start_month, 1)
@@ -470,17 +511,52 @@ def export_simulation_to_excel(params: SimulationRequest):
         # Create economic parameters from frontend request  
         economic_params = EconomicParameters.from_simulation_request(params)
         
-        # Run the simulation
-        results = engine.run_simulation(
-            start_year=params.start_year,
-            start_month=params.start_month,
-            end_year=params.end_year,
-            end_month=params.end_month,
-            price_increase=params.price_increase,
-            salary_increase=params.salary_increase,
-            lever_plan=lever_plan,
-            economic_params=economic_params
-        )
+        # Use ScenarioService to resolve scenario data and run simulation
+        print(f"🔄 [EXPORT] Resolving scenario data using ScenarioService...")
+        try:
+            # Resolve scenario data (offices, progression rules, etc.)
+            scenario_data = scenario_service.resolve_scenario(
+                baseline_inputs={
+                    'price_increase': params.price_increase,
+                    'salary_increase': params.salary_increase
+                },
+                lever_plan=lever_plan
+            )
+            
+            offices = scenario_data['offices']
+            progression_config = scenario_data['progression_config']
+            cat_curves = scenario_data['cat_curves']
+            
+            print(f"✅ [EXPORT] Scenario data resolved successfully")
+            
+            # Run the simulation using the new pure function approach
+            results = engine.run_simulation_with_offices(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                offices=offices,
+                progression_config=progression_config,
+                cat_curves=cat_curves,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                economic_params=economic_params
+            )
+            
+        except Exception as e:
+            print(f"❌ [EXPORT] Scenario resolution failed: {e}")
+            # Fallback to old method for backward compatibility
+            print(f"🔄 [EXPORT] Falling back to legacy simulation method...")
+            results = engine.run_simulation(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                lever_plan=lever_plan,
+                economic_params=economic_params
+            )
         
         # Calculate simulation duration in months
         start_date = datetime(params.start_year, params.start_month, 1)
@@ -653,17 +729,52 @@ def export_simulation_to_json(params: SimulationRequest, scenario_metadata: Opti
         # Create economic parameters from frontend request  
         economic_params = EconomicParameters.from_simulation_request(params)
         
-        # Run the simulation
-        results = engine.run_simulation(
-            start_year=params.start_year,
-            start_month=params.start_month,
-            end_year=params.end_year,
-            end_month=params.end_month,
-            price_increase=params.price_increase,
-            salary_increase=params.salary_increase,
-            lever_plan=lever_plan,
-            economic_params=economic_params
-        )
+        # Use ScenarioService to resolve scenario data and run simulation
+        print(f"🔄 [JSON EXPORT] Resolving scenario data using ScenarioService...")
+        try:
+            # Resolve scenario data (offices, progression rules, etc.)
+            scenario_data = scenario_service.resolve_scenario(
+                baseline_inputs={
+                    'price_increase': params.price_increase,
+                    'salary_increase': params.salary_increase
+                },
+                lever_plan=lever_plan
+            )
+            
+            offices = scenario_data['offices']
+            progression_config = scenario_data['progression_config']
+            cat_curves = scenario_data['cat_curves']
+            
+            print(f"✅ [JSON EXPORT] Scenario data resolved successfully")
+            
+            # Run the simulation using the new pure function approach
+            results = engine.run_simulation_with_offices(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                offices=offices,
+                progression_config=progression_config,
+                cat_curves=cat_curves,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                economic_params=economic_params
+            )
+            
+        except Exception as e:
+            print(f"❌ [JSON EXPORT] Scenario resolution failed: {e}")
+            # Fallback to old method for backward compatibility
+            print(f"🔄 [JSON EXPORT] Falling back to legacy simulation method...")
+            results = engine.run_simulation(
+                start_year=params.start_year,
+                start_month=params.start_month,
+                end_year=params.end_year,
+                end_month=params.end_month,
+                price_increase=params.price_increase,
+                salary_increase=params.salary_increase,
+                lever_plan=lever_plan,
+                economic_params=economic_params
+            )
         
         print(f"✅ [JSON EXPORT] Simulation completed, generating comprehensive JSON...")
         

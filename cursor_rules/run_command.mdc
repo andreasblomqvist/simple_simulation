@@ -6,7 +6,29 @@ alwaysApply: false
 # Cursor Rule: run_command
 
 ## Purpose
-This rule governs how commands, server management, and git operations are handled in this project to ensure safety, reproducibility, and developer control.
+This rule governs how commands, server management, git operations, and architectural changes are handled in this project to ensure safety, reproducibility, developer control, and architectural consistency.
+
+---
+
+## Architecture Documentation Rule
+- **ALWAYS** reference `docs/ARCHITECTURE.md` before making any significant changes to the codebase.
+- **REQUIRED** to understand the current system architecture, data flow, and component responsibilities before implementing new features or modifications.
+- **MANDATORY** to follow the architectural principles outlined in the documentation, especially regarding:
+  - Single source of truth for business logic (simulation engine)
+  - Thin adapter/service layers
+  - Data transformation patterns
+  - Risk mitigation strategies
+- **FORBIDDEN** to implement changes that violate the architectural principles without explicit user approval and documentation updates.
+- **REQUIRED** to update `docs/ARCHITECTURE.md` if architectural changes are made.
+
+**Example Workflow:**
+```
+AI: Before implementing this feature, let me check the architecture documentation...
+[reads docs/ARCHITECTURE.md]
+AI: Based on the architecture, I should implement this as a thin adapter that...
+User: proceed
+AI: [implements according to architectural principles]
+```
 
 ---
 
@@ -54,6 +76,24 @@ AI: [proceeds with git add, commit, and push]
 - **Frontend:**
   ```bash
   cd frontend && npm run dev
+  ```
+
+## PowerShell Syntax Rules
+- **NEVER use `&&` syntax in PowerShell** - it's not supported and will cause errors
+- **ALWAYS use `;` (semicolon) for command chaining in PowerShell**
+- **Use proper PowerShell environment variable syntax:**
+  - `$env:PYTHONPATH="."` (not `PYTHONPATH=.`)
+  - `$env:NODE_ENV="development"` (not `NODE_ENV=development`)
+- **Correct PowerShell examples:**
+  ```powershell
+  cd frontend; npm run dev
+  cd backend; $env:PYTHONPATH="."; python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+  Start-Sleep -Seconds 5; Invoke-WebRequest -Uri "http://localhost:8000/health"
+  ```
+- **Incorrect (will fail):**
+  ```powershell
+  cd frontend && npm run dev  # ❌ FAILS
+  PYTHONPATH=. python3 -m uvicorn backend.main:app  # ❌ FAILS
   ```
 
 ---

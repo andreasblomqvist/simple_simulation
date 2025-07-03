@@ -1,0 +1,22 @@
+{
+  "id": "bc595ae2-8474-4e02-8a96-c058a8cc2bf2",
+  "definition": {
+    "name": "sfsdfsf",
+    "description": "",
+    "time_range": {
+      "start_year": 2025,
+      "start_month": 1,
+      "end_year": 2027,
+      "end_month": 12
+    },
+    "office_scope": [
+      "Group"
+    ],
+    "levers": {},
+    "economic_params": {},
+    "created_at": "2025-07-03 20:32:48.076775",
+    "updated_at": "2025-07-03 20:32:48.076804"
+  },
+  "created_at": "2025-07-03T20:32:48.076775",
+  "updated_at": "2025-07-03T20:32:48.076804"
+}
