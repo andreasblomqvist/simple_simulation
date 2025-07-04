@@ -48,7 +48,7 @@ class SimpleSimulationEngine:
     def calculate_progression(self,
                             employee_level: int,
                             months_in_role: int,
-                            progression_matrix: Dict) -> float:
+                            progression_matrix: Optional[Dict]) -> float:
         """
         Calculate probability of progression for an employee.
         
