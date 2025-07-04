@@ -68,4 +68,32 @@
   color: inherit;
 }
 
+/* Force delta row background on all cells (AntD override) */
+.ant-table-row.delta-row > .ant-table-cell,
+.ant-table-row.delta-row > td {
+  background-color: #23272f !important;
+  font-style: italic;
+}
+
+/* (Optional) Remove or comment out the old .delta-row background rules to avoid confusion */
+/*
+.delta-row,
+.ant-table-row.delta-row,
+.ant-table-row.delta-row > .ant-table-cell {
+  background-color: #f8f9fa !important;
+  font-style: italic;
+}
+.ant-table-row.delta-row > .ant-table-cell {
+  border-top: 1px solid #e8e8e8 !important;
+}
+[data-theme="dark"] .delta-row,
+[data-theme="dark"] .ant-table-row.delta-row,
+[data-theme="dark"] .ant-table-row.delta-row > .ant-table-cell {
+  background-color: #23272f !important;
+}
+[data-theme="dark"] .ant-table-row.delta-row > .ant-table-cell {
+  border-top: 1px solid #303030 !important;
+}
+*/
+
  

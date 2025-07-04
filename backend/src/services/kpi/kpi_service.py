@@ -57,6 +57,7 @@ class KPIService:
             yearly_financial = self.financial_calculator.calculate_current_financial_metrics(
                 year_data, params.unplanned_absence, params.other_expense, duration_months=12
             )
+            yearly_growth = calculate_growth_metrics(baseline_data, year_data)
             yearly_kpis[year] = YearlyKPIs(
                 year=year,
                 financial=FinancialKPIs(
@@ -74,7 +75,7 @@ class KPIService:
                     avg_hourly_rate_baseline=baseline_financial['avg_hourly_rate'],
                     avg_utr=0.85
                 ),
-                growth=growth_metrics,
+                growth=yearly_growth,
                 journeys=journey_metrics,
                 year_over_year_growth=0.0,
                 year_over_year_margin_change=0.0

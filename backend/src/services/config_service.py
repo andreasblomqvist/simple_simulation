@@ -15,7 +15,10 @@ class OfficeConfig:
     roles: Dict[str, Any]
 
 class ConfigService:
-    def __init__(self, config_file_path: str = "backend/config/office_configuration.json"):
+    def __init__(self, config_file_path: str = None):
+        # Use environment variable if available, otherwise use default
+        if config_file_path is None:
+            config_file_path = os.environ.get("CONFIG_FILE_PATH", "backend/config/office_configuration.json")
         self.config_file_path = config_file_path
         self.ensure_config_directory()
         self._cached_config: Optional[Dict[str, Any]] = None
@@ -347,6 +350,108 @@ class ConfigService:
     def get_configuration(self):
         """Alias for get_config, for compatibility with code expecting get_configuration."""
         return self.get_config()
+    
+    def validate_absolute_percentage_fields(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate absolute and percentage fields for recruitment and churn.
+        Returns validation results with warnings and errors.
+        """
+        validation_results = {
+            "warnings": [],
+            "errors": [],
+            "validated_offices": 0,
+            "validated_roles": 0,
+            "validated_levels": 0
+        }
+        
+        for office_name, office_data in config.items():
+            if "roles" not in office_data:
+                continue
+                
+            validation_results["validated_offices"] += 1
+            
+            for role_name, role_data in office_data["roles"].items():
+                validation_results["validated_roles"] += 1
+                
+                # Handle flat roles like Operations
+                if role_name == 'Operations':
+                    self._validate_level_fields(role_data, office_name, role_name, "N/A", validation_results)
+                else:
+                    # Handle hierarchical roles
+                    for level_name, level_data in role_data.items():
+                        validation_results["validated_levels"] += 1
+                        self._validate_level_fields(level_data, office_name, role_name, level_name, validation_results)
+        
+        return validation_results
+    
+    def _validate_level_fields(self, level_data: Dict[str, Any], office_name: str, role_name: str, level_name: str, validation_results: Dict[str, Any]):
+        """Validate fields for a specific level"""
+        
+        for month in range(1, 13):
+            # Check recruitment fields
+            recruitment_pct = level_data.get(f"recruitment_{month}")
+            recruitment_abs = level_data.get(f"recruitment_abs_{month}")
+            
+            # Check churn fields
+            churn_pct = level_data.get(f"churn_{month}")
+            churn_abs = level_data.get(f"churn_abs_{month}")
+            
+            # Validate recruitment fields
+            if recruitment_abs is not None and recruitment_pct is not None:
+                # Both present - check for reasonable consistency
+                expected_from_pct = recruitment_pct * level_data.get("fte", 0)
+                if abs(recruitment_abs - expected_from_pct) > 5:  # Allow 5 FTE difference
+                    validation_results["warnings"].append(
+                        f"{office_name}.{role_name}.{level_name}: Month {month} recruitment_abs_{month}={recruitment_abs} "
+                        f"differs significantly from percentage-based calculation ({expected_from_pct:.1f})"
+                    )
+            elif recruitment_abs is None and recruitment_pct is None:
+                # Neither present - warning
+                validation_results["warnings"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} has no recruitment value "
+                    f"(neither recruitment_{month} nor recruitment_abs_{month})"
+                )
+            
+            # Validate churn fields
+            if churn_abs is not None and churn_pct is not None:
+                # Both present - check for reasonable consistency
+                expected_from_pct = churn_pct * level_data.get("fte", 0)
+                if abs(churn_abs - expected_from_pct) > 3:  # Allow 3 FTE difference for churn
+                    validation_results["warnings"].append(
+                        f"{office_name}.{role_name}.{level_name}: Month {month} churn_abs_{month}={churn_abs} "
+                        f"differs significantly from percentage-based calculation ({expected_from_pct:.1f})"
+                    )
+            elif churn_abs is None and churn_pct is None:
+                # Neither present - warning
+                validation_results["warnings"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} has no churn value "
+                    f"(neither churn_{month} nor churn_abs_{month})"
+                )
+            
+            # Validate data types and ranges
+            if recruitment_pct is not None and (recruitment_pct < 0 or recruitment_pct > 1):
+                validation_results["errors"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} recruitment_{month}={recruitment_pct} "
+                    f"is outside valid range [0, 1]"
+                )
+            
+            if churn_pct is not None and (churn_pct < 0 or churn_pct > 1):
+                validation_results["errors"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} churn_{month}={churn_pct} "
+                    f"is outside valid range [0, 1]"
+                )
+            
+            if recruitment_abs is not None and (recruitment_abs < 0 or recruitment_abs > 1000):
+                validation_results["errors"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} recruitment_abs_{month}={recruitment_abs} "
+                    f"is outside valid range [0, 1000]"
+                )
+            
+            if churn_abs is not None and (churn_abs < 0 or churn_abs > 1000):
+                validation_results["errors"].append(
+                    f"{office_name}.{role_name}.{level_name}: Month {month} churn_abs_{month}={churn_abs} "
+                    f"is outside valid range [0, 1000]"
+                )
 
 # Global instance
 config_service = ConfigService() 

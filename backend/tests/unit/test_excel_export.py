@@ -3,6 +3,8 @@ import pandas as pd
 import os
 from backend.src.services.excel_export_service import ExcelExportService
 from backend.src.services.kpi_service import AllKPIs, FinancialKPIs, GrowthKPIs, JourneyKPIs, YearlyKPIs
+from dataclasses import asdict
+from backend.src.services.simulation.models import Month
 
 @pytest.fixture
 def sample_kpis():
@@ -18,7 +20,9 @@ def sample_kpis():
         total_consultants_baseline=90,
         avg_hourly_rate=150.0,
         avg_hourly_rate_baseline=140.0,
-        avg_utr=0.85
+        avg_utr=0.85,
+        total_salary_costs=500000.0,
+        total_salary_costs_baseline=500000.0
     )
     
     growth = GrowthKPIs(
@@ -49,6 +53,18 @@ def sample_kpis():
             'Journey 2': 2.0,
             'Journey 3': -1.0,
             'Journey 4': 0.0
+        },
+        journey_totals_baseline={
+            'Journey 1': 40,
+            'Journey 2': 30,
+            'Journey 3': 20,
+            'Journey 4': 10
+        },
+        journey_percentages_baseline={
+            'Journey 1': 40.0,
+            'Journey 2': 30.0,
+            'Journey 3': 20.0,
+            'Journey 4': 10.0
         }
     )
     
@@ -83,27 +99,32 @@ def sample_simulation_results():
         'A': Level(
             name='A',
             journey=Journey.JOURNEY_1,
-            progression_months=[],
-            progression_1=0.0, progression_2=0.0, progression_3=0.0,
-            progression_4=0.0, progression_5=0.0, progression_6=0.0,
-            progression_7=0.0, progression_8=0.0, progression_9=0.0,
-            progression_10=0.0, progression_11=0.0, progression_12=0.0,
+            # Progression fields
+            progression_months=[Month.MAY, Month.NOV],
+            progression_1=0.0, progression_2=0.0, progression_3=0.0, progression_4=0.0,
+            progression_5=0.1, progression_6=0.0, progression_7=0.0, progression_8=0.0,
+            progression_9=0.0, progression_10=0.0, progression_11=0.1, progression_12=0.0,
+            # Recruitment fields
             recruitment_1=0.0, recruitment_2=0.0, recruitment_3=0.0,
             recruitment_4=0.0, recruitment_5=0.0, recruitment_6=0.0,
             recruitment_7=0.0, recruitment_8=0.0, recruitment_9=0.0,
             recruitment_10=0.0, recruitment_11=0.0, recruitment_12=0.0,
+            # Churn fields
             churn_1=0.0, churn_2=0.0, churn_3=0.0,
             churn_4=0.0, churn_5=0.0, churn_6=0.0,
             churn_7=0.0, churn_8=0.0, churn_9=0.0,
             churn_10=0.0, churn_11=0.0, churn_12=0.0,
+            # Price fields
             price_1=0.0, price_2=0.0, price_3=0.0,
             price_4=0.0, price_5=0.0, price_6=0.0,
             price_7=0.0, price_8=0.0, price_9=0.0,
             price_10=0.0, price_11=0.0, price_12=0.0,
+            # Salary fields
             salary_1=0.0, salary_2=0.0, salary_3=0.0,
             salary_4=0.0, salary_5=0.0, salary_6=0.0,
             salary_7=0.0, salary_8=0.0, salary_9=0.0,
             salary_10=0.0, salary_11=0.0, salary_12=0.0,
+            # UTR fields
             utr_1=1.0, utr_2=1.0, utr_3=1.0,
             utr_4=1.0, utr_5=1.0, utr_6=1.0,
             utr_7=1.0, utr_8=1.0, utr_9=1.0,
@@ -155,8 +176,20 @@ def test_excel_export_service(sample_kpis, sample_simulation_results, tmp_path):
     # Create temporary output file
     output_path = os.path.join(tmp_path, 'test_export.xlsx')
     
+    # Convert sample_kpis to a dict with keys 'financial', 'growth', 'journeys' (extract from sample_kpis)
+    kpis_dict = {
+        'financial': asdict(sample_kpis.financial),
+        'growth': asdict(sample_kpis.growth),
+        'journeys': asdict(sample_kpis.journeys)
+    }
+    
+    # Before calling export_simulation_results, convert Office objects in sample_simulation_results['years']['2025']['offices'] to dicts using asdict().
+    for office_name, office_obj in sample_simulation_results['years']['2025']['offices'].items():
+        if hasattr(office_obj, '__dataclass_fields__'):
+            sample_simulation_results['years']['2025']['offices'][office_name] = asdict(office_obj)
+    
     # Export data
-    service.export_simulation_results(sample_simulation_results, sample_kpis, output_path)
+    service.export_simulation_results(sample_simulation_results, kpis_dict, output_path)
     
     # Verify file exists
     assert os.path.exists(output_path)

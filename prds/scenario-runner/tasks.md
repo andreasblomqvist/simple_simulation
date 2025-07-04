@@ -1,41 +1,68 @@
 # Task List: Scenario Runner Implementation
 
+## Absolute Input Data UI (Baseline)
+
+- [x] 0.0 Absolute Input Data UI
+  - [x] 0.1 Design spreadsheet-like grid component for absolute starters/leavers input
+  - [x] 0.2 Implement tabs for 'Recruitment (Starters)' and 'Leavers (Churn)'
+  - [ ] 0.3 Add import (Excel/CSV), paste, and clear functionality
+  - [x] 0.4 Add validation for numeric input, no negatives, highlight errors
+  - [x] 0.5 Add summary row (totals per role, optional)
+  - [ ] 0.6 Implement 'Load from Service' button to fetch baseline data from backend
+  - [ ] 0.7 Implement 'Save Baseline' to persist input data to backend
+  - [x] 0.8 Integrate baseline input step into Scenario Runner flow (step 1)
+  - [ ] 0.9 Ensure baseline is referenced by all scenarios and warn if changed
+  - [ ] 0.10 Add unit tests for grid component and data service
+
+## Results Table (All Years, All KPIs, Per Office)
+
+- [x] 1.0 Results Table Implementation
+  - [x] 1.1 Update backend to return all KPIs (financial and journey) for each office and for 'Group' (company-wide) for all years
+  - [x] 1.2 Update frontend to render a spreadsheet-style table:
+    - [x] 1.2.1 Rows: Each KPI (FTE, Growth%, Sales, EBITDA, EBITDA%, J-1, J-2, J-3, etc.) for each office and for 'Group'
+    - [x] 1.2.2 Columns: Each year in the scenario
+    - [x] 1.2.3 Office column: 'Group' for company-wide, then each office
+    - [x] 1.2.4 KPI column: All relevant KPIs
+  - [x] 1.3 Ensure table is easy to scan, copy, and compare
+  - [x] 1.4 (Optional) Add expand/collapse for offices if many exist
+  - [ ] 1.5 Add unit/integration tests for results table rendering
+
 ## Relevant Files
 
 - `frontend/src/pages/ScenarioRunner.tsx` - Main scenario runner page component
-- `frontend/src/components/scenarios/ScenarioEditor.tsx` - Scenario creation and editing interface
-- `frontend/src/components/scenarios/ScenarioList.tsx` - List view of saved scenarios
-- `frontend/src/components/scenarios/ScenarioResults.tsx` - Results display and comparison component
+- `frontend/src/components/scenario-runner/BaselineInputGrid.tsx` - Baseline input table for recruitment/leavers
+- `frontend/src/components/scenario-runner/ResultsTable.tsx` - (To be created) Results table for all years, all KPIs, per office
 - `frontend/src/services/scenarioApi.ts` - API service for scenario management
 - `frontend/src/types/scenarios.ts` - TypeScript types for scenario data structures
-- `backend/routers/scenarios.py` - Backend API endpoints for scenario management
-- `backend/src/services/scenario_service.py` - Backend service for scenario operations
-- `backend/config/scenarios/` - Directory for storing scenario data files
-- `frontend/src/pages/ScenarioRunner.test.tsx` - Unit tests for main component
+- `backend/routers/scenarios.py` - Backend API endpoints for scenario management/results
+- `backend/src/services/scenario_service.py` - Backend service for scenario operations/results
 - `backend/tests/unit/test_scenario_service.py` - Unit tests for scenario service
 - `backend/tests/integration/test_scenario_endpoints.py` - Integration tests for API endpoints
 
 ### Notes
-
-- Unit tests should typically be placed alongside the code files they are testing (e.g., `ScenarioRunner.tsx` and `ScenarioRunner.test.tsx` in the same directory).
-- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+- 'Group' is used for company-wide summary rows in the results table.
+- All years in the scenario time range are shown as columns.
+- All KPIs (financial and journey) are included as rows for each office and for 'Group'.
+- Table should be simple, spreadsheet-like, and easy to copy/export.
+- Add new tasks as needed for additional features or improvements.
 
 ## Tasks
 
-- [ ] 1.0 Backend Infrastructure Setup
-  - [ ] 1.1 Create scenario data models and types in Python
-  - [ ] 1.2 Create scenario service with CRUD operations
-  - [ ] 1.3 Create scenario router with API endpoints
-  - [ ] 1.4 Set up scenario data storage directory structure
-  - [ ] 1.5 Add scenario endpoints to main FastAPI app
-  - [ ] 1.6 Create scenario validation logic for lever inputs
-- [ ] 2.0 Frontend Core Components
-  - [ ] 2.1 Create TypeScript types for scenario data structures
-  - [ ] 2.2 Create main ScenarioRunner page component
-  - [ ] 2.3 Create ScenarioEditor component with form controls
-  - [ ] 2.4 Create ScenarioList component for saved scenarios
-  - [ ] 2.5 Create ScenarioResults component for displaying outcomes
-  - [ ] 2.6 Create scenario API service for backend communication
+- [x] 1.0 Backend Infrastructure Setup
+  - [x] 1.1 Create scenario data models and types in Python
+  - [x] 1.2 Create scenario service with CRUD operations
+  - [x] 1.3 Create scenario router with API endpoints
+  - [x] 1.4 Set up scenario data storage directory structure
+  - [x] 1.5 Add scenario endpoints to main FastAPI app
+  - [x] 1.6 Create scenario validation logic for lever inputs
+  - [x] 1.7 Create comprehensive unit tests for scenario service
+- [x] 2.0 Frontend Core Components
+  - [x] 2.1 Create TypeScript types for scenario data structures
+  - [x] 2.2 Create main ScenarioRunner page component
+  - [x] 2.3 Create ScenarioEditor component with form controls
+  - [x] 2.4 Create ScenarioList component for saved scenarios
+  - [x] 2.5 Create ScenarioResults component for displaying outcomes
+  - [x] 2.6 Create scenario API service for backend communication
 - [ ] 3.0 Scenario Management System
   - [ ] 3.1 Implement scenario creation with name, description, and settings
   - [ ] 3.2 Implement level-specific lever controls (recruitment, churn, progression)

@@ -116,7 +116,7 @@ def determine_level_order(config_data: list) -> list:
     
     # Use the actual level order from the configuration
     # This matches the order in office_configuration.json
-    actual_order = ['A', 'AC', 'AM', 'C', 'SrC', 'M', 'SrM', 'PiP']
+    actual_order = ['A', 'AC', 'AM', 'C', 'SrC', 'M', 'SrM', 'Pi', 'P']
     
     # Filter and sort found levels according to the actual order
     sorted_levels = [level for level in actual_order if level in levels]

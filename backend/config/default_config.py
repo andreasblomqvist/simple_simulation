@@ -74,10 +74,22 @@ EUR_TO_SEK = CURRENCY_CONFIG['conversion_to_sek']['EUR']
 JOURNEY_CLASSIFICATION = {
     'Journey 1': ['A', 'AC', 'C'],    # A-C
     'Journey 2': ['SrC', 'AM'],       # SrC-AM
-    'Journey 3': ['M', 'SrM'],        # M-SrM
-    'Journey 4': ['PiP']              # PiP
+    'Journey 3': ['M', 'SrM', 'Pi'],  # M-SrM-Pi
+    'Journey 4': ['P']                # P
 }
 
+# Consultant level distribution (percentages)
+CONSULTANT_LEVEL_DISTRIBUTION = {
+    'A': 0.15,      # Analyst
+    'AC': 0.18,     # Associate Consultant
+    'C': 0.22,      # Consultant
+    'SrC': 0.20,    # Senior Consultant
+    'AM': 0.15,     # Associate Manager
+    'M': 0.07,      # Manager
+    'SrM': 0.025,   # Senior Manager
+    'Pi': 0.004,    # Principe
+    'P': 0.001      # Partner
+}
 
 if __name__ == "__main__":
     # Generate and display sample configuration

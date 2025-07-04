@@ -60,6 +60,7 @@ For each month, the engine processes levels in this order:
 
 ## Example Configuration
 
+### Basic Configuration (Percentage-Only)
 ```python
 {
     "A": {
@@ -88,6 +89,85 @@ For each month, the engine processes levels in this order:
     }
 }
 ```
+
+### Enhanced Configuration (Absolute + Percentage)
+The engine now supports both absolute numbers and percentage-based values for recruitment and churn:
+
+```python
+{
+    "A": {
+        "total": 10,
+        # Progression rates (unchanged)
+        "progression_1": 0.0,   # January - no progression
+        "progression_2": 0.0,   # February - no progression
+        "progression_3": 0.0,   # March - no progression
+        "progression_4": 0.0,   # April - no progression
+        "progression_5": 0.15,  # May - 15% progression (evaluation period)
+        "progression_6": 0.0,   # June - no progression
+        "progression_7": 0.0,   # July - no progression
+        "progression_8": 0.0,   # August - no progression
+        "progression_9": 0.0,   # September - no progression
+        "progression_10": 0.0,  # October - no progression
+        "progression_11": 0.15, # November - 15% progression (evaluation period)
+        "progression_12": 0.0,  # December - no progression
+        
+        # Percentage-based recruitment (fallback)
+        "recruitment_1": 0.2,   # 20% recruitment in January
+        "recruitment_2": 0.2,   # 20% recruitment in February
+        "recruitment_3": 0.2,   # 20% recruitment in March
+        # ... (recruitment_4 through recruitment_12)
+        
+        # Absolute recruitment (overrides percentage if present)
+        "recruitment_abs_1": 3,   # Exactly 3 new hires in January
+        "recruitment_abs_2": null, # No absolute value for February (use percentage)
+        "recruitment_abs_3": 5,   # Exactly 5 new hires in March
+        "recruitment_abs_4": null,
+        "recruitment_abs_5": null,
+        "recruitment_abs_6": null,
+        "recruitment_abs_7": null,
+        "recruitment_abs_8": null,
+        "recruitment_abs_9": null,
+        "recruitment_abs_10": null,
+        "recruitment_abs_11": null,
+        "recruitment_abs_12": null,
+        
+        # Percentage-based churn (fallback)
+        "churn_1": 0.05,        # 5% churn in January
+        "churn_2": 0.05,        # 5% churn in February
+        "churn_3": 0.05,        # 5% churn in March
+        # ... (churn_4 through churn_12)
+        
+        # Absolute churn (overrides percentage if present)
+        "churn_abs_1": null,      # No absolute value for January (use percentage)
+        "churn_abs_2": 1,         # Exactly 1 person leaves in February
+        "churn_abs_3": null,      # No absolute value for March (use percentage)
+        "churn_abs_4": null,
+        "churn_abs_5": null,
+        "churn_abs_6": null,
+        "churn_abs_7": null,
+        "churn_abs_8": null,
+        "churn_abs_9": null,
+        "churn_abs_10": null,
+        "churn_abs_11": null,
+        "churn_abs_12": null,
+        
+        # Other fields remain unchanged
+        "utr_1": 0.85,          # 85% UTR in January
+        "utr_2": 0.85,          # 85% UTR in February
+        # ... (utr_3 through utr_12)
+    }
+}
+```
+
+### Precedence Rules for Absolute vs Percentage
+
+1. **Absolute values take precedence**: If both `recruitment_1` and `recruitment_abs_1` are present, use `recruitment_abs_1`
+2. **Percentage fallback**: If only `recruitment_1` is present, calculate as `recruitment_1 * current_fte`
+3. **Null/None handling**: If `recruitment_abs_1` is `null` or not present, fall back to percentage calculation
+4. **Zero handling**: If `recruitment_abs_1` is `0`, use exactly 0 (no recruitment)
+5. **Missing both**: If neither field is present, treat as 0 and optionally log a warning
+
+For detailed schema documentation, see [Absolute and Percentage-Based Recruitment/Churn Schema](absolute-percentage-schema.md).
 
 ## Recruitment Example
 

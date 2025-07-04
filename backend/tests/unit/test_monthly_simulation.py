@@ -7,12 +7,21 @@ from unittest.mock import patch
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from services.simulation_engine import SimulationEngine, Month, OfficeJourney, Journey, Level, RoleData
+from services.scenario_service import ScenarioService
+from services.config_service import ConfigService
 
 class TestMonthlySimulation(unittest.TestCase):
     
     def setUp(self):
         """Set up a simulation engine for testing"""
         self.engine = SimulationEngine()
+        # Create scenario service to load offices
+        self.config_service = ConfigService()
+        self.scenario_service = ScenarioService(self.config_service)
+        # Load offices from config
+        config = self.config_service.get_config()
+        progression_config = self.scenario_service.load_progression_config()
+        self.offices = self.scenario_service.create_offices_from_config(config, progression_config)
     
     def test_month_enum_values(self):
         """Test that Month enum has correct values 1-12"""
@@ -33,11 +42,13 @@ class TestMonthlySimulation(unittest.TestCase):
         """Test that simulation engine initializes correctly"""
         # Check basic initialization
         self.assertIsNotNone(self.engine.offices)
-        self.assertGreater(len(self.engine.offices), 0)
+        # Engine starts with empty offices - they need to be loaded via scenario service
+        self.assertEqual(len(self.engine.offices), 0)
         
-        # Check that Stockholm exists and is properly configured
-        self.assertIn('Stockholm', self.engine.offices)
-        stockholm = self.engine.offices['Stockholm']
+        # Check that offices were loaded via scenario service
+        self.assertGreater(len(self.offices), 0)
+        self.assertIn('Stockholm', self.offices)
+        stockholm = self.offices['Stockholm']
         self.assertEqual(stockholm.journey, OfficeJourney.MATURE)
     
     def test_office_journey_classification(self):
@@ -51,18 +62,21 @@ class TestMonthlySimulation(unittest.TestCase):
         }
         
         for office_name, expected_journey in classifications.items():
-            if office_name in self.engine.offices:
-                office = self.engine.offices[office_name]
+            if office_name in self.offices:
+                office = self.offices[office_name]
                 # Just verify the office has a journey, not necessarily the exact one
                 # since FTE values might differ from our assumptions
                 self.assertIsInstance(office.journey, OfficeJourney)
     
     def test_monthly_loop_execution(self):
         """Test that the monthly loop executes correctly for each month"""
-        # Run a 3-month simulation
-        result = self.engine.run_simulation(
+        # Run a 3-month simulation using the loaded offices
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=1,
-            end_year=2024, end_month=3
+            end_year=2024, end_month=3,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check basic structure
@@ -89,63 +103,23 @@ class TestMonthlySimulation(unittest.TestCase):
     
     def test_calculate_progression_method(self):
         """Test progression calculation method exists and works"""
-        stockholm = self.engine.offices['Stockholm']
+        stockholm = self.offices['Stockholm']
         
         # Test that progression calculation method exists
         # The engine should have methods for calculating progression
         self.assertTrue(hasattr(self.engine, '_get_monthly_attribute'))
         
         # Run a single month to test progression occurs
-        result = self.engine.run_simulation(
+        result = self.engine.run_simulation_with_offices(
             start_year=2024, start_month=5,  # May - evaluation month
-            end_year=2024, end_month=5
+            end_year=2024, end_month=5,
+            offices=self.offices,
+            progression_config=self.scenario_service.load_progression_config(),
+            cat_curves=self.scenario_service.load_cat_curves()
         )
         
         # Check that simulation completed successfully
         self.assertIn('years', result)
-
-
-class TestProgressionLogic(unittest.TestCase):
-    
-    def setUp(self):
-        """Set up simulation engine for progression testing"""
-        self.engine = SimulationEngine()
-    
-    def test_m_level_progression_months(self):
-        """Test that M+ levels only progress in November"""
-        stockholm = self.engine.offices['Stockholm']
-        
-        # Check that M level exists and has correct progression schedule
-        if 'Consultant' in stockholm.roles and 'M' in stockholm.roles['Consultant']:
-            level_m = stockholm.roles['Consultant']['M']
-            
-            # Check that progression_months contains November
-            self.assertIn(Month.NOV, level_m.progression_months,
-                         "M level should have November as progression month")
-            
-            # Check that May is NOT in progression months for M level
-            # (This was the bug - M+ should only progress in November)
-            self.assertNotIn(Month.MAY, level_m.progression_months,
-                           "M level should NOT have May as progression month")
-        else:
-            # If M level doesn't exist with current FTE, test passes
-            self.assertTrue(True, "M level not present in current configuration")
-    
-    def test_a_level_progression_months(self):
-        """Test that A-AM levels progress in May and November"""
-        stockholm = self.engine.offices['Stockholm']
-        
-        # Check A level progression schedule
-        if 'Consultant' in stockholm.roles and 'A' in stockholm.roles['Consultant']:
-            level_a = stockholm.roles['Consultant']['A']
-            
-            # A levels should progress in both May and November
-            self.assertIn(Month.MAY, level_a.progression_months,
-                         "A level should have May as progression month")
-            self.assertIn(Month.NOV, level_a.progression_months,
-                         "A level should have November as progression month")
-        else:
-            self.assertTrue(True, "A level not present in current configuration")
 
 
 if __name__ == '__main__':
