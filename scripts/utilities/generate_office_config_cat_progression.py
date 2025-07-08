@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.config.default_config import ACTUAL_OFFICE_LEVEL_DATA, BASE_PRICING, BASE_SALARIES
 import pandas as pd
 import json
+from config.progression_config import PROGRESSION_CONFIG, CAT_CURVES
 
 # Half-yearly progression rates (from user data)
 HALF_YEARLY_PROGRESSION_RATES = {

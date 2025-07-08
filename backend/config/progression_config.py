@@ -5,6 +5,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 6,
         'next_level': 'AC',
         'journey': 'J-1',
+        'progression_rate': 0.15,
     },
     'AC': {
         'progression_months': [1, 4, 7, 10],
@@ -12,6 +13,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 9,
         'next_level': 'C',
         'journey': 'J-1',
+        'progression_rate': 0.12,
     },
     'C': {
         'progression_months': [1, 7],
@@ -19,6 +21,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 12,
         'next_level': 'SrC',
         'journey': 'J-1',
+        'progression_rate': 0.10,
     },
     'SrC': {
         'progression_months': [1, 7],
@@ -26,6 +29,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 18,
         'next_level': 'AM',
         'journey': 'J-2',
+        'progression_rate': 0.08,
     },
     'AM': {
         'progression_months': [1, 7],
@@ -33,6 +37,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 30,
         'next_level': 'M',
         'journey': 'J-2',
+        'progression_rate': 0.06,
     },
     'M': {
         'progression_months': [1],
@@ -40,6 +45,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 24,
         'next_level': 'SrM',
         'journey': 'J-3',
+        'progression_rate': 0.04,
     },
     'SrM': {
         'progression_months': [1],
@@ -47,6 +53,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 120,
         'next_level': 'Pi',
         'journey': 'J-3',
+        'progression_rate': 0.03,
     },
     'Pi': {
         'progression_months': [1],
@@ -54,6 +61,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 12,
         'next_level': 'P',
         'journey': 'J-3',
+        'progression_rate': 0.02,
     },
     'P': {
         'progression_months': [1],
@@ -61,6 +69,7 @@ PROGRESSION_CONFIG = {
         'time_on_level': 1000,
         'next_level': 'X',
         'journey': 'J-3',
+        'progression_rate': 0.01,
     },
     'X': {
         'progression_months': [1],
@@ -68,13 +77,15 @@ PROGRESSION_CONFIG = {
         'time_on_level': 1000,
         'next_level': 'X',
         'journey': 'J-3',
+        'progression_rate': 0.005,
     },
     'OPE': {
-        'progression_months': [13],
+        'progression_months': [1],
         'start_tenure': 1279,
         'time_on_level': 1000,
         'next_level': 'OPE',
         'journey': None,
+        'progression_rate': 0.0,
     }
 }
 

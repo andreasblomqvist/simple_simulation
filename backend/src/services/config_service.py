@@ -1,5 +1,5 @@
 """
-Configuration Service - Manages configuration data from Excel imports only
+Configuration Service - Manages configuration data from Excel imports and JSON
 """
 import pandas as pd
 import json
@@ -18,7 +18,11 @@ class ConfigService:
     def __init__(self, config_file_path: str = None):
         # Use environment variable if available, otherwise use default
         if config_file_path is None:
-            config_file_path = os.environ.get("CONFIG_FILE_PATH", "backend/config/office_configuration.json")
+            # Get the directory where this file is located
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Go up to backend directory and then to config
+            backend_dir = os.path.dirname(os.path.dirname(current_dir))
+            config_file_path = os.path.join(backend_dir, "config", "office_configuration.json")
         self.config_file_path = config_file_path
         self.ensure_config_directory()
         self._cached_config: Optional[Dict[str, Any]] = None
@@ -44,7 +48,7 @@ class ConfigService:
     def _load_from_file(self) -> Dict[str, Any]:
         """Load configuration from JSON file and cache it"""
         if self._is_cache_valid():
-            print(f"✅ [CONFIG] Using cached configuration ({len(self._cached_config)} offices)")
+            # print(f"✅ [CONFIG] Using cached configuration ({len(self._cached_config)} offices)")
             return self._cached_config
         
         if not os.path.exists(self.config_file_path):
@@ -54,12 +58,12 @@ class ConfigService:
             return {}
         
         try:
-            print(f"📖 [CONFIG] Loading configuration from {self.config_file_path}")
+            # print(f"📖 [CONFIG] Loading configuration from {self.config_file_path}")
             with open(self.config_file_path, 'r') as f:
                 self._cached_config = json.load(f)
             
             self._file_mtime = os.path.getmtime(self.config_file_path)
-            print(f"✅ [CONFIG] Loaded {len(self._cached_config)} offices from file")
+            # print(f"✅ [CONFIG] Loaded {len(self._cached_config)} offices from file")
             return self._cached_config
             
         except Exception as e:
@@ -71,21 +75,19 @@ class ConfigService:
     def _save_to_file(self, config: Dict[str, Any]):
         """Save configuration to JSON file and update cache"""
         try:
-            print(f"💾 [CONFIG] Saving configuration to {self.config_file_path}")
+            # print(f"💾 [CONFIG] Saving configuration to {self.config_file_path}")
             with open(self.config_file_path, 'w') as f:
                 json.dump(config, f, indent=2, default=str)
             
             self._cached_config = config
             self._file_mtime = os.path.getmtime(self.config_file_path)
-            print(f"✅ [CONFIG] Saved {len(config)} offices to file")
+            # print(f"✅ [CONFIG] Saved {len(config)} offices to file")
             
         except Exception as e:
             print(f"❌ [CONFIG] Error saving configuration: {e}")
     
     def get_config(self):
-        """Return the current configuration. If _config_data is set, use it; otherwise, load from file."""
-        if hasattr(self, '_config_data') and self._config_data is not None:
-            return self._config_data
+        """Return the current configuration. Uses cached config if valid, otherwise loads from file."""
         return self._load_from_file()
     
     def update_configuration(self, updates: Dict[str, Any]) -> int:
@@ -343,7 +345,7 @@ class ConfigService:
 
     def _load_config_from_file(self):
         """Load configuration from the default file."""
-        config_path = os.path.join(os.path.dirname(__file__), '../../config/office_configuration.json')
+        config_path = "config/office_configuration.json"
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 

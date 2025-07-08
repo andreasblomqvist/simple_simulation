@@ -308,4 +308,132 @@ test.describe('Scenario CRUD Operations', () => {
     // Should proceed to lever configuration
     await page.waitForSelector('h4:has-text("Configure Levers")', { timeout: 10000 });
   });
+});
+
+test.describe('Scenario Editor CRUD & Simulation', () => {
+  const scenarioName = `E2E Test Scenario ${Date.now()}`;
+  const updatedName = `${scenarioName} Updated`;
+
+  test('Full CRUD and simulation flow', async ({ page }) => {
+    // Go to Scenario Editor
+    await page.goto('http://localhost:3000/scenario-editor');
+
+    // --- CREATE ---
+    // Try to save with missing fields
+    await page.click('text=Save Scenario');
+    await expect(page.locator('.ant-alert')).toContainText('Scenario name is required');
+
+    // Fill in required fields
+    await page.fill('input[placeholder="e.g. Oslo Growth Plan 2025-2027"]', scenarioName);
+    await page.fill('textarea[placeholder="Describe the scenario (optional)"]', 'E2E automated test');
+    await page.fill('input[aria-label="Start Year"]', '2025');
+    await page.fill('input[aria-label="End Year"]', '2027');
+    await page.selectOption('select[aria-label="Start Month"]', '1');
+    await page.selectOption('select[aria-label="End Month"]', '12');
+    // Select office scope (assume group is default, else select one office)
+    // If individual, select first office
+    if (await page.isVisible('input[type="radio"][value="individual"]')) {
+      await page.click('input[type="radio"][value="individual"]');
+      await page.click('.ant-select-selector');
+      await page.click('.ant-select-item-option[role="option"]');
+    }
+
+    // Save scenario
+    await page.click('text=Save Scenario');
+    await expect(page.locator('.ant-message')).toContainText('Scenario created successfully');
+
+    // --- READ ---
+    // Find the scenario in the list and select it
+    await page.click(`text=${scenarioName}`);
+    await expect(page.locator('text=Editing:')).toContainText(scenarioName);
+
+    // --- UPDATE ---
+    // Update the scenario name
+    await page.fill('input[placeholder="e.g. Oslo Growth Plan 2025-2027"]', updatedName);
+    await page.click('text=Save Scenario');
+    await expect(page.locator('.ant-message')).toContainText('Scenario updated successfully');
+    // Confirm update in list
+    await page.click(`text=${updatedName}`);
+    await expect(page.locator('text=Editing:')).toContainText(updatedName);
+
+    // --- SIMULATE ---
+    // Run simulation
+    const runButton = page.getByRole('button', { name: 'Run Simulation' });
+    await runButton.click();
+    // Wait for results table or loading spinner to disappear
+    await expect(page.locator('text=Key Metrics')).toBeVisible({ timeout: 15000 });
+    // Validate results table is present
+    await expect(page.locator('text=Group')).toBeVisible();
+    await expect(page.locator('text=Key Metrics')).toBeVisible();
+
+    // --- DELETE ---
+    // Delete the scenario
+    const deleteButton = page.getByRole('button', { name: 'Delete' });
+    await deleteButton.click();
+    await page.click('text=Yes'); // Confirm in Popconfirm
+    await expect(page.locator('.ant-message')).toContainText('Scenario deleted successfully');
+    // Confirm it is gone from the list
+    await expect(page.locator(`text=${updatedName}`)).toHaveCount(0);
+  });
+
+  test('Scenario simulation run and results validation', async ({ page }) => {
+    const scenarioName = `E2E Sim Test ${Date.now()}`;
+
+    // Go to Scenario Editor
+    await page.goto('http://localhost:3000/scenario-editor');
+
+    // Fill in required fields
+    await page.fill('input[placeholder="e.g. Oslo Growth Plan 2025-2027"]', scenarioName);
+    await page.fill('textarea[placeholder="Describe the scenario (optional)"]', 'E2E simulation test');
+    await page.fill('input[aria-label="Start Year"]', '2025');
+    await page.fill('input[aria-label="End Year"]', '2027');
+    await page.selectOption('select[aria-label="Start Month"]', '1');
+    await page.selectOption('select[aria-label="End Month"]', '12');
+    // Select office scope (assume group is default, else select one office)
+    if (await page.isVisible('input[type="radio"][value="individual"]')) {
+      await page.click('input[type="radio"][value="individual"]');
+      await page.click('.ant-select-selector');
+      await page.click('.ant-select-item-option[role="option"]');
+    }
+
+    // Save scenario
+    await page.click('text=Save Scenario');
+    await expect(page.locator('.ant-message')).toContainText('Scenario created successfully');
+
+    // Select the scenario from the list
+    await page.click(`text=${scenarioName}`);
+    await expect(page.locator('text=Editing:')).toContainText(scenarioName);
+
+    // Run simulation
+    const runButton = page.getByRole('button', { name: 'Run Simulation' });
+    await runButton.click();
+    // Wait for results table to appear
+    await expect(page.locator('text=Key Metrics')).toBeVisible({ timeout: 20000 });
+
+    // Validate results table contains non-zero, reasonable values
+    // Check FTE, Sales, EBITDA for Group table
+    const fteCell = page.locator('tr:has(td:has-text("FTE")) td').nth(1); // First year FTE
+    const salesCell = page.locator('tr:has(td:has-text("Sales")) td').nth(1);
+    const ebitdaCell = page.locator('tr:has(td:has-text("EBITDA")) td').nth(1);
+
+    const fteText = await fteCell.textContent();
+    const salesText = await salesCell.textContent();
+    const ebitdaText = await ebitdaCell.textContent();
+
+    // Parse numbers from formatted text (e.g., '821', 'SEK 739.46M')
+    const fte = parseFloat(fteText?.replace(/[^\d.]/g, '') || '0');
+    const sales = parseFloat(salesText?.replace(/[^\d.]/g, '') || '0');
+    const ebitda = parseFloat(ebitdaText?.replace(/[^\d.]/g, '') || '0');
+
+    expect(fte).toBeGreaterThan(0);
+    expect(sales).toBeGreaterThan(0);
+    expect(ebitda).not.toBeNaN(); // EBITDA can be negative, but should be a number
+
+    // Clean up: delete the scenario
+    const deleteButton = page.getByRole('button', { name: 'Delete' });
+    await deleteButton.click();
+    await page.click('text=Yes');
+    await expect(page.locator('.ant-message')).toContainText('Scenario deleted successfully');
+    await expect(page.locator(`text=${scenarioName}`)).toHaveCount(0);
+  });
 }); 

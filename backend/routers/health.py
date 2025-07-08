@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.config_service import config_service
+from src.services.simulation_engine import SimulationEngine
+from src.services.config_service import config_service
 
 router = APIRouter(tags=["health"])
 

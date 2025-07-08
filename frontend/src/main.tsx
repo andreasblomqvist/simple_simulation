@@ -15,6 +15,8 @@ import InsightsTab from './pages/InsightsTab';
 import SystemConfig from './pages/SystemConfig';
 import ScenarioRunner from './pages/ScenarioRunner';
 import ScenarioDetails from './pages/ScenarioDetails';
+import ScenarioWizard from './components/scenario-runner/ScenarioWizard';
+import ScenarioEditor from './pages/ScenarioEditor';
 
 import { ThemeProvider } from './components/ThemeContext';
 import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
@@ -52,6 +54,10 @@ function MainApp() {
                   <Route path="/insights" element={<InsightsTab />} />
                   <Route path="/scenario-runner" element={<ScenarioRunner />} />
                   <Route path="/scenario-runner/:id" element={<ScenarioDetails />} />
+                  <Route path="/scenario-runner/edit/:id" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
+                  <Route path="/scenario-runner/create" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
+                  <Route path="/scenario-editor" element={<ScenarioEditor />} />
+                  <Route path="/scenario-editor/:id" element={<ScenarioEditor />} />
                 </Routes>
               </Layout>
             </YearNavigationProvider>

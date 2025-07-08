@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, Typography, Button, Divider, Tag, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
-import { SettingOutlined, RocketOutlined, CheckCircleOutlined, ExclamationCircleOutlined, PlusOutlined, BarChartOutlined } from '@ant-design/icons';
+import { SettingOutlined, RocketOutlined, CheckCircleOutlined, ExclamationCircleOutlined, PlusOutlined, BarChartOutlined, EditOutlined } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
 // @ts-ignore
 import packageJson from '../../package.json';
@@ -28,6 +28,11 @@ const menuItems: MenuProps['items'] = [
     key: '/scenario-runner',
     icon: <RocketOutlined />,
     label: <Link to="/scenario-runner">Scenario Runner</Link>,
+  },
+  {
+    key: '/scenario-editor',
+    icon: <EditOutlined />,
+    label: <Link to="/scenario-editor">Scenario Editor</Link>,
   },
 ];
 

@@ -1,0 +1,875 @@
+# Page snapshot
+
+```yaml
+- button "Switch to Light Mode"
+- complementary:
+  - heading "SimpleSim" [level=4]
+  - text: v1.6.9
+  - menu:
+    - menuitem "setting System Config":
+      - img "setting"
+      - link "System Config":
+        - /url: /system-config
+    - menuitem "setting Configuration":
+      - img "setting"
+      - link "Configuration":
+        - /url: /config
+    - menuitem "bar-chart Insights":
+      - img "bar-chart"
+      - link "Insights":
+        - /url: /insights
+    - menuitem "rocket Scenario Runner":
+      - img "rocket"
+      - link "Scenario Runner":
+        - /url: /scenario-runner
+    - menuitem "edit Scenario Editor":
+      - img "edit"
+      - link "Scenario Editor":
+        - /url: /scenario-editor
+  - separator
+  - separator
+  - text: Organizational growth simulation platform
+- main:
+  - heading "Scenario Editor" [level=2]
+  - text: Create a new scenario
+  - button "plus New Scenario":
+    - img "plus"
+    - text: New Scenario
+  - button "Back to Runner"
+  - tablist:
+    - tab "edit Editor" [selected]:
+      - img "edit"
+      - text: Editor
+    - tab "eye Results" [disabled]:
+      - img "eye"
+      - text: Results
+    - tab "reload Scenarios (1)":
+      - img "reload"
+      - text: Scenarios (1)
+  - tabpanel "edit Editor":
+    - text: Scenario Configuration
+    - heading "Create New Scenario" [level=4]
+    - text: "* Scenario Name"
+    - textbox "* Scenario Name"
+    - text: Description
+    - textbox "Description"
+    - text: "* Start Year"
+    - spinbutton "* Start Year": "2025"
+    - text: "* Start Month"
+    - combobox "* Start Month"
+    - text: 1 * End Year
+    - spinbutton "* End Year": "2027"
+    - text: "* End Month"
+    - combobox "* End Month"
+    - text: 12 Office Scope
+    - radio "Group (all offices)" [checked]
+    - text: Group (all offices)
+    - radio "Individual Offices"
+    - text: Individual Offices
+    - button "Back"
+    - 'button "Next: Configure Baseline Input"'
+    - text: Baseline Input
+    - alert:
+      - img "info-circle"
+      - text: Baseline Input Configuration Configure the baseline recruitment and churn (leaver) numbers for each role and level.
+    - text: "Select Role:"
+    - combobox
+    - text: Consultant
+    - tablist:
+      - tab "Recruitment" [selected]
+      - tab "Leavers (Churn)"
+    - tabpanel "Recruitment":
+      - table:
+        - rowgroup:
+          - row "Month A AC C SrC AM M SrM PiP":
+            - columnheader "Month":
+              - strong: Month
+            - columnheader "A":
+              - strong: A
+            - columnheader "AC":
+              - strong: AC
+            - columnheader "C":
+              - strong: C
+            - columnheader "SrC":
+              - strong: SrC
+            - columnheader "AM":
+              - strong: AM
+            - columnheader "M":
+              - strong: M
+            - columnheader "SrM":
+              - strong: SrM
+            - columnheader "PiP":
+              - strong: PiP
+        - rowgroup:
+          - row "202501 Increase Value Decrease Value 20 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202501"
+            - cell "Increase Value Decrease Value 20":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "20"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202502 Increase Value Decrease Value 20 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202502"
+            - cell "Increase Value Decrease Value 20":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "20"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202503 Increase Value Decrease Value 10 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202503"
+            - cell "Increase Value Decrease Value 10":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "10"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202504 Increase Value Decrease Value 15 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202504"
+            - cell "Increase Value Decrease Value 15":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "15"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202505 Increase Value Decrease Value 10 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202505"
+            - cell "Increase Value Decrease Value 10":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "10"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202506 Increase Value Decrease Value 10 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202506"
+            - cell "Increase Value Decrease Value 10":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "10"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202507 Increase Value Decrease Value 5 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202507"
+            - cell "Increase Value Decrease Value 5":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "5"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202508 Increase Value Decrease Value 20 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202508"
+            - cell "Increase Value Decrease Value 20":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "20"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202509 Increase Value Decrease Value 90 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202509"
+            - cell "Increase Value Decrease Value 90":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "90"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202510 Increase Value Decrease Value 20 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202510"
+            - cell "Increase Value Decrease Value 20":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "20"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202511 Increase Value Decrease Value 15 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202511"
+            - cell "Increase Value Decrease Value 15":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "15"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+          - row "202512 Increase Value Decrease Value 10 Increase Value Decrease Value 8 Increase Value Decrease Value 4 Increase Value Decrease Value 1 Increase Value Decrease Value 1 Increase Value Decrease Value Increase Value Decrease Value Increase Value Decrease Value":
+            - cell "202512"
+            - cell "Increase Value Decrease Value 10":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "10"
+            - cell "Increase Value Decrease Value 8":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "8"
+            - cell "Increase Value Decrease Value 4":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "4"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value 1":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton: "1"
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+            - cell "Increase Value Decrease Value":
+              - button "Increase Value":
+                - img "up"
+              - button "Decrease Value":
+                - img "down"
+              - spinbutton
+    - text: Simulation Levers
+    - table:
+      - rowgroup:
+        - row "Level Recruitment Multiplier Reset All Recruitment Actual (avg per month) Churn Multiplier Reset All Churn Actual (avg per month) Progression Multiplier info-circle Reset All Max Change Expected Time on Level":
+          - columnheader "Level"
+          - columnheader "Recruitment Multiplier Reset All":
+            - text: Recruitment Multiplier
+            - button "Reset All"
+          - columnheader "Recruitment Actual (avg per month)"
+          - columnheader "Churn Multiplier Reset All":
+            - text: Churn Multiplier
+            - button "Reset All"
+          - columnheader "Churn Actual (avg per month)"
+          - columnheader "Progression Multiplier info-circle Reset All":
+            - text: Progression Multiplier
+            - img "info-circle"
+            - button "Reset All"
+          - columnheader "Max Change"
+          - columnheader "Expected Time on Level"
+      - rowgroup:
+        - row "A 1 1.00 20.00 1 1.00 2.00 1 1.00 = 0.0% 7 mo":
+          - cell "A"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "20.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "2.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "7 mo"
+        - row "AC 1 1.00 8.00 1 1.00 4.00 1 1.00 = 0.0% 8 mo":
+          - cell "AC"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "8.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "4.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "8 mo"
+        - row "C 1 1.00 4.00 1 1.00 7.00 1 1.00 = 0.0% 9 mo":
+          - cell "C"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "4.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "7.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "9 mo"
+        - row "SrC 1 1.00 1.00 1 1.00 7.00 1 1.00 = 0.0% 14 mo":
+          - cell "SrC"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "1.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "7.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "14 mo"
+        - row "AM 1 1.00 1.00 1 1.00 9.00 1 1.00 = 0.0% 26 mo":
+          - cell "AM"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "1.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "9.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "26 mo"
+        - row "M 1 1.00 0.00 1 1.00 1.00 1 1.00 = 0.0% 150 mo":
+          - cell "M"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "1.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "150 mo"
+        - row "SrM 1 1.00 0.00 1 1.00 0.00 1 1.00 = 0.0% 300 mo":
+          - cell "SrM"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "300 mo"
+        - row "Pi 1 1.00 0.00 1 1.00 0.00 1 1.00 = 0.0% N/A":
+          - cell "Pi"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "N/A"
+        - row "P 1 1.00 0.00 1 1.00 0.00 1 1.00 = 0.0% N/A":
+          - cell "P"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "0.00"
+          - cell "1 1.00":
+            - slider
+            - text: "1.00"
+          - cell "= 0.0%"
+          - cell "N/A"
+    - button "Back"
+    - button "Run Simulation"
+    - text: Actions
+    - button "save Save Scenario":
+      - img "save"
+      - text: Save Scenario
+    - button "play-circle Run Simulation" [disabled]:
+      - img "play-circle"
+      - text: Run Simulation
+    - alert:
+      - img "close-circle"
+      - text: "Please fix the following errors before saving:"
+      - list:
+        - listitem: Scenario name is required.
+        - listitem: Time range is required.
+        - listitem: At least one office must be selected.
+```

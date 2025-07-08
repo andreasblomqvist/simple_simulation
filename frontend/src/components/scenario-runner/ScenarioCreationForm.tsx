@@ -190,7 +190,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
         <Form.Item style={{ marginTop: 24 }}>
           <Button onClick={onBack} style={{ marginRight: 8 }}>Back</Button>
           <Button type="primary" htmlType="submit" loading={loading}>
-            Next: Configure Levers
+            Next: Configure Baseline Input
           </Button>
         </Form.Item>
       </Form>

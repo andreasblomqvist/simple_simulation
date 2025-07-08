@@ -1,0 +1,18 @@
+{
+  "name": "Churn Lever Test",
+  "description": "Test scenario with decreased churn",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 1
+  },
+  "office_scope": ["Stockholm"],
+  "levers": {
+    "churn": {
+      "Consultant": {
+        "A": 0.5
+      }
+    }
+  }
+} 

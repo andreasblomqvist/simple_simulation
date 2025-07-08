@@ -2,7 +2,10 @@ import pytest
 import random
 from datetime import datetime, timedelta
 from backend.src.services.simulation.models import Person, Level
-from backend.config.default_config import DEFAULT_RATES
+from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
+
+# Import actual CAT curves from progression config
+from backend.config.progression_config import CAT_CURVES
 
 def calculate_level_start_date(cat_months, current_date="2025-01"):
     """Calculate a valid level start date that gives the specified CAT months"""
@@ -12,11 +15,11 @@ def calculate_level_start_date(cat_months, current_date="2025-01"):
     return level_start_dt.strftime("%Y-%m")
 
 @pytest.mark.parametrize("level_name, fte, progression_1, cat_months, expected_multiplier", [
-    ("A", 100, 0.10, 6, DEFAULT_RATES['progression']['cat_curves']['A']['CAT6']),
-    ("AC", 50, 0.20, 12, DEFAULT_RATES['progression']['cat_curves']['AC']['CAT12']),
-    ("C", 0, 0.50, 18, DEFAULT_RATES['progression']['cat_curves']['C']['CAT18']),
-    ("SrC", 100, 0.0, 24, DEFAULT_RATES['progression']['cat_curves']['SrC']['CAT24']),
-    ("AM", 100, 0.8, 30, DEFAULT_RATES['progression']['cat_curves']['AM']['CAT30']),  # Changed from 1.0 to 0.8
+    ("A", 100, 0.10, 6, CAT_CURVES['A']['CAT6']),
+    ("AC", 50, 0.20, 12, CAT_CURVES['AC']['CAT12']),
+    ("C", 0, 0.50, 18, CAT_CURVES['C']['CAT18']),
+    ("SrC", 100, 0.0, 24, CAT_CURVES['SrC']['CAT24']),
+    ("AM", 100, 0.8, 30, CAT_CURVES['AM']['CAT30']),  # Changed from 1.0 to 0.8
 ])
 def test_cat_progression_varied(level_name, fte, progression_1, cat_months, expected_multiplier):
     # Set random seed for reproducibility
@@ -114,9 +117,9 @@ def test_cat_progression_varied(level_name, fte, progression_1, cat_months, expe
         fractional_churn=0.0
     )
     # Run progression for January
-    promoted = level.apply_cat_based_progression(progression_1, "2025-01")
-    # Calculate expected promotions
-    expected_prob = min(progression_1 * expected_multiplier, 1.0)
+    promoted = level.apply_cat_based_progression("2025-01", PROGRESSION_CONFIG, CAT_CURVES)
+    # Calculate expected promotions using actual CAT curve probability
+    expected_prob = expected_multiplier  # CAT curve value is already the probability
     expected_promoted = fte * expected_prob
     # Allow for binomial variance (±3σ)
     if expected_prob >= 1.0:
@@ -129,13 +132,13 @@ def test_cat_progression_varied(level_name, fte, progression_1, cat_months, expe
     # Assert actual is within 3σ of expected
     assert lower <= len(promoted) <= upper
     # Edge cases
-    if fte == 0 or progression_1 == 0.0 or expected_multiplier == 0.0:
+    if fte == 0 or expected_multiplier == 0.0:
         assert len(promoted) == 0
 
 def run_cat_progression_case(level_name, fte, progression_1, cat_months, cat_multiplier, seed=42):
     random.seed(seed)
-    # Patch the CAT curve for this test
-    DEFAULT_RATES['progression']['cat_curves'][level_name] = {f'CAT{cat_months}': cat_multiplier}
+    # Use the local CAT curves for this test
+    # Note: This function is not used in the current test, but keeping for compatibility
     people = [
         Person(
             id=str(i),
@@ -226,7 +229,7 @@ def run_cat_progression_case(level_name, fte, progression_1, cat_months, cat_mul
         fractional_recruitment=0.0,
         fractional_churn=0.0
     )
-    promoted = level.apply_cat_based_progression(progression_1, "2025-01")
+    promoted = level.apply_cat_based_progression("2025-01", PROGRESSION_CONFIG, CAT_CURVES)
     # If tenure < 6, no one is eligible
     if cat_months < 6:
         expected_promoted = 0.0

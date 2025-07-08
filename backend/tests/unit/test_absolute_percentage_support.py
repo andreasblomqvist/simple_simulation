@@ -2,9 +2,9 @@
 Unit tests for absolute and percentage-based recruitment/churn support.
 """
 import pytest
-from backend.src.services.simulation.workforce import get_effective_recruitment_value, get_effective_churn_value
-from backend.src.services.simulation_engine import RoleData, Level, Journey, Month
-from backend.src.services.config_service import ConfigService
+from src.services.simulation.workforce import get_effective_recruitment_value, get_effective_churn_value
+from src.services.simulation_engine import RoleData, Level, Journey, Month
+from src.services.config_service import ConfigService
 
 
 class TestAbsolutePercentageSupport:

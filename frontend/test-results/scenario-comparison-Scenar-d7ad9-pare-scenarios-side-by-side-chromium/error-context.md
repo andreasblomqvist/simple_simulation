@@ -4,7 +4,7 @@
 - button "Switch to Light Mode"
 - complementary:
   - heading "SimpleSim" [level=4]
-  - text: v1.6.8
+  - text: v1.6.9
   - menu:
     - menuitem "setting System Config":
       - img "setting"
@@ -22,16 +22,110 @@
       - img "rocket"
       - link "Scenario Runner":
         - /url: /scenario-runner
+    - menuitem "edit Scenario Editor":
+      - img "edit"
+      - link "Scenario Editor":
+        - /url: /scenario-editor
   - separator
   - separator
   - text: Organizational growth simulation platform
 - main:
   - heading "Scenario Runner" [level=2]
-  - img "No data"
-  - text: No scenarios found
-  - button "plus Create Your First Scenario":
-    - img "plus"
-    - text: Create Your First Scenario
+  - table:
+    - rowgroup:
+      - row "Name Description Scope Duration Created Updated Actions":
+        - columnheader "Name"
+        - columnheader "Description"
+        - columnheader "Scope"
+        - columnheader "Duration"
+        - columnheader "Created"
+        - columnheader "Updated"
+        - columnheader "Actions"
+    - rowgroup:
+      - row "aaa No description Group 2025-01 to 2030-12 7/6/2025 7/6/2025 eye View edit Edit export Export delete Delete":
+        - cell "aaa":
+          - strong: aaa
+        - cell "No description"
+        - cell "Group"
+        - cell "2025-01 to 2030-12"
+        - cell "7/6/2025"
+        - cell "7/6/2025"
+        - cell "eye View edit Edit export Export delete Delete":
+          - button "eye View":
+            - img "eye"
+            - text: View
+          - button "edit Edit":
+            - img "edit"
+            - text: Edit
+          - button "export Export":
+            - img "export"
+            - text: Export
+          - button "delete Delete":
+            - img "delete"
+            - text: Delete
+      - row "ee No description Group 2025-01 to 2027-12 7/6/2025 7/6/2025 eye View edit Edit export Export delete Delete":
+        - cell "ee":
+          - strong: ee
+        - cell "No description"
+        - cell "Group"
+        - cell "2025-01 to 2027-12"
+        - cell "7/6/2025"
+        - cell "7/6/2025"
+        - cell "eye View edit Edit export Export delete Delete":
+          - button "eye View":
+            - img "eye"
+            - text: View
+          - button "edit Edit":
+            - img "edit"
+            - text: Edit
+          - button "export Export":
+            - img "export"
+            - text: Export
+          - button "delete Delete":
+            - img "delete"
+            - text: Delete
+      - row "Test Scenario Test scenario to verify fix Stockholm 2025-01 to 2026-12 7/6/2025 7/6/2025 eye View edit Edit export Export delete Delete":
+        - cell "Test Scenario":
+          - strong: Test Scenario
+        - cell "Test scenario to verify fix"
+        - cell "Stockholm"
+        - cell "2025-01 to 2026-12"
+        - cell "7/6/2025"
+        - cell "7/6/2025"
+        - cell "eye View edit Edit export Export delete Delete":
+          - button "eye View":
+            - img "eye"
+            - text: View
+          - button "edit Edit":
+            - img "edit"
+            - text: Edit
+          - button "export Export":
+            - img "export"
+            - text: Export
+          - button "delete Delete":
+            - img "delete"
+            - text: Delete
+      - row "ee No description Group 2025-01 to 2027-12 7/6/2025 7/6/2025 eye View edit Edit export Export delete Delete":
+        - cell "ee":
+          - strong: ee
+        - cell "No description"
+        - cell "Group"
+        - cell "2025-01 to 2027-12"
+        - cell "7/6/2025"
+        - cell "7/6/2025"
+        - cell "eye View edit Edit export Export delete Delete":
+          - button "eye View":
+            - img "eye"
+            - text: View
+          - button "edit Edit":
+            - img "edit"
+            - text: Edit
+          - button "export Export":
+            - img "export"
+            - text: Export
+          - button "delete Delete":
+            - img "delete"
+            - text: Delete
   - button "plus Create New Scenario":
     - img "plus"
     - text: Create New Scenario

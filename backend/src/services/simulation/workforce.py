@@ -1,9 +1,9 @@
 from typing import Dict, Any, List, Tuple, Optional
-from backend.src.services.simulation.models import Office, Level, RoleData, Month
-from backend.src.services.simulation.utils import get_monthly_attribute, get_next_level_name, determine_level_order
+from .models import Office, Level, RoleData, Month
+from .utils import get_monthly_attribute, get_next_level_name, determine_level_order
 import logging
 import uuid
-from backend.src.services.simulation.event_logger import EventLogger
+from .event_logger import EventLogger
 import json
 import os
 from datetime import datetime

@@ -3,7 +3,74 @@ import random
 import math
 from datetime import datetime, timedelta
 from backend.src.services.simulation.models import Person, Level, Office
-from backend.config.default_config import DEFAULT_RATES
+
+# Define CAT curves for testing (simplified version)
+CAT_CURVES = {
+    'A': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 1.8,    # Peak promotion time
+        'CAT12': 1.2,   # Still good chance
+        'CAT18': 0.6,   # Declining
+        'CAT24': 0.3,   # Low chance
+        'CAT30': 0.1    # Very low
+    },
+    'AC': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 1.5,    # Good promotion time
+        'CAT12': 1.8,   # Peak promotion time
+        'CAT18': 1.0,   # Standard chance
+        'CAT24': 0.4,   # Declining
+        'CAT30': 0.2    # Low chance
+    },
+    'C': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.2,    # Low chance for exceptional performers
+        'CAT12': 1.2,   # First eligible period
+        'CAT18': 2.0,   # Peak promotion time
+        'CAT24': 1.5,   # Still good chance
+        'CAT30': 0.8    # Reasonable chance
+    },
+    'SrC': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.1,    # Very low chance for exceptional performers
+        'CAT12': 0.3,   # Low chance for exceptional performers
+        'CAT18': 1.5,   # First eligible period
+        'CAT24': 2.0,   # Peak promotion time
+        'CAT30': 1.2    # Still good chance
+    },
+    'AM': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.05,   # Very low chance for exceptional performers
+        'CAT12': 0.1,   # Very low chance for exceptional performers
+        'CAT18': 0.3,   # Low chance for exceptional performers
+        'CAT24': 1.8,   # First eligible period
+        'CAT30': 2.0    # Peak promotion time
+    },
+    'M': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.05,   # Very low chance for exceptional performers
+        'CAT12': 0.1,   # Very low chance for exceptional performers
+        'CAT18': 0.2,   # Low chance for exceptional performers
+        'CAT24': 1.8,   # First eligible period
+        'CAT30': 2.0    # Peak promotion time
+    },
+    'SrM': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.02,   # Very low chance for exceptional performers
+        'CAT12': 0.05,  # Very low chance for exceptional performers
+        'CAT18': 0.1,   # Very low chance for exceptional performers
+        'CAT24': 0.2,   # Low chance for exceptional performers
+        'CAT30': 1.5    # First eligible period (36+ months)
+    },
+    'PiP': {
+        'CAT0': 0.0,    # Below minimum tenure
+        'CAT6': 0.02,   # Very low chance for exceptional performers
+        'CAT12': 0.05,  # Very low chance for exceptional performers
+        'CAT18': 0.1,   # Very low chance for exceptional performers
+        'CAT24': 0.2,   # Low chance for exceptional performers
+        'CAT30': 1.5    # First eligible period (36+ months)
+    }
+}
 
 def create_realistic_test_config():
     """Create a realistic test configuration with multiple levels and FTEs, all with 3% progression"""
@@ -158,7 +225,7 @@ def create_people_with_varied_tenure(level_name, fte, base_date="2025-01"):
 
 def calculate_expected_progressions(level_name, fte, progression_rate, cat_distribution):
     """Calculate expected number of progressions based on CAT distribution"""
-    cat_curves = DEFAULT_RATES['progression']['cat_curves'].get(level_name, {})
+    cat_curves = CAT_CURVES.get(level_name, {})
     expected_total = 0
     
     for cat_months, percentage in cat_distribution.items():

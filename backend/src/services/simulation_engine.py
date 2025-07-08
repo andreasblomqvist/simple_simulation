@@ -12,14 +12,15 @@ from copy import deepcopy
 import logging
 
 # Import KPI service
-from backend.src.services.kpi import KPIService, EconomicParameters
-from backend.src.services.config_service import config_service
-from backend.src.services.simulation.workforce import WorkforceManager
-from backend.src.services.simulation.office_manager import OfficeManager
-from backend.src.services.simulation.models import (
+from .kpi import KPIService, EconomicParameters
+from .config_service import config_service
+from .simulation.workforce import WorkforceManager
+from .simulation.office_manager import OfficeManager
+from .simulation.models import (
     Office, Level, RoleData, Month, Journey, OfficeJourney, Person
 )
-from backend.src.services.simulation.utils import log_yearly_results, log_office_aggregates_per_year, calculate_configuration_checksum, validate_configuration_completeness
+from .simulation.progression_models import ProgressionConfig, CATCurves
+from .simulation.utils import log_yearly_results, log_office_aggregates_per_year, calculate_configuration_checksum, validate_configuration_completeness
 
 
 class SimulationEngine:
@@ -35,7 +36,6 @@ class SimulationEngine:
         This is now a pure function that receives all data as input parameters.
         No config service dependencies are needed.
         """
-        print("✅ [ENGINE] SimulationEngine created as pure function.")
         self.offices: Dict[str, Office] = {}
         self.monthly_results: Dict[str, Any] = {}
         self.simulation_results: Optional[Dict[str, Any]] = None
@@ -116,152 +116,17 @@ class SimulationEngine:
         else:
             return Journey.JOURNEY_1
 
-    def _initialize_offices(self):
-        """Initializes all offices with default data"""
-        self.offices = {}
-        for office_name, total_fte in OFFICE_HEADCOUNT.items():
-            self.offices[office_name] = Office.create_office(office_name, total_fte)
+    # Note: _initialize_offices method removed as the engine now works as a pure function
+    # that receives offices as input parameters via run_simulation_with_offices
 
-    def _initialize_roles(self):
-        """Initializes roles and levels for all offices"""
-        for office in self.offices.values():
-            office.roles = {} # Clear existing roles
-            # Initialize Consultant role with levels
-            office.roles['Consultant'] = {}
-            for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
-                # Get journey for this level
-                journey = self._get_journey_for_level(level_name)
-                # Progression is handled by CAT-based system
-                
-                level = Level(
-                    name=level_name,
-                    journey=journey,
-                    **{f'recruitment_{i}': 0.0 for i in range(1, 13)},
-                    **{f'churn_{i}': 0.0 for i in range(1, 13)},
-                    **{f'price_{i}': BASE_PRICING.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
-                    **{f'salary_{i}': BASE_SALARIES.get(office.name, {}).get(level_name, 0.0) for i in range(1, 13)},
-                    **{f'utr_{i}': 0.0 for i in range(1, 13)}
-                )
-                
-                # Set initial headcount
-                consultant_fte = office.total_fte * ROLE_DISTRIBUTION.get('Consultant', 0.8)
-                level_fte = int(consultant_fte * level_percentage)
-                # Use a date 2 years before simulation start to ensure people have sufficient tenure
-                initialization_date_str = "2023-01"
-                for _ in range(level_fte):
-                    level.add_new_hire(initialization_date_str, "Consultant", office.name)
-                    
-                office.roles['Consultant'][level_name] = level
-            
-            # Initialize other roles (flat structure)
-            for role_name in ['Sales', 'Recruitment', 'Operations']:
-                role_fte = int(office.total_fte * ROLE_DISTRIBUTION.get(role_name, 0.05))
-                role_data = RoleData()
-                # Use a date 2 years before simulation start to ensure people have sufficient tenure
-                initialization_date_str = "2023-01"
-                for _ in range(role_fte):
-                    role_data.add_new_hire(initialization_date_str, role_name, office.name)
-                office.roles[role_name] = role_data
+    # Note: _initialize_roles method removed as the engine now works as a pure function
+    # that receives offices as input parameters via run_simulation_with_offices
 
-    def _initialize_roles_with_levers(self, lever_plan: Optional[Dict] = None):
-        """Initializes roles and levels, applying any levers from the start."""
-        if lever_plan is None:
-            self._initialize_roles()
-            return
-            
-        # Global levers (apply to all offices)
-        global_levers = lever_plan.get('global', {})
-        
-        for office in self.offices.values():
-            office.roles = {} # Clear existing roles
-            
-            # Get office-specific levers
-            office_levers = lever_plan.get('offices', {}).get(office.name, {})
-            
-            # Initialize Consultant role with levels
-            office.roles['Consultant'] = {}
-            for level_name, level_percentage in CONSULTANT_LEVEL_DISTRIBUTION.items():
-                journey = self._get_journey_for_level(level_name)
-                
-                # Combine global, office, and level-specific levers
-                level_levers = office_levers.get('Consultant', {}).get(level_name, {})
-                global_level_levers = global_levers.get('Consultant', {}).get(level_name, {})
+    # Note: _initialize_roles_with_levers method removed as the engine now works as a pure function
+    # that receives offices as input parameters via run_simulation_with_offices
 
-                # Create level with combined levers
-                level = Level(
-                    name=level_name,
-                    journey=journey,
-                    **{f'recruitment_{i}': level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', 0.0)) for i in range(1, 13)},
-                    **{f'churn_{i}': level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', 0.0)) for i in range(1, 13)},
-                    **{f'price_{i}': level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', BASE_PRICING.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
-                    **{f'salary_{i}': level_levers.get(f'salary_{i}', global_level_levers.get(f'salary_{i}', BASE_SALARIES.get(office.name, {}).get(level_name, 0.0))) for i in range(1, 13)},
-                    **{f'utr_{i}': level_levers.get(f'utr_{i}', global_level_levers.get(f'utr_{i}', 0.0)) for i in range(1, 13)},
-                )
-                
-                # Set initial headcount
-                consultant_fte = office.total_fte * ROLE_DISTRIBUTION.get('Consultant', 0.8)
-                level_fte = int(consultant_fte * level_percentage)
-                # Use a date 2 years before simulation start to ensure people have sufficient tenure
-                initialization_date_str = "2023-01"
-                for _ in range(level_fte):
-                    level.add_new_hire(initialization_date_str, "Consultant", office.name)
-                office.roles['Consultant'][level_name] = level
-            
-            # Initialize other roles
-            for role_name in ['Sales', 'Recruitment', 'Operations']:
-                role_fte = int(office.total_fte * ROLE_DISTRIBUTION.get(role_name, 0.05))
-                role_data = RoleData()
-                # Apply levers to flat roles
-                role_levers = office_levers.get(role_name, {})
-                global_role_levers = global_levers.get(role_name, {})
-                for i in range(1, 13):
-                    setattr(role_data, f'recruitment_{i}', role_levers.get(f'recruitment_{i}', global_role_levers.get(f'recruitment_{i}', 0.0)))
-                    setattr(role_data, f'churn_{i}', role_levers.get(f'churn_{i}', global_role_levers.get(f'churn_{i}', 0.0)))
-                
-                # Use a date 2 years before simulation start to ensure people have sufficient tenure
-                initialization_date_str = "2023-01"
-                for _ in range(role_fte):
-                    role_data.add_new_hire(initialization_date_str, role_name, office.name)
-                office.roles[role_name] = role_data
-
-    def _apply_levers_to_existing_offices(self, lever_plan: Optional[Dict] = None):
-        """Applies a lever plan to an already initialized set of offices."""
-        if not lever_plan or not self.offices:
-            return
-            
-        global_levers = lever_plan.get('global', {})
-        office_levers = lever_plan.get('offices', {})
-        
-        for office_name, office in self.offices.items():
-            current_office_levers = office_levers.get(office_name, {})
-            
-            for role_name, role_data in office.roles.items():
-                if isinstance(role_data, dict): # Leveled roles (Consultant, Sales, Recruitment)
-                    for level_name, level in role_data.items():
-                        level_levers = current_office_levers.get(role_name, {}).get(level_name, {})
-                        global_level_levers = global_levers.get(role_name, {}).get(level_name, {})
-                        
-                        for i in range(1, 13):
-                            # Prioritize office-specific, then global, then default
-                            recruitment_rate = level_levers.get(f'recruitment_{i}', global_level_levers.get(f'recruitment_{i}', getattr(level, f'recruitment_{i}')))
-                            churn_rate = level_levers.get(f'churn_{i}', global_level_levers.get(f'churn_{i}', getattr(level, f'churn_{i}')))
-                            price = level_levers.get(f'price_{i}', global_level_levers.get(f'price_{i}', getattr(level, f'price_{i}')))
-                            salary = level_levers.get(f'salary_{i}', global_level_levers.get(f'salary_{i}', getattr(level, f'salary_{i}')))
-                            utr = level_levers.get(f'utr_{i}', global_level_levers.get(f'utr_{i}', getattr(level, f'utr_{i}')))
-                            
-                            setattr(level, f'recruitment_{i}', recruitment_rate)
-                            setattr(level, f'churn_{i}', churn_rate)
-                            setattr(level, f'price_{i}', price)
-                            setattr(level, f'salary_{i}', salary)
-                            setattr(level, f'utr_{i}', utr)
-                else: # Flat roles (Operations only)
-                    flat_role_levers = current_office_levers.get(role_name, {})
-                    global_flat_role_levers = global_levers.get(role_name, {})
-                    for i in range(1, 13):
-                        recruitment_rate = flat_role_levers.get(f'recruitment_{i}', global_flat_role_levers.get(f'recruitment_{i}', getattr(role_data, f'recruitment_{i}')))
-                        churn_rate = flat_role_levers.get(f'churn_{i}', global_flat_role_levers.get(f'churn_{i}', getattr(role_data, f'churn_{i}')))
-                        setattr(role_data, f'recruitment_{i}', recruitment_rate)
-                        setattr(role_data, f'churn_{i}', churn_rate)
+    # Note: _apply_levers_to_existing_offices method removed as the engine now works as a pure function
+    # that receives offices as input parameters via run_simulation_with_offices
                         
     def get_offices_by_journey(self, journey: OfficeJourney) -> List[Office]:
         """Returns a list of offices matching a specific journey type"""
@@ -314,11 +179,11 @@ class SimulationEngine:
         Returns:
             Dictionary containing simulation results
         """
-        print(f"🚀 [ENGINE] Starting simulation: {start_year}-{start_month:02d} to {end_year}-{end_month:02d}")
+
     
         # Import ScenarioService here to avoid circular imports
-        from backend.src.services.scenario_service import ScenarioService
-        from backend.src.services.config_service import ConfigService
+        from .scenario_service import ScenarioService
+        from .config_service import ConfigService
 
         # Create scenario service to prepare data
         config_service = ConfigService()
@@ -332,6 +197,17 @@ class SimulationEngine:
         
         resolved_data = scenario_service.resolve_scenario(scenario_data)
         
+        # Convert dict data to proper model objects
+        progression_config = ProgressionConfig.from_dict(resolved_data['progression_config'])
+        cat_curves = CATCurves.from_dict(resolved_data['cat_curves'])
+        
+        # Create economic parameters if not provided
+        if economic_params is None:
+            economic_params = EconomicParameters(
+                price_increase=price_increase,
+                salary_increase=salary_increase
+            )
+        
         # Use the new pure function approach
         return self.run_simulation_with_offices(
             start_year=start_year,
@@ -339,10 +215,8 @@ class SimulationEngine:
             end_year=end_year,
             end_month=end_month,
             offices=resolved_data['offices'],
-            progression_config=resolved_data['progression_config'],
-            cat_curves=resolved_data['cat_curves'],
-            price_increase=price_increase,
-            salary_increase=salary_increase,
+            progression_config=progression_config,
+            cat_curves=cat_curves,
             economic_params=economic_params
         )
 
@@ -353,10 +227,8 @@ class SimulationEngine:
         end_year: int,
         end_month: int,
         offices: Dict[str, Office],
-        progression_config: Dict[str, Any],
-        cat_curves: Dict[str, Any],
-        price_increase: float = 0.0,
-        salary_increase: float = 0.0,
+        progression_config: ProgressionConfig,
+        cat_curves: CATCurves,
         economic_params: Optional[EconomicParameters] = None
     ) -> Dict[str, Any]:
         """
@@ -370,11 +242,9 @@ class SimulationEngine:
             end_year: Simulation end year
             end_month: Simulation end month (1-12)
             offices: Dictionary of Office objects keyed by office name
-            progression_config: Progression rules dictionary
-            cat_curves: CAT curves dictionary for progression probabilities
-            price_increase: Annual price increase rate (0.0-1.0)
-            salary_increase: Annual salary increase rate (0.0-1.0)
-            economic_params: Economic parameters for KPI calculations
+            progression_config: ProgressionConfig object containing progression rules
+            cat_curves: CATCurves object containing progression probabilities
+            economic_params: Economic parameters for KPI calculations (includes price_increase and salary_increase)
             
         Returns:
             Dictionary containing complete simulation results
@@ -406,8 +276,6 @@ class SimulationEngine:
             start_month=start_month,
             end_year=end_year,
             end_month=end_month,
-            price_increase=price_increase,
-            salary_increase=salary_increase,
             economic_params=economic_params,
             workforce_manager=workforce_manager,
             progression_config=progression_config,
@@ -420,12 +288,10 @@ class SimulationEngine:
         start_month: int,
         end_year: int,
         end_month: int,
-        price_increase: float,
-        salary_increase: float,
         economic_params: Optional[EconomicParameters],
         workforce_manager: WorkforceManager,
-        progression_config: Dict[str, Any],
-        cat_curves: Dict[str, Any]
+        progression_config: ProgressionConfig,
+        cat_curves: CATCurves
     ) -> Dict[str, Any]:
         """
         Core simulation logic that runs the monthly progression, recruitment, and churn calculations.
@@ -477,6 +343,9 @@ class SimulationEngine:
                             role_metrics[level_name] = level_metrics
                         office_metrics[role_name] = role_metrics
                 
+                # Recalculate office total FTE after processing all roles
+                self._recalculate_office_total_fte(office)
+                
                 monthly_office_metrics[current_date_str][office_name] = office_metrics
             
             # Move to next month
@@ -485,12 +354,15 @@ class SimulationEngine:
                 current_month = 1
                 current_year += 1
             
-            # Store yearly snapshots
-            if current_month == 1 or month_index == total_months - 1:
-                year_key = str(current_year - 1) if current_month == 1 else str(current_year)
+            # Store yearly snapshots at the end of each year
+            if current_month == 12 or month_index == total_months - 1:
+                year_key = str(current_year)
                 yearly_snapshots[year_key] = self._get_yearly_snapshot(
                     monthly_office_metrics, year_key, economic_params
                 )
+            
+
+            
         
         # Structure and return results
         return self._structure_yearly_results(
@@ -511,10 +383,18 @@ class SimulationEngine:
         price = getattr(role_data, f'price_{current_month}', 0.0) if hasattr(role_data, f'price_{current_month}') else 0.0
         salary = getattr(role_data, f'salary_{current_month}', 0.0) if hasattr(role_data, f'salary_{current_month}') else 0.0
         utr = getattr(role_data, f'utr_{current_month}', 0.85) if hasattr(role_data, f'utr_{current_month}') else 0.85
-        # Calculate absolute numbers
         current_fte = role_data.total
-        recruitment_count = int(recruitment_rate * current_fte / 100)
-        churn_count = int(churn_rate * current_fte / 100)
+        # Use absolute if present, else percentage
+        abs_recruitment = getattr(role_data, f'recruitment_abs_{current_month}', None)
+        abs_churn = getattr(role_data, f'churn_abs_{current_month}', None)
+        if abs_recruitment is not None:
+            recruitment_count = int(abs_recruitment)
+        else:
+            recruitment_count = int(recruitment_rate * current_fte / 100)
+        if abs_churn is not None:
+            churn_count = int(abs_churn)
+        else:
+            churn_count = int(churn_rate * current_fte / 100)
         # Apply recruitment and churn
         for _ in range(recruitment_count):
             role_data.add_new_hire(current_date_str, "Operations", office_name)
@@ -548,18 +428,52 @@ class SimulationEngine:
         price = getattr(level, f'price_{current_month}', 0.0)
         salary = getattr(level, f'salary_{current_month}', 0.0)
         utr = getattr(level, f'utr_{current_month}', 0.85)
-        # Calculate absolute numbers
         current_fte = level.total
-        recruitment_count = int(recruitment_rate * current_fte / 100)
-        churn_count = int(churn_rate * current_fte / 100)
+        # Use absolute if present, else percentage
+        abs_recruitment = getattr(level, f'recruitment_abs_{current_month}', None)
+        abs_churn = getattr(level, f'churn_abs_{current_month}', None)
+        
+
+        
+        if abs_recruitment is not None:
+            recruitment_count = int(abs_recruitment)
+        else:
+            recruitment_count = int(recruitment_rate * current_fte / 100)
+        if abs_churn is not None:
+            churn_count = int(abs_churn)
+        else:
+            churn_count = int(churn_rate * current_fte / 100)
+        
+
         # Apply recruitment and churn
         for _ in range(recruitment_count):
             level.add_new_hire(current_date_str, role_name, office_name)
         churned_people = level.apply_churn(churn_count)
-        # Apply progression using CAT-based system with passed parameters
+
+        
+        # Apply progression using CAT-based system with optional multiplier
         promoted_people = level.apply_cat_based_progression(
             current_date_str, progression_config, cat_curves
         )
+        
+        # Apply progression multiplier if present
+        progression_multiplier = getattr(level, f'progression_multiplier_{current_month}', None)
+        if progression_multiplier is not None and progression_multiplier != 1.0:
+            # Scale the number of promotions by the multiplier
+            target_promotions = int(len(promoted_people) * progression_multiplier)
+            if target_promotions != len(promoted_people):
+                # Adjust the number of promoted people to match the multiplier
+                if target_promotions > len(promoted_people):
+                    # Need more promotions - promote additional people
+                    additional_needed = target_promotions - len(promoted_people)
+                    additional_promoted = level.promote_people(additional_needed, current_date_str)
+                    promoted_people.extend(additional_promoted)
+                else:
+                    # Need fewer promotions - keep only the first target_promotions
+                    promoted_people = promoted_people[:target_promotions]
+        
+        final_fte = level.total
+        
         return {
             'fte': level.total,
             'recruitment_rate': recruitment_rate,
@@ -581,7 +495,7 @@ class SimulationEngine:
     ) -> Dict[str, Any]:
         """Get a snapshot of all offices for a specific year, including per-office financial KPIs."""
         year_data = {}
-        from backend.src.services.kpi.kpi_service import KPIService
+        from .kpi.kpi_service import KPIService
         kpi_service = KPIService(economic_params)
         
         # Build the full year snapshot for all offices first
@@ -638,7 +552,7 @@ class SimulationEngine:
                 yearly_offices_data = {}
                 # Use the offices state from the end of the year snapshot
                 if not self.offices:
-                    print(f"[ENGINE ERROR] No offices found when structuring results for year {year}")
+                    # No offices found when structuring results for year {year}
                     continue
                 # Use the yearly snapshots if available, otherwise fall back to current office state
                 if year_str in yearly_snapshots:
@@ -660,7 +574,7 @@ class SimulationEngine:
                                 'levels': office_levels
                             }
                         except Exception as e:
-                            print(f"[ENGINE ERROR] Failed to get snapshot for office {office_name}: {e}")
+                            # Failed to get snapshot for office {office_name}: {e}
                             # Provide minimal structure if snapshot fails
                             yearly_offices_data[office_name] = {
                                 'total_fte': office.total_fte,
@@ -678,7 +592,7 @@ class SimulationEngine:
                 # Add the complete KPI structure to the year
                 yearly_results[year_str]['kpis'] = year_kpis
                 # --- NEW: Attach per-office KPIs using the same structure as group-level ---
-                from backend.src.services.kpi.kpi_service import KPIService
+                from .kpi.kpi_service import KPIService
                 kpi_service = KPIService(economic_params)
                 for office_name in yearly_offices_data:
                     office_detailed_data = yearly_results[year_str]['offices'][office_name]
@@ -706,44 +620,94 @@ class SimulationEngine:
                     office_detailed_data['growth'] = to_dict(office_kpis.growth)
                     office_detailed_data['journeys'] = to_dict(office_kpis.journeys)
                 # --- END NEW ---
+                # Add per-role and per-level FTEs to each office's results
+                for office_name, office in self.offices.items():
+                    if office_name in yearly_offices_data:
+                        roles_dict = {}
+                        for role_name, role_data in office.roles.items():
+                            if isinstance(role_data, dict):  # Leveled roles
+                                levels_dict = {}
+                                for level_name, level in role_data.items():
+                                    # Extract monthly FTE data for this level
+                                    monthly_fte_data = []
+                                    for month in range(1, 13):  # January to December
+                                        month_str = f"{year_str}-{month:02d}"
+                                        if month_str in monthly_office_metrics and office_name in monthly_office_metrics[month_str]:
+                                            office_month_data = monthly_office_metrics[month_str][office_name]
+                                            if role_name in office_month_data and level_name in office_month_data[role_name]:
+                                                level_month_data = office_month_data[role_name][level_name]
+                                                monthly_fte_data.append({
+                                                    'fte': level_month_data.get('fte', 0),
+                                                    'price': level_month_data.get('price', 0),
+                                                    'salary': level_month_data.get('salary', 0),
+                                                    'recruitment': level_month_data.get('recruitment_count', 0),
+                                                    'churn': level_month_data.get('churn_count', 0),
+                                                    'promoted_people': level_month_data.get('promoted_people', 0)
+                                                })
+                                            else:
+                                                # No data for this month, use default values
+                                                monthly_fte_data.append({
+                                                    'fte': 0,
+                                                    'price': 0,
+                                                    'salary': 0,
+                                                    'recruitment': 0,
+                                                    'churn': 0,
+                                                    'promoted_people': 0
+                                                })
+                                        else:
+                                            # No data for this month, use default values
+                                            monthly_fte_data.append({
+                                                'fte': 0,
+                                                'price': 0,
+                                                'salary': 0,
+                                                'recruitment': 0,
+                                                'churn': 0,
+                                                'promoted_people': 0
+                                            })
+                                    levels_dict[level_name] = monthly_fte_data
+                                roles_dict[role_name] = levels_dict
+                            else:  # Flat roles
+                                # Extract monthly FTE data for flat roles
+                                monthly_fte_data = []
+                                for month in range(1, 13):  # January to December
+                                    month_str = f"{year_str}-{month:02d}"
+                                    if month_str in monthly_office_metrics and office_name in monthly_office_metrics[month_str]:
+                                        office_month_data = monthly_office_metrics[month_str][office_name]
+                                        if role_name in office_month_data:
+                                            role_month_data = office_month_data[role_name]
+                                            monthly_fte_data.append({
+                                                'fte': role_month_data.get('fte', 0),
+                                                'price': role_month_data.get('price', 0),
+                                                'salary': role_month_data.get('salary', 0),
+                                                'recruitment': role_month_data.get('recruitment_count', 0),
+                                                'churn': role_month_data.get('churn_count', 0),
+                                                'promoted_people': role_month_data.get('promoted_people', 0)
+                                            })
+                                        else:
+                                            # No data for this month, use default values
+                                            monthly_fte_data.append({
+                                                'fte': 0,
+                                                'price': 0,
+                                                'salary': 0,
+                                                'recruitment': 0,
+                                                'churn': 0,
+                                                'promoted_people': 0
+                                            })
+                                    else:
+                                        # No data for this month, use default values
+                                        monthly_fte_data.append({
+                                            'fte': 0,
+                                            'price': 0,
+                                            'salary': 0,
+                                            'recruitment': 0,
+                                            'churn': 0,
+                                            'promoted_people': 0
+                                        })
+                                roles_dict[role_name] = monthly_fte_data
+                        yearly_offices_data[office_name]['roles'] = roles_dict
         except Exception as e:
-            print(f"[ENGINE ERROR] Failed to structure yearly results: {e}")
-            import traceback
-            traceback.print_exc()
-            # Return minimal structure to prevent total failure
-            for year in range(start_year, end_year + 1):
-                year_str = str(year)
-                yearly_results[year_str] = {
-                    'offices': {},
-                    'total_fte': 0,
-                    'kpis': {
-                        'financial': {
-                            'net_sales': 0.0,
-                            'net_sales_baseline': 0.0,
-                            'ebitda': 0.0,
-                            'ebitda_baseline': 0.0,
-                            'margin': 0.0,
-                            'margin_baseline': 0.0,
-                            'avg_hourly_rate': 0.0,
-                            'avg_hourly_rate_baseline': 0.0,
-                            'total_salary_costs': 0.0,
-                            'total_salary_costs_baseline': 0.0
-                        },
-                        'growth': {
-                            'total_fte': 0,
-                            'baseline_total_fte': 0,
-                            'current_total_fte': 0,
-                            'non_debit_ratio': 0.0,
-                            'non_debit_ratio_baseline': 0.0
-                        },
-                        'journeys': {
-                            'journey_totals': {},
-                            'journey_percentages': {},
-                            'journey_totals_baseline': {},
-                            'journey_percentages_baseline': {}
-                        }
-                    }
-                }
+            # Failed to structure yearly results: {e}
+            return {}
             
         return {'years': yearly_results}
 
@@ -779,37 +743,8 @@ class SimulationEngine:
             return to_dict(year_kpis)
             
         except Exception as e:
-            print(f"[ENGINE ERROR] Failed to calculate complete year KPIs: {e}")
-            import traceback
-            traceback.print_exc()
-            # Return zero values as fallback
-            return {
-                'financial': {
-                    'net_sales': 0.0,
-                    'net_sales_baseline': 0.0,
-                    'ebitda': 0.0,
-                    'ebitda_baseline': 0.0,
-                    'margin': 0.0,
-                    'margin_baseline': 0.0,
-                    'avg_hourly_rate': 0.0,
-                    'avg_hourly_rate_baseline': 0.0,
-                    'total_salary_costs': 0.0,
-                    'total_salary_costs_baseline': 0.0
-                },
-                'growth': {
-                    'total_fte': 0,
-                    'baseline_total_fte': 0,
-                    'current_total_fte': 0,
-                    'non_debit_ratio': 0.0,
-                    'non_debit_ratio_baseline': 0.0
-                },
-                'journeys': {
-                    'journey_totals': {},
-                    'journey_percentages': {},
-                    'journey_totals_baseline': {},
-                    'journey_percentages_baseline': {}
-                }
-            }
+            # Failed to calculate complete year KPIs: {e}
+            return {}
         
     def get_simulation_results(self) -> Optional[Dict[str, Any]]:
         """Return the latest simulation results"""
@@ -925,13 +860,25 @@ class SimulationEngine:
                 level_snapshots[role_name] = monthly_array
         return level_snapshots
 
+    def run(self, offices_config, progression_config, cat_curves, economic_params=None):
+        return self.run_simulation_with_offices(
+            start_year=2025,
+            start_month=1,
+            end_year=2027,
+            end_month=12,
+            offices=offices_config,
+            progression_config=progression_config,
+            cat_curves=cat_curves,
+            economic_params=economic_params
+        )
+
 def calculate_configuration_checksum(offices: Dict[str, 'Office']) -> str:
     """
     Calculates a checksum for the initial office configuration to detect changes.
     This helps in deciding whether to re-run a baseline simulation.
     Uses only the raw config data to avoid circular references.
     """
-    from backend.src.services.config_service import config_service
+    from .config_service import config_service
     config_data = config_service.get_config()
     config_string = json.dumps(config_data, sort_keys=True)
     return hashlib.md5(config_string.encode('utf-8')).hexdigest()

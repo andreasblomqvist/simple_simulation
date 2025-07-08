@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Card, Table, Slider, Button, Space, Typography, Row, Col, Tooltip, Collapse } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
+import styles from './ScenarioLevers.module.css';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const ROLES = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'];
-const LEVERS = ['Recruitment', 'Churn', 'Progression'] as const;
+const LEVERS = ['recruitment', 'churn', 'progression'] as const;
+const LEVELS = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'];
 
 type LeverType = typeof LEVERS[number];
 
@@ -19,9 +21,9 @@ const step = 0.01;
 
 // Mock baseline values for each role and lever
 const baselineValues: Record<LeverType, Record<string, number>> = {
-  Recruitment: { A: 20, AC: 8, C: 4, SrC: 1, AM: 1, M: 0, SrM: 0, Pi: 0, P: 0 },
-  Churn: { A: 2, AC: 4, C: 7, SrC: 7, AM: 9, M: 1, SrM: 0, Pi: 0, P: 0 },
-  Progression: { A: 1, AC: 1, C: 1, SrC: 1, AM: 1, M: 1, SrM: 1, Pi: 1, P: 1 },
+  recruitment: { A: 20, AC: 8, C: 4, SrC: 1, AM: 1, M: 0, SrM: 0, Pi: 0, P: 0 },
+  churn: { A: 2, AC: 4, C: 7, SrC: 7, AM: 9, M: 1, SrM: 0, Pi: 0, P: 0 },
+  progression: { A: 1, AC: 1, C: 1, SrC: 1, AM: 1, M: 1, SrM: 1, Pi: 1, P: 1 },
 };
 
 // Mock CAT progression probabilities (from progression_config.py)
@@ -51,6 +53,11 @@ interface ScenarioLeversProps {
   onBack?: () => void;
   levers?: LeverState;
   readOnly?: boolean;
+  baselineValues?: Record<LeverType, Record<string, number>>;
+}
+
+export interface ScenarioLeversRef {
+  getCurrentData: () => LeverState;
 }
 
 const getCompleteLevers = (input?: LeverState): LeverState => {
@@ -63,10 +70,20 @@ const getCompleteLevers = (input?: LeverState): LeverState => {
   }, {} as LeverState);
 };
 
-const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers: externalLevers, readOnly = false }) => {
+const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onNext, onBack, levers: externalLevers, readOnly = false, baselineValues: propBaselineValues }, ref) => {
   const [levers, setLevers] = useState<LeverState>(() =>
     getCompleteLevers(externalLevers)
   );
+  // Use prop baselineValues if provided, else fallback to static
+  const effectiveBaselineValues = propBaselineValues || baselineValues;
+
+  // Expose current data to parent via ref
+  useImperativeHandle(ref, () => ({
+    getCurrentData: () => {
+      console.log('DEBUG: ScenarioLevers getCurrentData called, returning:', levers);
+      return levers;
+    }
+  }));
 
   // If externalLevers changes, update state
   React.useEffect(() => {
@@ -106,7 +123,7 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
 
   const columns = [
     {
-      title: 'Role',
+      title: 'Level',
       dataIndex: 'role',
       key: 'role',
       width: 100,
@@ -117,8 +134,8 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
         title: (
           <Row align="middle" justify="space-between" style={{ width: 200 }}>
             <Col>
-              {lever} Multiplier
-              {lever === 'Progression' && (
+              {lever.charAt(0).toUpperCase() + lever.slice(1)} Multiplier
+              {lever === 'progression' && (
                 <Tooltip title="Progression multiplier affects CAT-based progression probabilities. Values < 1 slow progression, > 1 accelerate it.">
                   <InfoCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} />
                 </Tooltip>
@@ -138,7 +155,7 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
           readOnly ? (
             <span style={{ width: 40, display: 'inline-block', textAlign: 'right' }}>{levers[lever][record.role].toFixed(2)}</span>
           ) : (
-            <Space>
+            <Space className={styles.leverSlider}>
               <Slider
                 min={min}
                 max={max}
@@ -146,30 +163,35 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
                 value={levers[lever][record.role]}
                 onChange={val => handleSlider(lever, record.role, val as number)}
                 style={{ width: 120 }}
+                trackStyle={{ backgroundColor: '#1890ff', height: 6 }}
+                handleStyle={{ borderColor: '#40a9ff', backgroundColor: '#40a9ff' }}
               />
               <span style={{ width: 40, display: 'inline-block', textAlign: 'right' }}>{levers[lever][record.role].toFixed(2)}</span>
             </Space>
           )
         ),
       },
-      lever !== 'Progression' ? {
-        title: `${lever} Actual (per month)`,
+      lever !== 'progression' ? {
+        title: `${lever.charAt(0).toUpperCase() + lever.slice(1)} Actual (avg per month)`,
         dataIndex: `${lever}-actual`,
         key: `${lever}-actual`,
         width: 100,
         render: (_: any, record: any) => {
-          const baseline = baselineValues[lever][record.role] || 0;
+          const baseline = effectiveBaselineValues[lever][record.role] || 0;
           const multiplier = levers[lever][record.role];
           const actual = baseline * multiplier;
-          return <span>{actual.toFixed(2)}</span>;
+          let color = '#fff';
+          if (multiplier > 1) color = '#52c41a';
+          else if (multiplier < 1) color = '#ff4d4f';
+          return <span style={{ color, fontWeight: 'bold' }}>{actual.toFixed(2)}</span>;
         },
       } : {
         title: 'Max Change',
-        dataIndex: 'Progression-max-change',
-        key: 'Progression-max-change',
+        dataIndex: 'progression-max-change',
+        key: 'progression-max-change',
         width: 120,
         render: (_: any, record: any) => {
-          const multiplier = levers.Progression[record.role];
+          const multiplier = levers.progression[record.role];
           const impact = getProgressionImpact(record.role, multiplier);
           let maxChange = 0;
           let sign = '=';
@@ -185,13 +207,13 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
           return <span style={{ color, fontWeight: 'bold' }}>{formatted}</span>;
         },
       },
-      lever === 'Progression' ? {
+      lever === 'progression' ? {
         title: 'Expected Time on Level',
-        dataIndex: 'Progression-expected-time',
-        key: 'Progression-expected-time',
+        dataIndex: 'progression-expected-time',
+        key: 'progression-expected-time',
         width: 170,
         render: (_: any, record: any) => {
-          const multiplier = levers.Progression[record.role];
+          const multiplier = levers.progression[record.role];
           const impact = getProgressionImpact(record.role, multiplier);
           let maxProb = 0;
           let maxOrigProb = 0;
@@ -223,21 +245,21 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
       } : null,
     ]),
   ];
-  // Filter out any null columns (from Progression non-matches)
+  // Filter out any null columns (from progression non-matches)
   const filteredColumns = columns.filter((col): col is NonNullable<typeof col> => col !== null);
 
   return (
     <div>
       <Table
         columns={filteredColumns}
-        dataSource={ROLES.map(role => ({
-          key: role,
-          role,
-          Recruitment: levers.Recruitment[role],
-          'Recruitment-actual': baselineValues.Recruitment[role] * levers.Recruitment[role],
-          Churn: levers.Churn[role],
-          'Churn-actual': baselineValues.Churn[role] * levers.Churn[role],
-          Progression: levers.Progression[role],
+        dataSource={LEVELS.map(level => ({
+          key: level,
+          role: level,
+          recruitment: levers.recruitment[level],
+          'recruitment-actual': baselineValues.recruitment[level] * levers.recruitment[level],
+          churn: levers.churn[level],
+          'churn-actual': baselineValues.churn[level] * levers.churn[level],
+          progression: levers.progression[level],
         }))}
         pagination={false}
         size="middle"
@@ -253,7 +275,7 @@ const ScenarioLevers: React.FC<ScenarioLeversProps> = ({ onNext, onBack, levers:
       )}
     </div>
   );
-};
+});
 
 export default ScenarioLevers;
 export { getCompleteLevers }; 

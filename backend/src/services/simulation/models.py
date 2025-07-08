@@ -6,7 +6,7 @@ This module contains all the fundamental data structures used by the simulation:
 - Dataclasses for Person, RoleData, Level, and Office
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
@@ -14,8 +14,12 @@ import uuid
 import random
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../config'))
-from backend.config.laf_progression import LAF_PROGRESSION, PROGRESSION_LEVER
+# Import from config since we're running from backend directory with PYTHONPATH=.
+from config.laf_progression import LAF_PROGRESSION, PROGRESSION_LEVER
+
+# Forward references for type hints
+ProgressionConfig = 'ProgressionConfig'
+CATCurves = 'CATCurves'
 
 class Month(Enum):
     """Enumeration for months of the year"""
@@ -87,20 +91,15 @@ class Person:
             cat_number = min(30, 6 * ((tenure_months // 6)))
             return f'CAT{cat_number}'
     
-    def get_progression_probability(self, current_date: str, level_name: str, cat_curves: Optional[Dict[str, Any]] = None) -> float:
+    def get_progression_probability(self, current_date: str, level_name: str, cat_curves: Dict[str, Any]) -> float:
         """
         Calculate progression probability using CAT curves.
         
         Args:
             current_date: Current date in YYYY-MM format
             level_name: Name of the level (e.g., "A", "C", "AM")
-            cat_curves: CAT curves dict (optional, falls back to import if not provided)
+            cat_curves: CAT curves dict (required)
         """
-        # Fallback to import if parameter not provided (for backward compatibility)
-        if cat_curves is None:
-            from backend.config.progression_config import CAT_CURVES
-            cat_curves = CAT_CURVES
-        
         tenure_months = self.get_level_tenure_months(current_date)
         # CAT0 should always return 0.0 (no progression for < 6 months)
         if tenure_months < 6:
@@ -180,6 +179,31 @@ class RoleData:
     utr_10: float = 1.0
     utr_11: float = 1.0
     utr_12: float = 1.0
+    # Absolute recruitment and churn (1-12)
+    recruitment_abs_1: Optional[float] = None
+    recruitment_abs_2: Optional[float] = None
+    recruitment_abs_3: Optional[float] = None
+    recruitment_abs_4: Optional[float] = None
+    recruitment_abs_5: Optional[float] = None
+    recruitment_abs_6: Optional[float] = None
+    recruitment_abs_7: Optional[float] = None
+    recruitment_abs_8: Optional[float] = None
+    recruitment_abs_9: Optional[float] = None
+    recruitment_abs_10: Optional[float] = None
+    recruitment_abs_11: Optional[float] = None
+    recruitment_abs_12: Optional[float] = None
+    churn_abs_1: Optional[float] = None
+    churn_abs_2: Optional[float] = None
+    churn_abs_3: Optional[float] = None
+    churn_abs_4: Optional[float] = None
+    churn_abs_5: Optional[float] = None
+    churn_abs_6: Optional[float] = None
+    churn_abs_7: Optional[float] = None
+    churn_abs_8: Optional[float] = None
+    churn_abs_9: Optional[float] = None
+    churn_abs_10: Optional[float] = None
+    churn_abs_11: Optional[float] = None
+    churn_abs_12: Optional[float] = None
     # Individual tracking
     people: List[Person] = field(default_factory=list)
     # Fractional accumulation for deterministic results
@@ -307,6 +331,31 @@ class Level:
     utr_10: float       # percentage
     utr_11: float       # percentage
     utr_12: float       # percentage
+    # Absolute recruitment and churn (1-12)
+    recruitment_abs_1: Optional[float] = None
+    recruitment_abs_2: Optional[float] = None
+    recruitment_abs_3: Optional[float] = None
+    recruitment_abs_4: Optional[float] = None
+    recruitment_abs_5: Optional[float] = None
+    recruitment_abs_6: Optional[float] = None
+    recruitment_abs_7: Optional[float] = None
+    recruitment_abs_8: Optional[float] = None
+    recruitment_abs_9: Optional[float] = None
+    recruitment_abs_10: Optional[float] = None
+    recruitment_abs_11: Optional[float] = None
+    recruitment_abs_12: Optional[float] = None
+    churn_abs_1: Optional[float] = None
+    churn_abs_2: Optional[float] = None
+    churn_abs_3: Optional[float] = None
+    churn_abs_4: Optional[float] = None
+    churn_abs_5: Optional[float] = None
+    churn_abs_6: Optional[float] = None
+    churn_abs_7: Optional[float] = None
+    churn_abs_8: Optional[float] = None
+    churn_abs_9: Optional[float] = None
+    churn_abs_10: Optional[float] = None
+    churn_abs_11: Optional[float] = None
+    churn_abs_12: Optional[float] = None
     # Individual tracking
     people: List[Person] = field(default_factory=list)
     # Fractional accumulation for deterministic results
@@ -336,19 +385,19 @@ class Level:
         person.level_start = current_date
         self.people.append(person)
     
-    def is_progression_month(self, current_month: int, progression_config: Optional[Dict[str, Any]] = None) -> bool:
+    def is_progression_month(self, current_month: int, progression_config: Union[Dict[str, Any], 'ProgressionConfig']) -> bool:
         """
         Check if the given month is a progression month for this level.
         
         Args:
             current_month: Month number (1-12)
-            progression_config: Progression rules dict (optional, falls back to import if not provided)
+            progression_config: Progression rules dict or ProgressionConfig object
         """
-        # Fallback to import if parameter not provided (for backward compatibility)
-        if progression_config is None:
-            from backend.config.progression_config import PROGRESSION_CONFIG
-            progression_config = PROGRESSION_CONFIG
+        # Handle ProgressionConfig object
+        if hasattr(progression_config, 'is_progression_month'):
+            return progression_config.is_progression_month(self.name, current_month)
         
+        # Handle legacy dict format
         if self.name in progression_config:
             progression_months = progression_config[self.name]['progression_months']
             return current_month in progression_months
@@ -357,39 +406,40 @@ class Level:
         progression_rate = getattr(self, f'progression_{current_month}', 0.0)
         return progression_rate > 0.0
 
-    def get_minimum_tenure(self) -> int:
+    def get_minimum_tenure(self, progression_config: Union[Dict[str, Any], 'ProgressionConfig']) -> int:
         """Get minimum tenure required for progression from progression config"""
-        from backend.config.progression_config import PROGRESSION_CONFIG
-        return PROGRESSION_CONFIG.get(self.name, {}).get('time_on_level', 6)
+        # Handle ProgressionConfig object
+        if hasattr(progression_config, 'get_minimum_tenure'):
+            return progression_config.get_minimum_tenure(self.name)
+        
+        # Handle legacy dict format
+        return progression_config.get(self.name, {}).get('time_on_level', 6)
 
-    def get_journey(self) -> str:
+    def get_journey(self, progression_config: Union[Dict[str, Any], 'ProgressionConfig']) -> str:
         """Get journey for this level from progression config"""
-        from backend.config.progression_config import PROGRESSION_CONFIG
-        return PROGRESSION_CONFIG.get(self.name, {}).get('journey', None)
+        # Handle ProgressionConfig object
+        if hasattr(progression_config, 'get_level_config'):
+            level_config = progression_config.get_level_config(self.name)
+            return level_config.journey if level_config else None
+        
+        # Handle legacy dict format
+        return progression_config.get(self.name, {}).get('journey', None)
 
-    def get_eligible_for_progression(self, current_date: str, progression_config: Optional[Dict[str, Any]] = None):
+    def get_eligible_for_progression(self, current_date: str, progression_config: Union[Dict[str, Any], 'ProgressionConfig']):
         """
         Get people eligible for progression based on minimum tenure and progression months.
         
         Args:
             current_date: Current date in YYYY-MM format
-            progression_config: Progression rules dict (optional, falls back to import if not provided)
+            progression_config: Progression rules dict or ProgressionConfig object
         """
-        # Fallback to import if parameter not provided (for backward compatibility)
-        if progression_config is None:
-            from backend.config.progression_config import PROGRESSION_CONFIG
-            progression_config = PROGRESSION_CONFIG
-        
         # Check if this is a progression month
         current_month = int(current_date.split('-')[1])
         if not self.is_progression_month(current_month, progression_config):
             return []
         
         # Get minimum tenure from progression config
-        if self.name in progression_config:
-            min_tenure = progression_config[self.name]['time_on_level']
-        else:
-            min_tenure = 6  # Default fallback
+        min_tenure = self.get_minimum_tenure(progression_config)
         
         # Only allow people with tenure >= min_tenure
         return [p for p in self.people if p.get_level_tenure_months(current_date) >= min_tenure]
@@ -409,32 +459,21 @@ class Level:
     
     def apply_progression(self, progression_count: int, current_date: str) -> List[Person]:
         """Legacy method for backward compatibility - now uses CAT-based progression"""
-        # Convert to rate and use CAT-based method
-        eligible = self.get_eligible_for_progression(current_date)
-        if len(eligible) == 0:
-            return []
-        
-        # Calculate implied rate from count
-        progression_rate = progression_count / len(eligible) if len(eligible) > 0 else 0.0
-        return self.apply_cat_based_progression(current_date)
+        # This method is deprecated - use apply_cat_based_progression with explicit config parameters
+        raise NotImplementedError(
+            "apply_progression is deprecated. Use apply_cat_based_progression(current_date, progression_config, cat_curves) instead. "
+            "The engine no longer loads config files directly - all config must be passed as parameters."
+        )
     
-    def apply_cat_based_progression(self, current_date: str, progression_config: Optional[Dict[str, Any]] = None, cat_curves: Optional[Dict[str, Any]] = None):
+    def apply_cat_based_progression(self, current_date: str, progression_config: Union[Dict[str, Any], 'ProgressionConfig'], cat_curves: Union[Dict[str, Any], 'CATCurves']):
         """
         Apply CAT-based progression with individual probabilities, return promoted people and their CAT info.
         
         Args:
             current_date: Current date in YYYY-MM format
-            progression_config: Progression rules dict (optional, falls back to import if not provided)
-            cat_curves: CAT curves dict (optional, falls back to import if not provided)
+            progression_config: Progression rules dict or ProgressionConfig object
+            cat_curves: CAT curves dict or CATCurves object
         """
-        # Fallback to import if parameters not provided (for backward compatibility)
-        if progression_config is None or cat_curves is None:
-            from backend.config.progression_config import CAT_CURVES, PROGRESSION_CONFIG
-            if cat_curves is None:
-                cat_curves = CAT_CURVES
-            if progression_config is None:
-                progression_config = PROGRESSION_CONFIG
-        
         eligible = self.get_eligible_for_progression(current_date, progression_config)
         if len(eligible) == 0:
             return []
@@ -455,18 +494,18 @@ class Level:
                 cat = f'CAT{cat_number}'
             
             # Get probability from CAT curve
-            if self.name in cat_curves:
-                individual_probability = cat_curves[self.name].get(cat, 0.0)
+            if hasattr(cat_curves, 'get_probability'):
+                # Handle CATCurves object
+                individual_probability = cat_curves.get_probability(self.name, cat)
             else:
-                individual_probability = 0.0
+                # Handle legacy dict format
+                if self.name in cat_curves:
+                    individual_probability = cat_curves[self.name].get(cat, 0.0)
+                else:
+                    individual_probability = 0.0
             
             if random.random() < individual_probability:
                 promoted.append((person, tenure_months, cat_number))
-                if self.name == 'AM':
-                    print(f"[AM PROMOTION DEBUG] Month={current_month}, MonthsOnLevel={tenure_months}, CAT=CAT{cat_number}, Prob={individual_probability}")
-        
-        if promoted:
-            print(f"[DEBUG] Promotion: Level={self.name}, Month={current_month}, Promoted={len(promoted)}")
         
         for person, _, _ in promoted:
             self.people.remove(person)

@@ -7,12 +7,15 @@ from datetime import datetime
 
 class ScenarioDefinition(BaseModel):
     """Complete scenario definition including metadata and lever values."""
+    id: Optional[str] = Field(None, description="Unique scenario identifier")
     name: str = Field(..., description="Scenario name")
     description: str = Field(..., description="Scenario description")
     time_range: Dict[str, int] = Field(..., description="Start and end year/month")
     office_scope: List[str] = Field(..., description="List of offices to include in scenario")
-    levers: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Lever multipliers by type and level")
+    levers: Dict[str, Any] = Field(default_factory=dict, description="Lever multipliers by type and level")
     economic_params: Optional[Dict[str, float]] = Field(default=None, description="Economic parameters")
+    progression_config: Optional[Dict[str, Any]] = Field(default=None, description="Custom progression configuration")
+    cat_curves: Optional[Dict[str, Any]] = Field(default=None, description="Custom CAT curves configuration")
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = Field(default_factory=datetime.now)
     baseline_input: Optional[Dict[str, Any]] = None
@@ -32,23 +35,6 @@ class ScenarioDefinition(BaseModel):
         
         if v['end_month'] < 1 or v['end_month'] > 12:
             raise ValueError("End month must be between 1 and 12")
-        
-        return v
-    
-    @field_validator('levers')
-    @classmethod
-    def validate_levers(cls, v):
-        if not v:
-            return v  # Allow empty dict
-        valid_lever_types = {'recruitment', 'churn', 'progression'}
-        if not all(lever_type in valid_lever_types for lever_type in v.keys()):
-            raise ValueError(f"Lever types must be one of: {valid_lever_types}")
-        
-        # Validate lever values are reasonable (0.0 to 3.0)
-        for lever_type, level_values in v.items():
-            for level, value in level_values.items():
-                if value < 0.0 or value > 3.0:
-                    raise ValueError(f"Lever value for {lever_type}.{level} must be between 0.0 and 3.0")
         
         return v
 

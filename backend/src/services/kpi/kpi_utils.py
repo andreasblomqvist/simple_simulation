@@ -5,7 +5,7 @@ This module contains shared utility functions used across different KPI calculat
 """
 
 from typing import Dict, Any, List, Tuple
-from backend.src.services.config_service import ConfigService
+from ..config_service import ConfigService
 
 
 def get_baseline_data() -> Dict[str, Any]:
@@ -89,7 +89,7 @@ def calculate_fta_weighted_average_hourly_rate(year_data: Dict[str, Any], role_n
                 for level_name, level_data in role_data.items():
                     if isinstance(level_data, list) and level_data:
                         last_month_data = level_data[-1]
-                        fte_count = last_month_data.get('total', 0)
+                        fte_count = last_month_data.get('fte', last_month_data.get('total', 0))
                         hourly_rate = last_month_data.get('price', 0)
                         
                         if fte_count > 0 and hourly_rate > 0:
@@ -123,7 +123,7 @@ def extract_office_totals(year_data: Dict[str, Any]) -> Tuple[int, int, int]:
                         if isinstance(level_data, list) and level_data:
                             # Get the last month's data
                             last_month_data = level_data[-1]
-                            fte_count = last_month_data.get('total', 0)
+                            fte_count = last_month_data.get('fte', last_month_data.get('total', 0))
                             current_total_fte += fte_count
                             
                             if role_name == 'Consultant':
@@ -134,7 +134,7 @@ def extract_office_totals(year_data: Dict[str, Any]) -> Tuple[int, int, int]:
                 elif isinstance(role_data, list) and role_data:
                     # Flat role (Operations)
                     last_month_data = role_data[-1]
-                    fte_count = last_month_data.get('total', 0)
+                    fte_count = last_month_data.get('fte', last_month_data.get('total', 0))
                     current_total_fte += fte_count
                     current_non_consultants += fte_count
         

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Typography, Space, Select, message, Spin, Empty } from 'antd';
 import type { SimulationResults, ScenarioDefinition, OfficeName } from '../../types/scenarios';
 import { scenarioApi } from '../../services/scenarioApi';
+import { normalizeBaselineInput } from '../../utils/normalizeBaselineInput';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -38,7 +39,6 @@ function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey:
   
   const yearData = data.years[year.toString()];
   const officeData = yearData.offices[office];
-  console.log('getKPIValue:', { year, office, kpiKey, yearData, officeData });
   if (!officeData) return 0;
   
   // Access data directly from officeData (not under kpis)
@@ -48,7 +48,7 @@ function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey:
 
   switch (kpiKey) {
     case 'FTE':
-      return officeData.total_fte || 0;
+      return officeData.fte || officeData.total_fte || 0;
     case 'Sales':
       return (financial as any).net_sales || (kpis as any).financial?.net_sales || 0;
     case 'EBITDA':
@@ -150,7 +150,7 @@ function getGroupKPIValue(data: SimulationResults | null, kpiKey: string, year: 
   
   switch (kpiKey) {
     case 'FTE':
-      return offices.reduce((sum, office) => sum + (office.total_fte || 0), 0);
+      return offices.reduce((sum, office) => sum + (office.fte || office.total_fte || 0), 0);
     case 'Sales':
       return offices.reduce((sum, office) => sum + ((office.financial?.net_sales as any) || 0), 0);
     case 'EBITDA':
@@ -227,6 +227,7 @@ function buildTableData(
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack }) => {
+  console.log('[DEBUG][ResultsTable] Rendering with scenarioId:', scenarioId);
   const [scenarioData, setScenarioData] = useState<SimulationResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,10 +240,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
       try {
         setLoading(true);
         setError(null);
-        // Load scenario results
-        console.log('Running scenario with ID:', scenarioId);
-        const results = await scenarioApi.runScenarioById(scenarioId);
-        console.log('Scenario API results:', results);
+        // Fetch full scenario definition
+        console.log('[DEBUG][ResultsTable] Fetching scenario from API with ID:', scenarioId);
+        const scenario = await scenarioApi.getScenario(scenarioId);
+        // Normalize baseline_input
+        if (scenario && scenario.baseline_input) {
+          scenario.baseline_input = normalizeBaselineInput(scenario.baseline_input);
+        }
+        // Run simulation by definition
+        console.log('[DEBUG][ResultsTable] Running simulation for scenario:', scenario);
+        const results = await scenarioApi.runScenarioDefinition(scenario);
+        console.log('[DEBUG][ResultsTable] Scenario API results:', results);
         setScenarioData(results.results);
         // Extract available offices from the data
         if (results.results && Object.keys(results.results.years).length > 0) {
@@ -254,6 +262,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
           }
         }
       } catch (err) {
+        console.error('[DEBUG][ResultsTable] Error loading results for scenarioId:', scenarioId, err);
         setError(err instanceof Error ? err.message : 'Failed to load scenario results');
         message.error('Failed to load scenario results');
       } finally {
@@ -300,9 +309,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
   }
 
   if (error) {
+    const notFound = error.toLowerCase().includes('not found');
     return (
       <div style={{ textAlign: 'center', padding: '40px' }}>
-        <Empty description={error} />
+        <Empty description={notFound ? 'This scenario does not exist. Please save your scenario first.' : error} />
         {onBack && <Button onClick={onBack} style={{ marginTop: 16 }}>Back</Button>}
       </div>
     );
@@ -330,7 +340,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         dataSource={groupData}
         pagination={false}
         size="middle"
-        rowKey={(row, idx) => `${row.kpi}-${idx}`}
+        rowKey={row => `${row.kpi}-${row.isDelta}`}
         bordered
         style={{ marginBottom: 32 }}
         scroll={{ x: true }}
@@ -360,7 +370,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         dataSource={officeData}
         pagination={false}
         size="middle"
-        rowKey={(row, idx) => `${row.kpi}-${idx}`}
+        rowKey={row => `${row.kpi}-${row.isDelta}`}
         bordered
         style={{ marginBottom: 24 }}
         scroll={{ x: true }}
