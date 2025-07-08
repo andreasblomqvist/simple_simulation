@@ -1,10 +1,11 @@
 import pytest
 import pandas as pd
 import os
-from backend.src.services.excel_export_service import ExcelExportService
-from backend.src.services.kpi_service import AllKPIs, FinancialKPIs, GrowthKPIs, JourneyKPIs, YearlyKPIs
+from src.services.excel_export_service import ExcelExportService
+from src.services.kpi_service import AllKPIs, FinancialKPIs, GrowthKPIs, JourneyKPIs, YearlyKPIs
 from dataclasses import asdict
-from backend.src.services.simulation.models import Month
+from src.services.simulation.models import Month
+from src.services.simulation_engine import Office, OfficeJourney, Level, Journey, RoleData, Person
 
 @pytest.fixture
 def sample_kpis():
@@ -89,8 +90,6 @@ def sample_kpis():
 @pytest.fixture
 def sample_simulation_results():
     """Create sample simulation results for testing"""
-    from backend.src.services.simulation_engine import Office, OfficeJourney, Level, Journey, RoleData, Person
-    
     # Create a sample office
     office = Office.create_office("Stockholm", 110)
     

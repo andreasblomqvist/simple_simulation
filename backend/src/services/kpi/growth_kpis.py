@@ -26,7 +26,7 @@ def calculate_growth_metrics(baseline_data: Dict[str, Any], final_year_data: Dic
                     for level_name, level_data in role_data.items():
                         if isinstance(level_data, list) and level_data:
                             last_month_data = level_data[-1]
-                            fte_count = last_month_data.get('total', 0)
+                            fte_count = last_month_data.get('fte', 0)
                             current_total_fte += fte_count
                             if role_name == 'Consultant':
                                 current_consultants += fte_count
@@ -34,7 +34,7 @@ def calculate_growth_metrics(baseline_data: Dict[str, Any], final_year_data: Dic
                                 current_non_consultants += fte_count
                 elif isinstance(role_data, list) and role_data:
                     last_month_data = role_data[-1]
-                    fte_count = last_month_data.get('total', 0)
+                    fte_count = last_month_data.get('fte', 0)
                     current_total_fte += fte_count
                     current_non_consultants += fte_count
         elif 'roles' in office_data:

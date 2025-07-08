@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
 import logging
 
-from ..src.services.scenario_service import ScenarioService
-from ..src.services.config_service import config_service
-from ..src.services.scenario_models import (
+from src.services.scenario_service import ScenarioService
+from src.services.config_service import config_service
+from src.services.scenario_models import (
     ScenarioDefinition,
     ScenarioRequest,
     ScenarioResponse,
@@ -207,7 +207,7 @@ async def get_scenario_results(scenario_id: str):
         
         return {
             "scenario_id": scenario_id,
-            "scenario_name": scenario.name,
+            "scenario_name": scenario.get('name', 'Unknown'),
             "results": results
         }
     except HTTPException:

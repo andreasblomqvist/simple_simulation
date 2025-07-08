@@ -10,7 +10,7 @@ from pathlib import Path
 
 # Import the progression configuration
 sys.path.append('backend/config')
-from progression_config import CAT_CURVES
+from config.progression_config import CAT_CURVES
 
 def calculate_monthly_progression_rates(level, cat_curves):
     """Calculate monthly progression rates from CAT curves."""

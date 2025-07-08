@@ -1,19 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
-from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.scenario_service import ScenarioService
-from backend.src.services.kpi import KPIService, EconomicParameters
-from backend.src.services.cache_service import simulation_cache
-from backend.src.services.excel_export_service import ExcelExportService
-from backend.src.services.json_export_service import JSONExportService
+from src.services.simulation_engine import SimulationEngine
+from src.services.scenario_service import ScenarioService
+from src.services.kpi import KPIService, EconomicParameters
+from src.services.cache_service import simulation_cache
+from src.services.excel_export_service import ExcelExportService
+from src.services.json_export_service import JSONExportService
 from datetime import datetime
-from backend.src.services.config_service import config_service
+from src.services.config_service import config_service
 import io
 import tempfile
 import os
 import json
+from config import progression_config
+from config.progression_config import PROGRESSION_CONFIG, CAT_CURVES
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
@@ -82,41 +84,43 @@ def _build_lever_plan(office_overrides: Dict[str, Dict[str, Any]]) -> Dict:
     return lever_plan
 
 @router.post("/run")
-def run_simulation(params: SimulationRequest):
+async def run_simulation(request: Request):
+    data = await request.json()
+    print("[DEBUG] Incoming scenario request:", data)
     """Run a simulation with the given parameters"""
     if not engine:
         raise HTTPException(status_code=500, detail="Simulation engine not initialized")
     
     # Validate and convert parameters
-    if params.price_increase is not None:
-        if not isinstance(params.price_increase, (int, float)):
+    if data['price_increase'] is not None:
+        if not isinstance(data['price_increase'], (int, float)):
             raise HTTPException(status_code=400, detail="price_increase must be a number")
-        if params.price_increase < 0 or params.price_increase > 1:
+        if data['price_increase'] < 0 or data['price_increase'] > 1:
             raise HTTPException(status_code=400, detail="price_increase must be between 0 and 1")
     
-    if params.salary_increase is not None:
-        if not isinstance(params.salary_increase, (int, float)):
+    if data['salary_increase'] is not None:
+        if not isinstance(data['salary_increase'], (int, float)):
             raise HTTPException(status_code=400, detail="salary_increase must be a number")
-        if params.salary_increase < 0 or params.salary_increase > 1:
+        if data['salary_increase'] < 0 or data['salary_increase'] > 1:
             raise HTTPException(status_code=400, detail="salary_increase must be between 0 and 1")
     
     print(f"\n🚀 [SIMULATION] =================== NEW SIMULATION RUN ===================")
-    print(f"[SIMULATION] 📅 Timeframe: {params.start_year}-{params.start_month:02d} to {params.end_year}-{params.end_month:02d}")
+    print(f"[SIMULATION] 📅 Timeframe: {data['start_year']}-{data['start_month']:02d} to {data['end_year']}-{data['end_month']:02d}")
     print(f"[SIMULATION] 📊 Economic Parameters:")
-    print(f"[SIMULATION]   💰 Price Increase: {params.price_increase:.1%}")
-    print(f"[SIMULATION]   💵 Salary Increase: {params.salary_increase:.1%}")
-    print(f"[SIMULATION]   🕒 Working Hours/Month: {params.hy_working_hours}")
-    print(f"[SIMULATION]   😴 Unplanned Absence: {params.unplanned_absence:.1%}")
-    print(f"[SIMULATION]   🏭 Employment Cost Rate: {params.employment_cost_rate:.1%}")
-    print(f"[SIMULATION]   📋 Other Expense: {params.other_expense:,} SEK/month")
+    print(f"[SIMULATION]   💰 Price Increase: {data['price_increase']:.1%}")
+    print(f"[SIMULATION]   💵 Salary Increase: {data['salary_increase']:.1%}")
+    print(f"[SIMULATION]   🕒 Working Hours/Month: {data['hy_working_hours']}")
+    print(f"[SIMULATION]   😴 Unplanned Absence: {data['unplanned_absence']:.1%}")
+    print(f"[SIMULATION]   🏭 Employment Cost Rate: {data['employment_cost_rate']:.1%}")
+    print(f"[SIMULATION]   📋 Other Expense: {data['other_expense']:,} SEK/month")
     
     # Parse office overrides (lever plan)
     lever_plan = None
-    if params.office_overrides:
+    if data['office_overrides']:
         office_levers = {}
         total_overrides = 0
         print(f"[SIMULATION] 🎛️  Office Overrides Applied:")
-        for office_name, office_lever_data in params.office_overrides.items():
+        for office_name, office_lever_data in data['office_overrides'].items():
             office_levers[office_name] = {}
             office_override_count = 0
             for lever_key, lever_value in office_lever_data.items():
@@ -162,7 +166,7 @@ def run_simulation(params: SimulationRequest):
         print(f"✅ [SIMULATION] Engine state cleared successfully")
         
         # Create economic parameters from frontend request
-        economic_params = EconomicParameters.from_simulation_request(params)
+        economic_params = EconomicParameters.from_simulation_request(data)
         print(f"[SIMULATION] Economic parameters created: {economic_params}")
         
         # Use ScenarioService to resolve scenario data and run simulation
@@ -171,8 +175,8 @@ def run_simulation(params: SimulationRequest):
             # Resolve scenario data (offices, progression rules, etc.)
             scenario_data = scenario_service.resolve_scenario(
                 baseline_inputs={
-                    'price_increase': params.price_increase,
-                    'salary_increase': params.salary_increase
+                    'price_increase': data['price_increase'],
+                    'salary_increase': data['salary_increase']
                 },
                 lever_plan=lever_plan
             )
@@ -185,17 +189,20 @@ def run_simulation(params: SimulationRequest):
             print(f"[SIMULATION] Offices: {list(offices.keys())}")
             print(f"[SIMULATION] Progression levels: {list(progression_config.keys())}")
             
+            # After resolving scenario and before calling the engine:
+            print("[DEBUG] Final config sent to simulation engine:", scenario_data)
+            
             # Run the simulation using the new pure function approach
             results = engine.run_simulation_with_offices(
-                start_year=params.start_year,
-                start_month=params.start_month,
-                end_year=params.end_year,
-                end_month=params.end_month,
+                start_year=data['start_year'],
+                start_month=data['start_month'],
+                end_year=data['end_year'],
+                end_month=data['end_month'],
                 offices=offices,
                 progression_config=progression_config,
                 cat_curves=cat_curves,
-                price_increase=params.price_increase,
-                salary_increase=params.salary_increase,
+                price_increase=data['price_increase'],
+                salary_increase=data['salary_increase'],
                 economic_params=economic_params
             )
             
@@ -204,19 +211,19 @@ def run_simulation(params: SimulationRequest):
             # Fallback to old method for backward compatibility
             print(f"🔄 [SIMULATION] Falling back to legacy simulation method...")
             results = engine.run_simulation(
-                start_year=params.start_year,
-                start_month=params.start_month,
-                end_year=params.end_year,
-                end_month=params.end_month,
-                price_increase=params.price_increase,
-                salary_increase=params.salary_increase,
+                start_year=data['start_year'],
+                start_month=data['start_month'],
+                end_year=data['end_year'],
+                end_month=data['end_month'],
+                price_increase=data['price_increase'],
+                salary_increase=data['salary_increase'],
                 lever_plan=lever_plan,
                 economic_params=economic_params
             )
         
         # Calculate simulation duration in months
-        start_date = datetime(params.start_year, params.start_month, 1)
-        end_date = datetime(params.end_year, params.end_month, 1)
+        start_date = datetime(data['start_year'], data['start_month'], 1)
+        end_date = datetime(data['end_year'], data['end_month'], 1)
         simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
         
         # Calculate KPIs using the KPI service (separation of concerns)
@@ -565,7 +572,7 @@ def export_simulation_to_excel(params: SimulationRequest):
         
         # Calculate KPIs for the export using the KPI service
         try:
-            from backend.src.services.kpi import KPIService
+            from src.services.kpi import KPIService
             kpi_service = KPIService()
             
             kpi_results = kpi_service.calculate_all_kpis(
@@ -822,7 +829,7 @@ def export_simulation_to_json(params: SimulationRequest, scenario_metadata: Opti
 def get_cat_progression():
     """Get CAT progression data from progression_config.py"""
     try:
-        from backend.config.progression_config import CAT_CURVES
+        from config.progression_config import CAT_CURVES
         
         # Convert CAT_CURVES to the format expected by frontend
         cat_data = []
@@ -847,7 +854,7 @@ def get_cat_progression():
 def update_cat_progression(cat_data: List[CatProgressionData]):
     """Update CAT progression data in progression_config.py"""
     try:
-        from backend.config.progression_config import CAT_CURVES
+        from config.progression_config import CAT_CURVES
         
         # Convert frontend data back to CAT_CURVES format
         updated_cat_curves = {}
@@ -862,7 +869,7 @@ def update_cat_progression(cat_data: List[CatProgressionData]):
                     updated_cat_curves[level][cat] = value
         
         # Update the CAT_CURVES in the progression_config module
-        import backend.config.progression_config as progression_config
+        from config import progression_config
         progression_config.CAT_CURVES = updated_cat_curves
         
         # Write the updated configuration back to the file

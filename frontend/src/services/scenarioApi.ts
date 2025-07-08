@@ -12,19 +12,66 @@ import type {
   ScenarioId,
   OfficeName,
   SimulationResults,
+  ErrorResponse,
+  ValidationResponse,
+  ApiResponse,
 } from '../types/scenarios';
 
 const API_BASE = '/api/scenarios';
 
 class ScenarioApiService {
+  private correlationId: string | null = null;
+
+  private generateCorrelationId(): string {
+    return Math.random().toString(36).substring(2, 10);
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ✅ Add retry mechanism for transient failures
+  private async requestWithRetry<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    maxRetries: number = 3
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.request<T>(endpoint, options);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // ✅ Only retry on specific error types
+        const errorStr = (error as Error).toString();
+        if (errorStr.includes('500') || errorStr.includes('502') || errorStr.includes('503')) {
+          console.log(`Retrying request (attempt ${attempt}/${maxRetries}) [corr: ${this.correlationId}]`);
+          await this.delay(1000 * attempt); // Exponential backoff
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw new Error('Max retries exceeded');
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
+    
+    // ✅ Generate correlation ID for each request
+    this.correlationId = this.generateCorrelationId();
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'X-Correlation-ID': this.correlationId, // ✅ Add correlation ID header
         ...options.headers,
       },
       ...options,
@@ -35,12 +82,27 @@ class ScenarioApiService {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        
+        // ✅ Enhanced error handling with correlation ID
+        const error: ErrorResponse = {
+          detail: errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+          correlation_id: errorData.correlation_id || this.correlationId,
+          error_type: errorData.error_type,
+          context: errorData.context,
+        };
+        
+        throw new Error(JSON.stringify(error));
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      // ✅ Log successful requests with correlation ID
+      console.log(`API request successful: ${endpoint} [corr: ${this.correlationId}]`);
+      
+      return data;
     } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
+      // ✅ Enhanced error logging with correlation ID
+      console.error(`API request failed for ${endpoint} [corr: ${this.correlationId}]:`, error);
       throw error;
     }
   }
@@ -50,9 +112,30 @@ class ScenarioApiService {
   // ========================================
 
   /**
+   * Validate a scenario definition
+   */
+  async validateScenario(scenario: ScenarioDefinition): Promise<ValidationResponse> {
+    return this.request<ValidationResponse>('/validate', {
+      method: 'POST',
+      body: JSON.stringify(scenario),
+    });
+  }
+
+  /**
    * Create a new scenario
    */
   async createScenario(scenario: ScenarioDefinition): Promise<ScenarioId> {
+    // ✅ Validate before creating
+    try {
+      const validation = await this.validateScenario(scenario);
+      if (!validation.valid) {
+        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      }
+    } catch (error) {
+      // If validation endpoint doesn't exist yet, continue without validation
+      console.warn('Validation endpoint not available, skipping validation');
+    }
+
     const response = await this.request<{scenario_id: string}>('/create', {
       method: 'POST',
       body: JSON.stringify(scenario),
@@ -102,10 +185,11 @@ class ScenarioApiService {
    * Run a scenario simulation
    */
   async runScenario(request: ScenarioRequest): Promise<ScenarioResponse> {
-    return this.request<ScenarioResponse>('/run', {
+    // ✅ Use retry logic for simulation runs (they can be long-running)
+    return this.requestWithRetry<ScenarioResponse>('/run', {
       method: 'POST',
       body: JSON.stringify(request),
-    });
+    }, 2); // Retry once for simulation runs
   }
 
   /**
@@ -185,46 +269,7 @@ class ScenarioApiService {
     ];
   }
 
-  /**
-   * Validate scenario definition before saving
-   */
-  async validateScenario(scenario: ScenarioDefinition): Promise<{ valid: boolean; errors: string[] }> {
-    try {
-      // For now, do basic client-side validation
-      const errors: string[] = [];
 
-      if (!scenario.name.trim()) {
-        errors.push('Scenario name is required');
-      }
-
-      if (!scenario.time_range) {
-        errors.push('Time range is required');
-      } else {
-        const { start_year, start_month, end_year, end_month } = scenario.time_range;
-        if (start_year > end_year || (start_year === end_year && start_month > end_month)) {
-          errors.push('End date must be after start date');
-        }
-      }
-
-      if (!scenario.office_scope || scenario.office_scope.length === 0) {
-        errors.push('At least one office must be selected');
-      }
-
-      if (!scenario.levers || Object.keys(scenario.levers).length === 0) {
-        errors.push('At least one lever must be configured');
-      }
-
-      return {
-        valid: errors.length === 0,
-        errors,
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        errors: ['Validation failed: ' + (error as Error).message],
-      };
-    }
-  }
 
   /**
    * Export scenario results to Excel

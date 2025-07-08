@@ -1,5 +1,5 @@
 from typing import Dict, List, Any
-from backend.src.services.simulation.models import Office, Level, RoleData, Month, Journey, OfficeJourney
+from .models import Office, Level, RoleData, Month, Journey, OfficeJourney
 import random
 from datetime import datetime, timedelta
 
@@ -13,19 +13,14 @@ class OfficeManager:
         self.level_order: List[str] = []
         self.event_logger = event_logger
 
-    def create_offices_from_data(self, office_data: List[Dict[str, Any]], progression_config: Dict[str, Any] = None):
+    def create_offices_from_data(self, office_data: List[Dict[str, Any]], progression_config: Dict[str, Any]):
         """
-        Create offices from provided office data instead of loading from config service.
+        Create Office objects from configuration data.
         
         Args:
             office_data: List of office configuration dictionaries
-            progression_config: Progression rules dict (optional, falls back to import if not provided)
+            progression_config: Progression rules dict (required)
         """
-        # Fallback to import if progression_config not provided (for backward compatibility)
-        if progression_config is None:
-            from backend.config.progression_config import PROGRESSION_CONFIG
-            progression_config = PROGRESSION_CONFIG
-        
         self.level_order = self.determine_level_order(office_data)
         self.offices = {}
         for office_config in office_data:

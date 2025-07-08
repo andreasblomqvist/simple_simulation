@@ -37,12 +37,17 @@ export interface EconomicParams {
 }
 
 export interface ScenarioDefinition {
+  id?: string;
   name: string;
-  description?: string;
+  description: string; // ✅ Required to match backend
   time_range: TimeRange;
   office_scope: OfficeName[];
   levers: ScenarioLevers;
   economic_params?: EconomicParams;
+  // ✅ Add new backend fields
+  progression_config?: Record<string, any>;
+  cat_curves?: Record<string, any>;
+  baseline_input?: any;
   created_at?: string | Date;
   updated_at?: string | Date;
 }
@@ -64,6 +69,33 @@ export interface ScenarioResponse {
   results: SimulationResults;
   status: 'success' | 'error';
   error_message?: string;
+  correlation_id?: string; // ✅ Add correlation ID
+}
+
+// ✅ Add new error response types
+export interface ErrorResponse {
+  detail: string;
+  correlation_id?: string;
+  error_type?: string;
+  context?: Record<string, any>;
+}
+
+// ✅ Add validation response types
+export interface ValidationResponse {
+  valid: boolean;
+  errors: string[];
+  warnings?: string[];
+  correlation_id?: string;
+}
+
+// ✅ Add new API response types
+export interface ApiResponse<T> {
+  data: T;
+  correlation_id?: string;
+  metadata?: {
+    processing_time?: number;
+    warnings?: string[];
+  };
 }
 
 export interface ScenarioListResponse {
@@ -73,7 +105,7 @@ export interface ScenarioListResponse {
 export interface ScenarioListItem {
   id: ScenarioId;
   name: string;
-  description?: string;
+  description: string; // ✅ Required to match backend
   created_at: string;
   updated_at: string;
   time_range: TimeRange;
@@ -336,7 +368,7 @@ export type ScenarioVisibility = 'private' | 'shared' | 'public';
 export interface ScenarioMetadata {
   id: ScenarioId;
   name: string;
-  description?: string;
+  description: string; // ✅ Required to match backend
   status: ScenarioStatus;
   visibility: ScenarioVisibility;
   created_by: string;

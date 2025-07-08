@@ -8,6 +8,45 @@ import type { ScenarioDefinition } from '../types/scenarios';
 
 const { Title, Text } = Typography;
 
+// Helper to extract baseline values for the levers UI
+function extractBaselineValuesFromScenario(scenario: ScenarioDefinition | null): Record<'recruitment' | 'churn' | 'progression', Record<string, number>> {
+  const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'];
+  const levers: Record<'recruitment' | 'churn' | 'progression', Record<string, number>> = {
+    recruitment: {}, churn: {}, progression: {}
+  };
+  if (!scenario || !scenario.baseline_input) return levers;
+
+  // Recruitment
+  const recruitment = scenario.baseline_input.global?.recruitment?.Consultant || {};
+  for (const level of levels) {
+    const values = Object.values(recruitment)
+      .map((monthObj: any) => Number(monthObj[level]) || 0)
+      .filter(v => !isNaN(v));
+    const avg = values.length > 0
+      ? values.reduce((sum: number, v) => sum + v, 0) / values.length
+      : 0;
+    levers.recruitment[level] = avg;
+  }
+
+  // Churn
+  const churn = scenario.baseline_input.global?.churn?.Consultant || {};
+  for (const level of levels) {
+    const values = Object.values(churn)
+      .map((monthObj: any) => Number(monthObj[level]) || 0)
+      .filter(v => !isNaN(v));
+    const avg = values.length > 0
+      ? values.reduce((sum: number, v) => sum + v, 0) / values.length
+      : 0;
+    levers.churn[level] = avg;
+  }
+
+  // Progression baseline is always 1
+  for (const level of levels) {
+    levers.progression[level] = 1;
+  }
+  return levers;
+}
+
 const ScenarioDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -28,6 +67,12 @@ const ScenarioDetails: React.FC = () => {
           throw new Error('Invalid scenario ID');
         }
         const data = await scenarioApi.getScenario(id);
+        console.log('[LEVER DEBUG] Loaded scenario from API:', data);
+        if (data.levers) {
+          console.log('[LEVER DEBUG] Scenario levers:', data.levers);
+        } else {
+          console.log('[LEVER DEBUG] Scenario has no levers field.');
+        }
         setScenario(data);
       } catch (err) {
         setError((err as Error).message);
@@ -59,9 +104,15 @@ const ScenarioDetails: React.FC = () => {
       {/* Levers section */}
       <section style={{ marginBottom: 24 }}>
         <h3 style={{ margin: '16px 0 8px 0' }}>Levers</h3>
-        <ScenarioLevers levers={getCompleteLevers(scenario.levers)} />
+        <ScenarioLevers
+          levers={getCompleteLevers((typeof scenario.levers === 'object' && scenario.levers) ? scenario.levers as any : undefined)}
+          baselineValues={extractBaselineValuesFromScenario(scenario)}
+        />
         <div style={{ marginTop: 24, textAlign: 'right' }}>
-          <Button type="primary" onClick={() => setShowResults(true)}>Run Simulation</Button>
+          <Button type="primary" onClick={() => {
+            console.log('[LEVER DEBUG] Running simulation for scenario:', scenario);
+            setShowResults(true);
+          }}>Run Simulation</Button>
         </div>
       </section>
       {showResults && (

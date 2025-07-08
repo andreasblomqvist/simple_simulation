@@ -174,7 +174,7 @@ class FinancialKPICalculator:
                         for level_name, level_data in role_data.items():
                             if isinstance(level_data, list) and level_data:
                                 last_month_data = level_data[-1]
-                                fte_count = last_month_data.get('total', 0)
+                                fte_count = last_month_data.get('fte', 0)
                                 hourly_rate = last_month_data.get('price', 0)
                                 salary = last_month_data.get('salary', 0)
                                 utr = last_month_data.get('utr', 0.85)
@@ -193,7 +193,7 @@ class FinancialKPICalculator:
                                     
                     elif isinstance(role_data, list) and role_data: # Flat roles
                         last_month_data = role_data[-1]
-                        fte_count = last_month_data.get('total', 0)
+                        fte_count = last_month_data.get('fte', 0)
                         salary = last_month_data.get('salary', 0) if 'salary' in last_month_data else 40000.0
                         
                         if fte_count > 0:

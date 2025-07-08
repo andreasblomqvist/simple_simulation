@@ -1,0 +1,12 @@
+{
+  "name": "Baseline Test",
+  "description": "Test baseline scenario with no overrides",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 1
+  },
+  "office_scope": ["Stockholm"],
+  "levers": {}
+} 

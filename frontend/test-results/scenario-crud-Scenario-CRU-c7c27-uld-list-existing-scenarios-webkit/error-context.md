@@ -4,7 +4,7 @@
 - button "Switch to Light Mode"
 - complementary:
   - heading "SimpleSim" [level=4]
-  - text: v1.6.8
+  - text: v1.6.9
   - menu:
     - menuitem "setting System Config":
       - img "setting"
@@ -22,6 +22,10 @@
       - img "rocket"
       - link "Scenario Runner":
         - /url: /scenario-runner
+    - menuitem "edit Scenario Editor":
+      - img "edit"
+      - link "Scenario Editor":
+        - /url: /scenario-editor
   - separator
   - separator
   - text: Organizational growth simulation platform

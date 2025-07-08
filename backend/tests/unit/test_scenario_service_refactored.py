@@ -5,8 +5,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
-from backend.src.services.scenario_service import ScenarioService
-from backend.src.services.simulation.models import Office, Level, Person
+from src.services.scenario_service import ScenarioService
+from src.services.simulation.models import Office, Level, Person
 
 class TestScenarioServiceRefactored:
     """Test cases for the refactored ScenarioService."""

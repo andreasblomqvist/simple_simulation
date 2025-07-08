@@ -1,0 +1,29 @@
+{
+  "name": "Baseline Input Test",
+  "description": "Test scenario with baseline input overrides",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 1
+  },
+  "office_scope": ["Stockholm"],
+  "baseline_input": {
+    "global": {
+      "recruitment": {
+        "Consultant": {
+          "A": {
+            "recruitment_1": 10
+          }
+        }
+      },
+      "churn": {
+        "Consultant": {
+          "A": {
+            "churn_1": 2
+          }
+        }
+      }
+    }
+  }
+} 

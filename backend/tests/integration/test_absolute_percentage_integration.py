@@ -5,8 +5,8 @@ import pytest
 import json
 import tempfile
 import os
-from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.config_service import ConfigService
+from src.services.simulation_engine import SimulationEngine
+from src.services.config_service import ConfigService
 
 
 class TestAbsolutePercentageIntegration:
