@@ -249,6 +249,10 @@ class SimulationEngine:
         Returns:
             Dictionary containing complete simulation results
         """
+        # Debug: Print initial total FTE
+        initial_total_fte = sum(office.total_fte for office in offices.values())
+        print(f"[DEBUG] Initial total FTE at simulation start: {initial_total_fte}")
+        
         # Validate input parameters
         if not offices:
             raise ValueError("Offices dictionary cannot be empty")

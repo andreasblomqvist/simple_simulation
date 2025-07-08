@@ -8,6 +8,7 @@ from src.services.kpi import KPIService, EconomicParameters
 from src.services.cache_service import simulation_cache
 from src.services.excel_export_service import ExcelExportService
 from src.services.json_export_service import JSONExportService
+from src.services.office_builder import OfficeBuilder
 from datetime import datetime
 from src.services.config_service import config_service
 import io
@@ -24,6 +25,9 @@ engine = SimulationEngine()
 
 # Create scenario service instance for the new architecture
 scenario_service = ScenarioService(config_service)
+
+# Create office builder instance
+office_builder = OfficeBuilder()
 
 class SimulationRequest(BaseModel):
     start_year: int
@@ -172,22 +176,28 @@ async def run_simulation(request: Request):
         # Use ScenarioService to resolve scenario data and run simulation
         print(f"🔄 [SIMULATION] Resolving scenario data using ScenarioService...")
         try:
-            # Resolve scenario data (offices, progression rules, etc.)
-            scenario_data = scenario_service.resolve_scenario(
-                baseline_inputs={
-                    'price_increase': data['price_increase'],
-                    'salary_increase': data['salary_increase']
-                },
-                lever_plan=lever_plan
-            )
+            # Check if scenario data is provided in the request
+            if 'scenario_data' in data:
+                print(f"[SIMULATION] Using scenario data from request")
+                # Resolve scenario data (offices, progression rules, etc.)
+                scenario_data = scenario_service.resolve_scenario(data['scenario_data'])
+            else:
+                print(f"[SIMULATION] No scenario data provided, using default config")
+                # Fallback to legacy method
+                raise Exception("No scenario data provided")
             
-            offices = scenario_data['offices']
+            offices_config = scenario_data['offices_config']
             progression_config = scenario_data['progression_config']
             cat_curves = scenario_data['cat_curves']
             
             print(f"✅ [SIMULATION] Scenario data resolved successfully")
-            print(f"[SIMULATION] Offices: {list(offices.keys())}")
+            print(f"[SIMULATION] Offices: {list(offices_config.keys())}")
             print(f"[SIMULATION] Progression levels: {list(progression_config.keys())}")
+            
+            # Convert configuration to Office objects using office builder
+            print(f"🔄 [SIMULATION] Converting configuration to Office objects...")
+            offices = office_builder.build_offices_from_config(offices_config, progression_config)
+            print(f"✅ [SIMULATION] Created {len(offices)} Office objects")
             
             # After resolving scenario and before calling the engine:
             print("[DEBUG] Final config sent to simulation engine:", scenario_data)

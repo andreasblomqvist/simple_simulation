@@ -60,22 +60,36 @@ class ScenarioResolver:
         if not baseline_input:
             return config
         
-        # Apply to all offices
-        for office_name in config:
+        # Calculate total FTE across all offices for proportional distribution
+        total_fte = 0
+        for office_name, office_config in config.items():
+            total_fte += office_config.get('total_fte', 0)
+        
+        print(f"📊 Total FTE across all offices: {total_fte}")
+        
+        # Apply to all offices with proportional distribution
+        for office_name, office_config in config.items():
+            office_fte = office_config.get('total_fte', 0)
             config[office_name] = self._map_baseline_to_absolute_values(
-                config[office_name], baseline_input
+                office_config, baseline_input, office_fte, total_fte
             )
         
         return config
     
-    def _map_baseline_to_absolute_values(self, office_config: Dict[str, Any], baseline_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Map baseline input to absolute recruitment/churn fields."""
+    def _map_baseline_to_absolute_values(self, office_config: Dict[str, Any], baseline_input: Dict[str, Any], office_fte: float = None, total_fte: float = None) -> Dict[str, Any]:
+        """Map baseline input to absolute recruitment/churn fields, distributed proportionally by office size."""
         office_config = copy.deepcopy(office_config)
         
         # Get global baseline data
         global_data = baseline_input.get('global', {})
         if not global_data:
             return office_config
+        
+        # Calculate distribution factor based on office size
+        distribution_factor = 1.0
+        if office_fte is not None and total_fte is not None and total_fte > 0:
+            distribution_factor = office_fte / total_fte
+            print(f"📊 Office FTE: {office_fte:.1f}, Total FTE: {total_fte:.1f}, Distribution factor: {distribution_factor:.3f}")
         
         # Process each role and level
         for role_name, role_data in office_config.get('roles', {}).items():
@@ -89,11 +103,13 @@ class ScenarioResolver:
                                 level_recruitment_data = recruitment_data[level_name]
                                 for month in range(1, 13):
                                     month_key = f"2025{month:02d}"
-                                    value = level_recruitment_data.get(month_key, 0.0)
+                                    global_value = level_recruitment_data.get(month_key, 0.0)
+                                    # Distribute proportionally by office size
+                                    distributed_value = global_value * distribution_factor
                                     field_name = f'recruitment_{month}'
                                     abs_field_name = f'recruitment_abs_{month}'
-                                    level_config[field_name] = value
-                                    level_config[abs_field_name] = value
+                                    level_config[field_name] = distributed_value
+                                    level_config[abs_field_name] = distributed_value
                         
                         # Map churn data
                         if 'churn' in global_data and role_name in global_data['churn']:
@@ -102,11 +118,13 @@ class ScenarioResolver:
                                 level_churn_data = churn_data[level_name]
                                 for month in range(1, 13):
                                     month_key = f"2025{month:02d}"
-                                    value = level_churn_data.get(month_key, 0.0)
+                                    global_value = level_churn_data.get(month_key, 0.0)
+                                    # Distribute proportionally by office size
+                                    distributed_value = global_value * distribution_factor
                                     field_name = f'churn_{month}'
                                     abs_field_name = f'churn_abs_{month}'
-                                    level_config[field_name] = value
-                                    level_config[abs_field_name] = value
+                                    level_config[field_name] = distributed_value
+                                    level_config[abs_field_name] = distributed_value
         
         return office_config
     
