@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Radio, Select, Typography, Space, message, Spin } from 'antd';
-import type { ScenarioDefinition, TimeRange, OfficeName } from '../../types/scenarios';
+import type { ScenarioDefinition, TimeRange, OfficeName } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
 
 const { Title } = Typography;
@@ -25,18 +25,20 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
   }, []);
 
   useEffect(() => {
-    if (scenario && scenario.time_range) {
+    // Use scenario directly - no nested definition structure
+    const scenarioData = scenario;
+    if (scenarioData && scenarioData.time_range) {
       form.setFieldsValue({
-        name: scenario.name,
-        description: scenario.description || '',
-        startYear: scenario.time_range.start_year,
-        endYear: scenario.time_range.end_year,
-        startMonth: scenario.time_range.start_month,
-        endMonth: scenario.time_range.end_month,
-        officeScope: scenario.office_scope && scenario.office_scope.includes('Group') ? 'group' : 'individual',
-        offices: scenario.office_scope ? scenario.office_scope.filter(office => office !== 'Group') : [],
+        name: scenarioData.name,
+        description: scenarioData.description || '',
+        startYear: scenarioData.time_range.start_year,
+        endYear: scenarioData.time_range.end_year,
+        startMonth: scenarioData.time_range.start_month,
+        endMonth: scenarioData.time_range.end_month,
+        officeScope: scenarioData.office_scope && scenarioData.office_scope.includes('Group') ? 'group' : 'individual',
+        offices: scenarioData.office_scope ? scenarioData.office_scope.filter(office => office !== 'Group') : [],
       });
-      setOfficeScope(scenario.office_scope && scenario.office_scope.includes('Group') ? 'group' : 'individual');
+      setOfficeScope(scenarioData.office_scope && scenarioData.office_scope.includes('Group') ? 'group' : 'individual');
     }
   }, [scenario, form]);
 

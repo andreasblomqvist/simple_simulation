@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 import AllOffices from './pages/AllOffices';
 import GrowthProjections from './pages/GrowthProjections';
 import SeniorityAnalysis from './pages/SeniorityAnalysis';
-import Configuration from './pages/Configuration';
 import SimulationLabV2 from './pages/SimulationLabV2';
 import Settings from './pages/Settings';
 import InsightsTab from './pages/InsightsTab';
@@ -16,7 +15,6 @@ import SystemConfig from './pages/SystemConfig';
 import ScenarioRunner from './pages/ScenarioRunner';
 import ScenarioDetails from './pages/ScenarioDetails';
 import ScenarioWizard from './components/scenario-runner/ScenarioWizard';
-import ScenarioEditor from './pages/ScenarioEditor';
 
 import { ThemeProvider } from './components/ThemeContext';
 import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
@@ -48,7 +46,6 @@ function MainApp() {
                   <Route path="/growth" element={<GrowthProjections />} />
                   <Route path="/seniority" element={<SeniorityAnalysis />} />
                   <Route path="/system-config" element={<SystemConfig />} />
-                  <Route path="/config" element={<Configuration />} />
                   <Route path="/lab" element={<SimulationLabV2 />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/insights" element={<InsightsTab />} />
@@ -56,8 +53,6 @@ function MainApp() {
                   <Route path="/scenario-runner/:id" element={<ScenarioDetails />} />
                   <Route path="/scenario-runner/edit/:id" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
                   <Route path="/scenario-runner/create" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
-                  <Route path="/scenario-editor" element={<ScenarioEditor />} />
-                  <Route path="/scenario-editor/:id" element={<ScenarioEditor />} />
                 </Routes>
               </Layout>
             </YearNavigationProvider>

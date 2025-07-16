@@ -114,32 +114,6 @@ class Person:
 @dataclass
 class RoleData:
     """Represents a flat role (like Operations) without levels"""
-    # Monthly recruitment rates (1-12)
-    recruitment_1: float = 0.0
-    recruitment_2: float = 0.0
-    recruitment_3: float = 0.0
-    recruitment_4: float = 0.0
-    recruitment_5: float = 0.0
-    recruitment_6: float = 0.0
-    recruitment_7: float = 0.0
-    recruitment_8: float = 0.0
-    recruitment_9: float = 0.0
-    recruitment_10: float = 0.0
-    recruitment_11: float = 0.0
-    recruitment_12: float = 0.0
-    # Monthly churn rates (1-12)
-    churn_1: float = 0.0
-    churn_2: float = 0.0
-    churn_3: float = 0.0
-    churn_4: float = 0.0
-    churn_5: float = 0.0
-    churn_6: float = 0.0
-    churn_7: float = 0.0
-    churn_8: float = 0.0
-    churn_9: float = 0.0
-    churn_10: float = 0.0
-    churn_11: float = 0.0
-    churn_12: float = 0.0
     # Monthly prices (1-12)
     price_1: float = 0.0
     price_2: float = 0.0
@@ -179,7 +153,7 @@ class RoleData:
     utr_10: float = 1.0
     utr_11: float = 1.0
     utr_12: float = 1.0
-    # Absolute recruitment and churn (1-12)
+    # Absolute recruitment and churn (1-12) - only absolute values supported
     recruitment_abs_1: Optional[float] = None
     recruitment_abs_2: Optional[float] = None
     recruitment_abs_3: Optional[float] = None
@@ -211,8 +185,14 @@ class RoleData:
     fractional_churn: float = 0.0
     
     @property
-    def total(self) -> int:
+    def fte(self) -> int:
+        """Full-time equivalent count - standardized field name"""
         return len(self.people)
+    
+    @property
+    def total(self) -> int:
+        """Legacy property for backward compatibility"""
+        return self.fte
     
     def add_new_hire(self, current_date: str, role: str, office: str) -> Person:
         """Add a new external hire"""
@@ -253,45 +233,6 @@ class Level:
     journey: Journey
     # Which months progression occurs
     progression_months: List[Month]
-    # Monthly progression rates (1-12)
-    progression_1: float  # percentage
-    progression_2: float  # percentage
-    progression_3: float  # percentage
-    progression_4: float  # percentage
-    progression_5: float  # percentage
-    progression_6: float  # percentage
-    progression_7: float  # percentage
-    progression_8: float  # percentage
-    progression_9: float  # percentage
-    progression_10: float  # percentage
-    progression_11: float  # percentage
-    progression_12: float  # percentage
-    # Monthly recruitment rates (1-12)
-    recruitment_1: float  # percentage
-    recruitment_2: float  # percentage
-    recruitment_3: float  # percentage
-    recruitment_4: float  # percentage
-    recruitment_5: float  # percentage
-    recruitment_6: float  # percentage
-    recruitment_7: float  # percentage
-    recruitment_8: float  # percentage
-    recruitment_9: float  # percentage
-    recruitment_10: float  # percentage
-    recruitment_11: float  # percentage
-    recruitment_12: float  # percentage
-    # Monthly churn rates (1-12)
-    churn_1: float       # percentage
-    churn_2: float       # percentage
-    churn_3: float       # percentage
-    churn_4: float       # percentage
-    churn_5: float       # percentage
-    churn_6: float       # percentage
-    churn_7: float       # percentage
-    churn_8: float       # percentage
-    churn_9: float       # percentage
-    churn_10: float       # percentage
-    churn_11: float       # percentage
-    churn_12: float       # percentage
     # Monthly prices (1-12)
     price_1: float
     price_2: float
@@ -331,7 +272,7 @@ class Level:
     utr_10: float       # percentage
     utr_11: float       # percentage
     utr_12: float       # percentage
-    # Absolute recruitment and churn (1-12)
+    # Absolute recruitment and churn (1-12) - only absolute values supported
     recruitment_abs_1: Optional[float] = None
     recruitment_abs_2: Optional[float] = None
     recruitment_abs_3: Optional[float] = None
@@ -363,8 +304,14 @@ class Level:
     fractional_churn: float = 0.0
     
     @property
-    def total(self) -> int:
+    def fte(self) -> int:
+        """Full-time equivalent count - standardized field name"""
         return len(self.people)
+    
+    @property
+    def total(self) -> int:
+        """Legacy property for backward compatibility"""
+        return self.fte
     
     def add_new_hire(self, current_date: str, role: str, office: str) -> Person:
         """Add a new external hire"""
@@ -402,9 +349,8 @@ class Level:
             progression_months = progression_config[self.name]['progression_months']
             return current_month in progression_months
         
-        # Fallback to checking if any progression rate is > 0 for this month
-        progression_rate = getattr(self, f'progression_{current_month}', 0.0)
-        return progression_rate > 0.0
+        # No fallback - progression config must be provided
+        return False
 
     def get_minimum_tenure(self, progression_config: Union[Dict[str, Any], 'ProgressionConfig']) -> int:
         """Get minimum tenure required for progression from progression config"""

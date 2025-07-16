@@ -42,6 +42,10 @@ class ScenarioTransformer:
             # Extract economic parameters from scenario definition
             economic_params = getattr(scenario_def, 'economic_params', None) or {}
             
+            # Convert Pydantic model to dict if needed
+            if hasattr(economic_params, 'model_dump'):
+                economic_params = economic_params.model_dump()
+            
             # Define valid keys and their default values
             valid_keys = {
                 'unplanned_absence',

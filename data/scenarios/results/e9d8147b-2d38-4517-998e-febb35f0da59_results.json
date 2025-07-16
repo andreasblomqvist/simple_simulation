@@ -1,0 +1,277 @@
+{
+  "scenario_id": "e9d8147b-2d38-4517-998e-febb35f0da59",
+  "saved_at": "2025-07-15T12:34:01.016344",
+  "results": {
+    "years": {
+      "2025": {
+        "offices": {
+          "TestOffice": {
+            "name": "TestOffice",
+            "total_fte": 100,
+            "journey": "New Office",
+            "levels": {
+              "Consultant": {
+                "A": [
+                  {
+                    "fte": 100,
+                    "recruitment_rate": 0.0,
+                    "churn_rate": 0.0,
+                    "recruitment_count": 0,
+                    "churn_count": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1200.0,
+                    "salary": 0.0,
+                    "utr": 0.0
+                  },
+                  {
+                    "fte": 100,
+                    "recruitment_rate": 0.0,
+                    "churn_rate": 0.0,
+                    "recruitment_count": 0,
+                    "churn_count": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1300.0,
+                    "salary": 0.0,
+                    "utr": 0.0
+                  }
+                ]
+              }
+            },
+            "financial": {
+              "net_sales": 0.0,
+              "net_sales_baseline": 3474609347.039999,
+              "total_salary_costs": 0.0,
+              "total_salary_costs_baseline": 1485754873.0800002,
+              "ebitda": -228000000.0,
+              "ebitda_baseline": 1166552524.7279983,
+              "margin": 0.0,
+              "margin_baseline": 0.3357363111112845,
+              "total_consultants": 0,
+              "total_consultants_baseline": 1588,
+              "avg_hourly_rate": 0.0,
+              "avg_hourly_rate_baseline": 1356.9954345088156,
+              "avg_utr": 0.85
+            },
+            "growth": {
+              "total_growth_percent": -100.0,
+              "total_growth_absolute": -1972,
+              "current_total_fte": 0,
+              "baseline_total_fte": 1972,
+              "non_debit_ratio": 0.0,
+              "non_debit_ratio_baseline": 24.181360201511335,
+              "non_debit_delta": -24.181360201511335
+            },
+            "journeys": {
+              "journey_totals": {
+                "Journey 1": 0,
+                "Journey 2": 0,
+                "Journey 3": 0,
+                "Journey 4": 0
+              },
+              "journey_percentages": {
+                "Journey 1": 0.0,
+                "Journey 2": 0.0,
+                "Journey 3": 0.0,
+                "Journey 4": 0.0
+              },
+              "journey_deltas": {
+                "Journey 1": -750,
+                "Journey 2": -827,
+                "Journey 3": -222,
+                "Journey 4": -43
+              },
+              "journey_totals_baseline": {
+                "Journey 1": 750,
+                "Journey 2": 827,
+                "Journey 3": 222,
+                "Journey 4": 43
+              },
+              "journey_percentages_baseline": {
+                "Journey 1": 40.71661237785016,
+                "Journey 2": 44.896851248642776,
+                "Journey 3": 12.052117263843648,
+                "Journey 4": 2.3344191096634095
+              }
+            },
+            "roles": {
+              "Consultant": {
+                "A": [
+                  {
+                    "fte": 100,
+                    "price": 1200.0,
+                    "salary": 0.0,
+                    "utr": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 100,
+                    "price": 1300.0,
+                    "salary": 0.0,
+                    "utr": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "total_fte": 100,
+        "kpis": {
+          "financial": {
+            "net_sales": 0.0,
+            "net_sales_baseline": 3474609347.039999,
+            "total_salary_costs": 0.0,
+            "total_salary_costs_baseline": 1485754873.0800002,
+            "ebitda": -228000000.0,
+            "ebitda_baseline": 1166552524.7279983,
+            "margin": 0.0,
+            "margin_baseline": 0.3357363111112845,
+            "total_consultants": 0,
+            "total_consultants_baseline": 1588,
+            "avg_hourly_rate": 0.0,
+            "avg_hourly_rate_baseline": 1356.9954345088156,
+            "avg_utr": 0.85
+          },
+          "growth": {
+            "total_growth_percent": -100.0,
+            "total_growth_absolute": -1972,
+            "current_total_fte": 0,
+            "baseline_total_fte": 1972,
+            "non_debit_ratio": 0.0,
+            "non_debit_ratio_baseline": 24.181360201511335,
+            "non_debit_delta": -24.181360201511335
+          },
+          "journeys": {
+            "journey_totals": {
+              "Journey 1": 0,
+              "Journey 2": 0,
+              "Journey 3": 0,
+              "Journey 4": 0
+            },
+            "journey_percentages": {
+              "Journey 1": 0.0,
+              "Journey 2": 0.0,
+              "Journey 3": 0.0,
+              "Journey 4": 0.0
+            },
+            "journey_deltas": {
+              "Journey 1": -750,
+              "Journey 2": -827,
+              "Journey 3": -222,
+              "Journey 4": -43
+            },
+            "journey_totals_baseline": {
+              "Journey 1": 750,
+              "Journey 2": 827,
+              "Journey 3": 222,
+              "Journey 4": 43
+            },
+            "journey_percentages_baseline": {
+              "Journey 1": 40.71661237785016,
+              "Journey 2": 44.896851248642776,
+              "Journey 3": 12.052117263843648,
+              "Journey 4": 2.3344191096634095
+            }
+          },
+          "yearly_kpis": {}
+        }
+      }
+    }
+  }
+}

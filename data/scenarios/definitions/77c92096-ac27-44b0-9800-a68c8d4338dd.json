@@ -1,0 +1,145 @@
+{
+  "id": "77c92096-ac27-44b0-9800-a68c8d4338dd",
+  "name": "Debug FTE Zero",
+  "description": "Minimal scenario to debug FTE=0 issue",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 12
+  },
+  "office_scope": [
+    "Stockholm"
+  ],
+  "levers": {},
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": {
+    "A": {
+      "CAT0": 0.0,
+      "CAT6": 0.919,
+      "CAT12": 0.85,
+      "CAT18": 0.0,
+      "CAT24": 0.0,
+      "CAT30": 0.0
+    },
+    "AC": {
+      "CAT0": 0.0,
+      "CAT6": 0.054,
+      "CAT12": 0.759,
+      "CAT18": 0.4,
+      "CAT24": 0.0,
+      "CAT30": 0.0
+    },
+    "C": {
+      "CAT0": 0.0,
+      "CAT6": 0.05,
+      "CAT12": 0.442,
+      "CAT18": 0.597,
+      "CAT24": 0.278,
+      "CAT30": 0.643,
+      "CAT36": 0.2,
+      "CAT42": 0.0
+    },
+    "SrC": {
+      "CAT0": 0.0,
+      "CAT6": 0.206,
+      "CAT12": 0.438,
+      "CAT18": 0.317,
+      "CAT24": 0.211,
+      "CAT30": 0.206,
+      "CAT36": 0.167,
+      "CAT42": 0.0,
+      "CAT48": 0.0,
+      "CAT54": 0.0,
+      "CAT60": 0.0
+    },
+    "AM": {
+      "CAT0": 0.0,
+      "CAT6": 0.0,
+      "CAT12": 0.0,
+      "CAT18": 0.189,
+      "CAT24": 0.197,
+      "CAT30": 0.234,
+      "CAT36": 0.048,
+      "CAT42": 0.0,
+      "CAT48": 0.0,
+      "CAT54": 0.0,
+      "CAT60": 0.0
+    },
+    "M": {
+      "CAT0": 0.0,
+      "CAT6": 0.0,
+      "CAT12": 0.01,
+      "CAT18": 0.02,
+      "CAT24": 0.03,
+      "CAT30": 0.04,
+      "CAT36": 0.05,
+      "CAT42": 0.06,
+      "CAT48": 0.07,
+      "CAT54": 0.08,
+      "CAT60": 0.1
+    },
+    "SrM": {
+      "CAT0": 0.0,
+      "CAT6": 0.0,
+      "CAT12": 0.005,
+      "CAT18": 0.01,
+      "CAT24": 0.015,
+      "CAT30": 0.02,
+      "CAT36": 0.025,
+      "CAT42": 0.03,
+      "CAT48": 0.04,
+      "CAT54": 0.05,
+      "CAT60": 0.06
+    },
+    "Pi": {
+      "CAT0": 0.0
+    },
+    "P": {
+      "CAT0": 0.0
+    },
+    "X": {
+      "CAT0": 0.0
+    },
+    "OPE": {
+      "CAT0": 0.0
+    }
+  },
+  "created_at": "2025-07-09 17:39:04.581179",
+  "updated_at": "2025-07-09T17:39:05.115693",
+  "baseline_input": {
+    "offices": {
+      "Stockholm": {
+        "name": "Stockholm",
+        "total_fte": 100,
+        "journey": "Mature Office",
+        "roles": {
+          "Consultant": {
+            "A": {
+              "fte": 50.0,
+              "price_1": 1200.0,
+              "salary_1": 45000.0,
+              "utr_1": 0.85,
+              "recruitment_abs_1": 5,
+              "churn_abs_1": 2
+            }
+          },
+          "Operations": {
+            "fte": 50.0,
+            "price_1": 80.0,
+            "salary_1": 35000.0,
+            "utr_1": 0.85,
+            "recruitment_abs_1": 2,
+            "churn_abs_1": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Button, Typography } from 'antd';
-import type { ErrorResponse } from '../../types/scenarios';
+import type { ErrorResponse } from '../../types/unified-data-structures';
 
 const { Text } = Typography;
 

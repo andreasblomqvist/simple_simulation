@@ -3,7 +3,7 @@ import { Typography, Button, Card } from 'antd';
 import ScenarioWizard from '../components/scenario-runner/ScenarioWizard';
 import ScenarioList from '../components/scenario-runner/ScenarioList';
 import ScenarioComparison from '../components/scenario-runner/ScenarioComparison';
-import type { ScenarioListItem } from '../types/scenarios';
+import type { ScenarioListItem } from '../types/unified-data-structures';
 import { scenarioApi } from '../services/scenarioApi';
 
 const { Title } = Typography;
@@ -41,13 +41,15 @@ const ScenarioRunner: React.FC = () => {
                 }
                 const fullScenario = await scenarioApi.getScenario(id);
                 if (fullScenario) {
+                  // Handle both direct scenario and nested definition structure
+                  const scenarioData = fullScenario?.definition || fullScenario;
                   // Convert ScenarioDefinition to ScenarioListItem
                   const scenarioListItem: ScenarioListItem = {
                     id: id,
-                    name: fullScenario.name,
-                    description: fullScenario.description,
-                    time_range: fullScenario.time_range,
-                    office_scope: fullScenario.office_scope,
+                    name: scenarioData.name,
+                    description: scenarioData.description,
+                    time_range: scenarioData.time_range,
+                    office_scope: scenarioData.office_scope,
                     created_at: fullScenario.created_at as string || new Date().toISOString(),
                     updated_at: fullScenario.updated_at as string || new Date().toISOString(),
                   };

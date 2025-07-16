@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Card, Typography } from 'antd';
-import type { Office } from '../types';
+import type { Office } from '../types/unified-data-structures';
 
 const { Title } = Typography;
 

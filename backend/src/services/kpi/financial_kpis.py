@@ -165,10 +165,10 @@ class FinancialKPICalculator:
             office_fte = office_data.get('total_fte', 0)
             
             # This logic handles the complex data structure from the simulation engine
-            if 'levels' in office_data:
-                office_levels = office_data.get('levels', {})
+            if 'roles' in office_data:
+                office_roles = office_data.get('roles', {})
                 
-                for role_name, role_data in office_levels.items():
+                for role_name, role_data in office_roles.items():
                     
                     if isinstance(role_data, dict): # Hierarchical roles
                         for level_name, level_data in role_data.items():

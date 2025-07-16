@@ -29,9 +29,9 @@ def calculate_journey_metrics(final_year_data: Dict[str, Any]) -> JourneyKPIs:
     # Calculate current journey totals
     current_journey_totals = {k: 0 for k in journey_mappings}
     for office_name, office_data in final_year_data.get('offices', {}).items():
-        if 'levels' in office_data:
-            office_levels = office_data.get('levels', {})
-            for role_name, role_data in office_levels.items():
+        if 'roles' in office_data:
+            office_roles = office_data.get('roles', {})
+            for role_name, role_data in office_roles.items():
                 if isinstance(role_data, dict) and role_name in ['Consultant', 'Sales', 'Recruitment']:
                     for level_name, level_data in role_data.items():
                         if isinstance(level_data, list) and level_data:

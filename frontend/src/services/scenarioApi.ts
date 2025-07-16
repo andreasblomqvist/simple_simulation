@@ -7,15 +7,16 @@ import type {
   ScenarioResponse,
   ScenarioListResponse,
   ScenarioListItem,
-  ScenarioComparisonRequest,
-  ScenarioComparisonResponse,
   ScenarioId,
   OfficeName,
   SimulationResults,
   ErrorResponse,
-  ValidationResponse,
   ApiResponse,
-} from '../types/scenarios';
+  OfficeScope,
+  ValidationResponse,
+  ScenarioComparisonRequest,
+  ScenarioComparisonResponse,
+} from '../types/unified-data-structures';
 
 const API_BASE = '/api/scenarios';
 

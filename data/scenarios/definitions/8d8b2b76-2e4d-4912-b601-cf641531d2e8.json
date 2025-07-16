@@ -21,8 +21,7 @@
         11
       ],
       "time_on_level": 6,
-      "journey": "Journey 1",
-      "progression_rate": 0.15
+      "journey": "Journey 1"
     },
     "AC": {
       "progression_months": [
@@ -30,8 +29,7 @@
         11
       ],
       "time_on_level": 6,
-      "journey": "Journey 1",
-      "progression_rate": 0.12
+      "journey": "Journey 1"
     }
   },
   "cat_curves": {

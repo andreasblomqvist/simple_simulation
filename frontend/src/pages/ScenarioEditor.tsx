@@ -43,7 +43,7 @@ import type {
   ScenarioId,
   OfficeName,
   SimulationResults
-} from '../types/scenarios';
+} from '../types/unified-data-structures';
 import { scenarioApi } from '../services/scenarioApi';
 import { normalizeBaselineInput } from '../utils/normalizeBaselineInput';
 
@@ -64,13 +64,15 @@ interface ScenarioEditorProps {
 
 function validateScenario(scenario: any): string[] {
   const errors: string[] = [];
-  if (!scenario.name || typeof scenario.name !== 'string' || !scenario.name.trim()) {
+  // Handle both direct scenario and nested definition structure
+  const scenarioData = scenario?.definition || scenario;
+  if (!scenarioData.name || typeof scenarioData.name !== 'string' || !scenarioData.name.trim()) {
     errors.push('Scenario name is required.');
   }
-  if (!scenario.time_range) {
+  if (!scenarioData.time_range) {
     errors.push('Time range is required.');
   } else {
-    const { start_year, start_month, end_year, end_month } = scenario.time_range;
+    const { start_year, start_month, end_year, end_month } = scenarioData.time_range;
     if (
       typeof start_year !== 'number' ||
       typeof start_month !== 'number' ||
@@ -80,13 +82,13 @@ function validateScenario(scenario: any): string[] {
       errors.push('Time range fields must be numbers.');
     }
   }
-  if (!Array.isArray(scenario.office_scope) || scenario.office_scope.length === 0) {
+  if (!Array.isArray(scenarioData.office_scope) || scenarioData.office_scope.length === 0) {
     errors.push('At least one office must be selected.');
   }
-  if (!scenario.levers || typeof scenario.levers !== 'object') {
+  if (!scenarioData.levers || typeof scenarioData.levers !== 'object') {
     errors.push('Levers are required.');
   }
-  if (!scenario.baseline_input || typeof scenario.baseline_input !== 'object') {
+  if (!scenarioData.baseline_input || typeof scenarioData.baseline_input !== 'object') {
     errors.push('Baseline input is required.');
   }
   return errors;
@@ -148,9 +150,11 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
     try {
       console.log('[DEBUG][ScenarioEditor] loadScenario called with ID:', id);
       const scenarioData = await scenarioApi.getScenario(id);
-      setScenario(scenarioData);
+      // Handle both direct scenario and nested definition structure
+      const actualScenario = scenarioData?.definition || scenarioData;
+      setScenario(actualScenario);
       setSelectedScenario(scenarioData);
-      setBaselineData(scenarioData.baseline_input || {});
+      setBaselineData(actualScenario.baseline_input || {});
       console.log('[DEBUG][ScenarioEditor] Scenario loaded:', scenarioData);
     } catch (error) {
       message.error('Failed to load scenario');
@@ -180,8 +184,8 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
     setSaving(true);
     setValidationErrors([]);
     try {
-      // Get latest data from child components
-      let baselineInput = baselineData;
+      // Always get latest data from grid ref
+      let baselineInput = {};
       if (baselineGridRef.current?.getCurrentData) {
         baselineInput = baselineGridRef.current.getCurrentData();
         baselineInput = normalizeBaselineInput(baselineInput);
@@ -195,6 +199,8 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
         baseline_input: baselineInput,
         levers: leversData
       } as ScenarioDefinition;
+      // Debug log
+      console.log('[DEBUG][handleSaveScenario] scenarioWithData:', scenarioWithData);
       // Validate before sending
       const errors = validateScenario(scenarioWithData);
       if (errors.length > 0) {
@@ -253,8 +259,8 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
     setSimulationResult(null);
     
     try {
-      // Get latest data from child components
-      let baselineInput = baselineData;
+      // Always get latest data from grid ref
+      let baselineInput = {};
       if (baselineGridRef.current?.getCurrentData) {
         baselineInput = baselineGridRef.current.getCurrentData();
         baselineInput = normalizeBaselineInput(baselineInput);
@@ -270,6 +276,8 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
         baseline_input: baselineInput,
         levers: leversData
       } as ScenarioDefinition;
+      // Debug log
+      console.log('[DEBUG][handleRunSimulation] scenarioWithData:', scenarioWithData);
 
       const result = await scenarioApi.runScenarioDefinition(scenarioWithData);
       
@@ -488,9 +496,9 @@ const ScenarioEditor: React.FC<ScenarioEditorProps> = ({ scenarioId: propScenari
                     </Col>
                     <Col>
                       <Space>
-                        <Tag color="blue">{scenario.office_scope.length} offices</Tag>
+                        <Tag color="blue">{scenario.office_scope?.length || 0} offices</Tag>
                         <Tag color="green">
-                          {scenario.time_range.start_year}-{scenario.time_range.start_month} to {scenario.time_range.end_year}-{scenario.time_range.end_month}
+                          {scenario.time_range?.start_year}-{scenario.time_range?.start_month} to {scenario.time_range?.end_year}-{scenario.time_range?.end_month}
                         </Tag>
                       </Space>
                     </Col>

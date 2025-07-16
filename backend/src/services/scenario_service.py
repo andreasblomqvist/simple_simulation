@@ -178,13 +178,15 @@ class ScenarioService:
         Returns resolved_data dict. Raises ValueError if validation fails.
         """
         self.logger.info("Resolving scenario data", correlation_id=correlation_id)
-        resolved_data = self.resolve_scenario({
+        
+        # Convert Pydantic models to dictionaries as expected by the scenario resolver
+        resolved_data = self.scenario_resolver.resolve_scenario({
             'time_range': scenario_def.time_range,
             'office_scope': scenario_def.office_scope,
-            'levers': scenario_def.levers or {},
-            'baseline_input': getattr(scenario_def, 'baseline_input', None) or {},
-            'progression_config': scenario_def.progression_config,
-            'cat_curves': scenario_def.cat_curves
+            'levers': scenario_def.levers.model_dump() if hasattr(scenario_def.levers, 'model_dump') else scenario_def.levers,
+            'baseline_input': scenario_def.baseline_input.model_dump() if hasattr(scenario_def.baseline_input, 'model_dump') else scenario_def.baseline_input,
+            'progression_config': scenario_def.progression_config.model_dump() if hasattr(scenario_def.progression_config, 'model_dump') else scenario_def.progression_config,
+            'cat_curves': scenario_def.cat_curves.model_dump() if hasattr(scenario_def.cat_curves, 'model_dump') else scenario_def.cat_curves
         })
         try:
             self._validate_scenario(scenario_def, resolved_data=resolved_data, correlation_id=correlation_id)
@@ -202,9 +204,12 @@ class ScenarioService:
         """
         self.logger.info("Creating economic parameters", correlation_id=correlation_id)
         economic_params = self.scenario_transformer.transform_scenario_to_economic_params(scenario_def, correlation_id)
+        # Convert time_range to dict if it's a Pydantic model
+        time_range_dict = scenario_def.time_range.model_dump() if hasattr(scenario_def.time_range, 'model_dump') else scenario_def.time_range
+        
         self.logger.info("Starting simulation engine", correlation_id=correlation_id, extra={
-            "start_year": scenario_def.time_range['start_year'],
-            "end_year": scenario_def.time_range['end_year']
+            "start_year": time_range_dict['start_year'],
+            "end_year": time_range_dict['end_year']
         })
         try:
             results = self._call_simulation_engine(scenario_def, resolved_data, economic_params, correlation_id)
@@ -326,16 +331,33 @@ class ScenarioService:
         """Call the simulation engine with the prepared data."""
         try:
             # Extract time range from scenario definition
-            start_year = scenario_def.time_range['start_year']
-            start_month = scenario_def.time_range['start_month']
-            end_year = scenario_def.time_range['end_year']
-            end_month = scenario_def.time_range['end_month']
+            # Convert time_range to dict if it's a Pydantic model
+            time_range_dict = scenario_def.time_range.model_dump() if hasattr(scenario_def.time_range, 'model_dump') else scenario_def.time_range
+            
+            start_year = time_range_dict['start_year']
+            start_month = time_range_dict['start_month']
+            end_year = time_range_dict['end_year']
+            end_month = time_range_dict['end_month']
 
             # Create simulation engine
             engine = SimulationEngine()
             
+            # Build Office objects from the resolved configuration
+            offices = self.office_builder.build_offices_from_config(
+                resolved_data['offices_config'], 
+                resolved_data['progression_config']
+            )
+            self.logger.info("Office objects built successfully", correlation_id=correlation_id, extra={"offices_built": len(offices)})
+            
+            # Create engine-ready data structure
+            engine_ready_data = {
+                'offices': offices,
+                'progression_config': resolved_data['progression_config'],
+                'cat_curves': resolved_data['cat_curves']
+            }
+            
             # Transform data for engine consumption
-            engine_data = self.scenario_transformer.transform_scenario_data_for_engine(resolved_data, correlation_id)
+            engine_data = self.scenario_transformer.transform_scenario_data_for_engine(engine_ready_data, correlation_id)
             progression_config = engine_data['progression_config']
             cat_curves = engine_data['cat_curves']
             
@@ -345,7 +367,7 @@ class ScenarioService:
                 start_month=start_month,
                 end_year=end_year,
                 end_month=end_month,
-                offices=resolved_data['offices'],
+                offices=offices,
                 progression_config=progression_config,
                 cat_curves=cat_curves,
                 economic_params=economic_params

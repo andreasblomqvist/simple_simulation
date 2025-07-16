@@ -378,24 +378,35 @@ class SimulationEngine:
     ) -> Dict[str, Any]:
         """Process Operations role for a given month."""
         # Get monthly rates
+        price = getattr(role_data, f'price_{current_month}', None)
+        salary = getattr(role_data, f'salary_{current_month}', None)
+        utr = getattr(role_data, f'utr_{current_month}', None)
+        # Fallback to previous month if missing
+        if price is None or price == 0.0:
+            for m in range(current_month-1, 0, -1):
+                price = getattr(role_data, f'price_{m}', 0.0)
+                if price: break
+        if salary is None or salary == 0.0:
+            for m in range(current_month-1, 0, -1):
+                salary = getattr(role_data, f'salary_{m}', 0.0)
+                if salary: break
+        if utr is None or utr == 0.0:
+            for m in range(current_month-1, 0, -1):
+                utr = getattr(role_data, f'utr_{m}', 0.85)
+                if utr: break
         recruitment_rate = getattr(role_data, f'recruitment_{current_month}', 0.0)
         churn_rate = getattr(role_data, f'churn_{current_month}', 0.0)
-        price = getattr(role_data, f'price_{current_month}', 0.0) if hasattr(role_data, f'price_{current_month}') else 0.0
-        salary = getattr(role_data, f'salary_{current_month}', 0.0) if hasattr(role_data, f'salary_{current_month}') else 0.0
-        utr = getattr(role_data, f'utr_{current_month}', 0.85) if hasattr(role_data, f'utr_{current_month}') else 0.85
         current_fte = role_data.total
-        # Use absolute if present, else percentage
         abs_recruitment = getattr(role_data, f'recruitment_abs_{current_month}', None)
         abs_churn = getattr(role_data, f'churn_abs_{current_month}', None)
         if abs_recruitment is not None:
             recruitment_count = int(abs_recruitment)
         else:
-            recruitment_count = int(recruitment_rate * current_fte / 100)
+            recruitment_count = int(recruitment_rate * current_fte)
         if abs_churn is not None:
             churn_count = int(abs_churn)
         else:
-            churn_count = int(churn_rate * current_fte / 100)
-        # Apply recruitment and churn
+            churn_count = int(churn_rate * current_fte)
         for _ in range(recruitment_count):
             role_data.add_new_hire(current_date_str, "Operations", office_name)
         churned_people = role_data.apply_churn(churn_count)
@@ -406,9 +417,9 @@ class SimulationEngine:
             'recruitment_count': recruitment_count,
             'churn_count': churn_count,
             'churned_people': len(churned_people),
-            'price': price,
-            'salary': salary,
-            'utr': utr
+            'price': price if price is not None else 0.0,
+            'salary': salary if salary is not None else 0.0,
+            'utr': utr if utr is not None else 0.85
         }
 
     def _process_level(
@@ -423,57 +434,53 @@ class SimulationEngine:
     ) -> Dict[str, Any]:
         """Process a level for a given month."""
         # Get monthly rates
+        price = getattr(level, f'price_{current_month}', None)
+        salary = getattr(level, f'salary_{current_month}', None)
+        utr = getattr(level, f'utr_{current_month}', None)
+        # Fallback to previous month if missing
+        if price is None or price == 0.0:
+            for m in range(current_month-1, 0, -1):
+                price = getattr(level, f'price_{m}', 0.0)
+                if price: break
+        if salary is None or salary == 0.0:
+            for m in range(current_month-1, 0, -1):
+                salary = getattr(level, f'salary_{m}', 0.0)
+                if salary: break
+        if utr is None or utr == 0.0:
+            for m in range(current_month-1, 0, -1):
+                utr = getattr(level, f'utr_{m}', 0.85)
+                if utr: break
         recruitment_rate = getattr(level, f'recruitment_{current_month}', 0.0)
         churn_rate = getattr(level, f'churn_{current_month}', 0.0)
-        price = getattr(level, f'price_{current_month}', 0.0)
-        salary = getattr(level, f'salary_{current_month}', 0.0)
-        utr = getattr(level, f'utr_{current_month}', 0.85)
         current_fte = level.total
-        # Use absolute if present, else percentage
         abs_recruitment = getattr(level, f'recruitment_abs_{current_month}', None)
         abs_churn = getattr(level, f'churn_abs_{current_month}', None)
-        
-
-        
         if abs_recruitment is not None:
             recruitment_count = int(abs_recruitment)
         else:
-            recruitment_count = int(recruitment_rate * current_fte / 100)
+            recruitment_count = int(recruitment_rate * current_fte)
+        for _ in range(recruitment_count):
+            level.add_new_hire(current_date_str, role_name, office_name)
+        fte_after_recruitment = level.total
         if abs_churn is not None:
             churn_count = int(abs_churn)
         else:
-            churn_count = int(churn_rate * current_fte / 100)
-        
-
-        # Apply recruitment and churn
-        for _ in range(recruitment_count):
-            level.add_new_hire(current_date_str, role_name, office_name)
+            churn_count = int(churn_rate * fte_after_recruitment)
         churned_people = level.apply_churn(churn_count)
-
-        
-        # Apply progression using CAT-based system with optional multiplier
         promoted_people = level.apply_cat_based_progression(
             current_date_str, progression_config, cat_curves
         )
-        
-        # Apply progression multiplier if present
         progression_multiplier = getattr(level, f'progression_multiplier_{current_month}', None)
         if progression_multiplier is not None and progression_multiplier != 1.0:
-            # Scale the number of promotions by the multiplier
             target_promotions = int(len(promoted_people) * progression_multiplier)
             if target_promotions != len(promoted_people):
-                # Adjust the number of promoted people to match the multiplier
                 if target_promotions > len(promoted_people):
-                    # Need more promotions - promote additional people
                     additional_needed = target_promotions - len(promoted_people)
                     additional_promoted = level.promote_people(additional_needed, current_date_str)
                     promoted_people.extend(additional_promoted)
                 else:
-                    # Need fewer promotions - keep only the first target_promotions
                     promoted_people = promoted_people[:target_promotions]
-        
         final_fte = level.total
-        
         return {
             'fte': level.total,
             'recruitment_rate': recruitment_rate,
@@ -482,9 +489,9 @@ class SimulationEngine:
             'churn_count': churn_count,
             'churned_people': len(churned_people),
             'promoted_people': len(promoted_people),
-            'price': price,
-            'salary': salary,
-            'utr': utr
+            'price': price if price is not None else 0.0,
+            'salary': salary if salary is not None else 0.0,
+            'utr': utr if utr is not None else 0.85
         }
 
     def _get_yearly_snapshot(
@@ -500,9 +507,11 @@ class SimulationEngine:
         
         # Build the full year snapshot for all offices first
         for office_name, office in self.offices.items():
+            # Recalculate total FTE to ensure it reflects current state
+            calculated_total_fte = self._recalculate_office_total_fte(office)
             office_snapshot = {
                 'name': office_name,
-                'total_fte': office.total_fte,
+                'total_fte': calculated_total_fte,
                 'journey': office.journey.value,
                 'levels': self._get_office_level_snapshot(office, monthly_office_metrics, f"{year_key}-01", f"{year_key}-12")
             }
@@ -568,7 +577,7 @@ class SimulationEngine:
                                 f"{year}-12"
                             )
                             yearly_offices_data[office_name] = {
-                                'total_fte': office.total_fte, # End of simulation FTE
+                                'total_fte': self._recalculate_office_total_fte(office), # End of simulation FTE
                                 'name': office.name,
                                 'journey': office.journey.value,
                                 'levels': office_levels
@@ -577,7 +586,7 @@ class SimulationEngine:
                             # Failed to get snapshot for office {office_name}: {e}
                             # Provide minimal structure if snapshot fails
                             yearly_offices_data[office_name] = {
-                                'total_fte': office.total_fte,
+                                'total_fte': self._recalculate_office_total_fte(office),
                                 'name': office.name,
                                 'journey': office.journey.value,
                                 'levels': {}
@@ -640,6 +649,7 @@ class SimulationEngine:
                                                     'fte': level_month_data.get('fte', 0),
                                                     'price': level_month_data.get('price', 0),
                                                     'salary': level_month_data.get('salary', 0),
+                                                    'utr': level_month_data.get('utr', 0.85),
                                                     'recruitment': level_month_data.get('recruitment_count', 0),
                                                     'churn': level_month_data.get('churn_count', 0),
                                                     'promoted_people': level_month_data.get('promoted_people', 0)
@@ -650,6 +660,7 @@ class SimulationEngine:
                                                     'fte': 0,
                                                     'price': 0,
                                                     'salary': 0,
+                                                    'utr': 0.85,
                                                     'recruitment': 0,
                                                     'churn': 0,
                                                     'promoted_people': 0
@@ -660,6 +671,7 @@ class SimulationEngine:
                                                 'fte': 0,
                                                 'price': 0,
                                                 'salary': 0,
+                                                'utr': 0.85,
                                                 'recruitment': 0,
                                                 'churn': 0,
                                                 'promoted_people': 0
@@ -679,6 +691,7 @@ class SimulationEngine:
                                                 'fte': role_month_data.get('fte', 0),
                                                 'price': role_month_data.get('price', 0),
                                                 'salary': role_month_data.get('salary', 0),
+                                                'utr': role_month_data.get('utr', 0.85),
                                                 'recruitment': role_month_data.get('recruitment_count', 0),
                                                 'churn': role_month_data.get('churn_count', 0),
                                                 'promoted_people': role_month_data.get('promoted_people', 0)
@@ -689,6 +702,7 @@ class SimulationEngine:
                                                 'fte': 0,
                                                 'price': 0,
                                                 'salary': 0,
+                                                'utr': 0.85,
                                                 'recruitment': 0,
                                                 'churn': 0,
                                                 'promoted_people': 0
@@ -699,6 +713,7 @@ class SimulationEngine:
                                             'fte': 0,
                                             'price': 0,
                                             'salary': 0,
+                                            'utr': 0.85,
                                             'recruitment': 0,
                                             'churn': 0,
                                             'promoted_people': 0

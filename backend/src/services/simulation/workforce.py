@@ -29,85 +29,29 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 debug_logger.addHandler(console_handler)
 
-def get_effective_recruitment_value(obj, month: int, current_fte: int) -> Tuple[int, str, Dict[str, Any]]:
+def get_effective_recruitment_value(obj, month: int) -> int:
     """
-    Get effective recruitment value based on precedence rules.
-    Returns (value, method_used, details) where method_used is 'absolute' or 'percentage'.
+    Get effective recruitment value for the given month.
+    Only absolute values are supported. Returns the absolute value or 0 if not present.
     """
-    # Check for absolute value first
     abs_field = f"recruitment_abs_{month}"
     abs_value = getattr(obj, abs_field, None)
-    
     if abs_value is not None:
-        details = {
-            "method": "absolute",
-            "absolute_value": abs_value,
-            "percentage_value": getattr(obj, f"recruitment_{month}", None),
-            "current_fte": current_fte,
-            "field_used": abs_field
-        }
-        return int(abs_value), "absolute", details
-    
-    # Fall back to percentage calculation
-    pct_field = f"recruitment_{month}"
-    pct_value = getattr(obj, pct_field, 0.0)
-    calculated_value = int(pct_value * current_fte)
-    
-    details = {
-        "method": "percentage",
-        "absolute_value": None,
-        "percentage_value": pct_value,
-        "current_fte": current_fte,
-        "calculated_value": calculated_value,
-        "field_used": pct_field
-    }
-    
-    # Log warning if neither field is present
-    if pct_value == 0.0 and not hasattr(obj, pct_field):
-        debug_logger.warning(f"No recruitment value found for month {month}, using 0")
-        details["warning"] = f"No recruitment_{month} field found, defaulting to 0"
-    
-    return calculated_value, "percentage", details
+        return int(abs_value)
+    # If not present, return 0 (or raise error if strict)
+    return 0
 
-def get_effective_churn_value(obj, month: int, current_fte: int) -> Tuple[int, str, Dict[str, Any]]:
+def get_effective_churn_value(obj, month: int) -> int:
     """
-    Get effective churn value based on precedence rules.
-    Returns (value, method_used, details) where method_used is 'absolute' or 'percentage'.
+    Get effective churn value for the given month.
+    Only absolute values are supported. Returns the absolute value or 0 if not present.
     """
-    # Check for absolute value first
     abs_field = f"churn_abs_{month}"
     abs_value = getattr(obj, abs_field, None)
-    
     if abs_value is not None:
-        details = {
-            "method": "absolute",
-            "absolute_value": abs_value,
-            "percentage_value": getattr(obj, f"churn_{month}", None),
-            "current_fte": current_fte,
-            "field_used": abs_field
-        }
-        return int(abs_value), "absolute", details
-    
-    # Fall back to percentage calculation
-    pct_field = f"churn_{month}"
-    pct_value = getattr(obj, pct_field, 0.0)
-    calculated_value = int(pct_value * current_fte)
-    
-    details = {
-        "method": "percentage",
-        "absolute_value": None,
-        "percentage_value": pct_value,
-        "current_fte": current_fte,
-        "calculated_value": calculated_value,
-        "field_used": pct_field
-    }
-    
-    # Log warning if neither field is present
-    if pct_value == 0.0 and not hasattr(obj, pct_field):
-        debug_logger.warning(f"No churn value found for month {month}, using 0")
-        details["warning"] = f"No churn_{month} field found, defaulting to 0"
-    
-    return calculated_value, "percentage", details
+        return int(abs_value)
+    # If not present, return 0 (or raise error if strict)
+    return 0
 
 @dataclass
 class WorkforceLevel:
@@ -319,7 +263,7 @@ class WorkforceManager:
             if isinstance(role_data, dict):  # Leveled roles
                 for level_name, level in role_data.items():
                     # Churn - using new absolute/percentage logic
-                    churn_to_apply, churn_method, churn_details = get_effective_churn_value(level, current_month_enum.value, level.total)
+                    churn_to_apply = get_effective_churn_value(level, current_month_enum.value)
                     
                     churned = level.apply_churn(churn_to_apply)
                     
@@ -334,7 +278,7 @@ class WorkforceManager:
                         )
                     
                     # Recruitment - using new absolute/percentage logic
-                    recruits_to_add, recruitment_method, recruitment_details = get_effective_recruitment_value(level, current_month_enum.value, level.total)
+                    recruits_to_add = get_effective_recruitment_value(level, current_month_enum.value)
                     
                     for _ in range(recruits_to_add):
                         new_person = level.add_new_hire(current_date_str, role_name, office.name)
@@ -359,18 +303,18 @@ class WorkforceManager:
                     monthly_office_metrics[office.name][current_date_str][role_name][level_name].update({
                         'total_fte': level.total,
                         'recruited': recruits_to_add,
-                        'recruitment_method': recruitment_method,
-                        'recruitment_details': recruitment_details,
+                        'recruitment_method': 'absolute', # Always absolute
+                        'recruitment_details': {'absolute_value': recruits_to_add},
                         'churned': churn_to_apply,
-                        'churn_method': churn_method,
-                        'churn_details': churn_details,
+                        'churn_method': 'absolute', # Always absolute
+                        'churn_details': {'absolute_value': churn_to_apply},
                         'price': get_monthly_attribute(level, 'price', current_month_enum),
                         'salary': get_monthly_attribute(level, 'salary', current_month_enum),
                         'utr': get_monthly_attribute(level, 'utr', current_month_enum),
                     })
             else:  # Flat roles
                 # Churn - using new absolute/percentage logic
-                churn_to_apply, churn_method, churn_details = get_effective_churn_value(role_data, current_month_enum.value, role_data.total)
+                churn_to_apply = get_effective_churn_value(role_data, current_month_enum.value)
                 
                 churned = role_data.apply_churn(churn_to_apply)
                 
@@ -385,7 +329,7 @@ class WorkforceManager:
                     )
                 
                 # Recruitment - using new absolute/percentage logic
-                recruits_to_add, recruitment_method, recruitment_details = get_effective_recruitment_value(role_data, current_month_enum.value, role_data.total)
+                recruits_to_add = get_effective_recruitment_value(role_data, current_month_enum.value)
                 
                 for _ in range(recruits_to_add):
                     new_person = role_data.add_new_hire(current_date_str, role_name, office.name)
@@ -406,11 +350,11 @@ class WorkforceManager:
                 monthly_office_metrics[office.name][current_date_str][role_name] = {
                     'total_fte': role_data.total,
                     'recruited': recruits_to_add,
-                    'recruitment_method': recruitment_method,
-                    'recruitment_details': recruitment_details,
+                    'recruitment_method': 'absolute', # Always absolute
+                    'recruitment_details': {'absolute_value': recruits_to_add},
                     'churned': churn_to_apply,
-                    'churn_method': churn_method,
-                    'churn_details': churn_details
+                    'churn_method': 'absolute', # Always absolute
+                    'churn_details': {'absolute_value': churn_to_apply}
                 }
         
         # Log office total

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Typography, Space, Select, message, Spin, Empty } from 'antd';
-import type { SimulationResults, ScenarioDefinition, OfficeName } from '../../types/scenarios';
+import type { SimulationResults, ScenarioDefinition, OfficeName } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
 import { normalizeBaselineInput } from '../../utils/normalizeBaselineInput';
 
@@ -243,13 +243,195 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         // Fetch full scenario definition
         console.log('[DEBUG][ResultsTable] Fetching scenario from API with ID:', scenarioId);
         const scenario = await scenarioApi.getScenario(scenarioId);
-        // Normalize baseline_input
-        if (scenario && scenario.baseline_input) {
-          scenario.baseline_input = normalizeBaselineInput(scenario.baseline_input);
+        // Handle both direct scenario and nested definition structure
+        const actualScenario = scenario?.definition || scenario;
+        // Normalize baseline_input and ensure required structure
+        if (actualScenario && actualScenario.baseline_input) {
+          actualScenario.baseline_input = normalizeBaselineInput(actualScenario.baseline_input);
+        } else {
+          // Ensure baseline_input exists with proper structure
+          actualScenario.baseline_input = normalizeBaselineInput({});
+        }
+        
+        // Ensure baseline_input has the exact structure backend expects
+        if (!actualScenario.baseline_input.global) {
+          actualScenario.baseline_input.global = {};
+        }
+        if (!actualScenario.baseline_input.global.recruitment) {
+          actualScenario.baseline_input.global.recruitment = {};
+        }
+        if (!actualScenario.baseline_input.global.churn) {
+          actualScenario.baseline_input.global.churn = {};
+        }
+        
+        // Ensure each role has proper leveled structure matching the data structure documentation
+        const roles = ['Consultant', 'Sales', 'Recruitment'];
+        for (const role of roles) {
+          if (!actualScenario.baseline_input.global.recruitment[role]) {
+            actualScenario.baseline_input.global.recruitment[role] = {
+              A: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 },
+              AC: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 }
+            };
+          }
+          
+          if (!actualScenario.baseline_input.global.churn[role]) {
+            actualScenario.baseline_input.global.churn[role] = {
+              A: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 },
+              AC: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 }
+            };
+          }
+        }
+        
+        // Debug logging
+        console.log('[DEBUG][ResultsTable] Final baseline_input structure:', JSON.stringify(actualScenario.baseline_input, null, 2));
+        
+        // Debug progression config structure
+        console.log('[DEBUG][ResultsTable] Progression config structure:', JSON.stringify(actualScenario.progression_config, null, 2));
+        
+        // Ensure other required fields exist
+        if (!actualScenario.progression_config || !actualScenario.progression_config.levels) {
+          actualScenario.progression_config = {
+            levels: {
+              A: {
+                progression_months: [1, 4, 7, 10],
+                time_on_level: 6,
+                start_tenure: 1,
+                next_level: 'AC',
+                journey: 'J-1'
+              },
+              AC: {
+                progression_months: [1, 4, 7, 10],
+                time_on_level: 9,
+                start_tenure: 6,
+                next_level: 'C',
+                journey: 'J-1'
+              },
+              C: {
+                progression_months: [1, 7],
+                time_on_level: 18,
+                start_tenure: 15,
+                next_level: 'SrC',
+                journey: 'J-1'
+              },
+              SrC: {
+                progression_months: [1, 7],
+                time_on_level: 18,
+                start_tenure: 33,
+                next_level: 'AM',
+                journey: 'J-1'
+              },
+              AM: {
+                progression_months: [1, 7],
+                time_on_level: 48,
+                start_tenure: 51,
+                next_level: 'M',
+                journey: 'J-1'
+              },
+              M: {
+                progression_months: [1],
+                time_on_level: 48,
+                start_tenure: 99,
+                next_level: 'SrM',
+                journey: 'J-1'
+              },
+              SrM: {
+                progression_months: [1],
+                time_on_level: 120,
+                start_tenure: 147,
+                next_level: 'Pi',
+                journey: 'J-1'
+              },
+              Pi: {
+                progression_months: [1],
+                time_on_level: 12,
+                start_tenure: 267,
+                next_level: 'P',
+                journey: 'J-1'
+              },
+              P: {
+                progression_months: [1],
+                time_on_level: 1000,
+                start_tenure: 279,
+                next_level: 'X',
+                journey: 'J-1'
+              },
+              X: {
+                progression_months: [1],
+                time_on_level: 1279,
+                start_tenure: 1279,
+                next_level: null,
+                journey: 'J-1'
+              }
+            }
+          };
+        }
+        if (!actualScenario.cat_curves || !actualScenario.cat_curves.curves) {
+          actualScenario.cat_curves = {
+            curves: {
+              A: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              },
+              AC: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              },
+              C: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              },
+              M: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              },
+              SM: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              },
+              P: {
+                curves: {
+                  CAT0: 0.0,
+                  CAT6: 0.919,
+                  CAT12: 0.85
+                }
+              }
+            }
+          };
+        }
+        if (!actualScenario.levers) {
+          actualScenario.levers = {
+            recruitment: { A: 1.0, AC: 1.0 },
+            churn: { A: 1.0, AC: 1.0 },
+            progression: { A: 1.0, AC: 1.0 }
+          };
+        }
+        if (!actualScenario.economic_params) {
+          actualScenario.economic_params = {
+            working_hours_per_month: 160.0,
+            employment_cost_rate: 0.3,
+            unplanned_absence: 0.05,
+            other_expense: 1000000.0
+          };
         }
         // Run simulation by definition
-        console.log('[DEBUG][ResultsTable] Running simulation for scenario:', scenario);
-        const results = await scenarioApi.runScenarioDefinition(scenario);
+        console.log('[DEBUG][ResultsTable] Running simulation for scenario:', actualScenario);
+        console.log('[DEBUG][ResultsTable] Final scenario structure being sent:', JSON.stringify(actualScenario, null, 2));
+        const results = await scenarioApi.runScenarioDefinition(actualScenario, actualScenario.office_scope);
         console.log('[DEBUG][ResultsTable] Scenario API results:', results);
         setScenarioData(results.results);
         // Extract available offices from the data

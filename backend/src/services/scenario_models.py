@@ -1,12 +1,23 @@
 """
 Pydantic models for scenario definitions and API requests/responses.
+Updated to use unified data structures.
 """
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from .unified_data_models import (
+    ScenarioDefinition as UnifiedScenarioDefinition,
+    TimeRange,
+    EconomicParameters,
+    BaselineInput,
+    Levers
+)
 
-class ScenarioDefinition(BaseModel):
-    """Complete scenario definition including metadata and lever values."""
+# Use the unified ScenarioDefinition as the base, with backward compatibility
+ScenarioDefinition = UnifiedScenarioDefinition
+
+class LegacyScenarioDefinition(BaseModel):
+    """Legacy scenario definition for backward compatibility"""
     id: Optional[str] = Field(None, description="Unique scenario identifier")
     name: str = Field(..., description="Scenario name")
     description: str = Field(..., description="Scenario description")

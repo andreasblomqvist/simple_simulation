@@ -4,7 +4,7 @@ import { Button, Typography, Spin, message, Card } from 'antd';
 import { scenarioApi } from '../services/scenarioApi';
 import ResultsTable from '../components/scenario-runner/ResultsTable';
 import ScenarioLevers, { getCompleteLevers } from '../components/scenario-runner/ScenarioLevers';
-import type { ScenarioDefinition } from '../types/scenarios';
+import type { ScenarioDefinition } from '../types/unified-data-structures';
 
 const { Title, Text } = Typography;
 
@@ -14,13 +14,20 @@ function extractBaselineValuesFromScenario(scenario: ScenarioDefinition | null):
   const levers: Record<'recruitment' | 'churn' | 'progression', Record<string, number>> = {
     recruitment: {}, churn: {}, progression: {}
   };
-  if (!scenario || !scenario.baseline_input) return levers;
+  
+  // Handle both direct scenario and nested definition structure
+  const scenarioData = scenario?.definition || scenario;
+  if (!scenarioData || !scenarioData.baseline_input) return levers;
 
   // Recruitment
-  const recruitment = scenario.baseline_input.global?.recruitment?.Consultant || {};
+  const recruitment = scenarioData.baseline_input.global?.recruitment?.Consultant || {};
   for (const level of levels) {
     const values = Object.values(recruitment)
-      .map((monthObj: any) => Number(monthObj[level]) || 0)
+      .map((monthObj: any) => {
+        // Add null/undefined check to prevent the error
+        if (!monthObj || typeof monthObj !== 'object') return 0;
+        return Number(monthObj[level]) || 0;
+      })
       .filter(v => !isNaN(v));
     const avg = values.length > 0
       ? values.reduce((sum: number, v) => sum + v, 0) / values.length
@@ -29,10 +36,14 @@ function extractBaselineValuesFromScenario(scenario: ScenarioDefinition | null):
   }
 
   // Churn
-  const churn = scenario.baseline_input.global?.churn?.Consultant || {};
+  const churn = scenarioData.baseline_input.global?.churn?.Consultant || {};
   for (const level of levels) {
     const values = Object.values(churn)
-      .map((monthObj: any) => Number(monthObj[level]) || 0)
+      .map((monthObj: any) => {
+        // Add null/undefined check to prevent the error
+        if (!monthObj || typeof monthObj !== 'object') return 0;
+        return Number(monthObj[level]) || 0;
+      })
       .filter(v => !isNaN(v));
     const avg = values.length > 0
       ? values.reduce((sum: number, v) => sum + v, 0) / values.length
@@ -88,13 +99,16 @@ const ScenarioDetails: React.FC = () => {
   if (error) return <div style={{ margin: 64, color: 'red' }}>{error}</div>;
   if (!scenario) return <div style={{ margin: 64 }}>Scenario not found.</div>;
 
+  // Handle both direct scenario and nested definition structure
+  const scenarioData = scenario?.definition || scenario;
+  
   return (
     <Card style={{ margin: 32 }}>
-      <Title level={2} style={{ marginBottom: 0 }}>{scenario.name}</Title>
-      <Text type="secondary">{scenario.description}</Text>
+      <Title level={2} style={{ marginBottom: 0 }}>{scenarioData.name}</Title>
+      <Text type="secondary">{scenarioData.description}</Text>
       <div style={{ margin: '16px 0' }}>
-        <b>Time Range:</b> {scenario.time_range.start_year}-{scenario.time_range.start_month} to {scenario.time_range.end_year}-{scenario.time_range.end_month}<br />
-        <b>Office Scope:</b> {scenario.office_scope.join(', ')}
+        <b>Time Range:</b> {scenarioData.time_range.start_year}-{scenarioData.time_range.start_month} to {scenarioData.time_range.end_year}-{scenarioData.time_range.end_month}<br />
+        <b>Office Scope:</b> {scenarioData.office_scope.join(', ')}
       </div>
       <div style={{ margin: '16px 0' }}>
         <Button type="primary" style={{ marginRight: 8 }} onClick={() => navigate(`/scenario-runner/edit/${id}`)}>Edit</Button>
@@ -105,7 +119,7 @@ const ScenarioDetails: React.FC = () => {
       <section style={{ marginBottom: 24 }}>
         <h3 style={{ margin: '16px 0 8px 0' }}>Levers</h3>
         <ScenarioLevers
-          levers={getCompleteLevers((typeof scenario.levers === 'object' && scenario.levers) ? scenario.levers as any : undefined)}
+          levers={getCompleteLevers((typeof scenarioData.levers === 'object' && scenarioData.levers) ? scenarioData.levers as any : undefined)}
           baselineValues={extractBaselineValuesFromScenario(scenario)}
         />
         <div style={{ marginTop: 24, textAlign: 'right' }}>

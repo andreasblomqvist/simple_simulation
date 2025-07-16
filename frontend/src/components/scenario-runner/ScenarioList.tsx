@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Space, Popconfirm, message, Spin, Empty, Table } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, BarChartOutlined, ExportOutlined } from '@ant-design/icons';
-import type { ScenarioListItem, ScenarioId } from '../../types/scenarios';
+import type { ScenarioListItem, ScenarioId } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
 import { useNavigate } from 'react-router-dom';
 

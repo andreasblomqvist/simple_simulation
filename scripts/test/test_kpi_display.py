@@ -3,11 +3,15 @@
 Test script to verify KPI display with total salary costs and baseline comparisons
 """
 
-from backend.src.services.simulation_engine import SimulationEngine
-from backend.src.services.kpi import KPIService
-from backend.src.services.kpi.kpi_models import EconomicParameters
-from backend.src.services.kpi.kpi_utils import get_baseline_data
-from backend.src.services.config_service import ConfigService
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../backend/src')))
+
+from services.simulation_engine import SimulationEngine
+from services.kpi import KPIService
+from services.kpi.kpi_models import EconomicParameters
+from services.kpi.kpi_utils import get_baseline_data
+from services.config_service import ConfigService
 
 def test_kpi_display():
     """Test that KPIs are properly calculated with total salary costs and baselines"""

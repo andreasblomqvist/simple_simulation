@@ -81,8 +81,8 @@ def calculate_fta_weighted_average_hourly_rate(year_data: Dict[str, Any], role_n
     total_fte = 0.0
     
     for office_name, office_data in year_data.get('offices', {}).items():
-        if 'levels' in office_data and role_name in office_data['levels']:
-            role_data = office_data['levels'][role_name]
+        if 'roles' in office_data and role_name in office_data['roles']:
+            role_data = office_data['roles'][role_name]
             
             if isinstance(role_data, dict):
                 # Hierarchical role with levels
@@ -112,11 +112,11 @@ def extract_office_totals(year_data: Dict[str, Any]) -> Tuple[int, int, int]:
     
     for office_name, office_data in year_data.get('offices', {}).items():
         # Check structure type
-        if 'levels' in office_data:
+        if 'roles' in office_data:
             # Complex structure: extract from monthly arrays
-            office_levels = office_data.get('levels', {})
+            office_roles = office_data.get('roles', {})
             
-            for role_name, role_data in office_levels.items():
+            for role_name, role_data in office_roles.items():
                 if isinstance(role_data, dict):
                     # Role with levels (Consultant, Sales, Recruitment)
                     for level_name, level_data in role_data.items():

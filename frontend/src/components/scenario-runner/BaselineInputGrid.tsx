@@ -1,24 +1,24 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { Tabs, Alert, Button, Select, Table, InputNumber, Typography } from 'antd';
+import { Tabs, Alert, Button, Select, Table, InputNumber, Typography, Space, message } from 'antd';
+import { 
+  ROLE_LEVELS, 
+  ROLES, 
+  DEFAULT_ROLE,
+  generateMonthKeys,
+} from '../../types/unified-data-structures';
+import type {
+  LevelType,
+  YearMonth,
+  BaselineInputData,
+  MonthlyValues,
+} from '../../types/unified-data-structures';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
 const { Text } = Typography;
 
-// Define roles and their levels (excluding Operations)
-const ROLE_LEVELS: Record<string, string[]> = {
-  Consultant: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-  Sales: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-  Recruitment: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-  // Add more roles/levels as needed
-};
-const ROLES = Object.keys(ROLE_LEVELS);
-const DEFAULT_ROLE = 'Consultant';
-
-const MONTHS = [
-  '202501', '202502', '202503', '202504', '202505', '202506',
-  '202507', '202508', '202509', '202510', '202511', '202512',
-];
+// Generate months for 3-year simulation using unified month key generator
+const DEFAULT_MONTHS = generateMonthKeys(2025, 1, 2027, 12);
 
 // Default values for recruitment and leavers (churn) per role/level/month
 const recruitmentDefaults: Record<string, Record<string, Record<string, number | undefined>>> = {
@@ -61,7 +61,7 @@ const leaversDefaults: Record<string, Record<string, Record<string, number | und
 // Fill Sales and Recruitment with 0s for all months/levels
 ROLES.forEach(role => {
   if (role === 'Sales' || role === 'Recruitment') {
-    MONTHS.forEach(month => {
+    DEFAULT_MONTHS.forEach(month => {
       recruitmentDefaults[role][month] = {};
       leaversDefaults[role][month] = {};
       ROLE_LEVELS[role].forEach(level => {
@@ -72,6 +72,31 @@ ROLES.forEach(role => {
   }
 });
 
+// Extend Consultant defaults to all years (2026, 2027) by copying 2025 values
+const extendDefaultsToAllYears = () => {
+  // For each year after 2025
+  for (let year = 2026; year <= 2027; year++) {
+    // For each month in that year
+    for (let month = 1; month <= 12; month++) {
+      const targetMonth = `${year}${month.toString().padStart(2, '0')}`;
+      const sourceMonth = `2025${month.toString().padStart(2, '0')}`;
+      
+      // Copy recruitment defaults
+      if (recruitmentDefaults.Consultant[sourceMonth]) {
+        recruitmentDefaults.Consultant[targetMonth] = { ...recruitmentDefaults.Consultant[sourceMonth] };
+      }
+      
+      // Copy churn defaults
+      if (leaversDefaults.Consultant[sourceMonth]) {
+        leaversDefaults.Consultant[targetMonth] = { ...leaversDefaults.Consultant[sourceMonth] };
+      }
+    }
+  }
+};
+
+// Extend defaults to all years
+extendDefaultsToAllYears();
+
 // Helper to initialize recruitment/churn data structure with defaults
 const initRoleData = () => {
   const data: Record<string, Record<string, Record<string, number | undefined>>> = {};
@@ -79,7 +104,7 @@ const initRoleData = () => {
     data[role] = {};
     ROLE_LEVELS[role].forEach(level => {
       data[role][level] = {};
-      MONTHS.forEach(month => {
+      DEFAULT_MONTHS.forEach(month => {
         // Use defaults if available, else undefined
         data[role][level][month] =
           (role in recruitmentDefaults && month in recruitmentDefaults[role] && level in recruitmentDefaults[role][month])
@@ -97,7 +122,7 @@ const initLeaverRoleData = () => {
     data[role] = {};
     ROLE_LEVELS[role].forEach(level => {
       data[role][level] = {};
-      MONTHS.forEach(month => {
+      DEFAULT_MONTHS.forEach(month => {
         // Use defaults if available, else undefined
         data[role][level][month] =
           (role in leaversDefaults && month in leaversDefaults[role] && level in leaversDefaults[role][month])
@@ -162,6 +187,49 @@ const BaselineInputGrid = forwardRef<any, BaselineInputGridProps>(({ onNext }, r
     }
   };
 
+  // Function to apply 2025 values to all years
+  const handleApplyForAllYears = () => {
+    const currentData = activeTab === 'recruitment' ? recruitmentData : leaversData;
+    const setData = activeTab === 'recruitment' ? setRecruitmentData : setLeaversData;
+    
+    // Get 2025 values for the selected role
+    const year2025Values: Record<string, Record<string, number | undefined>> = {};
+    ROLE_LEVELS[selectedRole].forEach(level => {
+      year2025Values[level] = {};
+      // Get all 2025 months (202501-202512)
+      for (let month = 1; month <= 12; month++) {
+        const monthKey = `2025${month.toString().padStart(2, '0')}`;
+        year2025Values[level][monthKey] = currentData[selectedRole]?.[level]?.[monthKey];
+      }
+    });
+
+    // Apply 2025 values to all subsequent years (2026, 2027, etc.)
+    setData(prev => {
+      const newData = { ...prev };
+      
+      // For each year after 2025
+      for (let year = 2026; year <= 2027; year++) {
+        // For each month in that year
+        for (let month = 1; month <= 12; month++) {
+          const targetMonth = `${year}${month.toString().padStart(2, '0')}`;
+          const sourceMonth = `2025${month.toString().padStart(2, '0')}`;
+          
+          // Copy values for each level
+          ROLE_LEVELS[selectedRole].forEach(level => {
+            if (!newData[selectedRole]) newData[selectedRole] = {};
+            if (!newData[selectedRole][level]) newData[selectedRole][level] = {};
+            
+            newData[selectedRole][level][targetMonth] = year2025Values[level][sourceMonth];
+          });
+        }
+      }
+      
+      return newData;
+    });
+
+    message.success(`Applied 2025 ${activeTab} values to all years for ${selectedRole}`);
+  };
+
   const handleNext = () => {
     const baselineInput = {
       global: {
@@ -201,62 +269,108 @@ const BaselineInputGrid = forwardRef<any, BaselineInputGridProps>(({ onNext }, r
     })),
   ];
 
-  // Build dataSource for Table
-  const dataSource = MONTHS.map(month => {
-    const row: any = { month };
-    levels.forEach(level => {
-      if (activeTab === 'recruitment') {
-        row[level] = recruitmentData[selectedRole][level][month];
-      } else {
-        row[level] = leaversData[selectedRole][level][month];
-      }
-    });
-    return row;
-  });
+  // Prepare table data
+  const tableData = DEFAULT_MONTHS.map(month => ({
+    key: month,
+    month,
+    ...levels.reduce((acc, level) => {
+      acc[level] = activeTab === 'recruitment' 
+        ? recruitmentData[selectedRole]?.[level]?.[month]
+        : leaversData[selectedRole]?.[level]?.[month];
+      return acc;
+    }, {} as Record<string, number | undefined>),
+  }));
 
   return (
-    <div>
-      <Alert
-        message="Baseline Input Configuration"
-        description="Configure the baseline recruitment and churn (leaver) numbers for each role and level."
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-      <div style={{ marginBottom: 16 }}>
-        <span style={{ marginRight: 8, fontWeight: 500 }}>Select Role:</span>
-        <Select value={selectedRole} onChange={setSelectedRole} style={{ minWidth: 180 }}>
-          {ROLES.map(role => (
-            <Option key={role} value={role}>{role}</Option>
-          ))}
-        </Select>
+    <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <div>
+            <Text strong style={{ fontSize: '18px' }}>
+              Baseline Input Configuration
+            </Text>
+            <Text type="secondary" style={{ marginLeft: '10px' }}>
+              Configure monthly recruitment and churn values for each role and level
+            </Text>
+          </div>
+          
+          <Alert
+            message="Apply for All Years"
+            description="Click the button below to copy all 2025 values to subsequent years (2026, 2027, etc.). This ensures the simulation has complete data for all years."
+            type="info"
+            showIcon
+            action={
+              <Button 
+                type="primary" 
+                onClick={handleApplyForAllYears}
+                size="small"
+              >
+                Apply 2025 Values to All Years
+              </Button>
+            }
+          />
+        </Space>
       </div>
+
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         <TabPane tab="Recruitment" key="recruitment">
+          <div style={{ marginBottom: '16px' }}>
+            <Space>
+              <Text strong>Role:</Text>
+              <Select
+                value={selectedRole}
+                onChange={setSelectedRole}
+                style={{ width: 150 }}
+              >
+                {ROLES.map(role => (
+                  <Option key={role} value={role}>{role}</Option>
+                ))}
+              </Select>
+            </Space>
+          </div>
+          
           <Table
             columns={columns}
-            dataSource={dataSource}
+            dataSource={tableData}
             pagination={false}
+            scroll={{ x: 'max-content' }}
+            size="small"
             bordered
-            size="middle"
-            scroll={{ x: true }}
-            rowKey="month"
-            style={{ background: 'inherit' }}
           />
         </TabPane>
-        <TabPane tab="Leavers (Churn)" key="leavers">
+        
+        <TabPane tab="Churn (Leavers)" key="churn">
+          <div style={{ marginBottom: '16px' }}>
+            <Space>
+              <Text strong>Role:</Text>
+              <Select
+                value={selectedRole}
+                onChange={setSelectedRole}
+                style={{ width: 150 }}
+              >
+                {ROLES.map(role => (
+                  <Option key={role} value={role}>{role}</Option>
+                ))}
+              </Select>
+            </Space>
+          </div>
+          
           <Table
             columns={columns}
-            dataSource={dataSource}
+            dataSource={tableData}
             pagination={false}
+            scroll={{ x: 'max-content' }}
+            size="small"
             bordered
-            size="middle"
-            scroll={{ x: true }}
-            rowKey="month"
-            style={{ background: 'inherit' }}
           />
         </TabPane>
       </Tabs>
+
+      <div style={{ marginTop: '20px', textAlign: 'right' }}>
+        <Button type="primary" onClick={handleNext}>
+          Next
+        </Button>
+      </div>
     </div>
   );
 });

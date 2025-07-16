@@ -44,15 +44,21 @@ class ScenarioValidator:
         # Validate baseline_input structure if present
         if 'baseline_input' in scenario_data:
             baseline = scenario_data.get('baseline_input', {})
-            if not isinstance(baseline, dict):
-                raise ValueError("baseline_input must be a dictionary")
+            # Handle Pydantic models
+            if hasattr(baseline, 'model_dump'):
+                baseline = baseline.model_dump()
+            elif not isinstance(baseline, dict):
+                raise ValueError("baseline_input must be a dictionary or Pydantic model")
             self._validate_baseline_input(baseline)
         
         # Validate levers structure if present
         if 'levers' in scenario_data:
             levers = scenario_data.get('levers', {})
-            if not isinstance(levers, dict):
-                raise ValueError("levers must be a dictionary")
+            # Handle Pydantic models
+            if hasattr(levers, 'model_dump'):
+                levers = levers.model_dump()
+            elif not isinstance(levers, dict):
+                raise ValueError("levers must be a dictionary or Pydantic model")
             self._validate_levers(levers)
         
         # Validate progression_config if present
@@ -254,6 +260,10 @@ class ScenarioValidator:
     
     def _validate_economic_params(self, economic_params: Dict[str, Any]) -> None:
         """Validate economic parameters structure and content."""
+        # Convert Pydantic model to dict if needed
+        if hasattr(economic_params, 'model_dump'):
+            economic_params = economic_params.model_dump()
+        
         if not isinstance(economic_params, dict):
             raise ValueError("economic_params must be a dictionary")
         
@@ -294,68 +304,161 @@ class ScenarioValidator:
         if not isinstance(progression_config, dict):
             raise ValueError("progression_config must be a dictionary")
         
-        # Validate each level configuration
-        for level_name, level_config in progression_config.items():
-            if not isinstance(level_name, str):
-                raise ValueError("Level names in progression_config must be strings")
+        # Handle nested structure (progression_config.levels)
+        if 'levels' in progression_config:
+            levels_config = progression_config['levels']
+            if not isinstance(levels_config, dict):
+                raise ValueError("progression_config.levels must be a dictionary")
             
-            if not isinstance(level_config, dict):
-                raise ValueError(f"progression_config.{level_name} must be a dictionary")
-            
-            # Validate required fields for each level
-            required_fields = ['progression_months', 'time_on_level', 'progression_rate']
-            for field in required_fields:
-                if field not in level_config:
-                    raise ValueError(f"progression_config.{level_name} must contain {field}")
-            
-            # Validate progression_months
-            progression_months = level_config.get('progression_months')
-            if not isinstance(progression_months, list):
-                raise ValueError(f"progression_config.{level_name}.progression_months must be a list")
-            
-            for month in progression_months:
-                if not isinstance(month, int) or not (1 <= month <= 12):
-                    raise ValueError(f"progression_config.{level_name}.progression_months must contain integers between 1 and 12")
-            
-            # Validate time_on_level
-            time_on_level = level_config.get('time_on_level')
-            if not isinstance(time_on_level, int) or time_on_level < 0:
-                raise ValueError(f"progression_config.{level_name}.time_on_level must be a non-negative integer")
-            
-            # Validate progression_rate
-            progression_rate = level_config.get('progression_rate')
-            if not isinstance(progression_rate, (int, float)) or not (0 <= progression_rate <= 1):
-                raise ValueError(f"progression_config.{level_name}.progression_rate must be a number between 0 and 1")
-            
-            # Validate optional journey field
-            if 'journey' in level_config:
-                journey = level_config.get('journey')
-                if journey is not None and not isinstance(journey, str):
-                    raise ValueError(f"progression_config.{level_name}.journey must be a string")
+            # Validate each level configuration
+            for level_name, level_config in levels_config.items():
+                if not isinstance(level_name, str):
+                    raise ValueError("Level names in progression_config.levels must be strings")
+                
+                if not isinstance(level_config, dict):
+                    raise ValueError(f"progression_config.levels.{level_name} must be a dictionary")
+                
+                # Validate required fields for each level
+                required_fields = ['progression_months', 'time_on_level']
+                for field in required_fields:
+                    if field not in level_config:
+                        raise ValueError(f"progression_config.levels.{level_name} must contain {field}")
+                
+                # Validate progression_months
+                progression_months = level_config.get('progression_months')
+                if not isinstance(progression_months, list):
+                    raise ValueError(f"progression_config.levels.{level_name}.progression_months must be a list")
+                
+                for month in progression_months:
+                    if not isinstance(month, int) or not (1 <= month <= 12):
+                        raise ValueError(f"progression_config.levels.{level_name}.progression_months must contain integers between 1 and 12")
+                
+                # Validate time_on_level
+                time_on_level = level_config.get('time_on_level')
+                if not isinstance(time_on_level, int) or time_on_level < 0:
+                    raise ValueError(f"progression_config.levels.{level_name}.time_on_level must be a non-negative integer")
+                
+                # Validate optional fields
+                if 'start_tenure' in level_config:
+                    start_tenure = level_config.get('start_tenure')
+                    if not isinstance(start_tenure, int) or start_tenure < 1:
+                        raise ValueError(f"progression_config.levels.{level_name}.start_tenure must be a positive integer")
+                
+                if 'next_level' in level_config:
+                    next_level = level_config.get('next_level')
+                    if next_level is not None and not isinstance(next_level, str):
+                        raise ValueError(f"progression_config.levels.{level_name}.next_level must be a string or null")
+                
+                if 'journey' in level_config:
+                    journey = level_config.get('journey')
+                    if journey is not None and not isinstance(journey, str):
+                        raise ValueError(f"progression_config.levels.{level_name}.journey must be a string")
+        
+        else:
+            # Handle flat structure (legacy)
+            for level_name, level_config in progression_config.items():
+                if not isinstance(level_name, str):
+                    raise ValueError("Level names in progression_config must be strings")
+                
+                if not isinstance(level_config, dict):
+                    raise ValueError(f"progression_config.{level_name} must be a dictionary")
+                
+                # Validate required fields for each level
+                required_fields = ['progression_months', 'time_on_level']
+                for field in required_fields:
+                    if field not in level_config:
+                        raise ValueError(f"progression_config.{level_name} must contain {field}")
+                
+                # Validate progression_months
+                progression_months = level_config.get('progression_months')
+                if not isinstance(progression_months, list):
+                    raise ValueError(f"progression_config.{level_name}.progression_months must be a list")
+                
+                for month in progression_months:
+                    if not isinstance(month, int) or not (1 <= month <= 12):
+                        raise ValueError(f"progression_config.{level_name}.progression_months must contain integers between 1 and 12")
+                
+                # Validate time_on_level
+                time_on_level = level_config.get('time_on_level')
+                if not isinstance(time_on_level, int) or time_on_level < 0:
+                    raise ValueError(f"progression_config.{level_name}.time_on_level must be a non-negative integer")
+                
+                # Validate optional progression_rate (if provided)
+                if 'progression_rate' in level_config:
+                    progression_rate = level_config.get('progression_rate')
+                    if not isinstance(progression_rate, (int, float)) or not (0 <= progression_rate <= 1):
+                        raise ValueError(f"progression_config.{level_name}.progression_rate must be a number between 0 and 1")
+                
+                # Validate optional journey field
+                if 'journey' in level_config:
+                    journey = level_config.get('journey')
+                    if journey is not None and not isinstance(journey, str):
+                        raise ValueError(f"progression_config.{level_name}.journey must be a string")
     
     def _validate_cat_curves(self, cat_curves: Dict[str, Any]) -> None:
         """Validate CAT curves structure and content."""
         if not isinstance(cat_curves, dict):
             raise ValueError("cat_curves must be a dictionary")
         
-        # Validate each level's CAT curve
-        for level_name, level_curves in cat_curves.items():
-            if not isinstance(level_name, str):
-                raise ValueError("Level names in cat_curves must be strings")
+        # Handle nested structure (cat_curves.curves)
+        if 'curves' in cat_curves:
+            curves_config = cat_curves['curves']
+            if not isinstance(curves_config, dict):
+                raise ValueError("cat_curves.curves must be a dictionary")
             
-            if not isinstance(level_curves, dict):
-                raise ValueError(f"cat_curves.{level_name} must be a dictionary")
-            
-            # Validate each CAT category probability
-            for cat_category, probability in level_curves.items():
-                if not isinstance(cat_category, str):
-                    raise ValueError(f"CAT categories in cat_curves.{level_name} must be strings")
+            # Validate each level's CAT curve
+            for level_name, level_curves in curves_config.items():
+                if not isinstance(level_name, str):
+                    raise ValueError("Level names in cat_curves.curves must be strings")
                 
-                if not isinstance(probability, (int, float)) or not (0 <= probability <= 1):
-                    raise ValueError(f"CAT probability for {level_name}.{cat_category} must be a number between 0 and 1")
+                if not isinstance(level_curves, dict):
+                    raise ValueError(f"cat_curves.curves.{level_name} must be a dictionary")
+                
+                # Handle nested curves structure (level_curves.curves)
+                if 'curves' in level_curves:
+                    cat_probabilities = level_curves['curves']
+                    if not isinstance(cat_probabilities, dict):
+                        raise ValueError(f"cat_curves.curves.{level_name}.curves must be a dictionary")
+                    
+                    # Validate each CAT category probability
+                    for cat_category, probability in cat_probabilities.items():
+                        if not isinstance(cat_category, str):
+                            raise ValueError(f"CAT categories in cat_curves.curves.{level_name}.curves must be strings")
+                        
+                        if not isinstance(probability, (int, float)) or not (0 <= probability <= 1):
+                            raise ValueError(f"CAT probability for {level_name}.{cat_category} must be a number between 0 and 1")
+                else:
+                    # Handle flat structure within level
+                    for cat_category, probability in level_curves.items():
+                        if not isinstance(cat_category, str):
+                            raise ValueError(f"CAT categories in cat_curves.curves.{level_name} must be strings")
+                        
+                        if not isinstance(probability, (int, float)) or not (0 <= probability <= 1):
+                            raise ValueError(f"CAT probability for {level_name}.{cat_category} must be a number between 0 and 1")
+        
+        else:
+            # Handle flat structure (legacy)
+            for level_name, level_curves in cat_curves.items():
+                if not isinstance(level_name, str):
+                    raise ValueError("Level names in cat_curves must be strings")
+                
+                if not isinstance(level_curves, dict):
+                    raise ValueError(f"cat_curves.{level_name} must be a dictionary")
+                
+                # Validate each CAT category probability
+                for cat_category, probability in level_curves.items():
+                    if not isinstance(cat_category, str):
+                        raise ValueError(f"CAT categories in cat_curves.{level_name} must be strings")
+                    
+                    if not isinstance(probability, (int, float)) or not (0 <= probability <= 1):
+                        raise ValueError(f"CAT probability for {level_name}.{cat_category} must be a number between 0 and 1")
     
     def validate_time_range(self, time_range: Dict[str, Any]) -> None:
         """Validate time range structure and values."""
+        # Convert Pydantic model to dict if needed
+        if hasattr(time_range, 'model_dump'):
+            time_range = time_range.model_dump()
+        
         if not isinstance(time_range, dict):
             raise ValueError("time_range must be a dictionary")
         

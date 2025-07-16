@@ -19,9 +19,9 @@ def calculate_growth_metrics(baseline_data: Dict[str, Any], final_year_data: Dic
     current_non_consultants = 0
 
     for office_name, office_data in final_year_data.get('offices', {}).items():
-        if 'levels' in office_data:
-            office_levels = office_data.get('levels', {})
-            for role_name, role_data in office_levels.items():
+        if 'roles' in office_data:
+            office_roles = office_data.get('roles', {})
+            for role_name, role_data in office_roles.items():
                 if isinstance(role_data, dict):
                     for level_name, level_data in role_data.items():
                         if isinstance(level_data, list) and level_data:

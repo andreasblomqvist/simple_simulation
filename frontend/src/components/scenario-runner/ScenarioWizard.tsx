@@ -4,7 +4,7 @@ import ScenarioCreationForm from './ScenarioCreationForm';
 import BaselineInputGrid from './BaselineInputGrid';
 import ScenarioLevers from './ScenarioLevers';
 import type { ScenarioLeversRef } from './ScenarioLevers';
-import type { ScenarioDefinition, ScenarioResponse, ErrorResponse } from '../../types/scenarios';
+import type { ScenarioDefinition, ScenarioResponse, ErrorResponse } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { normalizeBaselineInput } from '../../utils/normalizeBaselineInput';
