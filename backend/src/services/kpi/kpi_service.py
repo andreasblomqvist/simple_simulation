@@ -41,23 +41,29 @@ class KPIService:
         # Get current year data
         current_year_data = simulation_results['years'][current_year]
         
-        baseline_data = get_baseline_data()
+        # Get baseline data and filter it to match the simulation scope
+        full_baseline_data = get_baseline_data()
+        
+        # Filter baseline data to only include offices that are in the simulation
+        simulation_offices = set(current_year_data.get('offices', {}).keys())
+        filtered_baseline_data = self._filter_baseline_data(full_baseline_data, simulation_offices)
         
         baseline_financial = self.financial_calculator.calculate_baseline_financial_metrics(
-            baseline_data, params.unplanned_absence, params.other_expense, duration_months=12
+            filtered_baseline_data, params.unplanned_absence, params.other_expense, duration_months=12
         )
         current_financial = self.financial_calculator.calculate_current_financial_metrics(
             current_year_data, params.unplanned_absence, params.other_expense, duration_months=12
         )
-        growth_metrics = calculate_growth_metrics(baseline_data, current_year_data)
+        growth_metrics = calculate_growth_metrics(filtered_baseline_data, current_year_data)
         journey_metrics = calculate_journey_metrics(current_year_data)
 
         yearly_kpis = {}
         for year, year_data in simulation_results['years'].items():
-            yearly_financial = self.financial_calculator.calculate_current_financial_metrics(
-                year_data, params.unplanned_absence, params.other_expense, duration_months=12
+            # Use proper yearly aggregation instead of last-month multiplication
+            yearly_financial = self.financial_calculator.calculate_yearly_financial_metrics(
+                year_data, params.unplanned_absence, params.other_expense
             )
-            yearly_growth = calculate_growth_metrics(baseline_data, year_data)
+            yearly_growth = calculate_growth_metrics(filtered_baseline_data, year_data)
             yearly_kpis[year] = YearlyKPIs(
                 year=year,
                 financial=FinancialKPIs(
@@ -104,6 +110,25 @@ class KPIService:
             yearly_kpis=yearly_kpis
         )
 
+    def _filter_baseline_data(self, full_baseline_data: Dict[str, Any], simulation_offices: set) -> Dict[str, Any]:
+        """Filter baseline data to only include offices that are in the simulation scope"""
+        filtered_baseline = {
+            'offices': [],
+            'total_consultants': 0,
+            'total_non_consultants': 0,
+            'total_fte': 0
+        }
+        
+        for office_data in full_baseline_data.get('offices', []):
+            office_name = office_data.get('name', '')
+            if office_name in simulation_offices:
+                filtered_baseline['offices'].append(office_data)
+                filtered_baseline['total_consultants'] += office_data.get('consultants', 0)
+                filtered_baseline['total_non_consultants'] += office_data.get('non_consultants', 0)
+                filtered_baseline['total_fte'] += office_data.get('total_fte', 0)
+        
+        return filtered_baseline
+
     def calculate_kpis_for_year(
         self, 
         simulation_results: Dict[str, Any], 
@@ -113,17 +138,25 @@ class KPIService:
     ) -> AllKPIs:
         params = economic_params or self.economic_params
         self.financial_calculator = FinancialKPICalculator(params)
-        baseline_data = get_baseline_data()
-        baseline_financial = self.financial_calculator.calculate_baseline_financial_metrics(
-            baseline_data, params.unplanned_absence, params.other_expense, duration_months=12
-        )
+        
+        # Get baseline data and filter it to match the simulation scope
+        full_baseline_data = get_baseline_data()
+        
         if target_year not in simulation_results.get('years', {}):
             raise ValueError(f"Year {target_year} not found in simulation results")
         target_year_data = simulation_results['years'][target_year]
-        current_financial = self.financial_calculator.calculate_current_financial_metrics(
-            target_year_data, params.unplanned_absence, params.other_expense, duration_months=12
+        
+        # Filter baseline data to only include offices that are in the simulation
+        simulation_offices = set(target_year_data.get('offices', {}).keys())
+        filtered_baseline_data = self._filter_baseline_data(full_baseline_data, simulation_offices)
+        
+        baseline_financial = self.financial_calculator.calculate_baseline_financial_metrics(
+            filtered_baseline_data, params.unplanned_absence, params.other_expense, duration_months=12
         )
-        growth_metrics = calculate_growth_metrics(baseline_data, target_year_data)
+        current_financial = self.financial_calculator.calculate_current_financial_metrics(
+            target_year_data, params.unplanned_absence, params.other_expense, duration_months=simulation_duration_months
+        )
+        growth_metrics = calculate_growth_metrics(filtered_baseline_data, target_year_data)
         journey_metrics = calculate_journey_metrics(target_year_data)
         financial_kpis = FinancialKPIs(
             net_sales=current_financial['total_revenue'],

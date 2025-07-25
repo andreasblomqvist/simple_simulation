@@ -331,6 +331,19 @@ class ConfigService:
         config = self.get_config()
         return config.get(office_name)
     
+    def delete_office(self, office_name: str) -> bool:
+        """Delete an office from the configuration"""
+        config = self.get_config()
+        
+        if office_name in config:
+            del config[office_name]
+            self._save_to_file(config)
+            print(f"[CONFIG_SERVICE] Deleted office: {office_name}")
+            return True
+        else:
+            print(f"[CONFIG_SERVICE] Office not found for deletion: {office_name}")
+            return False
+    
     def clear_configuration(self):
         """Clear all configuration data"""
         if os.path.exists(self.config_file_path):

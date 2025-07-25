@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Typography, Space, Select, message, Spin, Empty } from 'antd';
 import type { SimulationResults, ScenarioDefinition, OfficeName } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
-import { normalizeBaselineInput } from '../../utils/normalizeBaselineInput';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -33,42 +32,126 @@ interface ResultsTableProps {
   onBack?: () => void;
 }
 
+// Helper function to get available offices from simulation results
+function getAvailableOffices(data: SimulationResults | null): string[] {
+  if (!data || !data.years) return [];
+  
+  // Get offices from the first available year
+  const firstYear = Object.keys(data.years)[0];
+  if (!firstYear) return [];
+  
+  return Object.keys(data.years[firstYear].offices);
+}
+
 // Helper function to extract KPI value from simulation results
 function getKPIValue(data: SimulationResults | null, office: OfficeName, kpiKey: string, year: number): number {
   if (!data || !data.years[year.toString()]) return 0;
   
   const yearData = data.years[year.toString()];
-  const officeData = yearData.offices[office];
+  
+  // Find the actual office name in the results (case-insensitive)
+  const availableOffices = Object.keys(yearData.offices);
+  const actualOfficeName = availableOffices.find(name => 
+    name.toLowerCase() === office.toLowerCase()
+  );
+  
+  if (!actualOfficeName) {
+    console.log(`[DEBUG][ResultsTable] Office '${office}' not found in results. Available offices:`, availableOffices);
+    return 0;
+  }
+  
+  const officeData = yearData.offices[actualOfficeName];
   if (!officeData) return 0;
   
   // Access data directly from officeData (not under kpis)
   const financial = officeData.financial || {};
   const growth = officeData.growth || {};
-  const kpis = officeData.kpis || {};
+  const journeys = officeData.journeys || {};
 
+  let value = 0;
   switch (kpiKey) {
     case 'FTE':
-      return officeData.fte || officeData.total_fte || 0;
+      value = officeData.total_fte || 0;
+      break;
     case 'Sales':
-      return (financial as any).net_sales || (kpis as any).financial?.net_sales || 0;
+      value = financial.net_sales || 0;
+      break;
     case 'EBITDA':
-      return (financial as any).ebitda || (kpis as any).financial?.ebitda || 0;
+      value = financial.ebitda || 0;
+      break;
     case 'EBITDA%':
-      const margin = (financial as any).margin || (kpis as any).financial?.margin;
-      return margin ? margin * 100 : 0; // Convert to percent
+      value = financial.margin ? financial.margin * 100 : 0;
+      break;
     case 'Growth%':
-      return (growth as any).total_growth_percent || (kpis as any).growth?.total_growth_percent || 0;
+      value = growth.total_growth_percent || 0;
+      break;
     case 'J-1':
-      return (kpis as any).journeys?.journey_percentages?.["Journey 1"] || 0;
+      value = journeys.journey_percentages?.["Journey 1"] || 0;
+      break;
     case 'J-2':
-      return (kpis as any).journeys?.journey_percentages?.["Journey 2"] || 0;
+      value = journeys.journey_percentages?.["Journey 2"] || 0;
+      break;
     case 'J-3':
-      return (kpis as any).journeys?.journey_percentages?.["Journey 3"] || 0;
+      value = journeys.journey_percentages?.["Journey 3"] || 0;
+      break;
     case 'J-4':
-      return (kpis as any).journeys?.journey_percentages?.["Journey 4"] || 0;
+      value = journeys.journey_percentages?.["Journey 4"] || 0;
+      break;
     default:
-      return 0;
+      value = 0;
   }
+  
+  // If office-level data is zero, fall back to group-level KPIs
+  if (value === 0 && yearData.kpis) {
+    console.log(`[DEBUG][ResultsTable] Falling back to group KPIs for ${kpiKey} in ${actualOfficeName} (${year})`);
+    
+    // Use yearly_kpis for year-specific data, fall back to aggregated data
+    const yearlyKpis = yearData.kpis.yearly_kpis?.[year.toString()];
+    const financial = yearlyKpis?.financial || yearData.kpis.financial;
+    const growth = yearlyKpis?.growth || yearData.kpis.growth;
+    const journeys = yearlyKpis?.journeys || yearData.kpis.journeys;
+    
+    switch (kpiKey) {
+      case 'FTE':
+        value = financial?.total_consultants || 0;
+        break;
+      case 'Sales':
+        value = financial?.net_sales || 0;
+        break;
+      case 'EBITDA':
+        value = financial?.ebitda || 0;
+        break;
+      case 'EBITDA%':
+        value = financial?.margin ? financial.margin * 100 : 0;
+        break;
+      case 'Growth%':
+        value = growth?.total_growth_percent || 0;
+        break;
+      case 'J-1':
+        value = journeys?.journey_percentages?.["Journey 1"] || 0;
+        break;
+      case 'J-2':
+        value = journeys?.journey_percentages?.["Journey 2"] || 0;
+        break;
+      case 'J-3':
+        value = journeys?.journey_percentages?.["Journey 3"] || 0;
+        break;
+      case 'J-4':
+        value = journeys?.journey_percentages?.["Journey 4"] || 0;
+        break;
+    }
+  }
+  
+  if (value === 0) {
+    console.log(`[DEBUG][ResultsTable] Zero value for ${kpiKey} in ${actualOfficeName} (${year}):`, {
+      officeData: officeData,
+      financial: financial,
+      growth: growth,
+      journeys: journeys
+    });
+  }
+  
+  return value;
 }
 
 // Helper function to format values based on KPI type
@@ -117,60 +200,39 @@ function getDeltaCell(scenarioVal: number, baselineVal: number | undefined, isPe
 function getGroupKPIValue(data: SimulationResults | null, kpiKey: string, year: number): number {
   if (!data || !data.years[year.toString()]) return 0;
   
-  // Try to get KPIs from the top-level kpis object first
-  const yearlyKpis = data.kpis?.yearly_kpis?.[year.toString()];
-  if (yearlyKpis) {
-    switch (kpiKey) {
-      case 'FTE':
-        return yearlyKpis.financial?.total_consultants || 0;
-      case 'Sales':
-        return yearlyKpis.financial?.net_sales || 0;
-      case 'EBITDA':
-        return yearlyKpis.financial?.ebitda || 0;
-      case 'EBITDA%':
-        return yearlyKpis.financial?.margin ? yearlyKpis.financial.margin * 100 : 0;
-      case 'Growth%':
-        return yearlyKpis.growth?.total_growth_percent || 0;
-      case 'J-1':
-        return yearlyKpis.journeys?.journey_percentages?.["Journey 1"] || 0;
-      case 'J-2':
-        return yearlyKpis.journeys?.journey_percentages?.["Journey 2"] || 0;
-      case 'J-3':
-        return yearlyKpis.journeys?.journey_percentages?.["Journey 3"] || 0;
-      case 'J-4':
-        return yearlyKpis.journeys?.journey_percentages?.["Journey 4"] || 0;
-      default:
-        return 0;
-    }
+  const yearData = data.years[year.toString()];
+  const kpis = yearData.kpis;
+  
+  if (!kpis) {
+    console.log(`[DEBUG][ResultsTable] No KPIs found for year ${year}`);
+    return 0;
   }
   
-  // Fallback: aggregate from all offices
-  const yearData = data.years[year.toString()];
-  const offices = Object.values(yearData.offices);
+  // Use yearly_kpis for year-specific data, fall back to aggregated data
+  const yearlyKpis = kpis.yearly_kpis?.[year.toString()];
+  const financial = yearlyKpis?.financial || kpis.financial;
+  const growth = yearlyKpis?.growth || kpis.growth;
+  const journeys = yearlyKpis?.journeys || kpis.journeys;
   
   switch (kpiKey) {
     case 'FTE':
-      return offices.reduce((sum, office) => sum + (office.fte || office.total_fte || 0), 0);
+      return financial?.total_consultants || 0;
     case 'Sales':
-      return offices.reduce((sum, office) => sum + ((office.financial?.net_sales as any) || 0), 0);
+      return financial?.net_sales || 0;
     case 'EBITDA':
-      return offices.reduce((sum, office) => sum + ((office.financial?.ebitda as any) || 0), 0);
+      return financial?.ebitda || 0;
     case 'EBITDA%':
-      const totalSales = offices.reduce((sum, office) => sum + ((office.financial?.net_sales as any) || 0), 0);
-      const totalEbitda = offices.reduce((sum, office) => sum + ((office.financial?.ebitda as any) || 0), 0);
-      return totalSales > 0 ? (totalEbitda / totalSales) * 100 : 0;
+      return financial?.margin ? financial.margin * 100 : 0;
     case 'Growth%':
-      // For growth, we'll use the first office's growth data as a proxy
-      const firstOffice = offices[0];
-      return (firstOffice?.growth as any)?.total_growth_percent || 0;
+      return growth?.total_growth_percent || 0;
     case 'J-1':
+      return journeys?.journey_percentages?.["Journey 1"] || 0;
     case 'J-2':
+      return journeys?.journey_percentages?.["Journey 2"] || 0;
     case 'J-3':
+      return journeys?.journey_percentages?.["Journey 3"] || 0;
     case 'J-4':
-      // For journey data, we'll use the first office's journey data as a proxy
-      const firstOfficeKpis = offices[0]?.kpis;
-      const journeyNum = kpiKey.split('-')[1];
-      return (firstOfficeKpis as any)?.journeys?.journey_percentages?.[`Journey ${journeyNum}`] || 0;
+      return journeys?.journey_percentages?.["Journey 4"] || 0;
     default:
       return 0;
   }
@@ -181,10 +243,14 @@ function buildTableData(
   scenarioData: SimulationResults | null,
   office: OfficeName | 'Group'
 ): TableRow[] {
-  if (!scenarioData) return [];
+  if (!scenarioData || !scenarioData.years) {
+    console.warn('[DEBUG][ResultsTable] scenarioData or scenarioData.years is undefined:', scenarioData);
+    return [];
+  }
 
   const rows: TableRow[] = [];
   const years = Object.keys(scenarioData.years).sort();
+  
   // Use the first year as baseline
   const baselineYear = years[0];
   const baselineYearNum = parseInt(baselineYear);
@@ -205,7 +271,7 @@ function buildTableData(
     rows.push(mainRow);
 
     // Delta row (comparing each year to the first year)
-    const deltaRow: TableRow = { kpi: 'Δ', isDelta: true };
+    const deltaRow: TableRow = { kpi: 'Δ', isDelta: true, kpiKey: kpi.key };
     years.forEach(year => {
       const yearNum = parseInt(year);
       let scenarioVal = 0;
@@ -240,217 +306,33 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
       try {
         setLoading(true);
         setError(null);
-        // Fetch full scenario definition
-        console.log('[DEBUG][ResultsTable] Fetching scenario from API with ID:', scenarioId);
-        const scenario = await scenarioApi.getScenario(scenarioId);
-        // Handle both direct scenario and nested definition structure
-        const actualScenario = scenario?.definition || scenario;
-        // Normalize baseline_input and ensure required structure
-        if (actualScenario && actualScenario.baseline_input) {
-          actualScenario.baseline_input = normalizeBaselineInput(actualScenario.baseline_input);
-        } else {
-          // Ensure baseline_input exists with proper structure
-          actualScenario.baseline_input = normalizeBaselineInput({});
+        
+        console.log('[DEBUG][ResultsTable] Loading scenario results for ID:', scenarioId);
+        
+        // Get existing scenario results instead of re-running simulation
+        const results = await scenarioApi.getScenarioResults(scenarioId);
+        
+        console.log('[DEBUG][ResultsTable] Loaded results:', results);
+        
+        setScenarioData(results);
+        
+        // Update available offices from the results
+        const offices = getAvailableOffices(results);
+        setAvailableOffices(offices as OfficeName[]);
+        
+        // Set the first available office as selected
+        if (offices.length > 0 && !offices.includes(selectedOffice as any)) {
+          setSelectedOffice(offices[0] as OfficeName);
         }
         
-        // Ensure baseline_input has the exact structure backend expects
-        if (!actualScenario.baseline_input.global) {
-          actualScenario.baseline_input.global = {};
-        }
-        if (!actualScenario.baseline_input.global.recruitment) {
-          actualScenario.baseline_input.global.recruitment = {};
-        }
-        if (!actualScenario.baseline_input.global.churn) {
-          actualScenario.baseline_input.global.churn = {};
-        }
-        
-        // Ensure each role has proper leveled structure matching the data structure documentation
-        const roles = ['Consultant', 'Sales', 'Recruitment'];
-        for (const role of roles) {
-          if (!actualScenario.baseline_input.global.recruitment[role]) {
-            actualScenario.baseline_input.global.recruitment[role] = {
-              A: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 },
-              AC: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 }
-            };
-          }
-          
-          if (!actualScenario.baseline_input.global.churn[role]) {
-            actualScenario.baseline_input.global.churn[role] = {
-              A: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 },
-              AC: { '202501': 0.0, '202502': 0.0, '202503': 0.0, '202504': 0.0, '202505': 0.0, '202506': 0.0, '202507': 0.0, '202508': 0.0, '202509': 0.0, '202510': 0.0, '202511': 0.0, '202512': 0.0 }
-            };
-          }
-        }
-        
-        // Debug logging
-        console.log('[DEBUG][ResultsTable] Final baseline_input structure:', JSON.stringify(actualScenario.baseline_input, null, 2));
-        
-        // Debug progression config structure
-        console.log('[DEBUG][ResultsTable] Progression config structure:', JSON.stringify(actualScenario.progression_config, null, 2));
-        
-        // Ensure other required fields exist
-        if (!actualScenario.progression_config || !actualScenario.progression_config.levels) {
-          actualScenario.progression_config = {
-            levels: {
-              A: {
-                progression_months: [1, 4, 7, 10],
-                time_on_level: 6,
-                start_tenure: 1,
-                next_level: 'AC',
-                journey: 'J-1'
-              },
-              AC: {
-                progression_months: [1, 4, 7, 10],
-                time_on_level: 9,
-                start_tenure: 6,
-                next_level: 'C',
-                journey: 'J-1'
-              },
-              C: {
-                progression_months: [1, 7],
-                time_on_level: 18,
-                start_tenure: 15,
-                next_level: 'SrC',
-                journey: 'J-1'
-              },
-              SrC: {
-                progression_months: [1, 7],
-                time_on_level: 18,
-                start_tenure: 33,
-                next_level: 'AM',
-                journey: 'J-1'
-              },
-              AM: {
-                progression_months: [1, 7],
-                time_on_level: 48,
-                start_tenure: 51,
-                next_level: 'M',
-                journey: 'J-1'
-              },
-              M: {
-                progression_months: [1],
-                time_on_level: 48,
-                start_tenure: 99,
-                next_level: 'SrM',
-                journey: 'J-1'
-              },
-              SrM: {
-                progression_months: [1],
-                time_on_level: 120,
-                start_tenure: 147,
-                next_level: 'Pi',
-                journey: 'J-1'
-              },
-              Pi: {
-                progression_months: [1],
-                time_on_level: 12,
-                start_tenure: 267,
-                next_level: 'P',
-                journey: 'J-1'
-              },
-              P: {
-                progression_months: [1],
-                time_on_level: 1000,
-                start_tenure: 279,
-                next_level: 'X',
-                journey: 'J-1'
-              },
-              X: {
-                progression_months: [1],
-                time_on_level: 1279,
-                start_tenure: 1279,
-                next_level: null,
-                journey: 'J-1'
-              }
-            }
-          };
-        }
-        if (!actualScenario.cat_curves || !actualScenario.cat_curves.curves) {
-          actualScenario.cat_curves = {
-            curves: {
-              A: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              },
-              AC: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              },
-              C: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              },
-              M: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              },
-              SM: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              },
-              P: {
-                curves: {
-                  CAT0: 0.0,
-                  CAT6: 0.919,
-                  CAT12: 0.85
-                }
-              }
-            }
-          };
-        }
-        if (!actualScenario.levers) {
-          actualScenario.levers = {
-            recruitment: { A: 1.0, AC: 1.0 },
-            churn: { A: 1.0, AC: 1.0 },
-            progression: { A: 1.0, AC: 1.0 }
-          };
-        }
-        if (!actualScenario.economic_params) {
-          actualScenario.economic_params = {
-            working_hours_per_month: 160.0,
-            employment_cost_rate: 0.3,
-            unplanned_absence: 0.05,
-            other_expense: 1000000.0
-          };
-        }
-        // Run simulation by definition
-        console.log('[DEBUG][ResultsTable] Running simulation for scenario:', actualScenario);
-        console.log('[DEBUG][ResultsTable] Final scenario structure being sent:', JSON.stringify(actualScenario, null, 2));
-        const results = await scenarioApi.runScenarioDefinition(actualScenario, actualScenario.office_scope);
-        console.log('[DEBUG][ResultsTable] Scenario API results:', results);
-        setScenarioData(results.results);
-        // Extract available offices from the data
-        if (results.results && Object.keys(results.results.years).length > 0) {
-          const firstYear = Object.keys(results.results.years)[0];
-          const offices = Object.keys(results.results.years[firstYear].offices);
-          setAvailableOffices(offices);
-          if (offices.length > 0 && !offices.includes(selectedOffice)) {
-            setSelectedOffice(offices[0]);
-          }
-        }
       } catch (err) {
-        console.error('[DEBUG][ResultsTable] Error loading results for scenarioId:', scenarioId, err);
-        setError(err instanceof Error ? err.message : 'Failed to load scenario results');
-        message.error('Failed to load scenario results');
+        console.error('[DEBUG][ResultsTable] Error loading results:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load results');
       } finally {
         setLoading(false);
       }
     };
+
     if (scenarioId) {
       loadResults();
     }
@@ -458,7 +340,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
 
   // Generate table columns dynamically based on available years
   const generateColumns = () => {
-    if (!scenarioData) return [];
+    if (!scenarioData || !scenarioData.years) {
+      console.warn('[DEBUG][ResultsTable] scenarioData or scenarioData.years is undefined in generateColumns:', scenarioData);
+      return [];
+    }
     
     const years = Object.keys(scenarioData.years).sort();
     
@@ -509,6 +394,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
     );
   }
 
+  if (!scenarioData.years) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px' }}>
+        <Empty description="Simulation results are empty. The simulation may have failed or returned no data." />
+        {onBack && <Button onClick={onBack} style={{ marginTop: 16 }}>Back</Button>}
+      </div>
+    );
+  }
+
   const columns = generateColumns();
   const groupData = buildTableData(scenarioData, 'Group');
   const officeData = buildTableData(scenarioData, selectedOffice);
@@ -522,7 +416,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         dataSource={groupData}
         pagination={false}
         size="middle"
-        rowKey={row => `${row.kpi}-${row.isDelta}`}
+        rowKey={row => row.isDelta ? `group-${row.kpiKey}-${row.isDelta}` : `group-${row.kpi}-${row.isDelta}`}
         bordered
         style={{ marginBottom: 32 }}
         scroll={{ x: true }}
@@ -552,7 +446,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ scenarioId, onNext, onBack 
         dataSource={officeData}
         pagination={false}
         size="middle"
-        rowKey={row => `${row.kpi}-${row.isDelta}`}
+        rowKey={row => row.isDelta ? `${selectedOffice}-${row.kpiKey}-${row.isDelta}` : `${selectedOffice}-${row.kpi}-${row.isDelta}`}
         bordered
         style={{ marginBottom: 24 }}
         scroll={{ x: true }}

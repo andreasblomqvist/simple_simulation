@@ -49,8 +49,8 @@ def calculate_growth_metrics(baseline_data: Dict[str, Any], final_year_data: Dic
                         current_non_consultants += fte_count
 
     total_growth_rate = ((current_total_fte - baseline_total_fte) / baseline_total_fte * 100) if baseline_total_fte > 0 else 0.0
-    current_non_debit_ratio = (current_non_consultants / current_consultants * 100) if current_consultants > 0 else 0.0
-    baseline_non_debit_ratio = (baseline_non_consultants / baseline_consultants * 100) if baseline_consultants > 0 else 0.0
+    current_non_debit_ratio = (current_non_consultants / current_total_fte) if current_total_fte > 0 else 0.0
+    baseline_non_debit_ratio = (baseline_non_consultants / baseline_total_fte) if baseline_total_fte > 0 else 0.0
 
     return GrowthKPIs(
         total_growth_percent=total_growth_rate,

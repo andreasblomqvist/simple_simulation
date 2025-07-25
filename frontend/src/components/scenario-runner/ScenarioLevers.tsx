@@ -26,6 +26,48 @@ const baselineValues: Record<LeverType, Record<string, number>> = {
   progression: { A: 1, AC: 1, C: 1, SrC: 1, AM: 1, M: 1, SrM: 1, Pi: 1, P: 1 },
 };
 
+// Function to get complete levers data
+export function getCompleteLevers(leversData?: any): LeverState {
+  if (!leversData || typeof leversData !== 'object') {
+    return baselineValues;
+  }
+
+  const result: LeverState = {
+    recruitment: { ...baselineValues.recruitment },
+    churn: { ...baselineValues.churn },
+    progression: { ...baselineValues.progression }
+  };
+
+  // Process recruitment levers
+  if (leversData.recruitment && typeof leversData.recruitment === 'object') {
+    Object.entries(leversData.recruitment).forEach(([level, value]) => {
+      if (typeof value === 'number' && !isNaN(value)) {
+        result.recruitment[level] = value;
+      }
+    });
+  }
+
+  // Process churn levers
+  if (leversData.churn && typeof leversData.churn === 'object') {
+    Object.entries(leversData.churn).forEach(([level, value]) => {
+      if (typeof value === 'number' && !isNaN(value)) {
+        result.churn[level] = value;
+      }
+    });
+  }
+
+  // Process progression levers
+  if (leversData.progression && typeof leversData.progression === 'object') {
+    Object.entries(leversData.progression).forEach(([level, value]) => {
+      if (typeof value === 'number' && !isNaN(value)) {
+        result.progression[level] = value;
+      }
+    });
+  }
+
+  return result;
+}
+
 // Mock CAT progression probabilities (from progression_config.py)
 const catProgressionData: Record<string, Record<string, number>> = {
   'A': { 'CAT0': 0.0, 'CAT6': 0.919, 'CAT12': 0.85, 'CAT18': 0.0, 'CAT24': 0.0, 'CAT30': 0.0 },
@@ -54,28 +96,18 @@ interface ScenarioLeversProps {
   levers?: LeverState;
   readOnly?: boolean;
   baselineValues?: Record<LeverType, Record<string, number>>;
+  baselineData?: any;
 }
 
 export interface ScenarioLeversRef {
   getCurrentData: () => LeverState;
 }
 
-const getCompleteLevers = (input?: LeverState): LeverState => {
-  return LEVERS.reduce((acc, lever) => {
-    acc[lever] = ROLES.reduce((racc, role) => {
-      racc[role] = input?.[lever]?.[role] ?? defaultValue;
-      return racc;
-    }, {} as Record<string, number>);
-    return acc;
-  }, {} as LeverState);
-};
-
-const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onNext, onBack, levers: externalLevers, readOnly = false, baselineValues: propBaselineValues }, ref) => {
+const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onNext, onBack, levers: externalLevers, readOnly = false, baselineValues: propBaselineValues, baselineData }, ref) => {
   const [levers, setLevers] = useState<LeverState>(() =>
-    getCompleteLevers(externalLevers)
+    externalLevers || baselineValues // Use externalLevers if provided, otherwise fallback to baselineValues
   );
-  // Use prop baselineValues if provided, else fallback to static
-  const effectiveBaselineValues = propBaselineValues || baselineValues;
+  
 
   // Expose current data to parent via ref
   useImperativeHandle(ref, () => ({
@@ -87,13 +119,23 @@ const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onN
 
   // If externalLevers changes, update state
   React.useEffect(() => {
-    if (externalLevers) setLevers(getCompleteLevers(externalLevers));
+    if (externalLevers) setLevers(externalLevers);
   }, [externalLevers]);
 
+  // Helper function to sanitize lever values
+  const sanitizeLeverValue = (value: any): number => {
+    if (value === null || value === undefined || value === '' || isNaN(value)) {
+      return 1.0;
+    }
+    const numValue = Number(value);
+    return isNaN(numValue) ? 1.0 : Math.max(0, numValue);
+  };
+
   const handleSlider = (lever: LeverType, role: string, value: number) => {
+    const sanitizedValue = sanitizeLeverValue(value);
     setLevers(prev => ({
       ...prev,
-      [lever]: { ...prev[lever], [role]: value },
+      [lever]: { ...prev[lever], [role]: sanitizedValue },
     }));
   };
 
@@ -177,9 +219,11 @@ const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onN
         key: `${lever}-actual`,
         width: 100,
         render: (_: any, record: any) => {
-          const baseline = effectiveBaselineValues[lever][record.role] || 0;
+          const baseline = baselineValues[lever][record.role] || 0;
           const multiplier = levers[lever][record.role];
           const actual = baseline * multiplier;
+          
+          
           let color = '#fff';
           if (multiplier > 1) color = '#52c41a';
           else if (multiplier < 1) color = '#ff4d4f';
@@ -265,7 +309,7 @@ const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onN
         size="middle"
         bordered
         scroll={{ x: true }}
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: 16 }}
       />
       {(!readOnly && (onNext || onBack)) && (
         <div style={{ textAlign: 'right' }}>
@@ -278,4 +322,4 @@ const ScenarioLevers = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({ onN
 });
 
 export default ScenarioLevers;
-export { getCompleteLevers }; 
+export { baselineValues }; 

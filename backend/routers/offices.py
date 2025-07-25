@@ -1,122 +1,169 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 import pandas as pd
 import io
+import uuid
+from datetime import datetime
 from src.services.config_service import config_service
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+from enum import Enum
 
-router = APIRouter(prefix="/offices", tags=["offices"])
+# Office API models
+class OfficeJourney(str, Enum):
+    EMERGING = "emerging"
+    ESTABLISHED = "established"
+    MATURE = "mature"
 
-# Global variable to store engine reference (for compatibility)
-_engine = None
+class EconomicParameters(BaseModel):
+    cost_of_living: float = 1.0
+    market_multiplier: float = 1.0
+    tax_rate: float = 0.25
 
-def set_engine(engine):
-    """Set the simulation engine reference (for compatibility with main.py)"""
-    global _engine
-    _engine = engine
-    print("[INFO] Engine set in offices router")
+class OfficeConfig(BaseModel):
+    id: str
+    name: str
+    journey: OfficeJourney
+    timezone: str = "UTC"
+    economic_parameters: EconomicParameters
+    total_fte: float
+    roles: dict
 
-@router.get("/config")
-def get_office_config():
-    """Get configuration data from configuration service (NOT simulation engine)"""
-    config_dict = config_service.get_config()
-    # Convert dictionary to array for frontend compatibility
-    return list(config_dict.values())
+class WorkforceEntry(BaseModel):
+    role: str
+    level: str
+    fte: float
+    notes: Optional[str] = None
 
-@router.post("/config/update")
-async def update_office_config(changes: dict):
-    """Update configuration in the configuration service"""
-    updated_count = config_service.update_configuration(changes)
+class WorkforceDistribution(BaseModel):
+    office_id: str
+    start_date: str
+    workforce: List[WorkforceEntry]
+
+class OfficeBusinessPlanSummary(BaseModel):
+    office_id: str
+    monthly_plans: List[Dict[str, Any]] = []
+    workforce_distribution: Optional[WorkforceDistribution] = None
+
+router = APIRouter(
+    prefix="/offices",  # No /api prefix
+    tags=["offices"]
+)
+
+# Add this mapping at the top of the file (after imports)
+JOURNEY_MAP = {
+    "Mature Office": "mature",
+    "Established Office": "established",
+    "Emerging Office": "emerging",
+    "mature": "mature",
+    "established": "established",
+    "emerging": "emerging"
+}
+
+@router.get("", response_model=List[OfficeConfig])
+def get_offices():
+    """Get all offices"""
+    config = config_service.get_config()
+    offices = []
+    for name, data in config.items():
+        journey_raw = data.get("journey", "emerging")
+        journey = JOURNEY_MAP.get(journey_raw.strip(), "emerging")
+        offices.append(OfficeConfig(
+            id=name,  # Use office name as ID for consistency
+            name=name,
+            journey=journey,
+            timezone=data.get("timezone", "UTC"),
+            economic_parameters=EconomicParameters(**data.get("economic_parameters", {})),
+            total_fte=data.get("total_fte", 0),
+            roles=data.get("roles", {})
+        ))
+    return offices
+
+@router.get("/{office_id}", response_model=OfficeConfig)
+def get_office(office_id: str):
+    """Get a specific office by ID"""
+    config = config_service.get_config()
+    if office_id in config:
+        data = config[office_id]
+        journey_raw = data.get("journey", "emerging")
+        journey = JOURNEY_MAP.get(journey_raw.strip(), "emerging")
+        return OfficeConfig(
+            id=office_id,  # Use office name as ID for consistency
+            name=office_id,
+            journey=journey,
+            timezone=data.get("timezone", "UTC"),
+            economic_parameters=EconomicParameters(**data.get("economic_parameters", {})),
+            total_fte=data.get("total_fte", 0),
+            roles=data.get("roles", {})
+        )
+    
+    raise HTTPException(status_code=404, detail="Office not found")
+
+@router.get("/health")
+def office_health_check():
+    """Health check for office API"""
+    return {"status": "ok"}
+
+@router.get("/export")
+def export_offices():
+    """Export office config as Excel"""
+    config = config_service.get_config()
+    df = pd.DataFrame.from_dict(config, orient="index")
+    output = io.BytesIO()
+    df.to_excel(output)
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=offices.xlsx"})
+
+@router.delete("/{office_name}")
+def delete_office(office_name: str):
+    """Delete an office by name"""
+    success = config_service.delete_office(office_name)
+    if not success:
+        raise HTTPException(status_code=404, detail="Office not found")
+    return {"message": f"Office '{office_name}' deleted"}
+
+@router.get("/{office_id}/workforce")
+def get_office_workforce(office_id: str):
+    """Get workforce distribution for an office"""
+    config = config_service.get_config()
+    if office_id not in config:
+        raise HTTPException(status_code=404, detail="Office not found")
+    
+    # Create workforce distribution from office roles
+    workforce_entries = []
+    office_data = config[office_id]
+    roles = office_data.get("roles", {})
+    
+    for role_name, role_data in roles.items():
+        for level_name, level_data in role_data.items():
+            if isinstance(level_data, dict) and "fte" in level_data:
+                workforce_entries.append({
+                    "role": role_name,
+                    "level": level_name,
+                    "fte": level_data["fte"],
+                    "notes": f"{role_name} {level_name}"
+                })
     
     return {
-        "status": "success",
-        "message": f"Updated {updated_count} configuration values",
-        "updated_count": updated_count,
-        "total_changes": len(changes)
+        "office_id": office_id,
+        "start_date": "2025-01-01",
+        "workforce": workforce_entries
     }
 
-@router.post("/config/import")
-async def import_office_config(file: UploadFile = File(...)):
-    """Import configuration from Excel file into configuration service"""
-    # Read file content into memory
-    content = await file.read()
-    df = pd.read_excel(content)
+@router.get("/{office_id}/summary")
+def get_office_summary(office_id: str):
+    """Get complete office summary including workforce and business plans"""
+    config = config_service.get_config()
+    if office_id not in config:
+        raise HTTPException(status_code=404, detail="Office not found")
     
-    # Import into configuration service
-    updated_count = config_service.import_from_excel(df)
+    # Get workforce distribution
+    workforce_response = get_office_workforce(office_id)
     
     return {
-        "status": "success", 
-        "message": f"Imported {updated_count} configuration changes",
-        "rows": len(df), 
-        "updated": updated_count
+        "office_id": office_id,
+        "monthly_plans": [],  # Empty for now, will be implemented later
+        "workforce_distribution": workforce_response
     }
-
-@router.get("/config/checksum")
-def get_office_configuration_checksum():
-    """Get just the configuration checksum for quick integrity checks"""
-    from datetime import datetime
-    from fastapi import HTTPException
-    
-    try:
-        # Get configuration from configuration service (NOT simulation engine)
-        config_dict = config_service.get_config()
-        
-        if not config_dict:
-            return {
-                "checksum": "empty",
-                "total_offices": 0,
-                "total_fte": 0,
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        # Calculate simple checksum and totals from configuration service data
-        total_offices = len(config_dict)
-        total_fte = 0
-        
-        for office_name, office_data in config_dict.items():
-            if 'total_fte' in office_data:
-                total_fte += office_data['total_fte']
-        
-        # Simple checksum: hash of office count and total FTE
-        import hashlib
-        checksum_string = f"{total_offices}:{total_fte}"
-        config_checksum = hashlib.md5(checksum_string.encode()).hexdigest()[:8]
-        
-        return {
-            "checksum": config_checksum,
-            "total_offices": total_offices,
-            "total_fte": total_fte,
-            "timestamp": datetime.now().isoformat()
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Checksum calculation failed: {str(e)}")
-
-def _serialize_role_data(role_data) -> dict:
-    """Serialize role data - configuration service already provides correct format"""
-    return role_data
-
-@router.get("/")
-def list_offices():
-    """Get offices from configuration service (NOT simulation engine)"""
-    config_dict = config_service.get_config()
-    
-    offices_out = []
-    for office_data in config_dict.values():
-        # office_data is already a dictionary with the correct structure
-        roles_out = {}
-        if "roles" in office_data and isinstance(office_data["roles"], dict):
-            for role_name, role_data in office_data["roles"].items():
-                roles_out[role_name] = _serialize_role_data(role_data)
-        
-        offices_out.append({
-            "name": office_data.get("name", "Unknown"),
-            "total_fte": office_data.get("total_fte", 0),
-            "journey": office_data.get("journey", "Unknown"),
-            "roles": roles_out
-        })
-    
-    print(f"[API] Returning {len(offices_out)} offices with configuration service data")
-    return offices_out 
 
  

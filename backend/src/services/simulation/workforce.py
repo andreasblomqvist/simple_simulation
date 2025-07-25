@@ -32,25 +32,23 @@ debug_logger.addHandler(console_handler)
 def get_effective_recruitment_value(obj, month: int) -> int:
     """
     Get effective recruitment value for the given month.
-    Only absolute values are supported. Returns the absolute value or 0 if not present.
+    Values are now distributed exactly at the scenario resolution level.
     """
     abs_field = f"recruitment_abs_{month}"
     abs_value = getattr(obj, abs_field, None)
     if abs_value is not None:
         return int(abs_value)
-    # If not present, return 0 (or raise error if strict)
     return 0
 
 def get_effective_churn_value(obj, month: int) -> int:
     """
     Get effective churn value for the given month.
-    Only absolute values are supported. Returns the absolute value or 0 if not present.
+    Values are now distributed exactly at the scenario resolution level.
     """
     abs_field = f"churn_abs_{month}"
     abs_value = getattr(obj, abs_field, None)
     if abs_value is not None:
         return int(abs_value)
-    # If not present, return 0 (or raise error if strict)
     return 0
 
 @dataclass

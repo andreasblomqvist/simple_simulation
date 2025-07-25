@@ -118,10 +118,16 @@ class ScenarioStorageService:
         Returns:
             True if successful, False if scenario not found
         """
+        logger.info(f"[DEBUG] StorageService.update_scenario called with ID: {scenario_id}")
+        logger.info(f"[DEBUG] Scenario definition name: {scenario_def.name}")
+        
         # Check if scenario exists
-        if not self.get_scenario(scenario_id):
-            logger.warning(f"Cannot update non-existent scenario: {scenario_id}")
+        existing_scenario = self.get_scenario(scenario_id)
+        if not existing_scenario:
+            logger.warning(f"[DEBUG] Cannot update non-existent scenario: {scenario_id}")
             return False
+        
+        logger.info(f"[DEBUG] Found existing scenario: {existing_scenario.name}")
         
         # Set the ID and update timestamp
         scenario_def.id = scenario_id
@@ -129,15 +135,17 @@ class ScenarioStorageService:
         
         # Save updated scenario
         file_path = os.path.join(self.definitions_dir, f"{scenario_id}.json")
+        logger.info(f"[DEBUG] Saving to file: {file_path}")
+        
         try:
             with open(file_path, 'w') as f:
                 json.dump(scenario_def.model_dump(), f, indent=2, default=str)
             
-            logger.info(f"Updated scenario: {scenario_id} - {scenario_def.name}")
+            logger.info(f"[DEBUG] Successfully updated scenario: {scenario_id} - {scenario_def.name}")
             return True
             
         except Exception as e:
-            logger.error(f"Error updating scenario {scenario_id}: {e}")
+            logger.error(f"[DEBUG] Error updating scenario {scenario_id}: {e}")
             return False
     
     def delete_scenario(self, scenario_id: str) -> bool:

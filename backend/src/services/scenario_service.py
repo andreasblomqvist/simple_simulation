@@ -100,8 +100,81 @@ class ScenarioService:
     def create_scenario(self, scenario_def: ScenarioDefinition) -> str:
         """
         Create and save a new scenario definition using ScenarioStorageService.
+        Includes improved name validation to prevent race conditions.
         """
-        return self.storage_service.create_scenario(scenario_def)
+        # Handle both ScenarioDefinition objects and dictionaries
+        scenario_name = scenario_def.name if hasattr(scenario_def, 'name') else scenario_def.get('name')
+        if not scenario_name:
+            raise ValueError("Scenario definition must have a name")
+        
+        # Double-check name uniqueness right before creation to prevent race conditions
+        if self.scenario_name_exists(scenario_name):
+            raise ValueError(f"Scenario with name '{scenario_name}' already exists")
+        
+        # Create the scenario
+        scenario_id = self.storage_service.create_scenario(scenario_def)
+        
+        # Verify the scenario was created successfully and name is still unique
+        created_scenario = self.get_scenario(scenario_id)
+        if not created_scenario:
+            raise ValueError("Failed to create scenario")
+        
+        # Final check: ensure no other scenarios with the same name exist
+        scenarios_with_same_name = [
+            s for s in self.storage_service.list_scenarios() 
+            if s.get('name') == scenario_name and s.get('id') != scenario_id
+        ]
+        
+        if scenarios_with_same_name:
+            # Clean up the created scenario and raise error
+            self.storage_service.delete_scenario(scenario_id)
+            raise ValueError(f"Scenario with name '{scenario_name}' already exists (race condition detected)")
+        
+        return scenario_id
+
+    def cleanup_duplicate_scenarios(self) -> Dict[str, int]:
+        """
+        Clean up duplicate scenarios with the same name.
+        Keeps the most recently updated scenario for each name.
+        Returns a dictionary with cleanup statistics.
+        """
+        try:
+            scenarios = self.storage_service.list_scenarios()
+            name_groups = {}
+            
+            # Group scenarios by name
+            for scenario in scenarios:
+                name = scenario.get('name', 'Unknown')
+                if name not in name_groups:
+                    name_groups[name] = []
+                name_groups[name].append(scenario)
+            
+            # Find duplicates and clean them up
+            cleaned_count = 0
+            for name, scenario_list in name_groups.items():
+                if len(scenario_list) > 1:
+                    # Sort by updated_at (most recent first)
+                    scenario_list.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+                    
+                    # Keep the first (most recent) one, delete the rest
+                    for scenario in scenario_list[1:]:
+                        scenario_id = scenario.get('id')
+                        if scenario_id:
+                            logger.info(f"Deleting duplicate scenario: {scenario_id} (name: {name})")
+                            if self.storage_service.delete_scenario(scenario_id):
+                                cleaned_count += 1
+                            else:
+                                logger.error(f"Failed to delete duplicate scenario: {scenario_id}")
+            
+            return {
+                "duplicates_found": sum(len(scenarios) - 1 for scenarios in name_groups.values() if len(scenarios) > 1),
+                "duplicates_cleaned": cleaned_count,
+                "unique_names": len(name_groups)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up duplicate scenarios: {e}")
+            return {"error": str(e)}
 
     def get_scenario(self, scenario_id: str) -> Optional[dict]:
         """
@@ -134,7 +207,7 @@ class ScenarioService:
         try:
             scenarios = self.storage_service.list_scenarios()
             for scenario in scenarios:
-                if scenario.name == name and (exclude_id is None or scenario.id != exclude_id):
+                if scenario.get('name') == name and (exclude_id is None or scenario.get('id') != exclude_id):
                     return True
             return False
         except Exception as e:
@@ -153,7 +226,8 @@ class ScenarioService:
                 self.logger.error("Scenario not found in storage", correlation_id=correlation_id, extra={"scenario_id": request.scenario_id})
                 raise ValueError(f"Scenario not found: {request.scenario_id}")
             scenario_def = scenario
-            self.logger.info("Scenario loaded from storage", correlation_id=correlation_id, extra={"scenario_name": scenario_def.name})
+            scenario_name = scenario_def.name if hasattr(scenario_def, 'name') else scenario_def.get('name', 'Unknown')
+            self.logger.info("Scenario loaded from storage", correlation_id=correlation_id, extra={"scenario_name": scenario_name})
         elif not scenario_def:
             self.logger.error("No scenario definition provided", correlation_id=correlation_id)
             raise ValueError("No scenario definition provided")
@@ -164,7 +238,8 @@ class ScenarioService:
         Validate scenario definition and optionally resolved data.
         Raises ValueError if validation fails.
         """
-        self.logger.info("Validating scenario definition", correlation_id=correlation_id, extra={"scenario_name": scenario_def.name})
+        scenario_name = scenario_def.name if hasattr(scenario_def, 'name') else scenario_def.get('name', 'Unknown')
+        self.logger.info("Validating scenario definition", correlation_id=correlation_id, extra={"scenario_name": scenario_name})
         self.scenario_validator.validate_scenario_definition(scenario_def)
         self.logger.info("Scenario definition validation passed", correlation_id=correlation_id)
         if resolved_data is not None:
@@ -184,7 +259,7 @@ class ScenarioService:
             'time_range': scenario_def.time_range,
             'office_scope': scenario_def.office_scope,
             'levers': scenario_def.levers.model_dump() if hasattr(scenario_def.levers, 'model_dump') else scenario_def.levers,
-            'baseline_input': scenario_def.baseline_input.model_dump() if hasattr(scenario_def.baseline_input, 'model_dump') else scenario_def.baseline_input,
+            'baseline_input': scenario_def.baseline_input.model_dump() if scenario_def.baseline_input and hasattr(scenario_def.baseline_input, 'model_dump') else (scenario_def.baseline_input or {}),
             'progression_config': scenario_def.progression_config.model_dump() if hasattr(scenario_def.progression_config, 'model_dump') else scenario_def.progression_config,
             'cat_curves': scenario_def.cat_curves.model_dump() if hasattr(scenario_def.cat_curves, 'model_dump') else scenario_def.cat_curves
         })
@@ -228,9 +303,10 @@ class ScenarioService:
         if not request.scenario_id:
             scenario_def.id = scenario_id
             self.storage_service.create_scenario(scenario_def)
+            scenario_name = scenario_def.name if hasattr(scenario_def, 'name') else scenario_def.get('name', 'Unknown')
             self.logger.info("Created new scenario definition", correlation_id=correlation_id, extra={
                 "scenario_id": scenario_id,
-                "scenario_name": scenario_def.name
+                "scenario_name": scenario_name
             })
         self.storage_service.save_scenario_results(scenario_id, results)
         self.logger.info("Scenario results saved", correlation_id=correlation_id, extra={
@@ -304,25 +380,29 @@ class ScenarioService:
             execution_time = (datetime.now() - start_time).total_seconds()
             scenario_id = self._persist_scenario_results(request, scenario_def, results, execution_time, correlation_id=correlation_id)
             # 6. Return response
+            scenario_name = scenario_def.name if hasattr(scenario_def, 'name') else scenario_def.get('name', 'Unknown')
             return ScenarioResponse(
                 scenario_id=scenario_id,
-                scenario_name=scenario_def.name,
+                scenario_name=scenario_name,
                 execution_time=execution_time,
                 results=results,
                 status="success"
             )
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
+            scenario_name = ""
+            if request.scenario_definition:
+                scenario_name = request.scenario_definition.name if hasattr(request.scenario_definition, 'name') else request.scenario_definition.get('name', 'Unknown')
             self.logger.error(f"Error running scenario: {e}", correlation_id=correlation_id, extra={
                 "execution_time": execution_time,
                 "scenario_id": request.scenario_id or "",
-                "scenario_name": request.scenario_definition.name if request.scenario_definition else ""
+                "scenario_name": scenario_name
             })
             return ScenarioResponse(
                 status="error",
                 error_message=str(e),
                 scenario_id=request.scenario_id or "",
-                scenario_name=request.scenario_definition.name if request.scenario_definition else "",
+                scenario_name=scenario_name,
                 execution_time=execution_time,
                 results={}
             )
@@ -375,6 +455,55 @@ class ScenarioService:
             
             # Transform results to serializable format
             final_results = self.scenario_transformer.transform_results_to_serializable(results, correlation_id)
+            
+            # Calculate KPIs for the simulation results
+            try:
+                from .kpi.kpi_service import KPIService
+                kpi_service = KPIService(economic_params)
+                
+                # Calculate simulation duration in months
+                simulation_duration_months = ((end_year - start_year) * 12) + (end_month - start_month + 1)
+                
+                # Calculate KPIs
+                kpi_results = kpi_service.calculate_all_kpis(
+                    final_results,
+                    simulation_duration_months,
+                    economic_params
+                )
+                
+                # Convert dataclasses to dicts for JSON serialization
+                def to_dict(data):
+                    if hasattr(data, '__dataclass_fields__'):
+                        return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
+                    elif isinstance(data, dict):
+                        return {k: to_dict(v) for k, v in data.items()}
+                    elif isinstance(data, list):
+                        return [to_dict(i) for i in data]
+                    else:
+                        return data
+                
+                # Add KPIs to final results - but preserve the 'years' structure
+                # The simulation engine already returns {'years': yearly_results}
+                # We need to add year-specific KPIs to each year's data, not the same KPIs
+                if 'years' in final_results:
+                    for year_key, year_data in final_results['years'].items():
+                        if isinstance(year_data, dict):
+                            # Use year-specific KPIs from yearly_kpis dictionary
+                            if hasattr(kpi_results, 'yearly_kpis') and year_key in kpi_results.yearly_kpis:
+                                year_data['kpis'] = to_dict(kpi_results.yearly_kpis[year_key])
+                            else:
+                                # Fallback to main KPIs if year-specific not found
+                                year_data['kpis'] = to_dict(kpi_results)
+                
+                self.logger.info("KPI calculation completed successfully", correlation_id=correlation_id)
+                
+            except Exception as e:
+                self.logger.warning(f"KPI calculation failed: {e}", correlation_id=correlation_id)
+                # If KPI calculation fails, still preserve the years structure
+                if 'years' in final_results:
+                    for year_key, year_data in final_results['years'].items():
+                        if isinstance(year_data, dict):
+                            year_data['kpis'] = {}
             
             self.logger.info(f"Simulation completed successfully for scenario: {scenario_def.name}", correlation_id=correlation_id)
             return final_results

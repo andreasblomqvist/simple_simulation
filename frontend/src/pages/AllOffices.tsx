@@ -1,43 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Card, Select, Typography, Collapse, Row, Col, Tag } from 'antd';
+import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 interface Office {
+  id: string;
   name: string;
   total_fte: number;
   journey: string;
-  levels: {
-    [key: string]: {
-      total: number;
-      price: number;
-      salary: number;
-    };
+  roles: Record<string, Record<string, any>>;
+  economic_parameters?: {
+    cost_of_living: number;
+    market_multiplier: number;
+    tax_rate: number;
   };
-  operations: {
-    total: number;
-    price: number;
-    salary: number;
-  };
-  metrics: {
-    journey_percentages: { [key: string]: number };
-    non_debit_ratio: number | null;
-    growth: number;
-    recruitment: number;
-    churn: number;
-  }[];
 }
 
-export default function AllOffices() {
+export function AllOffices() {
+  const navigate = useNavigate();
   const [offices, setOffices] = useState<Office[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/offices/config')
+    fetch('/api/offices')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch offices');
         return res.json();
@@ -53,18 +43,30 @@ export default function AllOffices() {
       });
   }, []);
 
-  const calculateDelta = (office: Office) => {
-    if (!office.metrics || office.metrics.length < 2) return 0;
-    const current = office.metrics[office.metrics.length - 1];
-    return current.growth;
-  };
-
   const columns = [
     {
       title: 'Office',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string) => <Text strong>{text}</Text>,
+      render: (text: string, record: Office) => (
+        <Text 
+          strong 
+          style={{ 
+            cursor: 'pointer', 
+            color: '#1890ff',
+            textDecoration: 'underline'
+          }}
+          onClick={() => navigate(`/offices/${record.id}`)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#40a9ff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#1890ff';
+          }}
+        >
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Journey',
@@ -78,27 +80,19 @@ export default function AllOffices() {
       key: 'total_fte',
     },
     {
-      title: 'Delta',
-      key: 'delta',
+      title: 'Cost of Living',
+      key: 'cost_of_living',
       render: (_: any, office: Office) => {
-        const delta = calculateDelta(office);
-        return <span style={{ color: delta > 0 ? '#52c41a' : delta < 0 ? '#ff4d4f' : '#bfbfbf' }}>{delta > 0 ? '+' : ''}{delta}</span>;
+        const col = office.economic_parameters?.cost_of_living;
+        return col ? col.toFixed(2) : 'N/A';
       },
     },
     {
-      title: 'Growth %',
-      key: 'growth',
+      title: 'Market Multiplier',
+      key: 'market_multiplier',
       render: (_: any, office: Office) => {
-        const growth = office.metrics?.[office.metrics.length - 1]?.growth || 0;
-        return <span style={{ color: growth > 0 ? '#52c41a' : growth < 0 ? '#ff4d4f' : '#bfbfbf' }}>{growth > 0 ? '+' : ''}{growth.toFixed(1)}%</span>;
-      },
-    },
-    {
-      title: 'Non-Debit Ratio',
-      key: 'ndr',
-      render: (_: any, office: Office) => {
-        const ndr = office.metrics?.[office.metrics.length - 1]?.non_debit_ratio;
-        return ndr !== null && ndr !== undefined ? ndr.toFixed(2) : 'N/A';
+        const mm = office.economic_parameters?.market_multiplier;
+        return mm ? mm.toFixed(2) : 'N/A';
       },
     },
   ];
@@ -120,27 +114,32 @@ export default function AllOffices() {
         columns={columns}
         dataSource={offices}
         loading={loading}
-        rowKey="name"
+        rowKey="id"
         expandable={{
           expandedRowRender: (office: Office) => (
             <div>
-              <Title level={5} style={{ marginBottom: 8 }}>Level Breakdown</Title>
+              <Title level={5} style={{ marginBottom: 8 }}>Role Breakdown</Title>
               <Row gutter={16} style={{ marginBottom: 8 }}>
-                {Object.entries(office.levels).map(([level, data]) => (
-                  <Col key={level} span={4}>
+                {Object.entries(office.roles).map(([role, levels]) => (
+                  <Col key={role} span={8}>
                     <Card size="small" style={{ marginBottom: 8 }}>
-                      <Text strong>{level}</Text>: <Text>{data.total} FTE</Text>
+                      <Text strong>{role}</Text>
+                      <div>
+                        {Object.entries(levels).map(([level, data]) => (
+                          <div key={level}>
+                            <Text>{level}: {data.fte || 0} FTE</Text>
+                          </div>
+                        ))}
+                      </div>
                     </Card>
                   </Col>
                 ))}
               </Row>
-              <Title level={5} style={{ marginBottom: 8 }}>Operations</Title>
-              <Text>Total: {office.operations.total} FTE</Text>
             </div>
           ),
           expandedRowKeys,
           onExpand: (expanded, record) => {
-            setExpandedRowKeys(expanded ? [record.name] : []);
+            setExpandedRowKeys(expanded ? [record.id] : []);
           },
         }}
         pagination={{ pageSize: 8 }}

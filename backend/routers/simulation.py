@@ -91,36 +91,45 @@ async def run_simulation(request: Request):
     if not engine:
         raise HTTPException(status_code=500, detail="Simulation engine not initialized")
     
+    # Set default values for missing economic parameters
+    price_increase = data.get('price_increase', 0.0)
+    salary_increase = data.get('salary_increase', 0.0)
+    unplanned_absence = data.get('unplanned_absence', 0.05)
+    hy_working_hours = data.get('hy_working_hours', 166.4)
+    other_expense = data.get('other_expense', 19000000.0)
+    employment_cost_rate = data.get('employment_cost_rate', 0.40)
+    office_overrides = data.get('office_overrides', {})
+    
     # Validate and convert parameters
-    if data['price_increase'] is not None:
-        if not isinstance(data['price_increase'], (int, float)):
+    if price_increase is not None:
+        if not isinstance(price_increase, (int, float)):
             raise HTTPException(status_code=400, detail="price_increase must be a number")
-        if data['price_increase'] < 0 or data['price_increase'] > 1:
+        if price_increase < 0 or price_increase > 1:
             raise HTTPException(status_code=400, detail="price_increase must be between 0 and 1")
     
-    if data['salary_increase'] is not None:
-        if not isinstance(data['salary_increase'], (int, float)):
+    if salary_increase is not None:
+        if not isinstance(salary_increase, (int, float)):
             raise HTTPException(status_code=400, detail="salary_increase must be a number")
-        if data['salary_increase'] < 0 or data['salary_increase'] > 1:
+        if salary_increase < 0 or salary_increase > 1:
             raise HTTPException(status_code=400, detail="salary_increase must be between 0 and 1")
     
     print(f"\n🚀 [SIMULATION] =================== NEW SIMULATION RUN ===================")
     print(f"[SIMULATION] 📅 Timeframe: {data['start_year']}-{data['start_month']:02d} to {data['end_year']}-{data['end_month']:02d}")
     print(f"[SIMULATION] 📊 Economic Parameters:")
-    print(f"[SIMULATION]   💰 Price Increase: {data['price_increase']:.1%}")
-    print(f"[SIMULATION]   💵 Salary Increase: {data['salary_increase']:.1%}")
-    print(f"[SIMULATION]   🕒 Working Hours/Month: {data['hy_working_hours']}")
-    print(f"[SIMULATION]   😴 Unplanned Absence: {data['unplanned_absence']:.1%}")
-    print(f"[SIMULATION]   🏭 Employment Cost Rate: {data['employment_cost_rate']:.1%}")
-    print(f"[SIMULATION]   📋 Other Expense: {data['other_expense']:,} SEK/month")
+    print(f"[SIMULATION]   💰 Price Increase: {price_increase:.1%}")
+    print(f"[SIMULATION]   💵 Salary Increase: {salary_increase:.1%}")
+    print(f"[SIMULATION]   🕒 Working Hours/Month: {hy_working_hours}")
+    print(f"[SIMULATION]   😴 Unplanned Absence: {unplanned_absence:.1%}")
+    print(f"[SIMULATION]   🏭 Employment Cost Rate: {employment_cost_rate:.1%}")
+    print(f"[SIMULATION]   📋 Other Expense: {other_expense:,} SEK/month")
     
     # Parse office overrides (lever plan)
     lever_plan = None
-    if data['office_overrides']:
+    if office_overrides:
         office_levers = {}
         total_overrides = 0
         print(f"[SIMULATION] 🎛️  Office Overrides Applied:")
-        for office_name, office_lever_data in data['office_overrides'].items():
+        for office_name, office_lever_data in office_overrides.items():
             office_levers[office_name] = {}
             office_override_count = 0
             for lever_key, lever_value in office_lever_data.items():
@@ -169,30 +178,38 @@ async def run_simulation(request: Request):
         economic_params = EconomicParameters.from_simulation_request(data)
         print(f"[SIMULATION] Economic parameters created: {economic_params}")
         
-        # Use ScenarioService to resolve scenario data and run simulation
-        print(f"🔄 [SIMULATION] Resolving scenario data using ScenarioService...")
+        # Bypass scenario service and use direct simulation approach
+        print(f"🔄 [SIMULATION] Using direct simulation approach (bypassing scenario service)...")
         try:
-            # Resolve scenario data (offices, progression rules, etc.)
-            scenario_data = scenario_service.resolve_scenario(
-                baseline_inputs={
-                    'price_increase': data['price_increase'],
-                    'salary_increase': data['salary_increase']
-                },
-                lever_plan=lever_plan
-            )
+            # Get offices directly from config service
+            offices_config = config_service.get_config()
+            print(f"✅ [SIMULATION] Loaded {len(offices_config)} offices from config service")
             
-            offices = scenario_data['offices']
-            progression_config = scenario_data['progression_config']
-            cat_curves = scenario_data['cat_curves']
+            # Convert config data to Office objects
+            from src.services.simulation.office_manager import OfficeManager
+            office_manager = OfficeManager()
+            # Convert dict to list format expected by create_offices_from_data
+            offices_list = [{"name": name, **config} for name, config in offices_config.items()]
             
-            print(f"✅ [SIMULATION] Scenario data resolved successfully")
+            # Use default progression config and CAT curves
+            progression_config = PROGRESSION_CONFIG
+            cat_curves = CAT_CURVES
+            print(f"✅ [SIMULATION] Using default progression config and CAT curves")
+            
+            offices = office_manager.create_offices_from_data(offices_list, progression_config)
+            print(f"✅ [SIMULATION] Created {len(offices)} Office objects")
+            
+            # Apply office overrides if provided
+            if lever_plan and lever_plan.get('offices'):
+                print(f"🔄 [SIMULATION] Applying office overrides...")
+                office_manager.apply_levers_to_offices(offices, lever_plan['offices'])
+                print(f"✅ [SIMULATION] Office overrides applied")
+            
+            print(f"✅ [SIMULATION] Direct simulation setup completed")
             print(f"[SIMULATION] Offices: {list(offices.keys())}")
             print(f"[SIMULATION] Progression levels: {list(progression_config.keys())}")
             
-            # After resolving scenario and before calling the engine:
-            print("[DEBUG] Final config sent to simulation engine:", scenario_data)
-            
-            # Run the simulation using the new pure function approach
+            # Run simulation using the direct method
             results = engine.run_simulation_with_offices(
                 start_year=data['start_year'],
                 start_month=data['start_month'],
@@ -201,80 +218,54 @@ async def run_simulation(request: Request):
                 offices=offices,
                 progression_config=progression_config,
                 cat_curves=cat_curves,
-                price_increase=data['price_increase'],
-                salary_increase=data['salary_increase'],
                 economic_params=economic_params
             )
             
-        except Exception as e:
-            print(f"❌ [SIMULATION] Scenario resolution failed: {e}")
-            # Fallback to old method for backward compatibility
-            print(f"🔄 [SIMULATION] Falling back to legacy simulation method...")
-            results = engine.run_simulation(
-                start_year=data['start_year'],
-                start_month=data['start_month'],
-                end_year=data['end_year'],
-                end_month=data['end_month'],
-                price_increase=data['price_increase'],
-                salary_increase=data['salary_increase'],
-                lever_plan=lever_plan,
-                economic_params=economic_params
-            )
-        
-        # Calculate simulation duration in months
-        start_date = datetime(data['start_year'], data['start_month'], 1)
-        end_date = datetime(data['end_year'], data['end_month'], 1)
-        simulation_duration_months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
-        
-        # Calculate KPIs using the KPI service (separation of concerns)
-        try:
-            kpi_service = KPIService(economic_params=economic_params)
+            print(f"✅ [SIMULATION] Simulation completed successfully")
             
-            # Calculate KPIs for the simulation
-            kpi_results = kpi_service.calculate_all_kpis(
-                results,
+            # Calculate KPIs
+            simulation_duration_months = ((data['end_year'] - data['start_year']) * 12) + (data['end_month'] - data['start_month'] + 1)
+            kpi_results = engine.calculate_kpis_for_simulation(
+                results, 
                 simulation_duration_months,
-                economic_params=economic_params
+                unplanned_absence=unplanned_absence,
+                other_expense=other_expense
             )
             
-            # Convert dataclasses to dicts for JSON serialization
-            def to_dict(data):
-                if hasattr(data, '__dataclass_fields__'):
-                    return {k: to_dict(getattr(data, k)) for k in data.__dataclass_fields__}
-                elif isinstance(data, dict):
-                    return {k: to_dict(v) for k, v in data.items()}
-                elif isinstance(data, list):
-                    return [to_dict(i) for i in data]
-                else:
-                    return data
+            # Combine results
+            final_results = {
+                "simulation_results": results,
+                "kpi_results": kpi_results,
+                "simulation_metadata": {
+                    "start_year": data['start_year'],
+                    "start_month": data['start_month'],
+                    "end_year": data['end_year'],
+                    "end_month": data['end_month'],
+                    "price_increase": price_increase,
+                    "salary_increase": salary_increase,
+                    "unplanned_absence": unplanned_absence,
+                    "hy_working_hours": hy_working_hours,
+                    "other_expense": other_expense,
+                    "employment_cost_rate": employment_cost_rate,
+                    "office_overrides": office_overrides
+                }
+            }
             
-            results['kpis'] = to_dict(kpi_results)
-            print(f"✅ [SIMULATION] KPIs calculated successfully")
+            print(f"✅ [SIMULATION] KPI calculation completed")
+            print(f"✅ [SIMULATION] Final results prepared")
+            
+            return final_results
             
         except Exception as e:
-            print(f"❌ [SIMULATION] KPI calculation failed: {e}")
-            results['kpis'] = None
-        
-        print(f"✅ [SIMULATION] Completed successfully! Duration: {simulation_duration_months} months")
-        print(f"[SIMULATION] Years in results: {list(results['years'].keys())}")
-        print(f"[SIMULATION] =================== SIMULATION COMPLETE ===================\n")
-        
-        # Save results to file and get filename
-        result_filename = _save_simulation_results_to_file(results)
-        
-        # Add filename to response if available
-        if result_filename:
-            results['result_file'] = result_filename
-            print(f"📁 [SIMULATION] Result file: {result_filename}")
-        else:
-            results['result_file'] = None
-            print(f"⚠️ [SIMULATION] Could not save result file")
-        
-        return results
-    
+            print(f"❌ [SIMULATION] Error in direct simulation approach: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+            
     except Exception as e:
-        print(f"❌ [SIMULATION] Failed with error: {str(e)}")
-        print(f"[SIMULATION] =================== SIMULATION FAILED ===================\n")
+        print(f"❌ [SIMULATION] Error in simulation run: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 @router.post("/year/{year}")
@@ -522,13 +513,20 @@ def export_simulation_to_excel(params: SimulationRequest):
         print(f"🔄 [EXPORT] Resolving scenario data using ScenarioService...")
         try:
             # Resolve scenario data (offices, progression rules, etc.)
-            scenario_data = scenario_service.resolve_scenario(
-                baseline_inputs={
+            scenario_data = scenario_service.resolve_scenario({
+                'baseline_input': {
                     'price_increase': params.price_increase,
                     'salary_increase': params.salary_increase
                 },
-                lever_plan=lever_plan
-            )
+                'levers': lever_plan.get('offices', {}) if lever_plan else {},
+                'office_scope': ['Group'],  # Default to all offices
+                'time_range': {
+                    'start_year': params.start_year,
+                    'start_month': params.start_month,
+                    'end_year': params.end_year,
+                    'end_month': params.end_month
+                }
+            })
             
             offices = scenario_data['offices']
             progression_config = scenario_data['progression_config']
@@ -740,13 +738,20 @@ def export_simulation_to_json(params: SimulationRequest, scenario_metadata: Opti
         print(f"🔄 [JSON EXPORT] Resolving scenario data using ScenarioService...")
         try:
             # Resolve scenario data (offices, progression rules, etc.)
-            scenario_data = scenario_service.resolve_scenario(
-                baseline_inputs={
+            scenario_data = scenario_service.resolve_scenario({
+                'baseline_input': {
                     'price_increase': params.price_increase,
                     'salary_increase': params.salary_increase
                 },
-                lever_plan=lever_plan
-            )
+                'levers': lever_plan.get('offices', {}) if lever_plan else {},
+                'office_scope': ['Group'],  # Default to all offices
+                'time_range': {
+                    'start_year': params.start_year,
+                    'start_month': params.start_month,
+                    'end_year': params.end_year,
+                    'end_month': params.end_month
+                }
+            })
             
             offices = scenario_data['offices']
             progression_config = scenario_data['progression_config']

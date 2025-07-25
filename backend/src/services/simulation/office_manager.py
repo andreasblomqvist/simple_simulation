@@ -39,6 +39,9 @@ class OfficeManager:
         for role_name, role_data in office_config.get('roles', {}).items():
             if role_name == 'Operations':
                 op_fte = role_data.get('fte', 0)
+                # Handle null/None FTE values
+                if op_fte is None:
+                    op_fte = 0
                 operations_role = RoleData()
                 for i in range(1, 13):
                     salary = role_data.get(f'salary_{i}', role_data.get('salary', 40000.0))
@@ -56,7 +59,8 @@ class OfficeManager:
                 for level_name, level_config in role_data.items():
                     journey_name = self.get_journey_for_level(level_name)
                     level_attributes = {}
-                    for key in ['progression', 'recruitment', 'churn', 'price', 'salary', 'utr']:
+                    # Only include fields that the Level constructor accepts
+                    for key in ['price', 'salary', 'utr']:
                         for i in range(1, 13):
                             monthly_key = f'{key}_{i}'
                             if monthly_key in level_config:
@@ -64,6 +68,23 @@ class OfficeManager:
                             else:
                                 default_value = level_config.get(key, 0.0)
                                 level_attributes[monthly_key] = default_value
+                    
+                    # Handle recruitment and churn as absolute values
+                    for key in ['recruitment', 'churn']:
+                        for i in range(1, 13):
+                            abs_key = f'{key}_abs_{i}'
+                            if abs_key in level_config:
+                                level_attributes[abs_key] = level_config[abs_key]
+                            else:
+                                # Convert percentage to absolute if needed
+                                percentage_key = f'{key}_{i}'
+                                if percentage_key in level_config:
+                                    # This is a percentage, convert to absolute based on FTE
+                                    fte = level_config.get('fte', 0)
+                                    percentage = level_config[percentage_key]
+                                    level_attributes[abs_key] = (fte * percentage / 100) if percentage else None
+                                else:
+                                    level_attributes[abs_key] = None
                     # Use progression_months from passed progression_config
                     progression_months = progression_config.get(level_name, {}).get('progression_months', [1])
                     level = Level(
@@ -73,6 +94,9 @@ class OfficeManager:
                         **level_attributes
                     )
                     level_fte = level_config.get('fte', 0)
+                    # Handle null/None FTE values
+                    if level_fte is None:
+                        level_fte = 0
                     
                     # Realistic initialization for leveled roles
                     self._initialize_realistic_people(level, int(level_fte), role_name, office_name, "2025-01")

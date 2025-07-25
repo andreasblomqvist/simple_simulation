@@ -16,6 +16,11 @@ from .unified_data_models import (
 # Use the unified ScenarioDefinition as the base, with backward compatibility
 ScenarioDefinition = UnifiedScenarioDefinition
 
+class ValidationResponse(BaseModel):
+    """Response from scenario validation."""
+    valid: bool = Field(..., description="Whether the scenario is valid")
+    errors: List[str] = Field(default_factory=list, description="List of validation errors")
+
 class LegacyScenarioDefinition(BaseModel):
     """Legacy scenario definition for backward compatibility"""
     id: Optional[str] = Field(None, description="Unique scenario identifier")

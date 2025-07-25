@@ -1,0 +1,99 @@
+/**
+ * Business Planning Styles
+ * 
+ * Styles for professional business planning interface
+ */
+
+.business-planning-v2 {
+  /* Main container styles */
+  max-width: 100%;
+  padding: 1rem;
+}
+
+.planacy-style-grid {
+  /* Grid container styles */
+  overflow-x: auto;
+}
+
+.planacy-style-grid table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.875rem;
+}
+
+.planacy-style-grid th,
+.planacy-style-grid td {
+  border: 1px solid hsl(var(--border));
+  text-align: center;
+  vertical-align: middle;
+}
+
+.planacy-style-grid th {
+  background-color: hsl(var(--muted) / 0.5);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.planacy-style-grid tbody tr:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.planacy-style-grid .planning-cell {
+  position: relative;
+  min-width: 100px;
+  height: 40px;
+}
+
+.planacy-style-grid .planning-cell:focus-within {
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
+}
+
+.planacy-style-grid .planning-cell.dirty {
+  background-color: hsl(var(--yellow-50));
+  border-color: hsl(var(--yellow-200));
+}
+
+.planacy-style-grid .planning-cell.selected {
+  background-color: hsl(var(--blue-50));
+  border-color: hsl(var(--blue-200));
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .planacy-style-grid .planning-cell.dirty {
+    background-color: hsl(var(--yellow-950) / 0.2);
+    border-color: hsl(var(--yellow-800));
+  }
+
+  .planacy-style-grid .planning-cell.selected {
+    background-color: hsl(var(--blue-950) / 0.2);
+    border-color: hsl(var(--blue-800));
+  }
+}
+
+/* Loading states */
+.business-planning-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .business-planning-v2 {
+    padding: 0.5rem;
+  }
+  
+  .planacy-style-grid table {
+    font-size: 0.75rem;
+  }
+  
+  .planacy-style-grid th,
+  .planacy-style-grid td {
+    min-width: 80px;
+    padding: 0.5rem;
+  }
+}

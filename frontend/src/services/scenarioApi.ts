@@ -18,7 +18,7 @@ import type {
   ScenarioComparisonResponse,
 } from '../types/unified-data-structures';
 
-const API_BASE = '/api/scenarios';
+const API_BASE = 'http://localhost:8000/scenarios';
 
 class ScenarioApiService {
   private correlationId: string | null = null;
@@ -212,6 +212,7 @@ class ScenarioApiService {
       scenario_definition: scenario,
       office_scope: officeScope,
     };
+    console.log('DEBUG: Sending scenario request to API:', JSON.stringify(request, null, 2));
     return this.runScenario(request);
   }
 
@@ -252,25 +253,29 @@ class ScenarioApiService {
    * Get available offices for scenario scope
    */
   async getAvailableOffices(): Promise<OfficeName[]> {
-    // This would typically come from a configuration endpoint
-    // For now, return a hardcoded list based on the backend config
-    return [
-      'Stockholm',
-      'Munich',
-      'Amsterdam',
-      'Berlin',
-      'Copenhagen',
-      'Frankfurt',
-      'Hamburg',
-      'Helsinki',
-      'Oslo',
-      'Zurich',
-      'Colombia',
-      'Group'
-    ];
+    try {
+      const response = await fetch('http://localhost:8000/offices');
+      const offices = await response.json();
+      return offices.map((office: any) => office.name);
+    } catch (error) {
+      console.warn('Failed to fetch offices from API, using fallback list:', error);
+      // Fallback to hardcoded list
+      return [
+        'Stockholm',
+        'Munich',
+        'Amsterdam',
+        'Berlin',
+        'Copenhagen',
+        'Frankfurt',
+        'Hamburg',
+        'Helsinki',
+        'Oslo',
+        'Zurich',
+        'Colombia',
+        'Group'
+      ];
+    }
   }
-
-
 
   /**
    * Export scenario results to Excel
@@ -303,10 +308,19 @@ class ScenarioApiService {
   }
 
   /**
+   * Get scenario results by ID
+   */
+  async getScenarioResults(scenarioId: ScenarioId): Promise<SimulationResults> {
+    const response = await this.request<{results: SimulationResults}>(`/${scenarioId}/results`);
+    return response.results;
+  }
+
+  /**
    * Get baseline simulation results
    */
   async getBaselineResults(): Promise<SimulationResults> {
-    return this.request<SimulationResults>('/baseline-results');
+    const response = await this.request<{results: SimulationResults}>('/baseline-results');
+    return response.results;
   }
 }
 

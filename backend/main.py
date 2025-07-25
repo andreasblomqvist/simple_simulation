@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from src.services.simulation_engine import SimulationEngine
-from routers import simulation, offices, health, scenarios
+from routers import simulation, offices, health, scenarios, business_plans
 from src.routes import mcp_routes
 import os
 import logging
@@ -118,6 +118,7 @@ app.include_router(health.router)
 app.include_router(simulation.router)
 app.include_router(offices.router)
 app.include_router(scenarios.router)
+app.include_router(business_plans.router)
 app.include_router(mcp_routes.router)
 
 # Legacy endpoint for backward compatibility
@@ -130,17 +131,4 @@ def legacy_simulate(req: simulation.SimulationRequest):
         logger.debug(f"Office override keys: {list(req.office_overrides.keys())}")
     return simulation.run_simulation(req)
 
-@app.get("/offices")
-def legacy_offices():
-    """Legacy offices endpoint for backward compatibility"""
-    return offices.list_offices()
-
-@app.get("/offices/config")
-def legacy_offices_config():
-    """Legacy offices config endpoint for backward compatibility"""
-    return offices.get_office_config()
-
-@app.post("/import-office-levers")
-async def legacy_import(file: UploadFile = File(...)):
-    """Legacy import endpoint for backward compatibility"""
-    return await offices.import_office_levers(file) 
+# Legacy office endpoints removed - now handled by offices router 

@@ -81,7 +81,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
 
   if (loadingOffices) {
     return (
-      <div style={{ padding: '50px 0' }}>
+      <div style={{ padding: '20px 0' }}>
         <div style={{ textAlign: 'center' }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>Loading available offices...</div>
@@ -92,7 +92,6 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
 
   return (
     <div>
-      <Title level={4} style={{ margin: 0, marginBottom: 24 }}>Create New Scenario</Title>
       <Form
         form={form}
         layout="vertical"
@@ -123,12 +122,12 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
           <TextArea rows={2} placeholder="Describe the scenario (optional)" />
         </Form.Item>
         
-        <Space style={{ display: 'flex', marginBottom: 16 }}>
+        <Space style={{ display: 'flex', marginBottom: 12 }}>
           <Form.Item
             label="Start Year"
             name="startYear"
             rules={[{ required: true, message: 'Start year required' }]}
-            style={{ marginRight: 16 }}
+            style={{ marginRight: 12 }}
           >
             <Input type="number" min={2020} max={2100} style={{ width: 100 }} />
           </Form.Item>
@@ -136,7 +135,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
             label="Start Month"
             name="startMonth"
             rules={[{ required: true, message: 'Start month required' }]}
-            style={{ marginRight: 16 }}
+            style={{ marginRight: 12 }}
           >
             <Select style={{ width: 100 }}>
               {Array.from({ length: 12 }, (_, i) => (
@@ -148,7 +147,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
             label="End Year"
             name="endYear"
             rules={[{ required: true, message: 'End year required' }]}
-            style={{ marginRight: 16 }}
+            style={{ marginRight: 12 }}
           >
             <Input type="number" min={2020} max={2100} style={{ width: 100 }} />
           </Form.Item>
@@ -189,7 +188,7 @@ const ScenarioCreationForm: React.FC<ScenarioCreationFormProps> = ({ scenario, o
           </Form.Item>
         )}
         
-        <Form.Item style={{ marginTop: 24 }}>
+        <Form.Item style={{ marginTop: 16 }}>
           <Button onClick={onBack} style={{ marginRight: 8 }}>Back</Button>
           <Button type="primary" htmlType="submit" loading={loading}>
             Next: Configure Baseline Input

@@ -15,7 +15,8 @@ from src.services.scenario_models import (
     ScenarioRequest,
     ScenarioResponse,
     ScenarioListResponse,
-    ScenarioComparisonRequest
+    ScenarioComparisonRequest,
+    ValidationResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,34 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Service unhealthy: {str(e)}")
+
+@router.post("/validate", response_model=ValidationResponse)
+async def validate_scenario(scenario_def: ScenarioDefinition):
+    """Validate a scenario definition without creating it."""
+    try:
+        # Validate the scenario definition
+        scenario_service.scenario_validator.validate_scenario_definition(scenario_def)
+        
+        # Check if scenario name already exists (for new scenarios)
+        if hasattr(scenario_def, 'id') and scenario_def.id:
+            # This is an update, check name conflicts excluding current scenario
+            if scenario_service.scenario_name_exists(scenario_def.name, exclude_id=scenario_def.id):
+                return ValidationResponse(
+                    valid=False,
+                    errors=[f"Scenario with name '{scenario_def.name}' already exists. Please choose a different name."]
+                )
+        else:
+            # This is a new scenario, check if name exists
+            if scenario_service.scenario_name_exists(scenario_def.name):
+                return ValidationResponse(
+                    valid=False,
+                    errors=[f"Scenario with name '{scenario_def.name}' already exists. Please choose a different name."]
+                )
+        
+        return ValidationResponse(valid=True, errors=[])
+    except Exception as e:
+        logger.error(f"Error validating scenario: {e}")
+        return ValidationResponse(valid=False, errors=[str(e)])
 
 @router.post("/create", response_model=dict)
 async def create_scenario(scenario_def: ScenarioDefinition):
@@ -156,14 +185,39 @@ async def get_scenario(scenario_id: str):
 async def update_scenario(scenario_id: str, scenario_def: ScenarioDefinition):
     """Update an existing scenario definition."""
     try:
+        # Add debugging logs
+        logger.info(f"[DEBUG] PUT /scenarios/{scenario_id} called")
+        logger.info(f"[DEBUG] Scenario ID from URL: {scenario_id}")
+        logger.info(f"[DEBUG] Scenario definition name: {scenario_def.name}")
+        logger.info(f"[DEBUG] Scenario definition ID: {getattr(scenario_def, 'id', 'None')}")
+        
         # Validate scenario ID
         if not scenario_id or scenario_id in ['undefined', 'null']:
+            logger.error(f"[DEBUG] Invalid scenario ID: {scenario_id}")
             raise HTTPException(status_code=400, detail=f"Invalid scenario ID: {scenario_id}")
+        
+        # Check if scenario exists before updating
+        existing_scenario = scenario_service.get_scenario(scenario_id)
+        if not existing_scenario:
+            logger.error(f"[DEBUG] Scenario not found: {scenario_id}")
+            raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
+        
+        logger.info(f"[DEBUG] Found existing scenario: {existing_scenario.get('name', 'Unknown')}")
+        
+        # Check if the new name conflicts with another scenario (excluding the current one)
+        if scenario_service.scenario_name_exists(scenario_def.name, exclude_id=scenario_id):
+            logger.error(f"[DEBUG] Name conflict: {scenario_def.name} already exists")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Scenario with name '{scenario_def.name}' already exists. Please choose a different name."
+            )
         
         success = scenario_service.update_scenario(scenario_id, scenario_def)
         if not success:
+            logger.error(f"[DEBUG] Update failed for scenario: {scenario_id}")
             raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
         
+        logger.info(f"[DEBUG] Scenario {scenario_id} updated successfully")
         return {"message": f"Scenario {scenario_id} updated successfully"}
     except HTTPException:
         raise
@@ -214,4 +268,23 @@ async def get_scenario_results(scenario_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting results for scenario {scenario_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get scenario results: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get scenario results: {str(e)}")
+
+@router.post("/cleanup-duplicates")
+async def cleanup_duplicate_scenarios():
+    """Clean up duplicate scenarios with the same name."""
+    try:
+        cleanup_stats = scenario_service.cleanup_duplicate_scenarios()
+        
+        if "error" in cleanup_stats:
+            raise HTTPException(status_code=500, detail=f"Cleanup failed: {cleanup_stats['error']}")
+        
+        return {
+            "message": "Duplicate scenarios cleaned up successfully",
+            "statistics": cleanup_stats
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cleaning up duplicate scenarios: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to clean up duplicate scenarios: {str(e)}") 

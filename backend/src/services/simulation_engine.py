@@ -315,8 +315,9 @@ class SimulationEngine:
         current_year = start_year
         current_month = start_month
         
+        # Main simulation loop
         for month_index in range(total_months):
-            current_date_str = f"{current_year}-{current_month:02d}"
+            current_date_str = f"{current_year:04d}-{current_month:02d}"
             
             # Update monthly metrics for all offices
             monthly_office_metrics[current_date_str] = {}
@@ -366,7 +367,7 @@ class SimulationEngine:
         
         # Structure and return results
         return self._structure_yearly_results(
-            yearly_snapshots, monthly_office_metrics, start_year, end_year, economic_params
+            yearly_snapshots, monthly_office_metrics, start_year, start_month, end_year, end_month, economic_params
         )
 
     def _process_operations_role(
@@ -412,10 +413,8 @@ class SimulationEngine:
         churned_people = role_data.apply_churn(churn_count)
         return {
             'fte': role_data.total,
-            'recruitment_rate': recruitment_rate,
-            'churn_rate': churn_rate,
-            'recruitment_count': recruitment_count,
-            'churn_count': churn_count,
+            'recruitment': recruitment_count,
+            'churn': churn_count,
             'churned_people': len(churned_people),
             'price': price if price is not None else 0.0,
             'salary': salary if salary is not None else 0.0,
@@ -450,22 +449,22 @@ class SimulationEngine:
             for m in range(current_month-1, 0, -1):
                 utr = getattr(level, f'utr_{m}', 0.85)
                 if utr: break
-        recruitment_rate = getattr(level, f'recruitment_{current_month}', 0.0)
-        churn_rate = getattr(level, f'churn_{current_month}', 0.0)
         current_fte = level.total
-        abs_recruitment = getattr(level, f'recruitment_abs_{current_month}', None)
-        abs_churn = getattr(level, f'churn_abs_{current_month}', None)
-        if abs_recruitment is not None:
-            recruitment_count = int(abs_recruitment)
-        else:
-            recruitment_count = int(recruitment_rate * current_fte)
+        abs_recruitment = getattr(level, f'recruitment_abs_{current_month}', 0)
+        abs_churn = getattr(level, f'churn_abs_{current_month}', 0)
+        
+        # Handle None values from office configuration
+        if abs_recruitment is None:
+            abs_recruitment = 0
+        if abs_churn is None:
+            abs_churn = 0
+        
+        recruitment_count = int(abs_recruitment)
+        churn_count = int(abs_churn)
+            
         for _ in range(recruitment_count):
             level.add_new_hire(current_date_str, role_name, office_name)
         fte_after_recruitment = level.total
-        if abs_churn is not None:
-            churn_count = int(abs_churn)
-        else:
-            churn_count = int(churn_rate * fte_after_recruitment)
         churned_people = level.apply_churn(churn_count)
         promoted_people = level.apply_cat_based_progression(
             current_date_str, progression_config, cat_curves
@@ -481,18 +480,19 @@ class SimulationEngine:
                 else:
                     promoted_people = promoted_people[:target_promotions]
         final_fte = level.total
-        return {
+        
+        result = {
             'fte': level.total,
-            'recruitment_rate': recruitment_rate,
-            'churn_rate': churn_rate,
-            'recruitment_count': recruitment_count,
-            'churn_count': churn_count,
+            'recruitment': recruitment_count,
+            'churn': churn_count,
             'churned_people': len(churned_people),
             'promoted_people': len(promoted_people),
             'price': price if price is not None else 0.0,
             'salary': salary if salary is not None else 0.0,
             'utr': utr if utr is not None else 0.85
         }
+        
+        return result
 
     def _get_yearly_snapshot(
         self, 
@@ -524,11 +524,16 @@ class SimulationEngine:
                 'offices': {office_name: office_detailed_data},
                 'total_fte': office_detailed_data['total_fte']
             }
+            # Create the proper structure for KPI service
+            kpi_simulation_results = {
+                'years': {year_key: office_year_data}
+            }
+            
             # Calculate all KPIs for this office
             office_kpis = kpi_service.calculate_kpis_for_year(
-                {'years': {year_key: office_year_data}},
+                kpi_simulation_results,
                 target_year=year_key,
-                simulation_duration_months=12,
+                simulation_duration_months=1,  # Use 1 month for short simulations
                 economic_params=economic_params
             )
             office_snapshot['financial'] = office_kpis.financial
@@ -549,7 +554,7 @@ class SimulationEngine:
                         office_snapshot['kpis'][kpi_type] = kpi_to_dict(office_snapshot['kpis'][kpi_type])
         return year_data
 
-    def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, end_year: int, economic_params: EconomicParameters) -> Dict[str, Any]:
+    def _structure_yearly_results(self, yearly_snapshots: Dict, monthly_office_metrics: Dict, start_year: int, start_month: int, end_year: int, end_month: int, economic_params: EconomicParameters) -> Dict[str, Any]:
         """
         Structures the final results dictionary with detailed monthly level data for each year.
         """
@@ -609,10 +614,20 @@ class SimulationEngine:
                         'offices': {office_name: office_detailed_data},
                         'total_fte': office_detailed_data['total_fte']
                     }
+                    # Calculate actual simulation duration for this year
+                    simulation_duration_months = 1  # For 1-month simulation
+                    if end_year > start_year:
+                        simulation_duration_months = ((end_year - start_year) * 12) + (end_month - start_month + 1)
+                    
+                    # Create the proper structure for KPI service
+                    kpi_simulation_results = {
+                        'years': {year_str: office_year_data}
+                    }
+                    
                     office_kpis = kpi_service.calculate_kpis_for_year(
-                        {'years': {year_str: office_year_data}},
+                        kpi_simulation_results,
                         target_year=year_str,
-                        simulation_duration_months=12,
+                        simulation_duration_months=simulation_duration_months,
                         economic_params=economic_params
                     )
                     # Convert dataclasses to dicts for JSON serialization (matches group-level structure)
@@ -650,8 +665,8 @@ class SimulationEngine:
                                                     'price': level_month_data.get('price', 0),
                                                     'salary': level_month_data.get('salary', 0),
                                                     'utr': level_month_data.get('utr', 0.85),
-                                                    'recruitment': level_month_data.get('recruitment_count', 0),
-                                                    'churn': level_month_data.get('churn_count', 0),
+                                                    'recruitment': level_month_data.get('recruitment', 0),
+                                                    'churn': level_month_data.get('churn', 0),
                                                     'promoted_people': level_month_data.get('promoted_people', 0)
                                                 })
                                             else:
@@ -692,8 +707,8 @@ class SimulationEngine:
                                                 'price': role_month_data.get('price', 0),
                                                 'salary': role_month_data.get('salary', 0),
                                                 'utr': role_month_data.get('utr', 0.85),
-                                                'recruitment': role_month_data.get('recruitment_count', 0),
-                                                'churn': role_month_data.get('churn_count', 0),
+                                                'recruitment': role_month_data.get('recruitment', 0),
+                                                'churn': role_month_data.get('churn', 0),
                                                 'promoted_people': role_month_data.get('promoted_people', 0)
                                             })
                                         else:
@@ -773,14 +788,25 @@ class SimulationEngine:
         other_expense: float = 100000.0
     ) -> Dict[str, Any]:
         """Calculate KPIs using the KPI service"""
+        from .kpi import EconomicParameters
         kpi_service = KPIService()
+        
+        # Create economic parameters for KPI calculation
+        economic_params = EconomicParameters(
+            unplanned_absence=unplanned_absence,
+            other_expense=other_expense,
+            employment_cost_rate=0.4,  # Default value
+            working_hours_per_month=166.4,  # Default value
+            utilization=0.85,  # Default value
+            price_increase=0.03,  # Default value
+            salary_increase=0.02  # Default value
+        )
         
         # Convert dataclasses to dicts for JSON serialization
         all_kpis_dataclass = kpi_service.calculate_all_kpis(
             results,
             simulation_duration_months,
-            unplanned_absence,
-            other_expense
+            economic_params
         )
         
         def to_dict(data):
@@ -852,8 +878,15 @@ class SimulationEngine:
         for KPI calculations. Converts the monthly_office_metrics structure into arrays.
         """
         level_snapshots = {}
-        # Iterate over all dates in monthly_office_metrics
-        sorted_dates = sorted(monthly_office_metrics.keys())
+        # Filter dates to only include the specific year being processed
+        all_dates = sorted(monthly_office_metrics.keys())
+        
+        # Extract year from start_date_str (format: "YYYY-MM")
+        target_year = start_date_str.split('-')[0]
+        
+        # Filter dates to only include months from the target year
+        sorted_dates = [date for date in all_dates if date.startswith(target_year)]
+        
         for role_name, role_data in office.roles.items():
             if isinstance(role_data, dict): # Leveled roles
                 level_snapshots[role_name] = {}

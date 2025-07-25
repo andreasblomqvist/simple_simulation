@@ -36,7 +36,7 @@ def calculate_journey_metrics(final_year_data: Dict[str, Any]) -> JourneyKPIs:
                     for level_name, level_data in role_data.items():
                         if isinstance(level_data, list) and level_data:
                             last_month_data = level_data[-1]
-                            fte_count = last_month_data.get('total', 0)
+                            fte_count = last_month_data.get('fte', 0)
                             for journey_name, levels in journey_mappings.items():
                                 if level_name in levels:
                                     current_journey_totals[journey_name] += fte_count

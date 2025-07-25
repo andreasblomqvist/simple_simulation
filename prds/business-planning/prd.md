@@ -1,126 +1,215 @@
 # Product Requirements Document: Business Planning
 
 ## 1. Introduction/Overview
-The Business Planning page will replace the current Planacy system, providing a modern, web-based interface for office managers, sales, recruitment, and office owners to enter, manage, and simulate business plans. Users will be able to input monthly recruitment targets, sales forecasts, cost estimates, and staff plans for each office. The system will support real-time calculations and allow the entered data to be used as the baseline for running organizational simulations. The initial implementation will use a single JSON file to store all office plans for simplicity.
 
-**NEW**: The system will support two distinct user personas - Office Owners who create detailed business plans for their offices, and Executives who review plans and create company-wide strategic scenarios. This includes an approval workflow and enhanced collaboration features.
+The Business Planning system is a comprehensive replacement for Planacy that provides a modern, web-based interface for creating, managing, and executing business plans within SimpleSim. The system enables users to create detailed monthly recruitment targets, sales forecasts, cost estimates, and workforce plans that serve as baseline inputs for organizational simulations.
+
+**Core Vision**: Create a version of Planacy where users can create business plans that will serve as baseline input to scenarios, including functionality for aggregated business plans that combine all offices' plans into one global baseline for scenario input.
+
+### Current Implementation Status
+- **Backend**: 70% complete with full API infrastructure, data models, and business logic
+- **Frontend**: 40% complete with basic components and state management
+- **Integration**: Business plans can serve as simulation baselines (existing capability)
 
 ## 2. Goals
-- Replace Planacy with an integrated business planning tool in the new system
-- Allow users to enter and update monthly recruitment, sales, cost, and staff plans for each office
-- Enable real-time calculation of outcomes (e.g., EBITDA, margin) as data is entered
-- Support saving and reloading of business plan data
-- Allow business plan data to be used as the baseline for running simulations
-- Provide an improved, user-friendly UI compared to Planacy
-- **NEW**: Support Office Owner and Executive user personas with role-specific interfaces
-- **NEW**: Implement approval workflow for business plan review and approval
-- **NEW**: Enable Executive scenarios for company-wide strategic planning
+
+### Primary Goals
+- **Replace Planacy Integration**: Eliminate dependency on external Planacy system
+- **Simulation Baseline Creation**: Enable business plans to serve as baseline input for scenarios
+- **Office-Level Planning**: Support detailed monthly planning for individual offices
+- **Aggregated Global Planning**: Combine multiple office plans into company-wide baselines
+- **Professional UI Experience**: Match or exceed Planacy's usability and visual polish
+
+### Technical Goals
+- **Seamless Integration**: Business plan data flows directly into simulation engine
+- **Real-time Calculations**: Live updates of financial metrics and KPIs as data is entered
+- **Data Persistence**: Reliable storage and retrieval of business plan data
+- **Performance**: Support planning for 10+ offices with 12+ months of data
 
 ## 3. User Stories
 
-### Office Owner User Stories
-- As an office manager, I want to enter my sales forecast for each month so that I can see projected EBITDA.
-- As a recruitment lead, I want to input monthly recruitment targets so I can plan for headcount growth.
-- As a sales owner, I want to enter sales and cost estimates so I can track office profitability.
-- As an office owner, I want to save and reload my business plan so I can update it over time.
-- As an office owner, I want to submit my business plan for executive approval so that I can get feedback and approval.
-- As an office owner, I want to see the current state of my office and set realistic targets so that I can create achievable plans.
+### Office Manager User Stories
+- As an office manager, I want to create a detailed business plan for my office so that I can set realistic growth targets
+- As an office manager, I want to enter monthly recruitment targets by role and level so that I can plan workforce growth
+- As an office manager, I want to set pricing and utilization targets so that I can project revenue accurately
+- As an office manager, I want to see real-time calculations of EBITDA and margin so that I can validate my plan
+- As an office manager, I want to copy successful plans between months so that I can efficiently create consistent forecasts
+- As an office manager, I want to use my business plan as a scenario baseline so that I can test different growth strategies
 
 ### Executive User Stories
-- **NEW**: As an executive, I want to review business plans from all offices so that I can approve or provide feedback.
-- **NEW**: As an executive, I want to see a company-wide overview of all offices so that I can understand the overall business state.
-- **NEW**: As an executive, I want to create strategic scenarios that apply to all offices so that I can plan company-wide initiatives.
-- **NEW**: As an executive, I want to compare different strategic scenarios so that I can make informed decisions.
-- **NEW**: As an executive, I want to monitor the execution of approved plans so that I can ensure we're on track.
+- As an executive, I want to view business plans from all offices so that I can understand company-wide growth plans
+- As an executive, I want to create aggregated business plans so that I can run company-wide strategic scenarios
+- As an executive, I want to compare office plans side-by-side so that I can identify opportunities and risks
+- As an executive, I want to use aggregated plans as simulation baselines so that I can model enterprise-wide scenarios
 
-### Simulation User Stories
-- As a simulation user, I want to use the business plan as the baseline for running simulations.
+### Data Integration User Stories
+- As a simulation user, I want business plan data to automatically populate scenario baselines so that scenarios reflect realistic starting points
+- As a simulation user, I want to compare scenario results against business plan targets so that I can measure plan effectiveness
+- As a data analyst, I want to export business plan data so that I can perform external analysis
 
 ## 4. Functional Requirements
 
-### Core Business Planning Requirements
-1. The system must provide a dedicated "Business Planning" page accessible from the main navigation.
-2. The page must display a table/grid for each office, with editable fields for each month and category (recruitment, sales, cost, staff, etc.).
-3. The system must allow users to enter and edit data for each field and month.
-4. The system must perform real-time calculations and update outcome fields (e.g., EBITDA, margin) as data is entered.
-5. The system must allow users to save and reload business plan data (initially to/from a single JSON file).
-6. The system must allow switching between offices to view/edit their plans.
-7. The system must provide clear feedback when data is saved or errors occur.
-8. The system must allow the current business plan to be set as the simulation baseline.
-9. The UI must be user-friendly, responsive, and improve upon the Planacy experience (e.g., better navigation, tooltips, validation, accessibility).
-10. The system must handle missing or incomplete data gracefully (e.g., show warnings, prevent simulation if required fields are missing).
+### Core Business Planning (✅ 70% Complete)
 
-### NEW: User Persona and Permission Requirements
-11. **NEW**: The system must support different interfaces for Office Owners and Executives based on user roles.
-12. **NEW**: Office Owners must be able to view and edit only their assigned office(s).
-13. **NEW**: Executives must be able to view all offices and business plans.
-14. **NEW**: The system must implement role-based access control for all business planning features.
+#### Data Management
+1. **Monthly Plan Creation**: Users must be able to create monthly business plans for any office
+2. **Plan Entry Management**: Users must be able to enter/edit recruitment, churn, pricing, UTR, and salary data by role and level
+3. **Data Persistence**: All business plan data must be saved automatically and reliably
+4. **Plan Templates**: Users must be able to copy plans between months and offices
+5. **Bulk Operations**: Users must be able to update multiple months/roles simultaneously
 
-### NEW: Business Plan Approval Workflow
-15. **NEW**: Office Owners must be able to submit business plans for executive approval.
-16. **NEW**: Executives must be able to review, approve, reject, or request changes to business plans.
-17. **NEW**: The system must notify users when plans are submitted, approved, or rejected.
-18. **NEW**: The system must track the approval status and history of each business plan.
+#### Financial Calculations (✅ Complete)
+6. **Real-time Calculations**: System must calculate revenue, costs, EBITDA, and margin in real-time
+7. **Workforce Projections**: System must project total FTE and growth rates based on recruitment/churn
+8. **Cost Analysis**: System must calculate total salary costs and operational expenses
+9. **Validation**: System must validate plan feasibility against workforce constraints
 
-### NEW: Executive Scenario Planning
-19. **NEW**: Executives must be able to create company-wide strategic scenarios with global adjustments.
-20. **NEW**: The system must allow executives to apply office-specific adjustments within scenarios.
-21. **NEW**: The system must support scenario comparison and recommendation features.
-22. **NEW**: The system must provide aggregated views of all offices for executive decision-making.
+### User Interface Requirements (❌ 40% Complete)
 
-### NEW: Simplified User Experience
-23. **NEW**: The system must present a clear "Current State" vs "Target State" model for business planning.
-24. **NEW**: The system must provide intuitive sliders and controls for scenario adjustments.
-25. **NEW**: The system must offer immediate visual feedback for all user actions.
+#### Planacy-Style Interface
+10. **Spreadsheet-Style Grid**: Implement 12-month × N-role matrix interface matching Planacy design
+11. **Professional Styling**: Clean, modern interface with proper typography, spacing, and visual hierarchy
+12. **Cell Editing**: Advanced in-line editing with dropdowns, validation, and keyboard navigation
+13. **Summary Rows/Columns**: Display calculated totals and averages for each month and role
+14. **Toolbar Features**: Year/month navigation, import/export, template operations
 
-## 5. Non-Goals (Out of Scope)
-- Multi-user collaboration or concurrent editing
-- Exporting plans to Excel or PDF
-- Advanced permissions or role-based access control (beyond basic Office Owner/Executive roles)
-- Integration with external systems (e.g., ERP, HRIS)
-- Historical versioning of business plans
-- **UPDATED**: Multi-user collaboration is now in scope for the approval workflow
-- **UPDATED**: Basic role-based access control is now in scope
+#### Multi-Office Management (❌ Not Implemented)
+15. **Office Selector**: Dropdown/tabs for switching between offices
+16. **Office Comparison**: Side-by-side view of multiple office plans
+17. **Global Dashboard**: Overview of all offices with key metrics
+18. **Template Sharing**: UI for copying plans between offices
 
-## 6. Design Considerations
-- Use Ant Design Table/Grid components for editable fields
-- Provide clear labels, tooltips, and validation for all fields
-- Use color-coding and icons to indicate calculated vs. user-entered fields
-- Ensure the UI is responsive and accessible (keyboard navigation, screen readers)
-- Support dark mode and modern design best practices
-- Consider future extensibility for more advanced planning features
-- **NEW**: Design separate interfaces for Office Owners and Executives
-- **NEW**: Implement clear approval workflow UI with status indicators
-- **NEW**: Create intuitive scenario adjustment controls with immediate feedback
+### Simulation Integration (❌ Not Implemented)
 
-## 7. Technical Considerations
-- Store all business plan data in a single JSON file for all offices (initial implementation)
-- Design the data structure to support easy migration to a database in the future
-- Integrate with the simulation engine to use business plan data as the baseline
-- Ensure performance is acceptable for multiple offices and years
-- Implement clear error handling and data validation
-- **NEW**: Implement user authentication and role-based permissions
-- **NEW**: Design data structures to support approval workflow and scenario planning
-- **NEW**: Plan for database migration to support multi-user features
+#### Baseline Creation
+19. **Individual Office Baselines**: Convert office business plans to simulation baseline format
+20. **Aggregated Baselines**: Combine multiple office plans into single global baseline
+21. **Baseline Selection**: UI for choosing business plan as scenario starting point
+22. **Data Validation**: Ensure business plan data meets simulation engine requirements
 
-## 8. Success Metrics
-- Users can enter, save, and reload business plan data for all offices
-- Calculated fields update in real time as data is entered
-- Users can use the business plan as the baseline for simulations
-- Positive user feedback on UI improvements over Planacy
-- No critical errors or data loss during use
-- **NEW**: Office Owners can successfully submit plans for approval
-- **NEW**: Executives can efficiently review and approve multiple plans
-- **NEW**: Executive scenarios provide valuable insights for strategic planning
-- **NEW**: Approval workflow reduces plan review time by 50%
+#### Scenario Workflow
+23. **Plan-to-Scenario Flow**: Seamless transition from business planning to scenario creation
+24. **Results Comparison**: Compare scenario outcomes against business plan targets
+25. **Feedback Loop**: Update business plans based on simulation insights
 
-## 9. Open Questions
-- What fields/categories should be required for each office/month (minimum set)?
-- Should there be approval or locking mechanisms for finalized plans in the future?
-- Are there any compliance or audit requirements for business plan data?
-- Should we support comments or notes per field/month?
-- How should we handle data migration if/when moving to a database?
-- **NEW**: What specific permissions should Office Owners vs Executives have?
-- **NEW**: How should the approval workflow handle partial approvals or conditional approvals?
-- **NEW**: What level of detail should Executive scenarios provide vs Office Owner plans?
-- **NEW**: How should we handle conflicts between approved plans and executive scenarios? 
+### Advanced Features (❌ Not Implemented)
+
+#### Import/Export Capabilities
+26. **Excel Import**: Support uploading business plans from Excel templates
+27. **Excel Export**: Download business plans in Excel format for offline editing
+28. **CSV Support**: Basic CSV import/export for data exchange
+29. **Template Generation**: Create standardized templates for office planning
+
+#### Analytics and Reporting
+30. **Plan Analytics**: Dashboard showing plan health, growth rates, and financial projections
+31. **Year-over-Year Comparison**: Compare current plans against historical data
+32. **Variance Analysis**: Track actual performance against planned targets
+33. **Executive Summaries**: High-level reports for leadership review
+
+## 5. Technical Architecture
+
+### Data Models (✅ Complete)
+- **MonthlyBusinessPlan**: Core plan structure with office, year, month identification
+- **MonthlyPlanEntry**: Individual role/level entries with 5-parameter data model
+- **OfficeBusinessPlanSummary**: Aggregated view with calculated metrics
+- **WorkforceDistribution**: Current state data for plan validation
+
+### API Layer (✅ Complete)
+- **Full REST API**: Complete CRUD operations for business plans
+- **Bulk Operations**: Efficient multi-plan updates and template copying
+- **Validation Engine**: Business rule enforcement and data quality checks
+- **Integration Endpoints**: Simulation baseline generation and data export
+
+### Frontend Architecture (🔄 In Progress)
+- **State Management**: Zustand store with complete business plan operations
+- **Component Library**: Reusable business plan UI components
+- **Integration Layer**: API client with error handling and caching
+- **Type Safety**: Full TypeScript definitions matching backend models
+
+### Simulation Integration (❌ Needs Implementation)
+- **Data Transformation**: Convert business plans to simulation baseline format
+- **Aggregation Logic**: Combine multiple office plans into global baselines
+- **Validation Pipeline**: Ensure plan data compatibility with simulation engine
+
+## 6. Implementation Roadmap
+
+### Phase 1: UI Polish and Completion (4 weeks)
+- **Week 1-2**: Complete Planacy-style grid interface with professional styling
+- **Week 3**: Implement multi-office management and navigation
+- **Week 4**: Add import/export capabilities and advanced editing features
+
+### Phase 2: Simulation Integration (3 weeks)
+- **Week 1**: Implement business plan to simulation baseline conversion
+- **Week 2**: Build aggregated baseline functionality for global planning
+- **Week 3**: Create seamless plan-to-scenario workflow in UI
+
+### Phase 3: Advanced Features (2 weeks)
+- **Week 1**: Add analytics dashboard and reporting capabilities
+- **Week 2**: Implement Excel integration and template management
+
+### Phase 4: Testing and Polish (1 week)
+- **Week 1**: Comprehensive testing, bug fixes, and performance optimization
+
+## 7. Success Metrics
+
+### User Experience Metrics
+- **Adoption Rate**: 90% of office managers actively use business planning within 3 months
+- **Time Efficiency**: 50% reduction in business plan creation time vs. Planacy
+- **User Satisfaction**: 4.5/5 average rating in user feedback surveys
+- **Data Quality**: <5% error rate in business plan data entry and calculations
+
+### Technical Performance Metrics
+- **System Performance**: <2 second load time for 12-month business plans
+- **Data Reliability**: 99.9% uptime with zero data loss incidents
+- **Integration Success**: 100% of business plans successfully convert to simulation baselines
+- **Calculation Accuracy**: 100% accuracy in financial calculations and projections
+
+### Business Impact Metrics
+- **Planning Efficiency**: 25% improvement in planning cycle time
+- **Scenario Quality**: Business plan baselines improve scenario realism by 40%
+- **Decision Quality**: 30% improvement in strategic decision confidence scores
+
+## 8. Implementation Notes
+
+### Key Technical Considerations
+- **Leverage Existing Backend**: 70% of required API functionality already implemented
+- **Component Reuse**: Extend existing business plan components rather than rebuilding
+- **Performance Optimization**: Implement virtualization for large datasets
+- **Mobile Responsiveness**: Ensure business planning works on tablets and mobile devices
+
+### Integration Requirements
+- **Simulation Engine**: Business plan data must match expected baseline input format
+- **Office Configuration**: Plans must integrate with existing office setup and role definitions
+- **User Authentication**: Respect existing user roles and permissions system
+
+### Data Migration Strategy
+- **Planacy Export**: Support importing existing Planacy data for transition
+- **Backup Strategy**: Implement robust backup and recovery for business plan data
+- **Version Control**: Track changes to business plans for audit and rollback capabilities
+
+## 9. Out of Scope
+
+### Excluded Features
+- **Multi-user Collaborative Editing**: Real-time collaboration on same plan
+- **Advanced Approval Workflows**: Complex approval chains with delegation
+- **External System Integration**: Direct integration with ERP, HRIS, or financial systems
+- **Advanced Analytics**: Machine learning predictions and trend analysis
+- **Mobile App**: Native mobile application (responsive web interface only)
+
+### Future Considerations
+- **Advanced Forecasting**: AI-powered recruitment and revenue predictions
+- **Resource Planning**: Integration with project and resource management
+- **Financial Integration**: Direct connection to accounting systems
+- **Advanced Reporting**: Custom report builder and dashboard creation
+
+## 10. Appendix
+
+### Current Implementation Status
+The business planning system has a solid foundation with comprehensive backend API, data models, and basic frontend components. The primary work required is UI enhancement, simulation integration, and feature completion to achieve Planacy replacement goals.
+
+### Referenced Systems
+- **Planacy Screenshots**: UI design reference for professional interface standards
+- **SimpleSim Simulation Engine**: Target integration for baseline data consumption
+- **Office Configuration System**: Source of role definitions and organizational structure
+
+This PRD reflects both the current implementation state and the vision for a complete Planacy replacement that seamlessly integrates with SimpleSim's scenario planning capabilities.

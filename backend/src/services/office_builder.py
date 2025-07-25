@@ -109,19 +109,22 @@ class OfficeBuilder:
             progression_months=[Month(1), Month(4), Month(7), Month(10)],
             **{k: level_kwargs.get(k, 0.0) for k in level_fields if k not in ['name', 'journey', 'progression_months', 'people', 'fractional_recruitment', 'fractional_churn']},
         )
-        # Set FTE
-        level.fte = level_fte
-        # Initialize people for this level
+        # Initialize people for this level (FTE will be computed automatically)
         self.people_initializer.initialize_people_for_level_or_role(
             level, int(level_fte), role_name, office_name
         )
         # Set any remaining attributes from config (for dynamic fields)
+        # Skip read-only properties that are computed from other attributes
+        readonly_properties = {'fte', 'total'}
         for key, value in level_config.items():
+            if key in readonly_properties:
+                logger.debug(f"[OFFICE BUILDER] Skipping read-only property '{key}' for {level_name}")
+                continue
             if not hasattr(level, key) or getattr(level, key) != value:
                 try:
                     setattr(level, key, value)
                 except Exception as e:
-                    logger.warning(f"[OFFICE BUILDER] Could not set {key} on {level_name}: {e}")
+                    logger.error(f"[OFFICE BUILDER] Could not set {key}={value} on level {level_name}: {e}")
         
         return level
     
@@ -133,10 +136,17 @@ class OfficeBuilder:
         
         role = RoleData()
         
-        # Set all attributes from config
+        # Set all attributes from config, except read-only properties
+        readonly_properties = {'fte', 'total'}
         for key, value in role_config.items():
+            if key in readonly_properties:
+                logger.debug(f"[OFFICE BUILDER] Skipping read-only property '{key}' for role {role_name}")
+                continue
             if hasattr(role, key):
-                setattr(role, key, value)
+                try:
+                    setattr(role, key, value)
+                except Exception as e:
+                    logger.error(f"[OFFICE BUILDER] Could not set {key}={value} on role {role_name}: {e}")
         
         # Initialize people for this role
         self.people_initializer.initialize_people_for_level_or_role(
