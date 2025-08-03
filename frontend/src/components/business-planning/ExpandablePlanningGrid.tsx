@@ -10,8 +10,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { 
-  ChevronDown, 
-  ChevronRight, 
   Save, 
   RotateCcw,
   Users,
@@ -22,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useBusinessPlanStore } from '../../stores/businessPlanStore';
 import { PlanningFieldInput } from './PlanningFieldInput';
+import { DataTableMinimal, MinimalColumnDef } from '../ui/data-table-minimal';
 import { cn } from '../../lib/utils';
 import type { OfficeConfig, MonthlyPlanEntry, StandardRole, StandardLevel } from '../../types/office';
 import { 
@@ -46,12 +45,35 @@ interface CellData extends MonthlyPlanEntry {
   isDirty?: boolean;
 }
 
-interface RoleExpansion {
-  [role: string]: boolean;
+
+
+// Data structure for DataTableMinimal with hierarchical grouping
+interface PlanningTableRow {
+  id: string;
+  field: string;
+  role: string;
+  level: string;
+  displayName?: string; // For individual rows to show level name
+  jan: number;
+  feb: number;
+  mar: number;
+  apr: number;
+  may: number;
+  jun: number;
+  jul: number;
+  aug: number;
+  sep: number;
+  oct: number;
+  nov: number;
+  dec: number;
+  total: number;
 }
 
-interface LevelExpansion {
-  [key: string]: boolean; // role-level combination
+// Field categories for top-level grouping
+const FIELD_CATEGORIES = {
+  starters: ['recruitment'],
+  leavers: ['churn'],
+  economic: ['salary', 'price', 'utr']
 }
 
 const MONTHS = [
@@ -76,10 +98,11 @@ const getAvailableFields = (role: StandardRole) => {
 
 // Get available levels for a role
 const getAvailableLevels = (role: StandardRole) => {
-  if (isLeveledRole(role)) {
-    return STANDARD_LEVELS;
+  if (role === 'Operations') {
+    return ['General']; // Operations is a flat role with no levels
   }
-  return ['General']; // Flat roles use a single "General" level
+  // Show all levels (A, AC, AM, P) for other roles
+  return STANDARD_LEVELS;
 };
 
 const FIELD_CONFIG = {
@@ -146,17 +169,43 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     clearError
   } = useBusinessPlanStore();
 
-  const [roleExpansion, setRoleExpansion] = useState<RoleExpansion>({});
-  const [levelExpansion, setLevelExpansion] = useState<LevelExpansion>({});
+
   const [localChanges, setLocalChanges] = useState<Map<string, CellData>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
+  
+  // Group expansion state for hierarchical grouping
+  const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
+
+  const handleGroupToggle = useCallback((groupId: string, expanded: boolean) => {
+    setGroupExpanded(prev => ({
+      ...prev,
+      [groupId]: expanded
+    }));
+  }, []);
 
   // Load data when office or year changes
   useEffect(() => {
     if (office?.id) {
+      // Check if this is a new business plan creation
+      const newPlanData = localStorage.getItem('new-business-plan');
+      if (newPlanData) {
+        const planData = JSON.parse(newPlanData);
+        // If this matches the current office and year, start with empty table
+        if (planData.officeId === office.id && planData.year === year && planData.workflow === 'manual') {
+          // Clear the stored data and start fresh
+          localStorage.removeItem('new-business-plan');
+          return; // Don't load existing data, start with empty table
+        }
+      }
+      
       loadBusinessPlans(office.id, year);
     }
   }, [office?.id, year, loadBusinessPlans]);
+
+  // Create stable key for localChanges to avoid unnecessary re-renders
+  const localChangesKey = useMemo(() => {
+    return Array.from(localChanges.keys()).sort().join('|');
+  }, [localChanges]);
 
   // Create data map for quick lookup
   const planDataMap = useMemo(() => {
@@ -182,41 +231,6 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     return map;
   }, [monthlyPlans, localChanges]);
 
-  // Get cell data with defaults
-  const getCellData = useCallback((role: StandardRole, level: StandardLevel | string, month: number): CellData => {
-    const key = `${role}-${level}-${month}`;
-    const existing = planDataMap.get(key);
-    
-    if (existing) {
-      return existing;
-    }
-    
-    // Return default values based on role type
-    const baseData = {
-      role,
-      level: level as StandardLevel,
-      month,
-      year,
-      recruitment: 0,
-      churn: 0,
-      salary: 5000
-    };
-
-    // Add price/UTR only for billable roles
-    if (isBillableRole(role)) {
-      return {
-        ...baseData,
-        price: 100,
-        utr: 0.75
-      };
-    }
-
-    return {
-      ...baseData,
-      price: 0,
-      utr: 0
-    };
-  }, [planDataMap, year]);
 
   // Handle cell value change
   const handleCellChange = useCallback((
@@ -227,7 +241,20 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     value: number
   ) => {
     const key = `${role}-${level}-${month}`;
-    const currentData = getCellData(role, level, month);
+    const existing = planDataMap.get(key);
+    
+    // Get current data with defaults (inline version to avoid getCellData dependency)
+    const currentData = existing || {
+      role,
+      level: level as StandardLevel,
+      month,
+      year,
+      recruitment: 0,
+      churn: 0,
+      salary: 5000,
+      price: isBillableRole(role) ? 100 : 0,
+      utr: isBillableRole(role) ? 0.75 : 0
+    };
     
     const updatedData: CellData = {
       ...currentData,
@@ -236,24 +263,9 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     
     setLocalChanges(prev => new Map(prev).set(key, updatedData));
     setIsDirty(true);
-  }, [getCellData]);
+  }, [planDataMap, year]);
 
-  // Toggle role expansion
-  const toggleRoleExpansion = useCallback((role: StandardRole) => {
-    setRoleExpansion(prev => ({
-      ...prev,
-      [role]: !prev[role]
-    }));
-  }, []);
 
-  // Toggle level expansion
-  const toggleLevelExpansion = useCallback((role: StandardRole, level: StandardLevel) => {
-    const key = `${role}-${level}`;
-    setLevelExpansion(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  }, []);
 
   // Save changes
   const handleSave = useCallback(async () => {
@@ -332,13 +344,382 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     let total = 0;
     STANDARD_ROLES.forEach(role => {
       getAvailableLevels(role).forEach(level => {
-        const cellData = getCellData(role, level as StandardLevel, month);
+        const key = `${role}-${level}-${month}`;
+        const existing = planDataMap.get(key);
+        
+        // Get cell data with defaults (inline version to avoid getCellData dependency)
+        const cellData = existing || {
+          role,
+          level: level as StandardLevel,
+          month,
+          year,
+          recruitment: 0,
+          churn: 0,
+          salary: 5000,
+          price: isBillableRole(role) ? 100 : 0,
+          utr: isBillableRole(role) ? 0.75 : 0
+        };
+        
         total += cellData[field] as number;
       });
     });
     return total;
-  }, [getCellData]);
+  }, [planDataMap, year]);
 
+
+
+
+  // Prepare data for DataTableMinimal with hierarchical grouping structure
+  const tableData: PlanningTableRow[] = useMemo(() => {
+    const rows: PlanningTableRow[] = [];
+    
+    // Create hierarchical structure matching Excel: Category -> Role/Field -> Level
+    Object.entries(FIELD_CATEGORIES).forEach(([categoryName, categoryFields]) => {
+      if (categoryName === 'starters' || categoryName === 'leavers') {
+        // For starters and leavers: Category -> Role -> Level
+        ['Consultant', 'Sales', 'Recruitment', 'Operations'].forEach(role => {
+          // Get appropriate levels for each role
+          const levels = getAvailableLevels(role as StandardRole);
+          levels.forEach(level => {
+            try {
+              const aggregatedData = {
+                jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+                jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0, total: 0
+              };
+              
+              categoryFields.forEach(field => {
+                if (getAvailableFields(role).includes(field)) {
+                  for (let month = 1; month <= 12; month++) {
+                    const key = `${role}-${level}-${month}`;
+                    const existing = planDataMap.get(key);
+                    
+                    // Get cell data with defaults (inline version of getCellData)
+                    const cellData = existing || {
+                      role,
+                      level: level as StandardLevel,
+                      month,
+                      year,
+                      recruitment: 0,
+                      churn: 0,
+                      salary: 5000,
+                      price: isBillableRole(role) ? 100 : 0,
+                      utr: isBillableRole(role) ? 0.75 : 0
+                    };
+                    
+                    const value = (cellData[field as keyof MonthlyPlanEntry] as number) || 0;
+                    
+                    switch (month) {
+                      case 1: aggregatedData.jan += value; break;
+                      case 2: aggregatedData.feb += value; break;
+                      case 3: aggregatedData.mar += value; break;
+                      case 4: aggregatedData.apr += value; break;
+                      case 5: aggregatedData.may += value; break;
+                      case 6: aggregatedData.jun += value; break;
+                      case 7: aggregatedData.jul += value; break;
+                      case 8: aggregatedData.aug += value; break;
+                      case 9: aggregatedData.sep += value; break;
+                      case 10: aggregatedData.oct += value; break;
+                      case 11: aggregatedData.nov += value; break;
+                      case 12: aggregatedData.dec += value; break;
+                    }
+                    aggregatedData.total += value;
+                  }
+                }
+              });
+              
+              const row: PlanningTableRow = {
+                id: `${categoryName}-${role}-${level}`,
+                field: categoryName,
+                role,
+                level,
+                displayName: level, // Use this for display in individual rows
+                ...aggregatedData
+              };
+              rows.push(row);
+            } catch (error) {
+              console.error('Error creating row for:', categoryName, role, level, error);
+            }
+          });
+        });
+      } else if (categoryName === 'economic') {
+        // For economic: Category -> Field -> Level
+        categoryFields.forEach(field => {
+          // Get all unique levels from all roles
+          const allLevels = [...new Set(['Consultant', 'Sales', 'Recruitment', 'Operations']
+            .flatMap(role => getAvailableLevels(role as StandardRole)))];
+          allLevels.forEach(level => {
+            try {
+              const aggregatedData = {
+                jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+                jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0, total: 0
+              };
+              
+              // For economic fields, we need to aggregate across all roles that have this field
+              ['Consultant', 'Sales', 'Recruitment', 'Operations'].forEach(role => {
+                if (getAvailableFields(role).includes(field)) {
+                  for (let month = 1; month <= 12; month++) {
+                    const key = `${role}-${level}-${month}`;
+                    const existing = planDataMap.get(key);
+                    
+                    // Get cell data with defaults (inline version of getCellData)
+                    const cellData = existing || {
+                      role,
+                      level: level as StandardLevel,
+                      month,
+                      year,
+                      recruitment: 0,
+                      churn: 0,
+                      salary: 5000,
+                      price: isBillableRole(role) ? 100 : 0,
+                      utr: isBillableRole(role) ? 0.75 : 0
+                    };
+                    
+                    const value = (cellData[field as keyof MonthlyPlanEntry] as number) || 0;
+                    
+                    switch (month) {
+                      case 1: aggregatedData.jan += value; break;
+                      case 2: aggregatedData.feb += value; break;
+                      case 3: aggregatedData.mar += value; break;
+                      case 4: aggregatedData.apr += value; break;
+                      case 5: aggregatedData.may += value; break;
+                      case 6: aggregatedData.jun += value; break;
+                      case 7: aggregatedData.jul += value; break;
+                      case 8: aggregatedData.aug += value; break;
+                      case 9: aggregatedData.sep += value; break;
+                      case 10: aggregatedData.oct += value; break;
+                      case 11: aggregatedData.nov += value; break;
+                      case 12: aggregatedData.dec += value; break;
+                    }
+                    aggregatedData.total += value;
+                  }
+                }
+              });
+              
+              const row: PlanningTableRow = {
+                id: `${categoryName}-${field}-${level}`,
+                field: categoryName,
+                role: field, // Use field name as role for economic
+                level,
+                displayName: level, // Use this for display in individual rows
+                ...aggregatedData
+              };
+              rows.push(row);
+            } catch (error) {
+              console.error('Error creating row for:', categoryName, field, level, error);
+            }
+          });
+        });
+      }
+    });
+    
+    return rows;
+  }, [planDataMap, year]);
+
+  // Define columns for DataTableMinimal with hierarchical grouping
+  const columns: MinimalColumnDef<PlanningTableRow>[] = useMemo(() => [
+    {
+      accessorKey: 'field',
+      header: 'Category/Role/Level',
+      size: 200,
+      enableGrouping: true
+    },
+    {
+      accessorKey: 'jan',
+      header: 'Jan',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, roleOrField, level] = rowId.split('-');
+          let role: string, field: string;
+          
+          if (categoryName === 'economic') {
+            // For economic: categoryName-field-level
+            field = roleOrField;
+            role = 'Consultant'; // Use a default role for economic fields
+          } else {
+            // For starters/leavers: categoryName-role-level
+            role = roleOrField;
+            field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          }
+          
+          handleCellChange(role as StandardRole, level as StandardLevel, 1, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'feb',
+      header: 'Feb',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 2, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'mar',
+      header: 'Mar',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 3, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'apr',
+      header: 'Apr',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 4, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'may',
+      header: 'May',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 5, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'jun',
+      header: 'Jun',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 6, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'jul',
+      header: 'Jul',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 7, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'aug',
+      header: 'Aug',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 8, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'sep',
+      header: 'Sep',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 9, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'oct',
+      header: 'Oct',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 10, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'nov',
+      header: 'Nov',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 11, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'dec',
+      header: 'Dec',
+      editable: {
+        type: 'number',
+        min: 0,
+        step: 1,
+        onEdit: (rowId, value) => {
+          const [categoryName, role, level] = rowId.split('-');
+          const field = FIELD_CATEGORIES[categoryName as keyof typeof FIELD_CATEGORIES][0];
+          handleCellChange(role as StandardRole, level as StandardLevel, 12, field as keyof MonthlyPlanEntry, value);
+        }
+      },
+      size: 80
+    },
+    {
+      accessorKey: 'total',
+      header: 'Total',
+      size: 100
+    }
+  ], [handleCellChange]);
 
   if (loading) {
     return (
@@ -386,200 +767,17 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
       {/* Main Grid */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed">
-              {/* Header */}
-              <thead className="bg-muted/50 sticky top-0 z-10">
-                <tr>
-                  <th className="text-left p-3 border-r font-medium w-24">Role</th>
-                  <th className="text-left p-3 border-r font-medium w-16">Level</th>
-                  <th className="text-left p-3 border-r font-medium w-24">Field</th>
-                  {MONTHS.map(month => (
-                    <th key={month} className="text-center p-2 border-r font-medium w-24 min-w-[100px]">
-                      {month}
-                    </th>
-                  ))}
-                  <th className="text-center p-3 font-medium w-20">Total</th>
-                </tr>
-              </thead>
-
-              {/* Body */}
-              <tbody>
-                {STANDARD_ROLES.map(role => {
-                  const isRoleExpanded = roleExpansion[role];
-                  
-                  return (
-                    <React.Fragment key={role}>
-                      {/* Role Header Row */}
-                      <tr className="bg-muted/20 border-b-2">
-                        <td 
-                          className="p-3 border-r font-medium cursor-pointer hover:bg-muted/40"
-                          onClick={() => toggleRoleExpansion(role)}
-                        >
-                          <div className="flex items-center gap-2">
-                            {isRoleExpanded ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <span>{role}</span>
-                          </div>
-                        </td>
-                        <td className="p-3 border-r text-muted-foreground">
-                          {getAvailableLevels(role).length} level{getAvailableLevels(role).length > 1 ? 's' : ''}
-                        </td>
-                        <td className="p-3 border-r text-muted-foreground">
-                          {getAvailableFields(role).length} fields
-                        </td>
-                        {MONTHS.map((month, monthIndex) => (
-                          <td key={month} className="p-2 border-r text-center">
-                            <div className="text-xs font-medium">
-                              {/* Show role summary */}
-                              {getAvailableLevels(role).reduce((sum, level) => {
-                                const cellData = getCellData(role, level as StandardLevel, monthIndex + 1);
-                                return sum + (cellData.recruitment - cellData.churn);
-                              }, 0)}
-                            </div>
-                          </td>
-                        ))}
-                        <td className="p-3 text-center border-l-2">
-                          <div className="text-sm font-medium">
-                            {/* Show role total */}
-                            {Array.from({ length: 12 }, (_, i) => i + 1).reduce((sum, month) => {
-                              return sum + getAvailableLevels(role).reduce((levelSum, level) => {
-                                const cellData = getCellData(role, level as StandardLevel, month);
-                                return levelSum + (cellData.recruitment - cellData.churn);
-                              }, 0);
-                            }, 0)}
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Level Rows (when role is expanded) */}
-                      {isRoleExpanded && getAvailableLevels(role).map(level => {
-                        const levelKey = `${role}-${level}`;
-                        const isLevelExpanded = levelExpansion[levelKey];
-                        
-                        return (
-                          <React.Fragment key={levelKey}>
-                            {/* Level Header Row */}
-                            <tr className="bg-muted/10 border-b">
-                              <td className="p-2 border-r"></td>
-                              <td 
-                                className="p-2 border-r cursor-pointer hover:bg-muted/30"
-                                onClick={() => toggleLevelExpansion(role, level)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  {isLevelExpanded ? (
-                                    <ChevronDown className="h-3 w-3" />
-                                  ) : (
-                                    <ChevronRight className="h-3 w-3" />
-                                  )}
-                                  <Badge variant="outline" className="text-xs">
-                                    {level}
-                                  </Badge>
-                                </div>
-                              </td>
-                              <td className="p-2 border-r text-muted-foreground text-xs">
-                                {getAvailableFields(role).length} fields
-                              </td>
-                              {MONTHS.map((month, monthIndex) => (
-                                <td key={month} className="p-1 border-r text-center">
-                                  <div className="text-xs">
-                                    {/* Show level summary */}
-                                    {(() => {
-                                      const cellData = getCellData(role, level, monthIndex + 1);
-                                      return cellData.recruitment - cellData.churn;
-                                    })()}
-                                  </div>
-                                </td>
-                              ))}
-                              <td className="p-2 text-center border-l-2">
-                                <div className="text-xs">
-                                  {/* Show level total */}
-                                  {Array.from({ length: 12 }, (_, i) => i + 1).reduce((sum, month) => {
-                                    const cellData = getCellData(role, level, month);
-                                    return sum + (cellData.recruitment - cellData.churn);
-                                  }, 0)}
-                                </div>
-                              </td>
-                            </tr>
-
-                            {/* Field Rows (when level is expanded) */}
-                            {isLevelExpanded && getAvailableFields(role).map(field => {
-                              const config = FIELD_CONFIG[field as keyof typeof FIELD_CONFIG];
-                              if (!config) {
-                                console.warn(`Missing field config for: ${field}`);
-                                return null;
-                              }
-                              const Icon = config.icon;
-                              
-                              return (
-                                <tr key={`${levelKey}-${field}`} className="hover:bg-muted/20">
-                                  <td className="p-1 border-r"></td>
-                                  <td className="p-1 border-r"></td>
-                                  <td className="p-2 border-r">
-                                    <div className="flex items-center gap-2">
-                                      <Icon className={cn("h-3 w-3", config.color)} />
-                                      <span className="text-xs font-medium">
-                                        {config.label}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  {MONTHS.map((month, monthIndex) => (
-                                    <td key={`${role}-${level}-${monthIndex + 1}-${field}`} className="p-1 border-r min-w-[100px] hover:bg-muted/20 transition-colors cursor-pointer">
-                                      <PlanningFieldInput
-                                        value={(getCellData(role, level, monthIndex + 1)[field as keyof MonthlyPlanEntry] as number)}
-                                        onChange={(newValue) => handleCellChange(role, level, monthIndex + 1, field as keyof MonthlyPlanEntry, newValue)}
-                                        field={field as 'recruitment' | 'churn' | 'price' | 'utr' | 'salary'}
-                                        isDirty={getCellData(role, level, monthIndex + 1).isDirty}
-                                      />
-                                    </td>
-                                  ))}
-                                  <td className="p-2 text-center border-l-2">
-                                    <div className="text-xs font-medium">
-                                      {/* Show field total */}
-                                      {Array.from({ length: 12 }, (_, i) => i + 1).reduce((sum, month) => {
-                                        const cellData = getCellData(role, level, month);
-                                        return sum + (cellData[field as keyof MonthlyPlanEntry] as number);
-                                      }, 0).toFixed(field === 'utr' ? 2 : 0)}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </React.Fragment>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })}
-
-                {/* Monthly Totals Row */}
-                <tr className="bg-muted/30 border-t-2">
-                  <td className="p-3 font-medium border-r" colSpan={3}>
-                    Monthly Totals (Net Growth)
-                  </td>
-                  {MONTHS.map((month, monthIndex) => (
-                    <td key={month} className="p-2 text-center border-r">
-                      <div className="text-sm font-medium">
-                        {getMonthlyFieldSummary(monthIndex + 1, 'recruitment') - 
-                         getMonthlyFieldSummary(monthIndex + 1, 'churn')}
-                      </div>
-                    </td>
-                  ))}
-                  <td className="p-3 text-center border-l-2">
-                    <div className="text-sm font-bold">
-                      {Array.from({ length: 12 }, (_, i) => i + 1).reduce((sum, month) => {
-                        return sum + (getMonthlyFieldSummary(month, 'recruitment') - 
-                                     getMonthlyFieldSummary(month, 'churn'));
-                      }, 0)}
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <DataTableMinimal
+            columns={columns}
+            data={tableData}
+            enableEditing={true}
+            enablePagination={false}
+            enableGrouping={true}
+            groupBy={['field', 'role']}
+            groupExpanded={groupExpanded}
+            onGroupToggle={handleGroupToggle}
+            className="business-planning-table"
+          />
         </CardContent>
       </Card>
     </div>
