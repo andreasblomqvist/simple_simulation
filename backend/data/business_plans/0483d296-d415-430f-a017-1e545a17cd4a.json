@@ -1,0 +1,235 @@
+{
+  "id": "0483d296-d415-430f-a017-1e545a17cd4a",
+  "office_id": "gothenburg",
+  "year": 2025,
+  "month": 9,
+  "entries": [
+    {
+      "role": "Consultant",
+      "level": "A",
+      "recruitment": 2,
+      "churn": 1,
+      "salary": 42000,
+      "price": 95,
+      "utr": 0.75
+    },
+    {
+      "role": "Consultant",
+      "level": "AC",
+      "recruitment": 1,
+      "churn": 0,
+      "salary": 48000,
+      "price": 110,
+      "utr": 0.77
+    },
+    {
+      "role": "Consultant",
+      "level": "C",
+      "recruitment": 1,
+      "churn": 0,
+      "salary": 55000,
+      "price": 125,
+      "utr": 0.79
+    },
+    {
+      "role": "Consultant",
+      "level": "SrC",
+      "recruitment": 1,
+      "churn": 0,
+      "salary": 65000,
+      "price": 145,
+      "utr": 0.81
+    },
+    {
+      "role": "Consultant",
+      "level": "AM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 75000,
+      "price": 165,
+      "utr": 0.83
+    },
+    {
+      "role": "Consultant",
+      "level": "M",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 90000,
+      "price": 190,
+      "utr": 0.85
+    },
+    {
+      "role": "Consultant",
+      "level": "SrM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 110000,
+      "price": 220,
+      "utr": 0.87
+    },
+    {
+      "role": "Consultant",
+      "level": "PiP",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 135000,
+      "price": 260,
+      "utr": 0.89
+    },
+    {
+      "role": "Sales",
+      "level": "A",
+      "recruitment": 1,
+      "churn": 1,
+      "salary": 40000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "AC",
+      "recruitment": 1,
+      "churn": 1,
+      "salary": 45000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "C",
+      "recruitment": 1,
+      "churn": 0,
+      "salary": 52000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "SrC",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 62000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "AM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 72000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "M",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 85000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "SrM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 105000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Sales",
+      "level": "PiP",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 130000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "A",
+      "recruitment": 1,
+      "churn": 1,
+      "salary": 38000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "AC",
+      "recruitment": 1,
+      "churn": 1,
+      "salary": 43000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "C",
+      "recruitment": 0,
+      "churn": 1,
+      "salary": 50000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "SrC",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 60000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "AM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 70000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "M",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 82000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "SrM",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 100000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Recruitment",
+      "level": "PiP",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 125000,
+      "price": 0,
+      "utr": 0
+    },
+    {
+      "role": "Operations",
+      "level": "General",
+      "recruitment": 0,
+      "churn": 0,
+      "salary": 50000,
+      "price": 0,
+      "utr": 0
+    }
+  ],
+  "created_at": "2025-07-26T21:24:59.251277",
+  "updated_at": "2025-07-26T21:24:59.252859"
+}

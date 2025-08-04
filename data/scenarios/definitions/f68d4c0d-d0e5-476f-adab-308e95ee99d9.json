@@ -1,0 +1,39 @@
+{
+  "id": "f68d4c0d-d0e5-476f-adab-308e95ee99d9",
+  "name": "Operations Lever Test",
+  "description": "Test scenario affecting Operations role",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 3
+  },
+  "office_scope": [
+    "Stockholm"
+  ],
+  "levers": {
+    "recruitment": {
+      "Operations": 1.5
+    },
+    "churn": {
+      "Operations": 0.5
+    },
+    "progression": {}
+  },
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": null,
+  "baseline_input": {
+    "global_data": {
+      "recruitment": {},
+      "churn": {}
+    }
+  },
+  "created_at": "2025-07-24 21:43:13.184562",
+  "updated_at": "2025-07-24T21:43:13.220656"
+}

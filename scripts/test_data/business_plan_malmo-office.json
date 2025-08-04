@@ -1,0 +1,2836 @@
+{
+  "office": {
+    "id": "malmo-office",
+    "name": "Malmö",
+    "journey": "Emerging Office",
+    "total_fte": 87
+  },
+  "monthly_plans": [
+    {
+      "id": "malmo-office-2025-01",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 1,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882380",
+      "updated_at": "2025-07-26T11:31:44.882381"
+    },
+    {
+      "id": "malmo-office-2025-02",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 2,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882408",
+      "updated_at": "2025-07-26T11:31:44.882409"
+    },
+    {
+      "id": "malmo-office-2025-03",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 3,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882436",
+      "updated_at": "2025-07-26T11:31:44.882437"
+    },
+    {
+      "id": "malmo-office-2025-04",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 4,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882465",
+      "updated_at": "2025-07-26T11:31:44.882466"
+    },
+    {
+      "id": "malmo-office-2025-05",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 5,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882494",
+      "updated_at": "2025-07-26T11:31:44.882494"
+    },
+    {
+      "id": "malmo-office-2025-06",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 6,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882522",
+      "updated_at": "2025-07-26T11:31:44.882523"
+    },
+    {
+      "id": "malmo-office-2025-07",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 7,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882550",
+      "updated_at": "2025-07-26T11:31:44.882551"
+    },
+    {
+      "id": "malmo-office-2025-08",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 8,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882578",
+      "updated_at": "2025-07-26T11:31:44.882578"
+    },
+    {
+      "id": "malmo-office-2025-09",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 9,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.144,
+          "churn": 0.047,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.108,
+          "churn": 0.039,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.09,
+          "churn": 0.031,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.072,
+          "churn": 0.023,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.054,
+          "churn": 0.016,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.045,
+          "churn": 0.012,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.036,
+          "churn": 0.008,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.027,
+          "churn": 0.005,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.036,
+          "churn": 0.031,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882606",
+      "updated_at": "2025-07-26T11:31:44.882606"
+    },
+    {
+      "id": "malmo-office-2025-10",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 10,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882634",
+      "updated_at": "2025-07-26T11:31:44.882635"
+    },
+    {
+      "id": "malmo-office-2025-11",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 11,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882663",
+      "updated_at": "2025-07-26T11:31:44.882664"
+    },
+    {
+      "id": "malmo-office-2025-12",
+      "office_id": "malmo-office",
+      "year": 2025,
+      "month": 12,
+      "entries": [
+        {
+          "role": "Consultant",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 90,
+          "utr": 0.75
+        },
+        {
+          "role": "Consultant",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 104,
+          "utr": 0.77
+        },
+        {
+          "role": "Consultant",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 119,
+          "utr": 0.79
+        },
+        {
+          "role": "Consultant",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 138,
+          "utr": 0.81
+        },
+        {
+          "role": "Consultant",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 157,
+          "utr": 0.83
+        },
+        {
+          "role": "Consultant",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 180,
+          "utr": 0.85
+        },
+        {
+          "role": "Consultant",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 209,
+          "utr": 0.87
+        },
+        {
+          "role": "Consultant",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 247,
+          "utr": 0.89
+        },
+        {
+          "role": "Sales",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Sales",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "A",
+          "recruitment": 0.12,
+          "churn": 0.039,
+          "salary": 37800,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AC",
+          "recruitment": 0.09,
+          "churn": 0.033,
+          "salary": 43200,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "C",
+          "recruitment": 0.075,
+          "churn": 0.026,
+          "salary": 49500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrC",
+          "recruitment": 0.06,
+          "churn": 0.019,
+          "salary": 58500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "AM",
+          "recruitment": 0.045,
+          "churn": 0.013,
+          "salary": 67500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "M",
+          "recruitment": 0.038,
+          "churn": 0.01,
+          "salary": 81000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "SrM",
+          "recruitment": 0.03,
+          "churn": 0.007,
+          "salary": 99000,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Recruitment",
+          "level": "PiP",
+          "recruitment": 0.022,
+          "churn": 0.004,
+          "salary": 121500,
+          "price": 0,
+          "utr": 0
+        },
+        {
+          "role": "Operations",
+          "level": "General",
+          "recruitment": 0.03,
+          "churn": 0.026,
+          "salary": 45000,
+          "price": 0,
+          "utr": 0
+        }
+      ],
+      "created_at": "2025-07-26T11:31:44.882691",
+      "updated_at": "2025-07-26T11:31:44.882692"
+    }
+  ],
+  "metadata": {
+    "generated_at": "2025-07-26T11:31:44.882752",
+    "office_name": "Malmö",
+    "total_months": 12,
+    "total_entries": 300
+  }
+}

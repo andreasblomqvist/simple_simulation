@@ -1,5 +1,7 @@
 import React from 'react';
-import { Bar } from '@ant-design/charts';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Alert, AlertDescription } from '../ui/alert';
+// Note: Ant Design Charts removed - will need to implement with Recharts or similar
 
 export interface WorkforceStackedBarData {
   level: string; // e.g., 'A', 'AC', ...
@@ -72,7 +74,21 @@ const WorkforceStackedBarChart: React.FC<WorkforceStackedBarChartProps> = ({ dat
     },
     animation: true,
   };
-  return <Bar {...config} />;
+  return (
+    <Card data-testid="workforce-chart">
+      <CardHeader>
+        <CardTitle>Workforce Stacked Bar Chart</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Alert>
+          <AlertDescription>
+            Chart component is being migrated from Ant Design Charts to Recharts. 
+            Functionality will be restored shortly.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default WorkforceStackedBarChart; 

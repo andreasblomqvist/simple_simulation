@@ -1,0 +1,207 @@
+{
+  "single_office": {
+    "description": "Single office analysis (Stockholm)",
+    "offices": [
+      "stockholm"
+    ],
+    "months": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "expected_totals": {
+      "stockholm_monthly": {
+        "1": {
+          "recruitment": 27,
+          "churn": 9,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "2": {
+          "recruitment": 23,
+          "churn": 9,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "3": {
+          "recruitment": 20,
+          "churn": 7,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "4": {
+          "recruitment": 18,
+          "churn": 7,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "5": {
+          "recruitment": 15,
+          "churn": 5,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "6": {
+          "recruitment": 18,
+          "churn": 7,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "7": {
+          "recruitment": 13,
+          "churn": 5,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "8": {
+          "recruitment": 15,
+          "churn": 5,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "9": {
+          "recruitment": 29,
+          "churn": 11,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "10": {
+          "recruitment": 23,
+          "churn": 9,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "11": {
+          "recruitment": 20,
+          "churn": 7,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        },
+        "12": {
+          "recruitment": 18,
+          "churn": 7,
+          "salary_cost": 2524020,
+          "revenue_potential": 230001.40800000002
+        }
+      }
+    }
+  },
+  "multi_office": {
+    "description": "Multi-office aggregation (Stockholm + Gothenburg)",
+    "offices": [
+      "stockholm",
+      "gothenburg"
+    ],
+    "months": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "expected_totals": {}
+  },
+  "journey_comparison": {
+    "description": "Journey-based comparison (Emerging vs Mature)",
+    "emerging": [
+      "malmo"
+    ],
+    "mature": [
+      "stockholm",
+      "copenhagen"
+    ],
+    "months": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "seasonal_analysis": {
+    "description": "Seasonal pattern analysis",
+    "offices": [
+      "stockholm",
+      "gothenburg",
+      "malmo"
+    ],
+    "peak_months": [
+      1,
+      9
+    ],
+    "low_months": [
+      5,
+      7
+    ]
+  },
+  "quarterly_aggregation": {
+    "description": "Quarterly business planning",
+    "q1": {
+      "months": [
+        1,
+        2,
+        3
+      ],
+      "offices": [
+        "stockholm",
+        "gothenburg"
+      ]
+    },
+    "q2": {
+      "months": [
+        4,
+        5,
+        6
+      ],
+      "offices": [
+        "stockholm",
+        "gothenburg"
+      ]
+    },
+    "q3": {
+      "months": [
+        7,
+        8,
+        9
+      ],
+      "offices": [
+        "stockholm",
+        "gothenburg"
+      ]
+    },
+    "q4": {
+      "months": [
+        10,
+        11,
+        12
+      ],
+      "offices": [
+        "stockholm",
+        "gothenburg"
+      ]
+    }
+  }
+}

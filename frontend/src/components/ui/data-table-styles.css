@@ -1,0 +1,41 @@
+/* Enhanced styles for DataTable numbers and readability */
+
+/* Make numeric data more readable */
+.data-table-numeric {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Currency formatting */
+.data-table-currency {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 1rem;
+  color: hsl(var(--foreground));
+}
+
+/* Percentage formatting */
+.data-table-percentage {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 1rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Large numbers for KPIs */
+.data-table-kpi {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+/* Ensure consistent spacing for all numeric content */
+.data-table-minimal [data-cell-type="numeric"] {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  padding-right: 1.5rem;
+}

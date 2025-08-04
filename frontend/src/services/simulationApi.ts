@@ -1246,4 +1246,5 @@ class SimulationApiService {
 }
 
 export const simulationApi = new SimulationApiService();
-export type { SimulationRequest, OfficeConfig, SimulationResults, YearNavigationRequest, YearComparisonRequest };
+export default simulationApi;
+export type { SimulationApiService, SimulationRequest, OfficeConfig, SimulationResults, YearNavigationRequest, YearComparisonRequest };

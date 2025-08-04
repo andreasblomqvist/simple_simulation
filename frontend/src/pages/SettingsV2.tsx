@@ -18,11 +18,28 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table'
+import { DataTableMinimal } from '../components/ui/data-table-minimal'
+import type { ColumnDef } from '@tanstack/react-table'
 
 // Import existing types
 import type { OfficeConfig } from '../types/office'
 
 interface SettingsV2Props {}
+
+interface CATMatrixRow {
+  level: string;
+  CAT0: string;
+  CAT6: string;
+  CAT12: string;
+  CAT18: string;
+  CAT24: string;
+  CAT30: string;
+  CAT36: string;
+  CAT42: string;
+  CAT48: string;
+  CAT54: string;
+  CAT60: string;
+}
 
 // Mock office data - in real implementation this would come from the store
 const mockOffice: OfficeConfig = {
@@ -39,24 +56,179 @@ const mockOffice: OfficeConfig = {
   roles: {},
 }
 
+// CAT Matrix data from backend config - EXACT values from progression_config.py CAT_CURVES only
+const catMatrixData: CATMatrixRow[] = [
+  { level: 'A', CAT0: '0.0%', CAT6: '91.9%', CAT12: '85.0%', CAT18: '0.0%', CAT24: '0.0%', CAT30: '0.0%', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'AC', CAT0: '0.0%', CAT6: '5.4%', CAT12: '75.9%', CAT18: '40.0%', CAT24: '0.0%', CAT30: '0.0%', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'C', CAT0: '0.0%', CAT6: '5.0%', CAT12: '44.2%', CAT18: '59.7%', CAT24: '27.8%', CAT30: '64.3%', CAT36: '20.0%', CAT42: '0.0%', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'SrC', CAT0: '0.0%', CAT6: '20.6%', CAT12: '43.8%', CAT18: '31.7%', CAT24: '21.1%', CAT30: '20.6%', CAT36: '16.7%', CAT42: '0.0%', CAT48: '0.0%', CAT54: '0.0%', CAT60: '0.0%' },
+  { level: 'AM', CAT0: '0.0%', CAT6: '0.0%', CAT12: '0.0%', CAT18: '18.9%', CAT24: '19.7%', CAT30: '23.4%', CAT36: '4.8%', CAT42: '0.0%', CAT48: '0.0%', CAT54: '0.0%', CAT60: '0.0%' },
+  { level: 'M', CAT0: '0.0%', CAT6: '0.0%', CAT12: '1.0%', CAT18: '2.0%', CAT24: '3.0%', CAT30: '4.0%', CAT36: '5.0%', CAT42: '6.0%', CAT48: '7.0%', CAT54: '8.0%', CAT60: '10.0%' },
+  { level: 'SrM', CAT0: '0.0%', CAT6: '0.0%', CAT12: '0.5%', CAT18: '1.0%', CAT24: '1.5%', CAT30: '2.0%', CAT36: '2.5%', CAT42: '3.0%', CAT48: '4.0%', CAT54: '5.0%', CAT60: '6.0%' },
+  { level: 'Pi', CAT0: '0.0%', CAT6: '', CAT12: '', CAT18: '', CAT24: '', CAT30: '', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'P', CAT0: '0.0%', CAT6: '', CAT12: '', CAT18: '', CAT24: '', CAT30: '', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'X', CAT0: '0.0%', CAT6: '', CAT12: '', CAT18: '', CAT24: '', CAT30: '', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+  { level: 'OPE', CAT0: '0.0%', CAT6: '', CAT12: '', CAT18: '', CAT24: '', CAT30: '', CAT36: '', CAT42: '', CAT48: '', CAT54: '', CAT60: '' },
+];
+
+// Helper function to get color based on percentage value (conditional formatting)
+const getConditionalColor = (value: string): string => {
+  if (!value || value === '') return '';
+  
+  // Extract numeric value from percentage string
+  const numValue = parseFloat(value.replace('%', ''));
+  
+  if (numValue === 0) return 'bg-red-500 text-white';
+  if (numValue > 0 && numValue <= 10) return 'bg-red-400 text-white';
+  if (numValue > 10 && numValue <= 25) return 'bg-orange-400 text-white';
+  if (numValue > 25 && numValue <= 50) return 'bg-yellow-400 text-black';
+  if (numValue > 50 && numValue <= 75) return 'bg-lime-400 text-black';
+  if (numValue > 75) return 'bg-green-500 text-white';
+  
+  return '';
+};
+
+const catMatrixColumns: ColumnDef<CATMatrixRow>[] = [
+  { accessorKey: 'level', header: 'Level' },
+  { 
+    accessorKey: 'CAT0', 
+    header: 'CAT0',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT6', 
+    header: 'CAT6',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT12', 
+    header: 'CAT12',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT18', 
+    header: 'CAT18',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT24', 
+    header: 'CAT24',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT30', 
+    header: 'CAT30',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT36', 
+    header: 'CAT36',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT42', 
+    header: 'CAT42',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT48', 
+    header: 'CAT48',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT54', 
+    header: 'CAT54',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+  { 
+    accessorKey: 'CAT60', 
+    header: 'CAT60',
+    cell: ({ getValue }) => {
+      const value = getValue() as string;
+      return (
+        <div className={`px-2 py-1 rounded text-center font-medium ${getConditionalColor(value)}`}>
+          {value}
+        </div>
+      );
+    }
+  },
+];
+
 export const SettingsV2: React.FC<SettingsV2Props> = () => {
   const [activeTab, setActiveTab] = useState<'progression' | 'cat-matrix' | 'general'>('progression')
   const [isDirty, setIsDirty] = useState(false)
 
-  // CAT Matrix data - this would be loaded from the backend
-  const [catMatrix, setCatMatrix] = useState<Record<string, Record<string, number>>>({
-    'A': { 'CAT0': 0.0, 'CAT1': 0.1, 'CAT2': 0.2, 'CAT3': 0.3, 'CAT4': 0.5, 'CAT5': 0.7, 'CAT6': 0.9 },
-    'AC': { 'CAT0': 0.0, 'CAT1': 0.15, 'CAT2': 0.25, 'CAT3': 0.4, 'CAT4': 0.6, 'CAT5': 0.8, 'CAT6': 0.95 },
-    'C': { 'CAT0': 0.0, 'CAT1': 0.2, 'CAT2': 0.3, 'CAT3': 0.5, 'CAT4': 0.7, 'CAT5': 0.85, 'CAT6': 1.0 },
-    'SrC': { 'CAT0': 0.0, 'CAT1': 0.25, 'CAT2': 0.4, 'CAT3': 0.6, 'CAT4': 0.8, 'CAT5': 0.9, 'CAT6': 1.0 },
-    'AM': { 'CAT0': 0.0, 'CAT1': 0.3, 'CAT2': 0.5, 'CAT3': 0.7, 'CAT4': 0.85, 'CAT5': 0.95, 'CAT6': 1.0 },
-    'M': { 'CAT0': 0.0, 'CAT1': 0.35, 'CAT2': 0.55, 'CAT3': 0.75, 'CAT4': 0.9, 'CAT5': 0.98, 'CAT6': 1.0 },
-    'SrM': { 'CAT0': 0.0, 'CAT1': 0.4, 'CAT2': 0.6, 'CAT3': 0.8, 'CAT4': 0.95, 'CAT5': 1.0, 'CAT6': 1.0 },
-    'PiP': { 'CAT0': 0.0, 'CAT1': 0.5, 'CAT2': 0.7, 'CAT3': 0.85, 'CAT4': 1.0, 'CAT5': 1.0, 'CAT6': 1.0 },
-  })
-
   const levels = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP']
-  const catLevels = ['CAT0', 'CAT1', 'CAT2', 'CAT3', 'CAT4', 'CAT5', 'CAT6']
 
   const getDefaultTenureValues = (level: string) => {
     const tenureDefaults: Record<string, { startTenure: number, timeOnLevel: number, journey: string }> = {
@@ -72,24 +244,10 @@ export const SettingsV2: React.FC<SettingsV2Props> = () => {
     return tenureDefaults[level] || { startTenure: 0, timeOnLevel: 12, journey: 'Default' }
   }
 
-  const handleCatValueChange = (level: string, cat: string, value: string) => {
-    const numValue = parseFloat(value)
-    if (!isNaN(numValue) && numValue >= 0 && numValue <= 1) {
-      setCatMatrix(prev => ({
-        ...prev,
-        [level]: {
-          ...prev[level],
-          [cat]: numValue
-        }
-      }))
-      setIsDirty(true)
-    }
-  }
-
   const handleSave = async () => {
     try {
       // Save logic would go here
-      console.log('Saving settings...', { catMatrix })
+      console.log('Saving settings...')
       setIsDirty(false)
       // Show success message
     } catch (error) {
@@ -187,40 +345,11 @@ export const SettingsV2: React.FC<SettingsV2Props> = () => {
             CAT values represent progression probability coefficients (0.0 - 1.0) for each level and category.
           </div>
           
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Level</TableHead>
-                  {catLevels.map(cat => (
-                    <TableHead key={cat} className="w-24 text-center">
-                      {cat}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {levels.map(level => (
-                  <TableRow key={level}>
-                    <TableCell className="font-medium">{level}</TableCell>
-                    {catLevels.map(cat => (
-                      <TableCell key={cat} className="p-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={catMatrix[level]?.[cat] || 0}
-                          onChange={(e) => handleCatValueChange(level, cat, e.target.value)}
-                          className="w-full text-center text-sm"
-                        />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTableMinimal 
+            columns={catMatrixColumns} 
+            data={catMatrixData}
+            enablePagination={false}
+          />
 
           <div className="flex items-center space-x-2 pt-4">
             <div className="text-sm text-muted-foreground">

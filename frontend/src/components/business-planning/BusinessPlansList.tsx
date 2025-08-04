@@ -18,7 +18,9 @@ import {
   Building2,
   Bot,
   MoreHorizontal,
-  Search
+  Search,
+  Star,
+  StarOff
 } from 'lucide-react';
 import { DataTableMinimal, MinimalColumnDef } from '../ui/data-table-minimal';
 import { Input } from '../ui/input';
@@ -43,6 +45,7 @@ interface BusinessPlan {
   targetRevenue?: number;
   headcountTarget?: number;
   completionPercentage: number;
+  isOfficial: boolean;
 }
 
 interface Props {
@@ -57,6 +60,7 @@ interface Props {
   onViewPlan: (planId: string) => void;
   onDeletePlan: (planId: string) => void;
   onDuplicatePlan: (planId: string) => void;
+  onMarkOfficial: (planId: string) => void;
 }
 
 // Create stable date objects outside component to prevent re-render loops
@@ -88,7 +92,8 @@ const mockBusinessPlans: BusinessPlan[] = [
     totalBudget: 490000,
     targetRevenue: 2100000,
     headcountTarget: 50,
-    completionPercentage: 75
+    completionPercentage: 75,
+    isOfficial: true
   },
   {
     id: 'plan-2',
@@ -103,7 +108,8 @@ const mockBusinessPlans: BusinessPlan[] = [
     totalBudget: 320000,
     targetRevenue: 1800000,
     headcountTarget: 35,
-    completionPercentage: 30
+    completionPercentage: 30,
+    isOfficial: true
   },
   {
     id: 'plan-3',
@@ -118,7 +124,8 @@ const mockBusinessPlans: BusinessPlan[] = [
     totalBudget: 580000,
     targetRevenue: 2500000,
     headcountTarget: 60,
-    completionPercentage: 90
+    completionPercentage: 90,
+    isOfficial: true
   },
   {
     id: 'plan-4',
@@ -130,7 +137,8 @@ const mockBusinessPlans: BusinessPlan[] = [
     createdAt: STABLE_DATES.plan4Created,
     updatedAt: STABLE_DATES.plan4Updated,
     description: 'Reusable template for new office planning',
-    completionPercentage: 100
+    completionPercentage: 100,
+    isOfficial: false
   },
   {
     id: 'plan-5',
@@ -145,7 +153,8 @@ const mockBusinessPlans: BusinessPlan[] = [
     totalBudget: 280000,
     targetRevenue: 1600000,
     headcountTarget: 32,
-    completionPercentage: 100
+    completionPercentage: 100,
+    isOfficial: true
   }
 ];
 
@@ -286,6 +295,26 @@ const createColumns = (handleActionClick: (action: string, planId: string, event
     }
   },
   {
+    accessorKey: 'isOfficial',
+    header: 'Official',
+    size: 80,
+    cell: ({ row }) => {
+      const plan = row.original;
+      return (
+        <div className="flex items-center gap-1">
+          {plan.isOfficial ? (
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <span className="text-yellow-400 text-sm font-medium">Official</span>
+            </div>
+          ) : (
+            <span className="text-gray-400 text-sm">-</span>
+          )}
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: 'updatedAt',
     header: 'Last Updated',
     size: 120,
@@ -331,6 +360,22 @@ const createColumns = (handleActionClick: (action: string, planId: string, event
           <Button
             variant="ghost"
             size="sm"
+            onClick={(e) => handleActionClick('toggleOfficial', plan.id, e)}
+            className={cn(
+              "h-7 w-7 p-0 hover:bg-gray-700",
+              plan.isOfficial ? "text-yellow-400 hover:text-yellow-300" : "text-gray-400 hover:text-yellow-400"
+            )}
+            title={plan.isOfficial ? "Remove Official Status" : "Mark as Official"}
+          >
+            {plan.isOfficial ? (
+              <Star className="h-3 w-3 fill-current" />
+            ) : (
+              <StarOff className="h-3 w-3" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={(e) => handleActionClick('delete', plan.id, e)}
             className="h-7 w-7 p-0 hover:bg-gray-700 hover:text-red-400"
             title="Delete Plan"
@@ -349,7 +394,8 @@ export const BusinessPlansList: React.FC<Props> = ({
   onEditPlan,
   onViewPlan,
   onDeletePlan,
-  onDuplicatePlan
+  onDuplicatePlan,
+  onMarkOfficial
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -394,6 +440,9 @@ export const BusinessPlansList: React.FC<Props> = ({
         break;
       case 'duplicate':
         onDuplicatePlan(planId);
+        break;
+      case 'toggleOfficial':
+        onMarkOfficial(planId);
         break;
     }
   };
@@ -486,7 +535,7 @@ export const BusinessPlansList: React.FC<Props> = ({
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-gray-800 border-gray-600">
           <CardContent className="p-4">
             <div className="space-y-2">
@@ -538,6 +587,20 @@ export const BusinessPlansList: React.FC<Props> = ({
               </div>
               <div className="text-2xl font-bold text-white">
                 {mockBusinessPlans.filter(p => p.year === new Date().getFullYear()).length}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-600">
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <span className="text-sm text-gray-400">Official Plans</span>
+              </div>
+              <div className="text-2xl font-bold text-white">
+                {mockBusinessPlans.filter(p => p.isOfficial).length}
               </div>
             </div>
           </CardContent>

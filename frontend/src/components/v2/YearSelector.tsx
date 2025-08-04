@@ -1,5 +1,6 @@
 import React from 'react';
-import { Tabs, Badge, Spin, Typography } from 'antd';
+import { Tabs, Badge, Spin, Typography, Button } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useYearNavigation } from './YearNavigationProvider';
 import './YearSelector.css'; // We'll create this for custom styling
 
@@ -46,6 +47,24 @@ export const YearSelector: React.FC<YearSelectorProps> = ({
       setSelectedYear(year);
     }
   };
+
+  // Navigation handlers
+  const handlePreviousYear = () => {
+    const currentIndex = availableYears.indexOf(selectedYear);
+    if (currentIndex > 0) {
+      setSelectedYear(availableYears[currentIndex - 1]);
+    }
+  };
+
+  const handleNextYear = () => {
+    const currentIndex = availableYears.indexOf(selectedYear);
+    if (currentIndex < availableYears.length - 1) {
+      setSelectedYear(availableYears[currentIndex + 1]);
+    }
+  };
+
+  const canGoBack = availableYears.indexOf(selectedYear) > 0;
+  const canGoForward = availableYears.indexOf(selectedYear) < availableYears.length - 1;
 
   // Generate tab items for each available year
   const yearTabs = availableYears.map(year => {
@@ -105,29 +124,53 @@ export const YearSelector: React.FC<YearSelectorProps> = ({
   });
 
   return (
-    <div className={`year-navigation-header ${className}`}>
+    <div className={`year-navigation-header ${className}`} data-testid="year-navigation">
       <div className="year-navigation-header__content">
         <Text type="secondary" className="year-navigation-header__title">
           Simulation Years
         </Text>
         
-        <Tabs
-          activeKey={selectedYear.toString()}
-          onChange={handleYearChange}
-          items={yearTabs}
-          size={size}
-          type={type}
-          className="year-selector-tabs"
-          tabBarGutter={8}
-          // Accessibility
-          tabBarExtraContent={
-            error && (
-              <Text type="danger" style={{ fontSize: '12px' }}>
-                {error}
-              </Text>
-            )
-          }
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Button
+            icon={<LeftOutlined />}
+            onClick={handlePreviousYear}
+            disabled={!canGoBack || loading}
+            size="small"
+            data-testid="previous-year-button"
+            title="Previous Year"
+          />
+          
+          <div data-testid="current-year" style={{ display: 'none' }}>
+            {selectedYear}
+          </div>
+          
+          <Tabs
+            activeKey={selectedYear.toString()}
+            onChange={handleYearChange}
+            items={yearTabs}
+            size={size}
+            type={type}
+            className="year-selector-tabs"
+            tabBarGutter={8}
+            // Accessibility
+            tabBarExtraContent={
+              error && (
+                <Text type="danger" style={{ fontSize: '12px' }}>
+                  {error}
+                </Text>
+              )
+            }
+          />
+          
+          <Button
+            icon={<RightOutlined />}
+            onClick={handleNextYear}
+            disabled={!canGoForward || loading}
+            size="small"
+            data-testid="next-year-button"
+            title="Next Year"
+          />
+        </div>
       </div>
       
       {/* Navigation hints for keyboard users */}

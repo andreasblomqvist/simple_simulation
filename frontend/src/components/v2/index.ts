@@ -8,18 +8,6 @@ export { default as BaseCard } from './BaseCard';
 export { 
   CollapsibleSection
 } from './CollapsibleSection';
-export { 
-  ResponsiveGrid, 
-  ResponsiveCol, 
-  GridLayout 
-} from './ResponsiveGrid';
-export { 
-  Spacing, 
-  FlexContainer, 
-  SectionDivider, 
-  Stack, 
-  LayoutPatterns 
-} from './LayoutUtilities';
 
 // Core Navigation & State
 export { YearNavigationProvider, useYearNavigation } from './YearNavigationProvider';
@@ -30,6 +18,8 @@ export { default as EnhancedKPICard } from './EnhancedKPICard';
 export { default as SimulationLeversCard } from './SimulationLeversCard';
 export { default as SimulationScopePanel } from './SimulationScopePanel';
 export { default as EconomicParametersPanel } from './EconomicParametersPanel';
+export { PyramidChart, exampleCareerJourneyData } from './PyramidChart';
+export { QuarterlyWorkforceChart, exampleQuarterlyData } from './QuarterlyWorkforceChart';
 
 // Multi-Year Charts & Visualization (Task 7.0)
 // Note: Chart components will be exported once implementation is complete
@@ -37,8 +27,9 @@ export { default as EconomicParametersPanel } from './EconomicParametersPanel';
 // export { default as YearOverYearComparisonChart } from './YearOverYearComparisonChart';
 
 // Enhanced Data Table (Task 8.0)
-export { default as EnhancedDataTable } from './EnhancedDataTable';
-export { default as VirtualizedDataTable } from './VirtualizedDataTable';
+// TODO: Implement EnhancedDataTable and VirtualizedDataTable
+// export { default as EnhancedDataTable } from './EnhancedDataTable';
+// export { default as VirtualizedDataTable } from './VirtualizedDataTable';
 
 // Chart Utilities and Interactive Components
 export {
@@ -60,15 +51,17 @@ export type {
 } from './ChartUtilities';
 
 // Enhanced Data Table Type Exports
-export type {
-  TableDataRow,
-  TableFilterState,
-  TableViewSettings
-} from './EnhancedDataTable';
+// TODO: Add types when EnhancedDataTable is implemented
+// export type {
+//   TableDataRow,
+//   TableFilterState,
+//   TableViewSettings
+// } from './EnhancedDataTable';
 
 // Demo & Testing
 export { default as YearNavigationDemo } from './YearNavigationDemo';
-export { default as LayoutDemo } from './LayoutDemo';
+// TODO: Implement LayoutDemo
+// export { default as LayoutDemo } from './LayoutDemo';
 
 // Component Types (for external consumption)
 export type { default as YearNavigationProviderProps } from './YearNavigationProvider';
@@ -79,12 +72,12 @@ export type * from '../../types/ui';
 
 // Custom Hooks
 export * from '../../hooks/simulation';
+export * from '../../hooks/yearNavigation';
 
 // TODO: Add these components as they are implemented
 // export { default as MultiYearTrendChart } from './MultiYearTrendChart';
 // export { default as YearOverYearComparisonChart } from './YearOverYearComparisonChart';
-// export { default as EnhancedDataTable } from './EnhancedDataTable';
-// export { default as SimulationLabV2 } from '../pages/SimulationLabV2'; 
+// export { default as EnhancedDataTable } from './EnhancedDataTable'; 
 
 // CSS imports for chart responsiveness
 import './ResponsiveCharts.css';

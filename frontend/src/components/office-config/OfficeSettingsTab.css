@@ -1,0 +1,56 @@
+/* OfficeSettingsTab.css */
+.office-settings-tab {
+  padding: 20px;
+}
+
+.office-settings-form {
+  max-width: 600px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  font-size: 14px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.save-button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.save-button:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+.save-button:disabled {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  cursor: not-allowed;
+} 

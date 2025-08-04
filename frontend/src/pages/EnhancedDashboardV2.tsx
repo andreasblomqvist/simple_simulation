@@ -8,10 +8,17 @@ import {
   Plus,
   Activity,
   TrendingUp,
+  TrendingDown,
   Users,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Clock,
+  PlayCircle,
+  PauseCircle,
+  CheckCircle,
+  FileText,
+  Zap
 } from 'lucide-react'
 
 import { Button } from '../components/ui/button'
@@ -22,11 +29,38 @@ import {
   CardHeader, 
   CardTitle 
 } from '../components/ui/card'
-import { EnhancedKPICard } from '../components/ui/enhanced-kpi-card'
-import { KPIGrid, ContentGrid } from '../components/layout/ResponsiveGrid'
 import { Badge } from '../components/ui/badge'
+import { Progress } from '../components/ui/progress'
+
+// Import design system components
+import { DashboardTemplate } from '../design-system/templates'
+import { Stack, Grid } from '../design-system/layout'
+import { Heading, Text } from '../design-system/typography'
+import { useSetContextBar } from '../design-system/shell'
 
 export const EnhancedDashboardV2: React.FC = () => {
+  // Configure context bar for dashboard
+  useSetContextBar({
+    breadcrumb: {
+      items: [
+        { label: 'Dashboard', current: true }
+      ]
+    },
+    primaryAction: {
+      label: 'Create Scenario',
+      onClick: () => window.location.href = '/scenarios',
+      variant: 'primary',
+      icon: <Plus className="h-4 w-4" />
+    },
+    secondaryActions: [
+      {
+        label: 'View Reports',
+        onClick: () => window.location.href = '/reports',
+        icon: <BarChart3 className="h-4 w-4" />
+      }
+    ]
+  })
+
   // Mock data for KPI cards with historical trends
   const kpiData = {
     totalOffices: {
@@ -114,215 +148,293 @@ export const EnhancedDashboardV2: React.FC = () => {
     }
   ]
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'default'
-      case 'running':
-        return 'secondary'
-      case 'draft':
-        return 'outline'
-      default:
-        return 'outline'
+  // Modern KPI Card Component (shadcn dashboard-01 pattern)
+  const ModernKPICard = ({ 
+    title, 
+    value, 
+    change, 
+    changeType, 
+    icon: Icon 
+  }: {
+    title: string
+    value: string | number
+    change: string
+    changeType: 'positive' | 'negative' | 'neutral'
+    icon: React.ComponentType<{ className?: string }>
+  }) => {
+    const formatValue = (val: string | number): string => {
+      if (typeof val === 'number') {
+        if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`
+        if (val >= 1000) return `${(val / 1000).toFixed(1)}K`
+        return val.toString()
+      }
+      return val
     }
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatValue(value)}</div>
+          <p className={`text-xs flex items-center gap-1 ${
+            changeType === 'positive' 
+              ? 'text-green-600 dark:text-green-400' 
+              : changeType === 'negative'
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-muted-foreground'
+          }`}>
+            {changeType === 'positive' && <TrendingUp className="h-3 w-3" />}
+            {changeType === 'negative' && <TrendingDown className="h-3 w-3" />}
+            {change}
+          </p>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600 dark:text-green-400'
-      case 'running':
-        return 'text-blue-600 dark:text-blue-400'
-      case 'draft':
-        return 'text-gray-600 dark:text-gray-400'
-      default:
-        return 'text-gray-600'
-    }
-  }
+  // Create KPI row component
+  const kpiRow = (
+    <>
+      <ModernKPICard
+        title="Total Offices"
+        value={kpiData.totalOffices.current}
+        change={`+${((kpiData.totalOffices.current - kpiData.totalOffices.previous) / kpiData.totalOffices.previous * 100).toFixed(1)}% from last month`}
+        changeType="positive"
+        icon={Building2}
+      />
+      
+      <ModernKPICard
+        title="Active Scenarios"
+        value={kpiData.activeScenarios.current}
+        change={`+${((kpiData.activeScenarios.current - kpiData.activeScenarios.previous) / kpiData.activeScenarios.previous * 100).toFixed(1)}% from last month`}
+        changeType="positive"
+        icon={Target}
+      />
+      
+      <ModernKPICard
+        title="Completed Simulations"
+        value={kpiData.completedSimulations.current}
+        change={`+${((kpiData.completedSimulations.current - kpiData.completedSimulations.previous) / kpiData.completedSimulations.previous * 100).toFixed(1)}% from last month`}
+        changeType="positive"
+        icon={CheckCircle}
+      />
+      
+      <ModernKPICard
+        title="Total Workforce"
+        value={kpiData.totalWorkforce.current}
+        change={`+${((kpiData.totalWorkforce.current - kpiData.totalWorkforce.previous) / kpiData.totalWorkforce.previous * 100).toFixed(1)}% from last month`}
+        changeType="positive"
+        icon={Users}
+      />
+    </>
+  )
 
-  return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-        <p className="text-muted-foreground">
-          Here's an overview of your workforce simulation platform activity.
-        </p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Key Metrics</h2>
-          <Button variant="outline" size="sm">
-            <BarChart3 className="mr-2 h-4 w-4" />
-            View All Reports
-          </Button>
-        </div>
-        
-        <KPIGrid>
-          <EnhancedKPICard
-            title="Total Offices"
-            value={kpiData.totalOffices.current}
-            previousValue={kpiData.totalOffices.previous}
-            target={kpiData.totalOffices.target}
-            sparklineData={kpiData.totalOffices.sparklineData}
-            description="Number of office locations across all regions"
-            formatter={(value) => value.toString()}
-          />
-          
-          <EnhancedKPICard
-            title="Active Scenarios"
-            value={kpiData.activeScenarios.current}
-            previousValue={kpiData.activeScenarios.previous}
-            target={kpiData.activeScenarios.target}
-            sparklineData={kpiData.activeScenarios.sparklineData}
-            description="Currently running simulation scenarios"
-            formatter={(value) => value.toString()}
-            variant={kpiData.activeScenarios.current > kpiData.activeScenarios.previous ? 'success' : 'default'}
-          />
-          
-          <EnhancedKPICard
-            title="Completed Simulations"
-            value={kpiData.completedSimulations.current}
-            previousValue={kpiData.completedSimulations.previous}
-            target={kpiData.completedSimulations.target}
-            sparklineData={kpiData.completedSimulations.sparklineData}
-            description="Successfully completed simulations this month"
-            formatter={(value) => value.toString()}
-          />
-          
-          <EnhancedKPICard
-            title="Total Workforce"
-            value={kpiData.totalWorkforce.current}
-            previousValue={kpiData.totalWorkforce.previous}
-            target={kpiData.totalWorkforce.target}
-            sparklineData={kpiData.totalWorkforce.sparklineData}
-            description="Total employees across all offices"
-            formatter={(value) => value.toLocaleString()}
-          />
-        </KPIGrid>
-      </div>
-
-      <ContentGrid>
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Get started with common tasks
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Link to="/scenarios" className="block">
-              <Button className="w-full justify-start" variant="outline">
-                <Target className="mr-2 h-4 w-4" />
-                Create New Scenario
-                <ArrowUpRight className="ml-auto h-4 w-4" />
-              </Button>
-            </Link>
-            
-            <Link to="/offices" className="block">
-              <Button className="w-full justify-start" variant="outline">
-                <Building2 className="mr-2 h-4 w-4" />
-                Manage Offices
-                <ArrowUpRight className="ml-auto h-4 w-4" />
-              </Button>
-            </Link>
-            
-            <Link to="/reports" className="block">
-              <Button className="w-full justify-start" variant="outline">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                View Reports
-                <ArrowUpRight className="ml-auto h-4 w-4" />
-              </Button>
-            </Link>
-            
-            <Link to="/settings" className="block">
-              <Button className="w-full justify-start" variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                Configure Settings
-                <ArrowUpRight className="ml-auto h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Recent Scenarios
-                </CardTitle>
-                <CardDescription>
-                  Latest simulation activity
-                </CardDescription>
-              </div>
-              <Badge variant="secondary">
-                {recentScenarios.length} active
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentScenarios.map((scenario) => (
-                <div key={scenario.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
-                  <div className="flex items-start space-x-3">
-                    <Target className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">
-                          {scenario.name}
-                        </p>
-                        <Badge variant={getStatusVariant(scenario.status)}>
-                          {scenario.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {scenario.office} • {scenario.createdAt}
-                      </p>
-                      {scenario.status === 'running' && (
-                        <div className="w-32 bg-background rounded-full h-1.5">
-                          <div 
-                            className="bg-primary h-1.5 rounded-full transition-all"
-                            style={{ width: `${scenario.progress}%` }}
-                          />
-                        </div>
-                      )}
-                    </div>
+  // Create charts row components
+  const chartsRow = {
+    main: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>
+            Get started with common workforce simulation tasks
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <Link to="/scenarios" className="group">
+            <Card className="transition-all duration-200 hover:shadow-md cursor-pointer border-dashed">
+              <CardContent className="flex items-center justify-center p-6">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Target className="h-6 w-6 text-primary" />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {scenario.status === 'running' && (
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {scenario.progress}%
-                      </span>
-                    )}
-                    <Button variant="ghost" size="sm">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </Button>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Create Scenario</h3>
+                    <p className="text-sm text-muted-foreground">Start a new workforce simulation</p>
                   </div>
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/offices" className="group">
+            <Card className="transition-all duration-200 hover:shadow-md cursor-pointer">
+              <CardContent className="flex items-center justify-center p-6">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Building2 className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Manage Offices</h3>
+                    <p className="text-sm text-muted-foreground">Configure office settings</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/reports" className="group">
+            <Card className="transition-all duration-200 hover:shadow-md cursor-pointer">
+              <CardContent className="flex items-center justify-center p-6">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <BarChart3 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">View Reports</h3>
+                    <p className="text-sm text-muted-foreground">Analyze simulation results</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/settings" className="group">
+            <Card className="transition-all duration-200 hover:shadow-md cursor-pointer">
+              <CardContent className="flex items-center justify-center p-6">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Settings className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Settings</h3>
+                    <p className="text-sm text-muted-foreground">Configure platform settings</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </CardContent>
+      </Card>
+    ),
+    sidebar: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            Latest scenarios and simulations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {recentScenarios.map((scenario) => (
+            <div key={scenario.id} className="flex items-start space-x-4 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                {scenario.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                {scenario.status === 'running' && <PlayCircle className="h-4 w-4 text-blue-500" />}
+                {scenario.status === 'draft' && <FileText className="h-4 w-4 text-gray-500" />}
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium leading-none">
+                    {scenario.name}
+                  </p>
+                  <Badge 
+                    variant={scenario.status === 'completed' ? 'default' : scenario.status === 'running' ? 'secondary' : 'outline'}
+                    className="ml-2 capitalize"
+                  >
+                    {scenario.status}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {scenario.office}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {scenario.createdAt}
+                </div>
+                {scenario.status === 'running' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{scenario.progress}%</span>
+                    </div>
+                    <Progress value={scenario.progress} className="h-2" />
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div className="mt-4 pt-4 border-t">
-              <Link to="/scenarios">
-                <Button variant="ghost" className="w-full">
-                  View All Scenarios
-                  <ArrowUpRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </ContentGrid>
+          ))}
+          
+          <div className="pt-4 border-t">
+            <Link to="/scenarios">
+              <Button variant="outline" className="w-full justify-between">
+                View All Scenarios
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Create header with design system typography
+  const header = (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Zap className="h-8 w-8 text-primary" />
+        <Heading level={1} className="text-3xl font-bold tracking-tight">
+          Dashboard
+        </Heading>
+      </div>
+      <Text variant="body-sm" color="muted" className="text-base">
+        Welcome back! Here's an overview of your workforce simulation activity.
+      </Text>
     </div>
+  )
+
+  // Modern data table for recent activity
+  const tableRow = (
+    <Card>
+      <CardHeader>
+        <CardTitle>System Overview</CardTitle>
+        <CardDescription>
+          Current status across all offices and scenarios
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Active Simulations</p>
+              <p className="text-2xl font-bold">3</p>
+              <div className="flex items-center text-xs text-green-600">
+                <TrendingUp className="mr-1 h-3 w-3" />
+                Running smoothly
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Processing Queue</p>
+              <p className="text-2xl font-bold">0</p>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                All clear
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">System Health</p>
+              <p className="text-2xl font-bold text-green-600">Excellent</p>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Zap className="mr-1 h-3 w-3" />
+                All systems operational
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  return (
+    <DashboardTemplate
+      header={header}
+      kpiRow={kpiRow}
+      chartsRow={chartsRow}
+      tableRow={tableRow}
+    />
   )
 }

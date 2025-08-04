@@ -27,56 +27,29 @@ import {
   Users, 
   DollarSign, 
   Target,
-  Building2
+  Building2,
+  UserPlus,
+  Activity
 } from 'lucide-react';
 import type { ScenarioResponse } from '../../types/unified-data-structures';
+import { ResultsService, type ProcessedYearData, type ResultsWorkforceMetrics } from '../../services';
+import { PyramidChart, type PyramidStage } from '../v2/PyramidChart';
+import { QuarterlyWorkforceChart } from '../v2/QuarterlyWorkforceChart';
 
 interface ModernResultsDisplayProps {
   result: ScenarioResponse;
 }
 
-interface YearData {
-  year: string;
-  data: any;
-  kpis: any;
-}
-
-interface ChartDataPoint {
-  month: string;
-  value: number;
-  year: string;
-}
-
-interface SeniorityData {
-  level: string;
-  count: number;
-  percentage: number;
-  color: string;
-}
-
-interface RecruitmentChurnData {
-  month: string;
-  recruitment: number;
-  churn: number;
-  net: number;
-}
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
-const LEVEL_ORDER = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
+// Use types from ResultsService
+type YearData = ProcessedYearData;
 
 const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) => {
   const [selectedYear, setSelectedYear] = useState<string>('');
 
-  // Process simulation results
+  // Process simulation results using service
   const yearsData = useMemo((): YearData[] => {
-    if (!result?.results?.years) return [];
-    
-    const years = Object.keys(result.results.years).sort();
-    return years.map(year => ({
-      year,
-      data: result.results.years[year],
-      kpis: result.results.years[year].kpis || {}
-    }));
+    if (!result?.results) return [];
+    return ResultsService.processYearData(result.results);
   }, [result]);
 
   // Set initial selected year
@@ -86,193 +59,36 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
     }
   }, [yearsData, selectedYear]);
 
+
   const currentYearData = yearsData.find(y => y.year === selectedYear);
 
-  // Helper function to get all offices data or specific office
-  const getOfficesData = (yearData: YearData) => {
-    if (!yearData?.data?.offices) return {};
-    return yearData.data.offices;
-  };
+  // Use service formatting functions (static methods)
+  const formatNumber = ResultsService.formatNumber;
+  const formatCurrency = ResultsService.formatCurrency;
+  const formatPercent = ResultsService.formatPercent;
+  const calculateGrowth = ResultsService.calculateGrowth;
 
-  // Memoized function to aggregate consultant data across offices
-  const aggregateConsultantData = useMemo(() => (yearData: YearData) => {
-    const offices = getOfficesData(yearData);
-    const officeNames = Object.keys(offices);
-    
-    
-    if (officeNames.length === 0) return null;
-    
-    // If only one office, return its data directly
-    if (officeNames.length === 1) {
-      const officeName = officeNames[0];
-      return offices[officeName]?.roles?.Consultant || null;
-    }
-    
-    // Aggregate across multiple offices
-    const aggregatedConsultant: any = {};
-    
-    LEVEL_ORDER.forEach(level => {
-      const levelDataArrays: any[] = [];
-      
-      officeNames.forEach(officeName => {
-        const consultant = offices[officeName]?.roles?.Consultant;
-        if (consultant?.[level] && Array.isArray(consultant[level])) {
-          levelDataArrays.push(consultant[level]);
-        }
-      });
-      
-      if (levelDataArrays.length > 0) {
-        // Aggregate monthly data across offices
-        const monthCount = levelDataArrays[0].length; // Assume all have same month count
-        aggregatedConsultant[level] = [];
-        
-        for (let monthIndex = 0; monthIndex < monthCount; monthIndex++) {
-          let totalFTE = 0;
-          let totalRecruitment = 0;
-          let totalChurn = 0;
-          
-          levelDataArrays.forEach(levelArray => {
-            const monthData = levelArray[monthIndex] || {};
-            totalFTE += monthData.fte || 0;
-            totalRecruitment += monthData.recruitment || 0;
-            totalChurn += monthData.churn || 0;
-          });
-          
-          aggregatedConsultant[level].push({
-            fte: totalFTE,
-            recruitment: totalRecruitment,
-            churn: totalChurn
-          });
-        }
-      }
-    });
-    
-    return Object.keys(aggregatedConsultant).length > 0 ? aggregatedConsultant : null;
-  }, []);
-
-  // Format numbers
-  const formatNumber = (num: number, decimals = 0) => {
-    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
-    return num.toLocaleString('en-US', { maximumFractionDigits: decimals });
-  };
-
-  const formatCurrency = (num: number) => {
-    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
-    return `${formatNumber(num / 1000000, 1)}M SEK`;
-  };
-
-  const formatPercent = (num: number) => {
-    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
-    return `${(num * 100).toFixed(1)}%`;
-  };
-
-  // Calculate growth trend between years
-  const calculateGrowth = (current: number, previous: number) => {
-    if (!previous || previous === 0) return null;
-    return ((current - previous) / previous) * 100;
-  };
-
-  // Generate FTE growth chart data
-  const fteGrowthData = useMemo((): ChartDataPoint[] => {
+  // Generate chart data using service
+  const fteGrowthData = useMemo(() => {
     if (!currentYearData) return [];
-    
-    const consultantData = aggregateConsultantData(currentYearData);
-    if (!consultantData?.A || !Array.isArray(consultantData.A)) return [];
-    
-    return consultantData.A.map((monthData: any, index: number) => ({
-      month: `Month ${index + 1}`,
-      value: monthData.fte || 0,
-      year: currentYearData.year
-    }));
+    return ResultsService.generateFTEGrowthData(currentYearData);
   }, [currentYearData]);
 
-  // Generate seniority distribution data
-  const seniorityData = useMemo((): SeniorityData[] => {
+  const seniorityData = useMemo(() => {
     if (!currentYearData) return [];
-    
-    const consultantData = aggregateConsultantData(currentYearData);
-    if (!consultantData) return [];
-    
-    const levelCounts: { [key: string]: number } = {};
-    let totalFTE = 0;
-    
-    // Calculate FTE for each level (using December data)
-    LEVEL_ORDER.forEach(level => {
-      const levelData = consultantData[level];
-      if (Array.isArray(levelData) && levelData.length > 0) {
-        const decemberData = levelData[levelData.length - 1]; // Last month
-        const fte = decemberData?.fte || 0;
-        levelCounts[level] = fte;
-        totalFTE += fte;
-      }
-    });
-    
-    return LEVEL_ORDER.map((level, index) => ({
-      level,
-      count: levelCounts[level] || 0,
-      percentage: totalFTE > 0 ? ((levelCounts[level] || 0) / totalFTE) * 100 : 0,
-      color: COLORS[index % COLORS.length]
-    })).filter(item => item.count > 0);
+    return ResultsService.generateSeniorityData(currentYearData);
   }, [currentYearData]);
 
-  // Generate recruitment vs churn data
-  const recruitmentChurnData = useMemo((): RecruitmentChurnData[] => {
+  const recruitmentChurnData = useMemo(() => {
     if (!currentYearData) return [];
-    
-    const consultantData = aggregateConsultantData(currentYearData);
-    if (!consultantData?.A || !Array.isArray(consultantData.A)) return [];
-    
-    return consultantData.A.map((monthData: any, index: number) => ({
-      month: `M${index + 1}`,
-      recruitment: monthData.recruitment || 0,
-      churn: monthData.churn || 0,
-      net: (monthData.recruitment || 0) - (monthData.churn || 0)
-    }));
+    return ResultsService.generateRecruitmentChurnData(currentYearData);
   }, [currentYearData]);
 
-  // Calculate workforce metrics across ALL roles
-  const calculateWorkforceMetrics = (yearData?: YearData) => {
-    const targetYear = yearData || currentYearData;
-    if (!targetYear) return null;
-    
-    const offices = getOfficesData(targetYear);
-    if (!offices || Object.keys(offices).length === 0) return null;
-    
-    let totalRecruitment = 0;
-    let totalChurn = 0;
-    
-    // Sum recruitment and churn across ALL roles and offices
-    Object.values(offices).forEach((office: any) => {
-      if (office?.levels) {
-        // Process each role (Consultant, Sales, Recruitment, Operations)
-        Object.entries(office.levels).forEach(([roleName, roleData]: [string, any]) => {
-          if (roleData && typeof roleData === 'object') {
-            // Handle leveled roles (Consultant, Sales, Recruitment)
-            Object.entries(roleData).forEach(([levelName, levelData]: [string, any]) => {
-              if (Array.isArray(levelData)) {
-                levelData.forEach((monthData: any) => {
-                  totalRecruitment += monthData.recruitment || 0;
-                  totalChurn += monthData.churn || 0;
-                });
-              }
-            });
-          } else if (Array.isArray(roleData)) {
-            // Handle flat roles (Operations)
-            roleData.forEach((monthData: any) => {
-              totalRecruitment += monthData.recruitment || 0;
-              totalChurn += monthData.churn || 0;
-            });
-          }
-        });
-      }
-    });
-    
-    return {
-      totalRecruitment,
-      totalChurn,
-      netRecruitment: totalRecruitment - totalChurn
-    };
-  };
+  const quarterlyWorkforceData = useMemo(() => {
+    if (!currentYearData) return [];
+    return ResultsService.generateQuarterlyWorkforceData(currentYearData);
+  }, [currentYearData]);
+
 
   // Financial Panel
   const renderFinancialPanel = (yearData?: YearData) => {
@@ -466,14 +282,20 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
     if (!targetYear) return null;
     
     
-    const workforceMetrics = calculateWorkforceMetrics(targetYear);
+    const workforceMetrics = ResultsService.calculateWorkforceMetrics(targetYear);
+    const productivityMetrics = ResultsService.calculateProductivityMetrics(targetYear);
     if (!workforceMetrics) return null;
+    
+    // Check if metrics are all zero (indicating missing baseline data)
+    const hasZeroMetrics = workforceMetrics.totalRecruitment === 0 && 
+                          workforceMetrics.totalChurn === 0 && 
+                          workforceMetrics.netRecruitment === 0;
     
     const previousYear = yearsData.find(y => parseInt(y.year) === parseInt(targetYear.year) - 1);
     let previousWorkforce = null;
     
     if (previousYear) {
-      previousWorkforce = calculateWorkforceMetrics(previousYear);
+      previousWorkforce = ResultsService.calculateWorkforceMetrics(previousYear);
     }
     
     // Calculate non-debit metrics
@@ -530,6 +352,35 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
         description: 'Annual churn rate percentage'
       }
     ];
+
+    // Add productivity metrics if available
+    if (productivityMetrics) {
+      const monthlyRecruitmentPerRecruiter = productivityMetrics.recruitmentPerRecruiter / 12;
+      const monthlySalesPerSalesperson = productivityMetrics.netSalesPerSalesperson / 12;
+      
+      workforceCards.push(
+        {
+          title: 'Recruitment per Recruiter',
+          value: productivityMetrics.recruitmentPerRecruiter > 0 
+            ? `${formatNumber(productivityMetrics.recruitmentPerRecruiter, 1)}/year`
+            : 'N/A',
+          rawValue: productivityMetrics.recruitmentPerRecruiter,
+          previousValue: undefined, // TODO: Calculate previous year productivity if needed
+          icon: UserPlus,
+          description: `${formatNumber(monthlyRecruitmentPerRecruiter, 1)}/month • ${formatNumber(productivityMetrics.totalRecruiters)} recruiters`
+        },
+        {
+          title: 'Net Sales per Salesperson',
+          value: productivityMetrics.netSalesPerSalesperson > 0 
+            ? `${formatCurrency(productivityMetrics.netSalesPerSalesperson)}/year`
+            : 'N/A',
+          rawValue: productivityMetrics.netSalesPerSalesperson,
+          previousValue: undefined, // TODO: Calculate previous year productivity if needed
+          icon: Activity,
+          description: `${formatCurrency(monthlySalesPerSalesperson)}/month • ${formatNumber(productivityMetrics.totalSalespeople)} salespeople`
+        }
+      );
+    }
     
     return (
       <Card className="mb-6">
@@ -541,7 +392,23 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
           <CardDescription>Recruitment, churn, and workforce dynamics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {hasZeroMetrics && (
+            <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Limited baseline data:</strong> This scenario may have insufficient recruitment/churn baseline data, resulting in zero values. Consider updating the scenario with proper baseline inputs for more realistic workforce projections.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {workforceCards.map((kpi, index) => {
               const growth = kpi.previousValue ? calculateGrowth(kpi.rawValue, kpi.previousValue) : null;
               const Icon = kpi.icon;
@@ -584,18 +451,10 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   const renderFTEGrowthChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
     
-    // Generate FTE growth data for this specific year
-    const fteData = useMemo((): ChartDataPoint[] => {
+    // Generate FTE growth data using service
+    const fteData = useMemo(() => {
       if (!targetYear) return [];
-      
-      const consultantData = aggregateConsultantData(targetYear);
-      if (!consultantData?.A || !Array.isArray(consultantData.A)) return [];
-      
-      return consultantData.A.map((monthData: any, index: number) => ({
-        month: `Month ${index + 1}`,
-        value: monthData.fte || 0,
-        year: targetYear.year
-      }));
+      return ResultsService.generateFTEGrowthData(targetYear);
     }, [targetYear]);
 
     return (
@@ -641,90 +500,79 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
     );
   };
 
-  // Seniority Distribution Chart
+  // Seniority Distribution Chart (Pyramid)
   const renderSeniorityChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
     
-    // Generate seniority data for this specific year
-    const seniorityDataForYear = useMemo((): SeniorityData[] => {
+    // Generate seniority data using service and transform to pyramid stages
+    const pyramidStages = useMemo((): PyramidStage[] => {
       if (!targetYear) return [];
       
-      const consultantData = aggregateConsultantData(targetYear);
-      if (!consultantData) return [];
+      const seniorityData = ResultsService.generateSeniorityData(targetYear);
+      if (!seniorityData.length) return [];
       
-      const levelCounts: { [key: string]: number } = {};
-      let totalFTE = 0;
+      // Map seniority levels to career journey stages
+      const levelMapping: { [key: string]: { stage: number; description: string } } = {
+        'A': { stage: 1, description: 'Associate level' },
+        'AC': { stage: 1, description: 'Associate Consultant' },
+        'C': { stage: 2, description: 'Consultant level' },
+        'SrC': { stage: 2, description: 'Senior Consultant' },
+        'AM': { stage: 3, description: 'Associate Manager' },
+        'M': { stage: 3, description: 'Manager level' },
+        'SrM': { stage: 4, description: 'Senior Manager' },
+        'Pi': { stage: 4, description: 'Principal level' },
+        'P': { stage: 4, description: 'Partner level' }
+      };
       
-      // Calculate FTE for each level (using December data)
-      LEVEL_ORDER.forEach(level => {
-        const levelData = consultantData[level];
-        if (Array.isArray(levelData) && levelData.length > 0) {
-          const decemberData = levelData[levelData.length - 1]; // Last month
-          const fte = decemberData?.fte || 0;
-          levelCounts[level] = fte;
-          totalFTE += fte;
+      // Aggregate by career journey stage
+      const stageData: { [key: number]: { count: number; totalPercentage: number } } = {};
+      
+      seniorityData.forEach(item => {
+        const mapping = levelMapping[item.level];
+        if (mapping) {
+          if (!stageData[mapping.stage]) {
+            stageData[mapping.stage] = { count: 0, totalPercentage: 0 };
+          }
+          stageData[mapping.stage].count += item.count;
+          stageData[mapping.stage].totalPercentage += item.percentage;
         }
       });
       
-      return LEVEL_ORDER.map((level, index) => ({
-        level,
-        count: levelCounts[level] || 0,
-        percentage: totalFTE > 0 ? ((levelCounts[level] || 0) / totalFTE) * 100 : 0,
-        color: COLORS[index % COLORS.length]
-      })).filter(item => item.count > 0);
+      // Convert to PyramidStage format
+      return Object.entries(stageData)
+        .map(([stage, data]) => {
+          const stageNum = parseInt(stage);
+          return {
+            stage: stageNum,
+            label: `Journey ${stageNum}`,
+            percentage: Math.round(data.totalPercentage * 10) / 10, // Round to 1 decimal
+            description: `${formatNumber(data.count)} FTE`
+          };
+        })
+        .sort((a, b) => a.stage - b.stage);
     }, [targetYear]);
 
     return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Seniority Distribution</CardTitle>
-        <CardDescription>Current headcount by seniority level</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={seniorityDataForYear}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={2}
-              dataKey="count"
-            >
-              {seniorityDataForYear.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value, name, props) => [
-                `${formatNumber(value as number)} FTE (${props.payload?.percentage.toFixed(1)}%)`,
-                `Level ${name}`
-              ]}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px'
-              }}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Career Journey Distribution</CardTitle>
+          <CardDescription>Workforce distribution across career stages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pyramidStages.length > 0 ? (
+            <PyramidChart 
+              stages={pyramidStages}
+              colors={['bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500']}
+              className="max-w-3xl"
             />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="grid grid-cols-4 gap-2 mt-4">
-          {seniorityDataForYear.map((item, index) => (
-            <div key={item.level} className="flex items-center space-x-2">
-              <div 
-                className="w-3 h-3 rounded-sm flex-shrink-0" 
-                style={{ backgroundColor: item.color }}
-              />
-              <div className="text-xs">
-                <div className="font-medium">{item.level}</div>
-                <div className="text-muted-foreground">{formatNumber(item.count)} FTE</div>
-              </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No seniority data available for this year</p>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
     );
   };
 
@@ -732,19 +580,10 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   const renderRecruitmentChurnChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
     
-    // Generate recruitment vs churn data for this specific year
-    const recruitmentChurnDataForYear = useMemo((): RecruitmentChurnData[] => {
+    // Generate recruitment vs churn data using service
+    const recruitmentChurnDataForYear = useMemo(() => {
       if (!targetYear) return [];
-      
-      const consultantData = aggregateConsultantData(targetYear);
-      if (!consultantData?.A || !Array.isArray(consultantData.A)) return [];
-      
-      return consultantData.A.map((monthData: any, index: number) => ({
-        month: `M${index + 1}`,
-        recruitment: monthData.recruitment || 0,
-        churn: monthData.churn || 0,
-        net: (monthData.recruitment || 0) - (monthData.churn || 0)
-      }));
+      return ResultsService.generateRecruitmentChurnData(targetYear);
     }, [targetYear]);
 
     return (
@@ -784,21 +623,35 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
     );
   };
 
+  // Quarterly Workforce Analytics Chart
+  const renderQuarterlyWorkforceChart = (yearData?: YearData) => {
+    const targetYear = yearData || currentYearData;
+    
+    // Generate quarterly workforce data using service
+    const quarterlyDataForYear = useMemo(() => {
+      if (!targetYear) return [];
+      return ResultsService.generateQuarterlyWorkforceData(targetYear);
+    }, [targetYear]);
+
+    if (!quarterlyDataForYear.length) return null;
+
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-0">
+          <QuarterlyWorkforceChart 
+            yearData={quarterlyDataForYear}
+            title={`Year ${targetYear.year} - Workforce Movement by Quarter`}
+          />
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Year-over-Year Comparison
   const renderYearComparison = () => {
     if (yearsData.length < 2) return null;
     
-    const comparisonData = yearsData.map(yearData => {
-      const financial = yearData.kpis?.financial || {};
-      return {
-        year: yearData.year,
-        netSales: financial.net_sales || 0,
-        ebitda: financial.ebitda || 0,
-        margin: (financial.margin || 0) * 100,
-        consultants: financial.total_consultants || 0,
-        totalFTE: yearData.data?.total_fte || 0
-      };
-    });
+    const comparisonData = ResultsService.generateYearComparisonData(yearsData);
     
     return (
       <Card className="mb-6">
@@ -882,7 +735,7 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   // Debug office information
   const getOfficeInfo = () => {
     if (!currentYearData) return { offices: [], count: 0 };
-    const offices = getOfficesData(currentYearData);
+    const offices = ResultsService.getOfficesData(currentYearData);
     const officeNames = Object.keys(offices);
     return { offices: officeNames, count: officeNames.length };
   };
@@ -923,7 +776,7 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
       
       {/* Year Tabs */}
       <Tabs value={selectedYear} onValueChange={setSelectedYear}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${yearsData.length <= 3 ? `grid-cols-${yearsData.length}` : 'grid-cols-3'}`}>
           {yearsData.map(yearData => (
             <TabsTrigger key={yearData.year} value={yearData.year}>
               Year {yearData.year}
@@ -949,6 +802,9 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
             </div>
             
             <div>{renderRecruitmentChurnChart(yearData)}</div>
+            
+            {/* Quarterly Workforce Analytics */}
+            <div>{renderQuarterlyWorkforceChart(yearData)}</div>
           </TabsContent>
         ))}
       </Tabs>

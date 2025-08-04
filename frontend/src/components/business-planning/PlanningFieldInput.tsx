@@ -16,35 +16,45 @@ interface PlanningFieldInputProps {
   className?: string;
 }
 
-const FIELD_CONFIGS = {
+interface FieldConfig {
+  min: number;
+  max?: number;
+  step: number;
+  format: (val: number) => string;
+  parse: (str: string) => number;
+  bgColor: string;
+  suffix?: string;
+}
+
+const FIELD_CONFIGS: Record<'recruitment' | 'churn' | 'price' | 'utr' | 'salary', FieldConfig> = {
   recruitment: {
     min: 0,
     step: 1,
-    format: (val: number) => val.toString(),
+    format: (val: number) => Math.round(val).toString(),
     parse: (str: string) => parseInt(str) || 0,
-    bgColor: 'focus:bg-green-50 dark:focus:bg-green-950/20'
+    bgColor: '' // Will use inline styles
   },
   churn: {
     min: 0,
     step: 1,
-    format: (val: number) => val.toString(),
+    format: (val: number) => Math.round(val).toString(),
     parse: (str: string) => parseInt(str) || 0,
-    bgColor: 'focus:bg-red-50 dark:focus:bg-red-950/20'
+    bgColor: '' // Will use inline styles
   },
   price: {
     min: 0,
     step: 1,
-    format: (val: number) => val.toString(),
+    format: (val: number) => Math.round(val).toString(),
     parse: (str: string) => parseFloat(str) || 0,
-    bgColor: 'focus:bg-blue-50 dark:focus:bg-blue-950/20'
+    bgColor: '' // Will use inline styles
   },
   utr: {
     min: 0,
     max: 1,
     step: 0.01,
-    format: (val: number) => (val * 100).toFixed(0),
+    format: (val: number) => (val * 100).toFixed(1),
     parse: (str: string) => (parseFloat(str) || 0) / 100,
-    bgColor: 'focus:bg-purple-50 dark:focus:bg-purple-950/20',
+    bgColor: '', // Will use inline styles
     suffix: '%'
   },
   salary: {
@@ -52,7 +62,7 @@ const FIELD_CONFIGS = {
     step: 100,
     format: (val: number) => Math.round(val).toString(),
     parse: (str: string) => parseFloat(str) || 0,
-    bgColor: 'focus:bg-orange-50 dark:focus:bg-orange-950/20'
+    bgColor: '' // Will use inline styles
   }
 };
 
@@ -103,9 +113,27 @@ export const PlanningFieldInput: React.FC<PlanningFieldInputProps> = ({
     setDisplayValue(e.target.value);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
+    }
+  };
+
+  // Get field-specific focus colors
+  const getFocusStyle = (field: string) => {
+    switch (field) {
+      case 'recruitment':
+        return { backgroundColor: isFocused ? '#065f46' : '#1f2937' }; // Green focus
+      case 'churn':
+        return { backgroundColor: isFocused ? '#7f1d1d' : '#1f2937' }; // Red focus
+      case 'price':
+        return { backgroundColor: isFocused ? '#1e3a8a' : '#1f2937' }; // Blue focus
+      case 'utr':
+        return { backgroundColor: isFocused ? '#581c87' : '#1f2937' }; // Purple focus
+      case 'salary':
+        return { backgroundColor: isFocused ? '#9a3412' : '#1f2937' }; // Orange focus
+      default:
+        return { backgroundColor: '#1f2937' };
     }
   };
 
@@ -122,17 +150,32 @@ export const PlanningFieldInput: React.FC<PlanningFieldInputProps> = ({
         max={config.max}
         step={config.step}
         placeholder="0"
+        style={{
+          height: '32px',
+          fontSize: '12px',
+          textAlign: 'center',
+          border: isFocused ? '2px solid #3b82f6' : '1px solid #374151',
+          color: '#f3f4f6',
+          transition: 'all 0.2s ease',
+          ...getFocusStyle(field),
+          ...(isDirty && {
+            backgroundColor: '#451a03',
+            border: '1px solid #f59e0b'
+          })
+        }}
         className={cn(
-          "h-8 text-xs text-center border border-transparent bg-transparent",
-          "hover:bg-muted/30 focus:bg-background focus:border-primary transition-colors",
-          "focus:ring-2 focus:ring-primary/20",
-          config.bgColor,
-          isDirty && "bg-yellow-100 dark:bg-yellow-950/30 ring-1 ring-yellow-400",
+          "transition-colors",
           className
         )}
       />
       {config.suffix && !isFocused && (
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+        <span 
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
+          style={{ 
+            color: '#9ca3af',
+            transform: 'translateY(-50%)' 
+          }}
+        >
           {config.suffix}
         </span>
       )}

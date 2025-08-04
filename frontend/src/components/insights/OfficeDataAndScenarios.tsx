@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Typography, Select, Button, Table } from 'antd';
+import { Row, Col, Card, Typography, Select, Button } from 'antd';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;

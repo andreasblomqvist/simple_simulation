@@ -1,0 +1,377 @@
+/* Office Sidebar Styles */
+
+.office-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-right: 1px solid hsl(var(--border));
+  transition: width 0.3s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.office-sidebar.collapsed {
+  width: 60px;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  min-height: 60px;
+}
+
+.collapse-button {
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.collapse-button:hover {
+  background: hsl(var(--accent));
+}
+
+.collapse-icon {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(180deg);
+}
+
+.header-content {
+  margin-left: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: hsl(var(--foreground));
+}
+
+.total-count {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  display: block;
+  margin-top: 2px;
+}
+
+/* Sidebar Content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Journey Sections */
+.journey-sections {
+  padding: 0 8px;
+}
+
+.journey-section {
+  margin-bottom: 8px;
+}
+
+.journey-header {
+  width: 100%;
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  padding: 12px 8px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journey-header:hover {
+  background: hsl(var(--accent));
+}
+
+.journey-header.expanded {
+  background: hsl(var(--muted));
+}
+
+.journey-icon {
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.journey-label {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.office-count {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  margin-right: 4px;
+}
+
+.expand-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: hsl(var(--muted-foreground));
+}
+
+.expand-icon.expanded {
+  transform: rotate(0deg);
+}
+
+.expand-icon:not(.expanded) {
+  transform: rotate(-90deg);
+}
+
+/* Office List */
+.office-list {
+  margin-left: 16px;
+  margin-top: 4px;
+}
+
+.office-item {
+  width: 100%;
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+  position: relative;
+}
+
+.office-item:hover {
+  background: hsl(var(--accent));
+  transform: translateX(2px);
+}
+
+.office-item.active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 2px 4px hsl(var(--primary) / 0.3);
+}
+
+.office-item.active:hover {
+  background: hsl(var(--primary) / 0.9);
+  transform: none;
+}
+
+.office-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.office-name {
+  display: block;
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-timezone {
+  display: block;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-item.active .office-timezone {
+  color: hsl(var(--primary-foreground) / 0.8);
+}
+
+.journey-indicator {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+}
+
+/* Collapsed Mode - Office Dots */
+.office-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.office-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 auto;
+}
+
+.office-dot:hover {
+  transform: scale(1.2);
+}
+
+.office-dot.active {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.3);
+}
+
+/* Loading States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.loading-offices {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Empty States */
+.empty-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  height: 200px;
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  color: hsl(var(--muted-foreground));
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.create-first-office {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.create-first-office:hover {
+  background: hsl(var(--primary) / 0.9);
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.add-office-button {
+  width: 100%;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.add-office-button:hover {
+  background: hsl(var(--primary) / 0.9);
+}
+
+.add-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .office-sidebar {
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .sidebar-header {
+    padding: 12px 16px;
+    min-height: 52px;
+  }
+  
+  .sidebar-title {
+    font-size: 16px;
+  }
+  
+  .office-item {
+    padding: 12px;
+  }
+  
+  .office-name {
+    font-size: 15px;
+  }
+  
+  .office-timezone {
+    font-size: 12px;
+  }
+}
+
+/* CSS variables handle dark mode automatically */

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ColumnDef } from '@tanstack/react-table'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   MoreHorizontal, 
   Plus, 
@@ -23,7 +22,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '../components/ui/card'
-import { DataTable } from '../components/ui/data-table'
+import { DataTableMinimal, MinimalColumnDef } from '../components/ui/data-table-minimal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,10 +57,18 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
   const [showWizard, setShowWizard] = useState(false)
   const [editingScenario, setEditingScenario] = useState<ScenarioListItem | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     loadScenarios()
   }, [])
+
+  // Auto-open wizard for /scenarios/new path
+  useEffect(() => {
+    if (location.pathname === '/scenarios/new') {
+      setShowWizard(true)
+    }
+  }, [location.pathname])
 
   const loadScenarios = async () => {
     try {
@@ -124,7 +131,7 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
     return scope.length === 1 ? scope[0] : `${scope.length} offices`
   }
 
-  const columns: ColumnDef<ScenarioListItem>[] = [
+  const columns: MinimalColumnDef<ScenarioListItem>[] = [
     {
       accessorKey: "name",
       header: "Name",
@@ -295,12 +302,9 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <DataTableMinimal
             columns={columns}
             data={scenarios}
-            searchColumn="name"
-            searchPlaceholder="Search scenarios..."
-            enableSelection={true}
             onRowClick={(scenario) => handleView(scenario.id)}
           />
         </CardContent>

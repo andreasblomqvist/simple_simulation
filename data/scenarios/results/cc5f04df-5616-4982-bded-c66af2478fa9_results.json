@@ -1,0 +1,3414 @@
+{
+  "scenario_id": "cc5f04df-5616-4982-bded-c66af2478fa9",
+  "saved_at": "2025-07-24T21:45:57.867953",
+  "results": {
+    "years": {
+      "2025": {
+        "offices": {
+          "Stockholm": {
+            "name": "Stockholm",
+            "total_fte": 782,
+            "journey": "Mature Office",
+            "levels": {
+              "Consultant": {
+                "A": [
+                  {
+                    "fte": 69,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1106.61,
+                    "salary": 42000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 69,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1109.38,
+                    "salary": 42105.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 69,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1112.14,
+                    "salary": 42210,
+                    "utr": 0.85
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 54,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1114.57,
+                    "salary": 44000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 54,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1117.36,
+                    "salary": 44110.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 54,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1120.14,
+                    "salary": 44220,
+                    "utr": 0.85
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 178,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1247.87,
+                    "salary": 58000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 178,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1250.99,
+                    "salary": 58145.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 178,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1254.11,
+                    "salary": 58290,
+                    "utr": 0.85
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 123,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1153.8,
+                    "salary": 48000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 123,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1156.68,
+                    "salary": 48120.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 123,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1159.57,
+                    "salary": 48240,
+                    "utr": 0.85
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 47,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1377.61,
+                    "salary": 70000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 47,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1381.05,
+                    "salary": 70175.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 47,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1384.5,
+                    "salary": 70350,
+                    "utr": 0.85
+                  }
+                ],
+                "PiP": [
+                  {
+                    "fte": 14,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 2000.0,
+                    "salary": 90000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 14,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 2005.0,
+                    "salary": 90225.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 14,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 2010.0,
+                    "salary": 90450,
+                    "utr": 0.85
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 162,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1185.03,
+                    "salary": 53000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 162,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1187.99,
+                    "salary": 53132.5,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 162,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1190.96,
+                    "salary": 53265,
+                    "utr": 0.85
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 32,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1461.7,
+                    "salary": 84000,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 32,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1465.35,
+                    "salary": 84210.0,
+                    "utr": 0.85
+                  },
+                  {
+                    "fte": 32,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 1469.01,
+                    "salary": 84420,
+                    "utr": 0.85
+                  }
+                ]
+              },
+              "Sales": {
+                "A": [
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 38000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 38100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 38200,
+                    "utr": 0.75
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 41000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 41100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 41200,
+                    "utr": 0.75
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 44000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 44100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 13,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 44200,
+                    "utr": 0.75
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 47000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 47100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 47200,
+                    "utr": 0.75
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 4,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 50000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 4,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 50100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 4,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 50200,
+                    "utr": 0.75
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 53000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 53100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 53200,
+                    "utr": 0.75
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 1,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 909.0,
+                    "salary": 56000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 1,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 918.0,
+                    "salary": 56100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 1,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 927.0,
+                    "salary": 56200,
+                    "utr": 0.75
+                  }
+                ]
+              },
+              "Recruitment": {
+                "A": [
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 36000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 36100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 36200,
+                    "utr": 0.75
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 38500,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 38600,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 8,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 38700,
+                    "utr": 0.75
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 41000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 41100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 10,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 41200,
+                    "utr": 0.75
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 6,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 43500,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 6,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 43600,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 6,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 43700,
+                    "utr": 0.75
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 3,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 46000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 3,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 46100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 3,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 46200,
+                    "utr": 0.75
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 48500,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 48600,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 2,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 48700,
+                    "utr": 0.75
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 808.0,
+                    "salary": 51000,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 816.0,
+                    "salary": 51100,
+                    "utr": 0.75
+                  },
+                  {
+                    "fte": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "churned_people": 0,
+                    "promoted_people": 0,
+                    "price": 824.0,
+                    "salary": 51200,
+                    "utr": 0.75
+                  }
+                ]
+              },
+              "Operations": [
+                {
+                  "fte": 13,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "churned_people": 0,
+                  "price": 0.0,
+                  "salary": 35000,
+                  "utr": 1.0
+                },
+                {
+                  "fte": 13,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "churned_people": 0,
+                  "price": 0.0,
+                  "salary": 35050,
+                  "utr": 1.0
+                },
+                {
+                  "fte": 13,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "churned_people": 0,
+                  "price": 0.0,
+                  "salary": 35100,
+                  "utr": 1.0
+                }
+              ]
+            },
+            "financial": {
+              "net_sales": 0.0,
+              "net_sales_baseline": 1290053824.2239997,
+              "total_salary_costs": 0.0,
+              "total_salary_costs_baseline": 501800400.0,
+              "ebitda": -1000000.0,
+              "ebitda_baseline": 625713304.2239997,
+              "margin": 0.0,
+              "margin_baseline": 0.4850288355994621,
+              "total_consultants": 0,
+              "total_consultants_baseline": 679,
+              "avg_hourly_rate": 0.0,
+              "avg_hourly_rate_baseline": 1225.4463328424154,
+              "avg_utr": 0.85
+            },
+            "growth": {
+              "total_growth_percent": -100.0,
+              "total_growth_absolute": -679,
+              "current_total_fte": 0,
+              "baseline_total_fte": 679,
+              "non_debit_ratio": 0.0,
+              "non_debit_ratio_baseline": 0.159941089837997,
+              "non_debit_delta": -0.159941089837997
+            },
+            "journeys": {
+              "journey_totals": {
+                "Journey 1": 0,
+                "Journey 2": 0,
+                "Journey 3": 0,
+                "Journey 4": 0
+              },
+              "journey_percentages": {
+                "Journey 1": 0.0,
+                "Journey 2": 0.0,
+                "Journey 3": 0.0,
+                "Journey 4": 0.0
+              },
+              "journey_deltas": {
+                "Journey 1": -793.2000000000003,
+                "Journey 2": -800.7000000000004,
+                "Journey 3": -190.7,
+                "Journey 4": -24
+              },
+              "journey_totals_baseline": {
+                "Journey 1": 793.2000000000003,
+                "Journey 2": 800.7000000000004,
+                "Journey 3": 190.7,
+                "Journey 4": 24
+              },
+              "journey_percentages_baseline": {
+                "Journey 1": 43.85712705960411,
+                "Journey 2": 44.27181245162004,
+                "Journey 3": 10.544067234324888,
+                "Journey 4": 1.3269932544509562
+              }
+            },
+            "roles": {
+              "Consultant": {
+                "A": [
+                  {
+                    "fte": 69,
+                    "price": 1106.61,
+                    "salary": 42000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 69,
+                    "price": 1109.38,
+                    "salary": 42105.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 69,
+                    "price": 1112.14,
+                    "salary": 42210,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 54,
+                    "price": 1114.57,
+                    "salary": 44000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 54,
+                    "price": 1117.36,
+                    "salary": 44110.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 54,
+                    "price": 1120.14,
+                    "salary": 44220,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 178,
+                    "price": 1247.87,
+                    "salary": 58000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 178,
+                    "price": 1250.99,
+                    "salary": 58145.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 178,
+                    "price": 1254.11,
+                    "salary": 58290,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 123,
+                    "price": 1153.8,
+                    "salary": 48000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 123,
+                    "price": 1156.68,
+                    "salary": 48120.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 123,
+                    "price": 1159.57,
+                    "salary": 48240,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 47,
+                    "price": 1377.61,
+                    "salary": 70000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 47,
+                    "price": 1381.05,
+                    "salary": 70175.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 47,
+                    "price": 1384.5,
+                    "salary": 70350,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "PiP": [
+                  {
+                    "fte": 14,
+                    "price": 2000.0,
+                    "salary": 90000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 14,
+                    "price": 2005.0,
+                    "salary": 90225.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 14,
+                    "price": 2010.0,
+                    "salary": 90450,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 162,
+                    "price": 1185.03,
+                    "salary": 53000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 162,
+                    "price": 1187.99,
+                    "salary": 53132.5,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 162,
+                    "price": 1190.96,
+                    "salary": 53265,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 32,
+                    "price": 1461.7,
+                    "salary": 84000,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 32,
+                    "price": 1465.35,
+                    "salary": 84210.0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 32,
+                    "price": 1469.01,
+                    "salary": 84420,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ]
+              },
+              "Sales": {
+                "A": [
+                  {
+                    "fte": 13,
+                    "price": 909.0,
+                    "salary": 38000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 13,
+                    "price": 918.0,
+                    "salary": 38100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 13,
+                    "price": 927.0,
+                    "salary": 38200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 10,
+                    "price": 909.0,
+                    "salary": 41000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 918.0,
+                    "salary": 41100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 927.0,
+                    "salary": 41200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 13,
+                    "price": 909.0,
+                    "salary": 44000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 13,
+                    "price": 918.0,
+                    "salary": 44100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 13,
+                    "price": 927.0,
+                    "salary": 44200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 8,
+                    "price": 909.0,
+                    "salary": 47000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 8,
+                    "price": 918.0,
+                    "salary": 47100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 8,
+                    "price": 927.0,
+                    "salary": 47200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 4,
+                    "price": 909.0,
+                    "salary": 50000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 4,
+                    "price": 918.0,
+                    "salary": 50100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 4,
+                    "price": 927.0,
+                    "salary": 50200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 2,
+                    "price": 909.0,
+                    "salary": 53000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 2,
+                    "price": 918.0,
+                    "salary": 53100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 2,
+                    "price": 927.0,
+                    "salary": 53200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 1,
+                    "price": 909.0,
+                    "salary": 56000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 1,
+                    "price": 918.0,
+                    "salary": 56100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 1,
+                    "price": 927.0,
+                    "salary": 56200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ]
+              },
+              "Recruitment": {
+                "A": [
+                  {
+                    "fte": 10,
+                    "price": 808.0,
+                    "salary": 36000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 816.0,
+                    "salary": 36100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 824.0,
+                    "salary": 36200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AC": [
+                  {
+                    "fte": 8,
+                    "price": 808.0,
+                    "salary": 38500,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 8,
+                    "price": 816.0,
+                    "salary": 38600,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 8,
+                    "price": 824.0,
+                    "salary": 38700,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "C": [
+                  {
+                    "fte": 10,
+                    "price": 808.0,
+                    "salary": 41000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 816.0,
+                    "salary": 41100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 10,
+                    "price": 824.0,
+                    "salary": 41200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrC": [
+                  {
+                    "fte": 6,
+                    "price": 808.0,
+                    "salary": 43500,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 6,
+                    "price": 816.0,
+                    "salary": 43600,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 6,
+                    "price": 824.0,
+                    "salary": 43700,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "AM": [
+                  {
+                    "fte": 3,
+                    "price": 808.0,
+                    "salary": 46000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 3,
+                    "price": 816.0,
+                    "salary": 46100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 3,
+                    "price": 824.0,
+                    "salary": 46200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "M": [
+                  {
+                    "fte": 2,
+                    "price": 808.0,
+                    "salary": 48500,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 2,
+                    "price": 816.0,
+                    "salary": 48600,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 2,
+                    "price": 824.0,
+                    "salary": 48700,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ],
+                "SrM": [
+                  {
+                    "fte": 0,
+                    "price": 808.0,
+                    "salary": 51000,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 816.0,
+                    "salary": 51100,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 824.0,
+                    "salary": 51200,
+                    "utr": 0.75,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "utr": 0.85,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "promoted_people": 0
+                  }
+                ]
+              },
+              "Operations": [
+                {
+                  "fte": 13,
+                  "price": 0.0,
+                  "salary": 35000,
+                  "utr": 1.0,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 13,
+                  "price": 0.0,
+                  "salary": 35050,
+                  "utr": 1.0,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 13,
+                  "price": 0.0,
+                  "salary": 35100,
+                  "utr": 1.0,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                },
+                {
+                  "fte": 0,
+                  "price": 0,
+                  "salary": 0,
+                  "utr": 0.85,
+                  "recruitment": 0,
+                  "churn": 0,
+                  "promoted_people": 0
+                }
+              ]
+            }
+          }
+        },
+        "total_fte": 782,
+        "kpis": {
+          "year": "2025",
+          "financial": {
+            "net_sales": 323319738.99200004,
+            "net_sales_baseline": 1290053824.2239997,
+            "total_salary_costs": 125015895.0,
+            "total_salary_costs_baseline": 501800400.0,
+            "ebitda": 148799075.49200004,
+            "ebitda_baseline": 625713304.2239997,
+            "margin": 0.46022267602932154,
+            "margin_baseline": 0.4850288355994621,
+            "total_consultants": 169.75,
+            "total_consultants_baseline": 679,
+            "avg_hourly_rate": 307.1274864997546,
+            "avg_hourly_rate_baseline": 1225.4463328424154,
+            "avg_utr": 0.85
+          },
+          "growth": {
+            "total_growth_percent": -100.0,
+            "total_growth_absolute": -679,
+            "current_total_fte": 0,
+            "baseline_total_fte": 679,
+            "non_debit_ratio": 0.0,
+            "non_debit_ratio_baseline": 0.159941089837997,
+            "non_debit_delta": -0.159941089837997
+          },
+          "journeys": {
+            "journey_totals": {
+              "Journey 1": 0,
+              "Journey 2": 0,
+              "Journey 3": 0,
+              "Journey 4": 0
+            },
+            "journey_percentages": {
+              "Journey 1": 0.0,
+              "Journey 2": 0.0,
+              "Journey 3": 0.0,
+              "Journey 4": 0.0
+            },
+            "journey_deltas": {
+              "Journey 1": -793.2000000000003,
+              "Journey 2": -800.7000000000004,
+              "Journey 3": -190.7,
+              "Journey 4": -24
+            },
+            "journey_totals_baseline": {
+              "Journey 1": 793.2000000000003,
+              "Journey 2": 800.7000000000004,
+              "Journey 3": 190.7,
+              "Journey 4": 24
+            },
+            "journey_percentages_baseline": {
+              "Journey 1": 43.85712705960411,
+              "Journey 2": 44.27181245162004,
+              "Journey 3": 10.544067234324888,
+              "Journey 4": 1.3269932544509562
+            }
+          },
+          "year_over_year_growth": 0.0,
+          "year_over_year_margin_change": 0.0
+        }
+      }
+    }
+  }
+}

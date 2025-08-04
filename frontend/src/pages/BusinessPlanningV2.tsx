@@ -212,6 +212,33 @@ export const BusinessPlanningV2: React.FC = () => {
     // TODO: Duplicate plan data and open for editing
   };
 
+  const handleMarkOfficial = (planId: string) => {
+    // In a real implementation, this would:
+    // 1. Find the plan and its office/year
+    // 2. Check if another plan is already official for that office/year
+    // 3. If so, ask user to confirm unmarking the current official plan
+    // 4. Update the plan's official status via API
+    // 5. Refresh the plans list
+    
+    console.log('Toggle official status for plan:', planId);
+    
+    // For now, show a confirmation dialog
+    const confirmed = confirm('This will mark this plan as the official plan for its office. Any existing official plan for the same office and year will be unmarked. Continue?');
+    
+    if (confirmed) {
+      // TODO: Call API to update official status with validation
+      // API should ensure only one official plan per office per year
+      console.log('Confirmed: Marking plan as official:', planId);
+    }
+  };
+
+  const handleViewOfficePlan = (officeId: string, year: number) => {
+    // Navigate to office planning tab with the selected office and year
+    setSelectedOfficeId(officeId);
+    setSelectedYear(year);
+    setActiveTab('office-planning');
+  };
+
   const tabs = [
     {
       key: 'plans-list' as PlanningTab,
@@ -410,6 +437,7 @@ export const BusinessPlanningV2: React.FC = () => {
             onViewPlan={handleViewPlan}
             onDeletePlan={handleDeletePlan}
             onDuplicatePlan={handleDuplicatePlan}
+            onMarkOfficial={handleMarkOfficial}
           />
         </TabsContent>
 
@@ -644,6 +672,7 @@ export const BusinessPlanningV2: React.FC = () => {
                 year={selectedYear}
                 onYearChange={handleYearChange}
                 selectedOffices={offices.slice(0, 3).map(office => office.id)} // Default to first 3 offices
+                onViewOfficePlan={handleViewOfficePlan}
               />
             </CardContent>
           </Card>

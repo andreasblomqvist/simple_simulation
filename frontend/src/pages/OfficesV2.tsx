@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ColumnDef } from '@tanstack/react-table'
+import { MinimalColumnDef } from '../components/ui/data-table-minimal'
 import { 
   Building2, 
   Plus, 
@@ -21,8 +21,9 @@ import {
   CardHeader, 
   CardTitle 
 } from '../components/ui/card'
-import { DataTable } from '../components/ui/data-table'
+import { DataTableMinimal } from '../components/ui/data-table-minimal'
 import { Input } from '../components/ui/input'
+import { NumericCell, PercentageCell } from '../components/ui/data-table-helpers'
 
 // Import existing stores and types
 import { useOfficeStore } from '../stores/officeStore'
@@ -50,6 +51,8 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
   const { officeId } = useParams<{ officeId: string }>()
   const navigate = useNavigate()
   const [selectedOffice, setSelectedOffice] = useState<OfficeConfig | null>(null)
+  
+  console.log('OfficesV2 component rendered with officeId:', officeId);
 
   const {
     offices,
@@ -77,7 +80,9 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
   }, [officeId, offices, selectOffice])
 
   const handleOfficeSelect = (office: OfficeListItem) => {
-    navigate(`/offices/${office.id}`)
+    console.log('Row clicked, navigating to:', `/office-overview/${office.id}`);
+    console.log('Office object:', office);
+    navigate(`/office-overview/${office.id}`)
   }
 
   const handleBackToList = () => {
@@ -99,14 +104,21 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
     return journeyMap[journey] || journey
   }
 
-  const columns: ColumnDef<OfficeListItem>[] = [
+  const columns: MinimalColumnDef<OfficeListItem>[] = [
     {
       accessorKey: "name",
       header: "Office",
       cell: ({ row }) => {
         const office = row.original
         return (
-          <div className="space-y-1">
+          <div 
+            className="space-y-1 cursor-pointer hover:bg-gray-50 p-2 rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('Office name clicked:', office.name);
+              handleOfficeSelect(office);
+            }}
+          >
             <div className="font-medium">{office.name}</div>
             <div className="flex items-center text-sm text-muted-foreground">
               <MapPin className="mr-1 h-3 w-3" />
@@ -122,7 +134,7 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
       cell: ({ row }) => (
         <div className="flex items-center">
           <Users className="mr-2 h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{row.getValue("total_fte")}</span>
+          <NumericCell value={Math.round(row.getValue("total_fte") as number)} />
         </div>
       ),
     },
@@ -151,10 +163,10 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
       header: "Cost of Living",
       cell: ({ row }) => {
         const params = row.getValue("economic_parameters") as any
-        return (
-          <span className="text-sm">
-            {params?.cost_of_living ? `${(params.cost_of_living * 100).toFixed(0)}%` : 'N/A'}
-          </span>
+        return params?.cost_of_living ? (
+          <PercentageCell value={params.cost_of_living} decimals={1} />
+        ) : (
+          <span className="text-sm text-muted-foreground">N/A</span>
         )
       },
     },
@@ -168,7 +180,22 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => handleOfficeSelect(office)}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/office-overview/${office.id}`);
+              }}
+              title="View Overview"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/offices/${office.id}`);
+              }}
+              title="Configure Office"
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -210,7 +237,7 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{selectedOffice.total_fte}</div>
+              <div className="text-2xl font-bold">{Math.round(selectedOffice.total_fte)}</div>
               <p className="text-xs text-muted-foreground">
                 Full-time employees
               </p>
@@ -238,7 +265,7 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
             <CardContent>
               <div className="text-2xl font-bold">
                 {selectedOffice.economic_parameters?.cost_of_living 
-                  ? `${(selectedOffice.economic_parameters.cost_of_living * 100).toFixed(0)}%`
+                  ? `${(selectedOffice.economic_parameters.cost_of_living * 100).toFixed(1)}%`
                   : 'N/A'
                 }
               </div>
@@ -265,25 +292,14 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
         </div>
 
         {/* Office Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Office Configuration</CardTitle>
-            <CardDescription>
-              Manage business plans, workforce, progression settings, and other office configurations
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-hidden rounded-lg border-0">
-              <OfficeConfigPageWrapper 
-                office={selectedOffice}
-                onOfficeUpdate={(updatedOffice) => {
-                  setSelectedOffice(updatedOffice)
-                  // Optionally trigger office store update
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="w-full">
+          <OfficeConfigPageWrapper 
+            office={selectedOffice}
+            onOfficeUpdate={(updatedOffice) => {
+              setSelectedOffice(updatedOffice)
+            }}
+          />
+        </div>
       </div>
     )
   }
@@ -302,10 +318,18 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
             Manage office configurations and view office details across all locations
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Office
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={() => console.log('Add Office button clicked')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Office
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => console.log('Test button clicked')}
+          >
+            Test Click
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -330,7 +354,7 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {offices.reduce((sum, office) => sum + office.total_fte, 0)}
+              {Math.round(offices.reduce((sum, office) => sum + office.total_fte, 0))}
             </div>
             <p className="text-xs text-muted-foreground">
               All employees
@@ -371,14 +395,18 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
           ) : error ? (
             <div className="text-center text-red-600 py-8">{error}</div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={offices}
-              searchColumn="name"
-              searchPlaceholder="Search offices..."
-              enableSelection={false}
-              onRowClick={(office) => handleOfficeSelect(office)}
-            />
+            <div onClick={() => console.log('Table container clicked')}>
+              <DataTableMinimal
+                columns={columns}
+                data={offices}
+                onRowClick={(office) => {
+                  console.log('DataTableMinimal row clicked:', office);
+                  handleOfficeSelect(office);
+                }}
+                enablePagination={true}
+                pageSize={10}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

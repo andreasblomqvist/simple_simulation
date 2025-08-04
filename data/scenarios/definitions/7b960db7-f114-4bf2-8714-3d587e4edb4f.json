@@ -1,0 +1,107 @@
+{
+  "id": "7b960db7-f114-4bf2-8714-3d587e4edb4f",
+  "name": "sods",
+  "description": "No description provided",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2027,
+    "end_month": 12
+  },
+  "office_scope": [
+    "Stockholm"
+  ],
+  "levers": {
+    "recruitment": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "Pi": 1.0,
+      "P": 1.0
+    },
+    "churn": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "Pi": 1.0,
+      "P": 1.0
+    },
+    "progression": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "Pi": 1.0,
+      "P": 1.0
+    }
+  },
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": null,
+  "baseline_input": {
+    "global_data": {
+      "recruitment": {
+        "Consultant": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Sales": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Recruitment": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Operations": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        }
+      },
+      "churn": {
+        "Consultant": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Sales": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Recruitment": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        },
+        "Operations": {
+          "levels": null,
+          "recruitment": null,
+          "churn": null
+        }
+      }
+    }
+  },
+  "created_at": "2025-07-25 09:04:59.021371",
+  "updated_at": "2025-07-25T09:05:30.252895"
+}

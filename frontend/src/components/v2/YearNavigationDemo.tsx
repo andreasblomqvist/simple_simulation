@@ -1,10 +1,10 @@
 import React from 'react';
-import { Card, Typography, Space, Button, Alert } from 'antd';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Alert, AlertDescription } from '../ui/alert';
 import { YearNavigationProvider, useYearNavigation } from './YearNavigationProvider';
 import YearSelector from './YearSelector';
 import EnhancedKPICard from './EnhancedKPICard';
-
-const { Title, Text } = Typography;
 
 // Mock simulation data for testing
 const mockSimulationData = {
@@ -92,79 +92,74 @@ const YearNavigationDemoContent: React.FC = () => {
   }));
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <Title level={2}>Year Navigation Demo</Title>
-      <Text type="secondary" style={{ display: 'block', marginBottom: '24px' }}>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold tracking-tight mb-2">Year Navigation Demo</h2>
+      <p className="text-muted-foreground mb-6">
         This demo shows the YearNavigationProvider and YearSelector components working together
         with enhanced KPI cards that display year-over-year changes.
-      </Text>
+      </p>
 
       {/* Year Selector */}
       <YearSelector />
 
       {/* Error Display */}
       {error && (
-        <Alert
-          type="error"
-          message="Navigation Error"
-          description={error}
-          style={{ marginBottom: '24px' }}
-          showIcon
-        />
+        <Alert className="mb-6">
+          <AlertDescription>
+            <strong>Navigation Error:</strong> {error}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Year Navigation Info */}
-      <Card style={{ marginBottom: '24px' }}>
-        <Title level={4}>Navigation State</Title>
-        <Space direction="vertical" style={{ width: '100%' }}>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Navigation State</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
           <div>
-            <Text strong>Selected Year: </Text>
-            <Text code>{selectedYear}</Text>
+            <span className="font-semibold">Selected Year: </span>
+            <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{selectedYear}</code>
           </div>
           <div>
-            <Text strong>Available Years: </Text>
-            <Text code>{availableYears.join(', ')}</Text>
+            <span className="font-semibold">Available Years: </span>
+            <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{availableYears.join(', ')}</code>
           </div>
           <div>
-            <Text strong>Loading: </Text>
-            <Text code>{loading ? 'true' : 'false'}</Text>
+            <span className="font-semibold">Loading: </span>
+            <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{loading ? 'true' : 'false'}</code>
           </div>
           <div>
-            <Text strong>Has Previous Year Data: </Text>
-            <Text code>{previousYearData ? 'true' : 'false'}</Text>
+            <span className="font-semibold">Has Previous Year Data: </span>
+            <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{previousYearData ? 'true' : 'false'}</code>
           </div>
-        </Space>
 
-        {/* Quick Navigation Buttons */}
-        <div style={{ marginTop: '16px' }}>
-          <Text strong style={{ marginRight: '12px' }}>Quick Navigation:</Text>
-          <Space>
-            {availableYears.map(year => (
-              <Button
-                key={year}
-                type={year === selectedYear ? 'primary' : 'default'}
-                size="small"
-                onClick={() => setSelectedYear(year)}
-                loading={loading && year === selectedYear}
-              >
-                {year}
-              </Button>
-            ))}
-          </Space>
-        </div>
+          {/* Quick Navigation Buttons */}
+          <div className="pt-4">
+            <span className="font-semibold mr-3">Quick Navigation:</span>
+            <div className="flex gap-2 flex-wrap">
+              {availableYears.map(year => (
+                <Button
+                  key={year}
+                  variant={year === selectedYear ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedYear(year)}
+                  disabled={loading && year === selectedYear}
+                >
+                  {year}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Enhanced KPI Cards */}
       {currentKPIs && (
         <div>
-          <Title level={4} style={{ marginBottom: '16px' }}>Enhanced KPI Cards with Year-over-Year Changes</Title>
+          <h4 className="text-xl font-semibold mb-4">Enhanced KPI Cards with Year-over-Year Changes</h4>
           
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '24px',
-            marginBottom: '24px'
-          }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             {/* Total FTE */}
             <EnhancedKPICard
               title="Total FTE"
@@ -223,25 +218,24 @@ const YearNavigationDemoContent: React.FC = () => {
       {/* Office Data */}
       {yearData?.offices && (
         <Card>
-          <Title level={4}>Office Data for {selectedYear}</Title>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            {Object.entries(yearData.offices).map(([officeName, officeData]: [string, any]) => (
-              <div key={officeName} style={{ 
-                padding: '12px', 
-                border: '1px solid #f0f0f0', 
-                borderRadius: '6px',
-                background: '#fafafa'
-              }}>
-                <Text strong style={{ display: 'block', marginBottom: '4px' }}>{officeName}</Text>
-                <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>
-                  {officeData.journey}
-                </Text>
-                <Text style={{ fontSize: '14px', marginTop: '4px', display: 'block' }}>
-                  {officeData.totalFTE} FTE
-                </Text>
-              </div>
-            ))}
-          </div>
+          <CardHeader>
+            <CardTitle>Office Data for {selectedYear}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(yearData.offices).map(([officeName, officeData]: [string, any]) => (
+                <div key={officeName} className="p-3 border border-border rounded-lg bg-muted/50">
+                  <div className="font-semibold text-sm mb-1">{officeName}</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    {officeData.journey}
+                  </div>
+                  <div className="text-sm">
+                    {officeData.totalFTE} FTE
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       )}
     </div>

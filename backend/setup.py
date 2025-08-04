@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="simple-simulation-backend",
-    version="0.5.10",
+    version="0.5.11",
     packages=find_packages(),
     install_requires=[
         "fastapi>=0.68.0",

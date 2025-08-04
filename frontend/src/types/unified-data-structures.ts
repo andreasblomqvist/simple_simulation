@@ -4,7 +4,7 @@
  * This file defines TypeScript interfaces that match the documented
  * data structures and backend unified models exactly.
  * 
- * Based on docs/SIMULATION_DATA_STRUCTURES.md
+ * Based on cursor_rules/SIMULATION_DATA_STRUCTURES.md
  */
 
 // Basic types
@@ -15,6 +15,39 @@ export type OfficeName = string;
 export type LevelType = 'A' | 'AC' | 'C' | 'SrC' | 'AM' | 'M' | 'SrM' | 'PiP';
 export type LeverType = 'recruitment' | 'churn' | 'progression';
 export type ComparisonType = 'side_by_side' | 'overlay' | 'difference';
+
+// Role constants
+export const ROLES = ['Consultant', 'Sales', 'Recruitment', 'Operations'] as const;
+export const ROLES_WITH_LEVELS = ['Consultant', 'Sales', 'Recruitment'] as const;
+export const DEFAULT_ROLE = 'Consultant';
+
+// Role levels mapping
+export const ROLE_LEVELS = {
+  Consultant: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
+  Sales: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
+  Recruitment: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
+  Operations: ['N/A'], // Operations is a flat role without levels
+} as const;
+
+// Utility function to generate month keys in YYYYMM format
+export function generateMonthKeys(startYear: number, startMonth: number, endYear: number, endMonth: number): string[] {
+  const months: string[] = [];
+  let currentYear = startYear;
+  let currentMonth = startMonth;
+  
+  while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+    const monthKey = `${currentYear}${currentMonth.toString().padStart(2, '0')}`;
+    months.push(monthKey);
+    
+    currentMonth++;
+    if (currentMonth > 12) {
+      currentMonth = 1;
+      currentYear++;
+    }
+  }
+  
+  return months;
+}
 
 // Time range interface
 export interface TimeRange {
@@ -47,8 +80,8 @@ export interface MonthlyValues {
 
 // Level data for recruitment/churn
 export interface LevelData {
-  recruitment: MonthlyValues;
-  churn: MonthlyValues;
+  recruitment: { values: MonthlyValues };
+  churn: { values: MonthlyValues };
 }
 
 // Role data - can be leveled (with levels) or flat (direct monthly values)
@@ -122,7 +155,7 @@ export interface ScenarioDefinition {
   economic_params: EconomicParameters;
   progression_config?: ProgressionConfig;
   cat_curves?: CATCurves;
-  baseline_input: BaselineInput;
+  baseline_input?: BaselineInput;
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
 }
@@ -174,12 +207,58 @@ export interface YearResults {
   offices: {
     [officeName: string]: OfficeResults;
   };
+  kpis?: {
+    year: string;
+    financial: {
+      net_sales: number;
+      net_sales_baseline: number;
+      total_salary_costs: number;
+      total_salary_costs_baseline: number;
+      ebitda: number;
+      ebitda_baseline: number;
+      margin: number;
+      margin_baseline: number;
+      total_consultants: number;
+      total_consultants_baseline: number;
+      avg_hourly_rate: number;
+      avg_hourly_rate_baseline: number;
+      avg_utr: number;
+    };
+    growth: {
+      total_growth_percent: number;
+      total_growth_absolute: number;
+      current_total_fte: number;
+      baseline_total_fte: number;
+      non_debit_ratio: number;
+      non_debit_ratio_baseline: number;
+      non_debit_delta: number;
+    };
+    journeys: {
+      journey_totals: Record<string, number>;
+      journey_percentages: Record<string, number>;
+      journey_deltas: Record<string, number>;
+      journey_totals_baseline: Record<string, number>;
+      journey_percentages_baseline: Record<string, number>;
+    };
+    year_over_year_growth: number;
+    year_over_year_margin_change: number;
+  };
 }
 
 // Complete simulation results
 export interface SimulationResults {
   years: {
     [yearString: string]: YearResults;
+  };
+}
+
+// Office configuration interface
+export interface Office {
+  name: string;
+  total_fte: number;
+  journey: string;
+  roles: {
+    [roleName: string]: RoleData;
   };
 }
 
@@ -248,171 +327,7 @@ export interface ValidationError {
   value?: any;
 }
 
-export interface ValidationReport {
-  timestamp: string;
-  overall_status: 'valid' | 'valid_with_warnings' | 'invalid';
-  scenario_validation: {
-    is_valid: boolean;
-    errors: string[];
-  };
-  baseline_input_validation: {
-    is_valid: boolean;
-    errors: string[];
-  };
-  field_name_validation: {
-    issues_found: number;
-    issues: string[];
-  };
-  summary: {
-    total_errors: number;
-    total_warnings: number;
-    critical_issues: string[];
-    recommendations: string[];
-  };
-}
-
-// Utility Types for Frontend Components
-
-// For BaselineInputGrid component
-export interface BaselineInputData {
-  recruitment: {
-    [roleName: string]: {
-      [levelName: string]: MonthlyValues;
-    };
-  };
-  churn: {
-    [roleName: string]: {
-      [levelName: string]: MonthlyValues;
-    };
-  };
-}
-
-// For form handling
-export interface ScenarioFormData {
-  name: string;
-  description: string;
-  time_range: TimeRange;
-  office_scope: OfficeScope;
-  levers: Levers;
-  economic_params: EconomicParameters;
-  baseline_input: BaselineInputData;
-}
-
-// Migration utilities
-export interface LegacyScenarioData {
-  // Old structure with inconsistent field names
-  [key: string]: any;
-}
-
-// Month key utilities matching backend validation
-export const MONTH_KEY_REGEX = /^\d{4}(0[1-9]|1[0-2])$/;
-
-export function isValidMonthKey(key: string): boolean {
-  return MONTH_KEY_REGEX.test(key);
-}
-
-export function parseMonthKey(key: YearMonth): { year: number; month: number } {
-  if (!isValidMonthKey(key)) {
-    throw new Error(`Invalid month key format: ${key}. Expected YYYYMM format.`);
-  }
-  return {
-    year: parseInt(key.substring(0, 4)),
-    month: parseInt(key.substring(4, 6))
-  };
-}
-
-export function formatMonthKey(year: number, month: number): YearMonth {
-  if (year < 2020 || year > 2040) {
-    throw new Error(`Year must be between 2020 and 2040: ${year}`);
-  }
-  if (month < 1 || month > 12) {
-    throw new Error(`Month must be between 1 and 12: ${month}`);
-  }
-  return `${year}${month.toString().padStart(2, '0')}`;
-}
-
-export function generateMonthKeys(
-  startYear: number, 
-  startMonth: number, 
-  endYear: number, 
-  endMonth: number
-): YearMonth[] {
-  const months: YearMonth[] = [];
-  let currentYear = startYear;
-  let currentMonth = startMonth;
-  
-  while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
-    months.push(formatMonthKey(currentYear, currentMonth));
-    
-    currentMonth++;
-    if (currentMonth > 12) {
-      currentMonth = 1;
-      currentYear++;
-    }
-  }
-  
-  return months;
-}
-
-// Helper functions for data transformation
-export interface DataTransformationUtils {
-  convertLegacyToUnified: (legacy: LegacyScenarioData) => ScenarioDefinition;
-  validateScenarioData: (data: any) => ValidationReport;
-}
-
-// Role and level constants matching backend
-export const ROLE_LEVELS: Record<string, LevelType[]> = {
-  Consultant: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-  Sales: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-  Recruitment: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'],
-} as const;
-
-export const ROLES = Object.keys(ROLE_LEVELS);
-export const DEFAULT_ROLE = 'Consultant' as const;
-
-// Constants for validation
-export const VALIDATION_CONSTANTS = {
-  MIN_YEAR: 2020,
-  MAX_YEAR: 2040,
-  MIN_MONTH: 1,
-  MAX_MONTH: 12,
-  MONTH_KEY_REGEX: /^\d{4}(0[1-9]|1[0-2])$/,
-  REQUIRED_BASELINE_SECTIONS: ['recruitment', 'churn'],
-  KNOWN_LEVER_TYPES: ['recruitment', 'churn', 'progression'],
-  DEPRECATED_FIELDS: ['total', 'progression_rate', 'Price_1', 'Price_2'],
-} as const;
-
-// Legacy Office type for backwards compatibility
-export interface Office {
-  name: string;
-  total_fte: number;
-  levels: Record<string, Level>;
-  operations: {
-    total: number;
-    price: number;
-    salary: number;
-    recruitment_h1: number;
-    recruitment_h2: number;
-    churn_h1: number;
-    churn_h2: number;
-    growth_h1: number;
-    growth_h2: number;
-  };
-}
-
-export interface Level {
-  total: number;
-  price: number;
-  salary: number;
-  recruitment_h1: number;
-  recruitment_h2: number;
-  churn_h1: number;
-  churn_h2: number;
-  growth_h1: number;
-  growth_h2: number;
-}
-
-// Missing comparison types for API compatibility
+// Scenario comparison types
 export interface ScenarioComparisonRequest {
   scenario_ids: ScenarioId[];
   comparison_type: ComparisonType;

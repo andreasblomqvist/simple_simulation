@@ -177,3 +177,8 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# Embedded git repositories
+agents/
+claude-agents/
+tools/v0-mcp/

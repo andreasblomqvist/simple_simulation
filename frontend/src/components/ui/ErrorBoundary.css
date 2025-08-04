@@ -1,0 +1,205 @@
+/**
+ * Error Boundary Component Styles
+ * Provides user-friendly error display with professional styling
+ */
+
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background-color: hsl(var(--background));
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+}
+
+.error-content {
+  max-width: 500px;
+  text-align: center;
+  padding: 2rem;
+  background-color: hsl(var(--card));
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+  opacity: 0.8;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.error-message {
+  font-size: 1rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 2rem 0;
+  line-height: 1.6;
+}
+
+.error-details {
+  text-align: left;
+  margin: 1.5rem 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background-color: hsl(var(--muted));
+}
+
+.error-details summary {
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: hsl(var(--muted) / 0.5);
+  border-radius: 6px 6px 0 0;
+  user-select: none;
+}
+
+.error-details summary:hover {
+  background-color: hsl(var(--muted) / 0.7);
+}
+
+.error-stack {
+  margin: 0;
+  padding: 1rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--muted));
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.retry-button,
+.refresh-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.retry-button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.retry-button:hover {
+  background-color: hsl(var(--primary) / 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+}
+
+.refresh-button {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+
+.refresh-button:hover {
+  background-color: hsl(var(--secondary) / 0.8);
+  border-color: hsl(var(--border));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.refresh-button:active {
+  transform: translateY(0);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-boundary {
+    background-color: hsl(var(--background));
+  }
+  
+  .error-content {
+    background-color: hsl(var(--card));
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .error-boundary {
+    border-width: 2px;
+  }
+  
+  .error-content {
+    border: 2px solid hsl(var(--border));
+  }
+  
+  .retry-button,
+  .refresh-button {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .retry-button,
+  .refresh-button {
+    transition: none;
+  }
+  
+  .retry-button:hover,
+  .refresh-button:hover {
+    transform: none;
+  }
+}
+
+/* Mobile responsive design */
+@media (max-width: 640px) {
+  .error-boundary {
+    padding: 1rem;
+    min-height: 300px;
+  }
+  
+  .error-content {
+    padding: 1.5rem;
+  }
+  
+  .error-title {
+    font-size: 1.25rem;
+  }
+  
+  .error-message {
+    font-size: 0.875rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .retry-button,
+  .refresh-button {
+    width: 100%;
+  }
+}

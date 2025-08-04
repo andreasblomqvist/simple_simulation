@@ -2,8 +2,8 @@ import React from 'react';
 import type { ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
-import { ConfigProvider } from 'antd';
 import { vi } from 'vitest';
+import { ThemeProvider } from '../components/providers/theme-provider';
 
 // Mock the scenario API
 export const mockScenarioApi = {
@@ -31,9 +31,9 @@ vi.mock('../services/scenarioApi', () => ({
 // Test wrapper component with providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <ConfigProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" storageKey="test-ui-theme">
       {children}
-    </ConfigProvider>
+    </ThemeProvider>
   );
 };
 

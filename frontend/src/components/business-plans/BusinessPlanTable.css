@@ -1,0 +1,355 @@
+/* Business Plan Table Styles */
+
+.business-plan-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: hsl(var(--background));
+  overflow: hidden;
+}
+
+.business-plan-table-container:focus {
+  outline: none;
+}
+
+/* Loading State */
+.business-plan-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: hsl(var(--background));
+}
+
+/* Error Banner */
+.error-banner {
+  background: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.2);
+  border-left: 4px solid hsl(var(--destructive));
+  margin: 0 16px 16px 16px;
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.error-text {
+  flex: 1;
+  font-size: 14px;
+  color: hsl(var(--destructive));
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  color: hsl(var(--destructive));
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.error-dismiss:hover {
+  background: hsl(var(--destructive) / 0.1);
+}
+
+/* Table Wrapper */
+.business-plan-table-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: hsl(var(--card));
+  margin: 0 16px 16px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+  border: 1px solid hsl(var(--border));
+}
+
+/* Main Table */
+.business-plan-table {
+  display: flex;
+  flex-direction: column;
+  min-width: 1400px; /* Ensure horizontal scroll on small screens */
+}
+
+/* Table Header */
+.table-header {
+  display: flex;
+  align-items: center;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 8px 8px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.role-level-header {
+  display: flex;
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.role-cell,
+.level-cell {
+  padding: 16px 12px;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  border-right: 1px solid hsl(var(--primary-foreground) / 0.2);
+}
+
+.role-cell {
+  width: 100px;
+  background: hsl(var(--primary) / 0.9);
+}
+
+.level-cell {
+  width: 100px;
+  background: hsl(var(--primary) / 0.8);
+}
+
+.month-header {
+  flex: 1;
+  min-width: 120px;
+  padding: 16px 8px;
+  text-align: center;
+  border-right: 1px solid hsl(var(--primary-foreground) / 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.month-header:last-child {
+  border-right: none;
+}
+
+.month-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.month-number {
+  font-size: 12px;
+  color: hsl(var(--primary-foreground) / 0.7);
+}
+
+/* Table Body */
+.table-body {
+  background: hsl(var(--card));
+}
+
+.role-section {
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+.role-section:last-child {
+  border-bottom: none;
+}
+
+.table-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 80px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+/* Role/Level Labels */
+.role-level-labels {
+  display: flex;
+  width: 200px;
+  flex-shrink: 0;
+  background: hsl(var(--muted));
+}
+
+.role-label {
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted) / 0.8);
+  font-weight: 600;
+  font-size: 14px;
+  color: hsl(var(--foreground));
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 8px;
+}
+
+.level-label {
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted) / 0.6);
+  font-weight: 600;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Cell Grid */
+.table-row .business-plan-cell {
+  flex: 1;
+  min-width: 120px;
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  margin: 0;
+  border-radius: 0;
+}
+
+.table-row .business-plan-cell:last-child {
+  border-right: none;
+}
+
+/* Keyboard Navigation Help */
+.keyboard-help {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 8px 16px;
+  font-size: 12px;
+  text-align: center;
+  border-radius: 0 0 8px 8px;
+  margin: 0 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .business-plan-table-wrapper {
+    padding: 12px;
+    margin: 0 12px 12px 12px;
+  }
+  
+  .business-plan-table {
+    min-width: 1200px;
+  }
+  
+  .role-level-header {
+    width: 160px;
+  }
+  
+  .role-cell,
+  .level-cell {
+    width: 80px;
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+  
+  .role-level-labels {
+    width: 160px;
+  }
+  
+  .role-label,
+  .level-label {
+    width: 80px;
+    font-size: 12px;
+  }
+  
+  .month-header {
+    min-width: 100px;
+    padding: 12px 6px;
+  }
+  
+  .month-name {
+    font-size: 13px;
+  }
+  
+  .table-row .business-plan-cell {
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .business-plan-table-wrapper {
+    padding: 8px;
+    margin: 0 8px 8px 8px;
+  }
+  
+  .business-plan-table {
+    min-width: 1000px;
+  }
+  
+  .role-level-header {
+    width: 140px;
+  }
+  
+  .role-cell,
+  .level-cell {
+    width: 70px;
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+  
+  .role-level-labels {
+    width: 140px;
+  }
+  
+  .role-label,
+  .level-label {
+    width: 70px;
+    font-size: 11px;
+    padding: 6px;
+  }
+  
+  .month-header {
+    min-width: 90px;
+    padding: 10px 4px;
+  }
+  
+  .month-name {
+    font-size: 12px;
+  }
+  
+  .month-number {
+    font-size: 11px;
+  }
+  
+  .table-row .business-plan-cell {
+    min-width: 90px;
+  }
+  
+  .keyboard-help {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+}
+
+/* Dark mode is now handled automatically by CSS variables */
+
+/* Print Styles */
+@media print {
+  .business-plan-table-container {
+    background: white;
+  }
+  
+  .business-plan-table-wrapper {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  .table-header {
+    background: #f5f5f5 !important;
+    color: black !important;
+  }
+  
+  .keyboard-help {
+    display: none;
+  }
+  
+  .business-plan-cell:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .change-indicator {
+    display: none;
+  }
+}

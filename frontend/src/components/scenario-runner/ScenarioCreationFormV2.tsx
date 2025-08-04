@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Building2, Globe } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -7,7 +7,10 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Alert, AlertDescription } from '../ui/alert';
 import { useToast } from '../ui/use-toast';
+import { useSearchParams } from 'react-router-dom';
 import type { ScenarioDefinition, TimeRange, OfficeName } from '../../types/unified-data-structures';
 import { scenarioApi } from '../../services/scenarioApi';
 import { cn } from '../../lib/utils';
@@ -26,6 +29,7 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
   loading = false 
 }) => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -39,10 +43,61 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
   const [availableOffices, setAvailableOffices] = useState<OfficeName[]>([]);
   const [loadingOffices, setLoadingOffices] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [baselineInfo, setBaselineInfo] = useState<{
+    type: 'business-plan' | 'aggregated-plan' | null;
+    office?: string;
+    year?: number;
+    loading: boolean;
+    error?: string;
+  }>({ type: null, loading: false });
 
   useEffect(() => {
     loadAvailableOffices();
   }, []);
+
+  // Detect business plan baseline from URL parameters
+  useEffect(() => {
+    const baseline = searchParams.get('baseline');
+    const office = searchParams.get('office');
+    const year = searchParams.get('year');
+
+    console.log('[DEBUG] URL params:', { baseline, office, year });
+
+    if (baseline && (baseline === 'business-plan' || baseline === 'aggregated-plan')) {
+      const yearNum = year ? parseInt(year) : new Date().getFullYear();
+      
+      console.log('[DEBUG] Setting baseline info:', { type: baseline, office, year: yearNum });
+      
+      setBaselineInfo({
+        type: baseline as 'business-plan' | 'aggregated-plan',
+        office: office || undefined,
+        year: yearNum,
+        loading: false
+      });
+
+      // Pre-fill form based on baseline type
+      if (baseline === 'business-plan' && office) {
+        setFormData(prev => ({
+          ...prev,
+          name: `${office.charAt(0).toUpperCase() + office.slice(1)} Business Plan Scenario`,
+          description: `Scenario based on ${office} business plan for ${yearNum}`,
+          startYear: yearNum,
+          endYear: yearNum + 2,
+          officeScope: 'individual',
+          offices: [office]
+        }));
+      } else if (baseline === 'aggregated-plan') {
+        setFormData(prev => ({
+          ...prev,
+          name: `Aggregated Business Plan Scenario`,
+          description: `Scenario based on aggregated business plans for ${yearNum}`,
+          startYear: yearNum,
+          endYear: yearNum + 2,
+          officeScope: 'group'
+        }));
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (scenario && scenario.time_range) {
@@ -110,7 +165,7 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -128,6 +183,50 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
       ? ['Group'] 
       : formData.offices as OfficeName[];
 
+    let baselineInput = undefined;
+
+    // Fetch business plan baseline data if specified
+    if (baselineInfo.type && baselineInfo.year) {
+      try {
+        setBaselineInfo(prev => ({ ...prev, loading: true, error: undefined }));
+        
+        let baselineResponse;
+        if (baselineInfo.type === 'business-plan' && baselineInfo.office) {
+          // Individual office business plan
+          baselineResponse = await fetch(
+            `/api/business-plans/export-baseline?office_id=${baselineInfo.office}&year=${baselineInfo.year}&start_month=${formData.startMonth}&end_month=${formData.endMonth}`
+          );
+        } else if (baselineInfo.type === 'aggregated-plan') {
+          // Aggregated business plan
+          baselineResponse = await fetch(
+            `/api/business-plans/aggregated/export-baseline?year=${baselineInfo.year}&start_month=${formData.startMonth}&end_month=${formData.endMonth}`
+          );
+        }
+
+        if (baselineResponse && baselineResponse.ok) {
+          baselineInput = await baselineResponse.json();
+          console.log('[DEBUG] Baseline data loaded:', baselineInput);
+          toast({
+            title: "Success",
+            description: "Business plan baseline loaded successfully",
+          });
+        } else {
+          throw new Error(`Failed to fetch baseline: ${baselineResponse?.statusText}`);
+        }
+        
+        setBaselineInfo(prev => ({ ...prev, loading: false }));
+      } catch (error) {
+        const errorMsg = `Failed to load business plan baseline: ${(error as Error).message}`;
+        setBaselineInfo(prev => ({ ...prev, loading: false, error: errorMsg }));
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const scenarioDefinition: ScenarioDefinition = {
       name: formData.name,
       description: formData.description,
@@ -135,8 +234,10 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
       office_scope: officeScopeList,
       levers: {},
       economic_params: {},
+      baseline_input: baselineInput || undefined
     };
 
+    console.log('[DEBUG] Final scenario definition:', scenarioDefinition);
     onNext({ scenarioId: '', scenario: scenarioDefinition });
   };
 
@@ -160,6 +261,54 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Business Plan Baseline Info */}
+      {baselineInfo.type && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <div className="flex items-start space-x-3">
+            {baselineInfo.type === 'business-plan' ? (
+              <Building2 className="h-5 w-5 text-blue-600 mt-0.5" />
+            ) : (
+              <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <AlertDescription className="text-blue-800">
+                <div className="font-medium mb-1">
+                  {baselineInfo.type === 'business-plan' 
+                    ? 'Individual Office Business Plan Baseline' 
+                    : 'Aggregated Business Plan Baseline'}
+                </div>
+                <div className="text-sm">
+                  {baselineInfo.type === 'business-plan' && baselineInfo.office && (
+                    <span>Office: <Badge variant="outline" className="text-blue-700 border-blue-300">{baselineInfo.office}</Badge></span>
+                  )}
+                  {baselineInfo.year && (
+                    <span className={baselineInfo.office ? 'ml-3' : ''}>
+                      Year: <Badge variant="outline" className="text-blue-700 border-blue-300">{baselineInfo.year}</Badge>
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs mt-2 text-blue-600">
+                  Scenario will be initialized with business plan recruitment and churn data as baseline
+                </div>
+              </AlertDescription>
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      {/* Baseline Loading/Error States */}
+      {baselineInfo.loading && (
+        <Alert>
+          <AlertDescription>Loading business plan baseline data...</AlertDescription>
+        </Alert>
+      )}
+      
+      {baselineInfo.error && (
+        <Alert variant="destructive">
+          <AlertDescription>{baselineInfo.error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Scenario Name */}
       <div className="space-y-2">
         <Label htmlFor="name">Scenario Name *</Label>
@@ -350,6 +499,22 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Progression Configuration Notice */}
+      <Alert className="border-green-200 bg-green-50">
+        <div className="flex items-start space-x-3">
+          <div className="flex-1">
+            <AlertDescription className="text-green-800">
+              <div className="font-medium mb-1">
+                Default Progression Configuration Included
+              </div>
+              <div className="text-sm">
+                This scenario will automatically include default progression rates and CAT matrix values for career advancement modeling.
+              </div>
+            </AlertDescription>
+          </div>
+        </div>
+      </Alert>
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-4">

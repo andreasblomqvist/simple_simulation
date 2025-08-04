@@ -1,72 +1,42 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
-import Layout from './components/Layout';
-
-import Dashboard from './pages/Dashboard';
-import AllOffices from './pages/AllOffices';
-import GrowthProjections from './pages/GrowthProjections';
-import SeniorityAnalysis from './pages/SeniorityAnalysis';
-import SimulationLabV2 from './pages/SimulationLabV2';
-import Settings from './pages/Settings';
-import InsightsTab from './pages/InsightsTab';
-import SystemConfig from './pages/SystemConfig';
-import ScenarioRunner from './pages/ScenarioRunner';
-import ScenarioDetails from './pages/ScenarioDetails';
-import ScenarioWizard from './components/scenario-runner/ScenarioWizard';
-
-import { ThemeProvider } from './components/ThemeContext';
+import './styles/globals.css';
+import './lib/theme-script';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from './components/providers/theme-provider';
 import { YearNavigationProvider } from './components/v2/YearNavigationProvider';
-import 'antd/dist/reset.css';
-import { ConfigProvider, theme, Button, App as AntdApp } from 'antd';
 import { ConfigProvider as CustomConfigProvider } from './components/ConfigContext';
+import { Toaster } from './components/ui/toaster';
+import { TooltipProvider } from './components/ui/tooltip';
 
-// Stagewise imports removed - packages not available
+// Import routing
+import { EnhancedRoutes } from './routes/EnhancedRoutes';
 
 function MainApp() {
-  const [isDark, setIsDark] = useState(true);
   return (
-    <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
-      <ThemeProvider>
-        <CustomConfigProvider>
-          <BrowserRouter>
-            {/* Stagewise Toolbar removed - packages not available */}
-            
-            <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
-              <Button onClick={() => setIsDark(d => !d)}>
-                Switch to {isDark ? 'Light' : 'Dark'} Mode
-              </Button>
-            </div>
+    <BrowserRouter>
+      <ThemeProvider 
+        attribute="class"
+        defaultTheme="dark" 
+        storageKey="simplesim-ui-theme"
+        enableSystem
+      >
+        <TooltipProvider>
+          <CustomConfigProvider>
             <YearNavigationProvider>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/offices" element={<AllOffices />} />
-                  <Route path="/growth" element={<GrowthProjections />} />
-                  <Route path="/seniority" element={<SeniorityAnalysis />} />
-                  <Route path="/system-config" element={<SystemConfig />} />
-                  <Route path="/lab" element={<SimulationLabV2 />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/insights" element={<InsightsTab />} />
-                  <Route path="/scenario-runner" element={<ScenarioRunner />} />
-                  <Route path="/scenario-runner/:id" element={<ScenarioDetails />} />
-                  <Route path="/scenario-runner/edit/:id" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
-                  <Route path="/scenario-runner/create" element={<ScenarioWizard onCancel={() => window.history.back()} onComplete={() => {}} />} />
-                </Routes>
-              </Layout>
+              <EnhancedRoutes />
+              <Toaster />
             </YearNavigationProvider>
-          </BrowserRouter>
-        </CustomConfigProvider>
+          </CustomConfigProvider>
+        </TooltipProvider>
       </ThemeProvider>
-    </ConfigProvider>
+    </BrowserRouter>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('app')!).render(
   <React.StrictMode>
-    <AntdApp>
-      <MainApp />
-    </AntdApp>
+    <MainApp />
   </React.StrictMode>
 );

@@ -3,83 +3,131 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../../../test/test-utils';
-import ResultsTable from '../ResultsTable';
+import { ModernModernResultsTable } from '../ModernModernResultsTable';
 import { scenarioApi } from '../../../services/scenarioApi';
 
 // Mock the scenarioApi
 vi.mock('../../../services/scenarioApi', () => ({
   scenarioApi: {
-    runScenarioById: vi.fn(),
+    getScenarioResults: vi.fn(),
   },
 }));
 
-// Mock simulation results data
+// Mock simulation results data - Updated for ModernModernResultsTable format
 const mockSimulationResults = {
-  scenario_id: 'test-scenario-123',
-  scenario_name: 'Test Scenario',
-  execution_time: 2.5,
-  status: 'success' as const,
-  results: {
-    years: {
-      '2025': {
-        offices: {
-          Stockholm: {
-            total_fte: 100,
-            roles: {},
-            financial: {
-              net_sales: 1000000,
-              total_salary_costs: 800000,
-              ebitda: 200000,
-              margin: 0.20,
-              avg_hourly_rate: 1200,
-              avg_utr: 0.85,
-            },
-            growth: {
-              total_growth_percent: 20.0,
-              total_growth_absolute: 20,
-              non_debit_ratio: 0.15,
-            },
+  years: {
+    '2025': {
+      offices: {
+        Stockholm: {
+          total_fte: 100,
+          roles: {},
+          financial: {
+            net_sales: 1000000,
+            total_salary_costs: 800000,
+            ebitda: 200000,
+            margin: 0.20,
+            avg_hourly_rate: 1200,
+            avg_utr: 0.85,
+          },
+          growth: {
+            total_growth_percent: 20.0,
+            total_growth_absolute: 20,
+            non_debit_ratio: 0.15,
+          },
+          journeys: {
+            journey_percentages: {
+              "Journey 1": 25.0,
+              "Journey 2": 30.0,
+              "Journey 3": 25.0,
+              "Journey 4": 20.0,
+            }
           },
         },
       },
-      '2026': {
-        offices: {
-          Stockholm: {
-            total_fte: 120,
-            roles: {},
-            financial: {
-              net_sales: 1200000,
-              total_salary_costs: 960000,
-              ebitda: 240000,
-              margin: 0.20,
-              avg_hourly_rate: 1200,
-              avg_utr: 0.85,
-            },
-            growth: {
-              total_growth_percent: 20.0,
-              total_growth_absolute: 20,
-              non_debit_ratio: 0.15,
-            },
+      kpis: {
+        financial: {
+          total_consultants: 100,
+          net_sales: 1000000,
+          ebitda: 200000,
+          margin: 0.20,
+        },
+        growth: {
+          total_growth_percent: 20.0,
+        },
+        journeys: {
+          journey_percentages: {
+            "Journey 1": 25.0,
+            "Journey 2": 30.0,
+            "Journey 3": 25.0,
+            "Journey 4": 20.0,
+          }
+        }
+      }
+    },
+    '2026': {
+      offices: {
+        Stockholm: {
+          total_fte: 120,
+          roles: {},
+          financial: {
+            net_sales: 1200000,
+            total_salary_costs: 960000,
+            ebitda: 240000,
+            margin: 0.20,
+            avg_hourly_rate: 1200,
+            avg_utr: 0.85,
+          },
+          growth: {
+            total_growth_percent: 20.0,
+            total_growth_absolute: 20,
+            non_debit_ratio: 0.15,
+          },
+          journeys: {
+            journey_percentages: {
+              "Journey 1": 25.0,
+              "Journey 2": 30.0,
+              "Journey 3": 25.0,
+              "Journey 4": 20.0,
+            }
           },
         },
       },
+      kpis: {
+        financial: {
+          total_consultants: 120,
+          net_sales: 1200000,
+          ebitda: 240000,
+          margin: 0.20,
+        },
+        growth: {
+          total_growth_percent: 20.0,
+        },
+        journeys: {
+          journey_percentages: {
+            "Journey 1": 25.0,
+            "Journey 2": 30.0,
+            "Journey 3": 25.0,
+            "Journey 4": 20.0,
+          }
+        }
+      }
     },
   },
 };
 
-describe('ResultsTable', () => {
+describe('ModernModernResultsTable', () => {
   const mockOnNext = vi.fn();
   const mockOnBack = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock the API response
-    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(mockSimulationResults);
+    vi.mocked(scenarioApi.getScenarioResults).mockResolvedValue(mockSimulationResults);
   });
 
   it('renders simulation results table', async () => {
     render(
-      <ResultsTable
+      <ModernModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -98,7 +146,7 @@ describe('ResultsTable', () => {
 
   it('displays KPI metrics correctly', async () => {
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -119,7 +167,7 @@ describe('ResultsTable', () => {
 
   it('formats financial values correctly', async () => {
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -139,12 +187,12 @@ describe('ResultsTable', () => {
 
   it('shows loading state while fetching data', () => {
     // Mock a slow API response
-    vi.mocked(scenarioApi.runScenarioById).mockImplementation(
+    vi.mocked(scenarioApi.getScenarioResults).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve(mockSimulationResults), 100))
     );
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -157,10 +205,10 @@ describe('ResultsTable', () => {
 
   it('handles API errors gracefully', async () => {
     // Mock API error
-    vi.mocked(scenarioApi.runScenarioById).mockRejectedValue(new Error('API Error'));
+    vi.mocked(scenarioApi.getScenarioResults).mockRejectedValue(new Error('API Error'));
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -177,7 +225,7 @@ describe('ResultsTable', () => {
     const user = userEvent.setup();
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -200,7 +248,7 @@ describe('ResultsTable', () => {
     const user = userEvent.setup();
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -223,38 +271,45 @@ describe('ResultsTable', () => {
     // Mock data with multiple offices
     const multiOfficeResults = {
       ...mockSimulationResults,
-      results: {
-        years: {
-          '2025': {
-            offices: {
-              Stockholm: mockSimulationResults.results.years['2025'].offices.Stockholm,
-              Gothenburg: {
-                total_fte: 80,
-                roles: {},
-                financial: {
-                  net_sales: 800000,
-                  total_salary_costs: 640000,
-                  ebitda: 160000,
-                  margin: 0.20,
-                  avg_hourly_rate: 1200,
-                  avg_utr: 0.85,
-                },
-                growth: {
-                  total_growth_percent: 15.0,
-                  total_growth_absolute: 15,
-                  non_debit_ratio: 0.15,
-                },
+      years: {
+        '2025': {
+          offices: {
+            Stockholm: mockSimulationResults.years['2025'].offices.Stockholm,
+            Gothenburg: {
+              total_fte: 80,
+              roles: {},
+              financial: {
+                net_sales: 800000,
+                total_salary_costs: 640000,
+                ebitda: 160000,
+                margin: 0.20,
+                avg_hourly_rate: 1200,
+                avg_utr: 0.85,
+              },
+              growth: {
+                total_growth_percent: 15.0,
+                total_growth_absolute: 15,
+                non_debit_ratio: 0.15,
+              },
+              journeys: {
+                journey_percentages: {
+                  "Journey 1": 30.0,
+                  "Journey 2": 25.0,
+                  "Journey 3": 25.0,
+                  "Journey 4": 20.0,
+                }
               },
             },
           },
+          kpis: mockSimulationResults.years['2025'].kpis,
         },
       },
     };
 
-    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(multiOfficeResults);
+    vi.mocked(scenarioApi.getScenarioResults).mockResolvedValue(multiOfficeResults);
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -274,19 +329,13 @@ describe('ResultsTable', () => {
   it('handles empty scenario data gracefully', async () => {
     // Mock empty results
     const emptyResults = {
-      scenario_id: 'empty-scenario',
-      scenario_name: 'Empty Scenario',
-      execution_time: 0,
-      status: 'success' as const,
-      results: {
-        years: {},
-      },
+      years: {},
     };
 
-    vi.mocked(scenarioApi.runScenarioById).mockResolvedValue(emptyResults);
+    vi.mocked(scenarioApi.getScenarioResults).mockResolvedValue(emptyResults);
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="empty-scenario"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -301,7 +350,7 @@ describe('ResultsTable', () => {
 
   it('provides responsive table layout', async () => {
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -320,10 +369,10 @@ describe('ResultsTable', () => {
 
   it('handles invalid scenario ID', async () => {
     // Mock API error for invalid scenario
-    vi.mocked(scenarioApi.runScenarioById).mockRejectedValue(new Error('Scenario not found'));
+    vi.mocked(scenarioApi.getScenarioResults).mockRejectedValue(new Error('Scenario not found'));
 
     render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="invalid-scenario-id"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -338,7 +387,7 @@ describe('ResultsTable', () => {
 
   it('updates when scenario ID changes', async () => {
     const { rerender } = render(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-123"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -352,7 +401,7 @@ describe('ResultsTable', () => {
 
     // Change scenario ID
     rerender(
-      <ResultsTable
+      <ModernResultsTable
         scenarioId="test-scenario-456"
         onNext={mockOnNext}
         onBack={mockOnBack}
@@ -360,6 +409,6 @@ describe('ResultsTable', () => {
     );
 
     // Should call API again with new scenario ID
-    expect(scenarioApi.runScenarioById).toHaveBeenCalledWith('test-scenario-456');
+    expect(scenarioApi.getScenarioResults).toHaveBeenCalledWith('test-scenario-456');
   });
 }); 

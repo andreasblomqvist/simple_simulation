@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Card, Select, Typography, Collapse, Row, Col, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
-
-const { Option } = Select;
-const { Title, Text } = Typography;
-const { Panel } = Collapse;
+import { EnhancedDataTable, EnhancedColumnDef } from '../components/ui/enhanced-data-table';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Building2, Users, TrendingUp } from 'lucide-react';
 
 interface Office {
   id: string;
@@ -43,107 +44,121 @@ export function AllOffices() {
       });
   }, []);
 
-  const columns = [
+  const columns: EnhancedColumnDef<Office>[] = [
     {
-      title: 'Office',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: Office) => (
-        <Text 
-          strong 
-          style={{ 
-            cursor: 'pointer', 
-            color: '#1890ff',
-            textDecoration: 'underline'
-          }}
-          onClick={() => navigate(`/offices/${record.id}`)}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#40a9ff';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#1890ff';
-          }}
+      accessorKey: 'name',
+      header: 'Office',
+      cell: ({ row }) => (
+        <Button
+          variant="link"
+          className="p-0 h-auto font-semibold text-blue-600 hover:text-blue-800"
+          onClick={() => navigate(`/offices/${row.original.id}`)}
         >
-          {text}
-        </Text>
+          <Building2 className="mr-2 h-4 w-4" />
+          {row.original.name}
+        </Button>
       ),
     },
     {
-      title: 'Journey',
-      dataIndex: 'journey',
-      key: 'journey',
-      render: (journey: string) => <Tag>{journey}</Tag>,
+      accessorKey: 'journey',
+      header: 'Journey',
+      cell: ({ row }) => (
+        <Badge variant="secondary">{row.original.journey}</Badge>
+      ),
     },
     {
-      title: 'Total FTE',
-      dataIndex: 'total_fte',
-      key: 'total_fte',
+      accessorKey: 'total_fte',
+      header: 'Total FTE',
+      cellType: 'default',
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+          <span className="font-mono">{row.original.total_fte}</span>
+        </div>
+      ),
     },
     {
-      title: 'Cost of Living',
-      key: 'cost_of_living',
-      render: (_: any, office: Office) => {
-        const col = office.economic_parameters?.cost_of_living;
+      id: 'cost_of_living',
+      header: 'Cost of Living',
+      cell: ({ row }) => {
+        const col = row.original.economic_parameters?.cost_of_living;
         return col ? col.toFixed(2) : 'N/A';
       },
     },
     {
-      title: 'Market Multiplier',
-      key: 'market_multiplier',
-      render: (_: any, office: Office) => {
-        const mm = office.economic_parameters?.market_multiplier;
+      id: 'market_multiplier', 
+      header: 'Market Multiplier',
+      cell: ({ row }) => {
+        const mm = row.original.economic_parameters?.market_multiplier;
         return mm ? mm.toFixed(2) : 'N/A';
       },
     },
   ];
 
   return (
-    <Card title={<Title level={4} style={{ margin: 0 }}>All Offices</Title>}>
-      {/* Filters */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col><Select defaultValue="Company" style={{ width: 120 }}><Option value="Company">Company</Option></Select></Col>
-        <Col><Select defaultValue="Journey" style={{ width: 120 }}><Option value="Journey">Journey</Option></Select></Col>
-        <Col><Select defaultValue="Sort: Name" style={{ width: 140 }}>
-          <Option value="Sort: Name">Sort: Name</Option>
-          <Option value="Sort: Headcount">Sort: Headcount</Option>
-          <Option value="Sort: Growth">Sort: Growth</Option>
-        </Select></Col>
-      </Row>
-      {error && <Text type="danger">{error}</Text>}
-      <Table
-        columns={columns}
-        dataSource={offices}
-        loading={loading}
-        rowKey="id"
-        expandable={{
-          expandedRowRender: (office: Office) => (
-            <div>
-              <Title level={5} style={{ marginBottom: 8 }}>Role Breakdown</Title>
-              <Row gutter={16} style={{ marginBottom: 8 }}>
-                {Object.entries(office.roles).map(([role, levels]) => (
-                  <Col key={role} span={8}>
-                    <Card size="small" style={{ marginBottom: 8 }}>
-                      <Text strong>{role}</Text>
-                      <div>
-                        {Object.entries(levels).map(([level, data]) => (
-                          <div key={level}>
-                            <Text>{level}: {data.fte || 0} FTE</Text>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          ),
-          expandedRowKeys,
-          onExpand: (expanded, record) => {
-            setExpandedRowKeys(expanded ? [record.id] : []);
-          },
-        }}
-        pagination={{ pageSize: 8 }}
-      />
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            All Offices
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Filters */}
+          <div className="flex gap-4 mb-6">
+            <Select defaultValue="Company">
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Company">Company</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select defaultValue="Journey">
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Journey">Journey</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select defaultValue="Sort: Name">
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sort: Name">Sort: Name</SelectItem>
+                <SelectItem value="Sort: Headcount">Sort: Headcount</SelectItem>
+                <SelectItem value="Sort: Growth">Sort: Growth</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {error && (
+            <div className="text-red-600 mb-4">{error}</div>
+          )}
+
+          <EnhancedDataTable
+            columns={columns}
+            data={offices}
+            loading={loading}
+            searchable={true}
+            searchPlaceholder="Search offices..."
+            searchColumn="name"
+            enableSelection={false}
+            enableExpansion={true}
+            enablePagination={true}
+            pageSize={8}
+            bordered={true}
+            striped={true}
+            onRowClick={(office) => navigate(`/offices/${office.id}`)}
+            className="offices-table"
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 } 

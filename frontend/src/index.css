@@ -1,99 +1,28 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Clean base styles - no legacy overrides needed */
 
-/* Dark mode summary cards override */
-.summary-card-light {
-  background-color: #ffffff !important;
-  border: 1px solid #d9d9d9 !important;
+/* Enhanced component styling for shadcn/ui */
+.summary-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--card-foreground));
+  border-radius: var(--radius);
+  transition: all 0.2s ease-in-out;
 }
 
-.summary-card-dark {
-  background-color: #1f1f1f !important;
-  border: 1px solid #303030 !important;
+.summary-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Dark mode styles for simulation configuration card */
-.simulation-config-card-dark {
-  background-color: #1f1f1f !important;
-  color: #ffffff !important;
+/* Simulation configuration card styles */
+.simulation-config-card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
 }
 
-.simulation-config-card-dark .ant-card-body {
-  background-color: #1f1f1f !important;
-  color: #ffffff !important;
-}
-
-.simulation-config-card-dark .ant-typography {
-  color: #ffffff !important;
-}
-
-.simulation-config-card-dark .ant-card-head {
-  background-color: #1f1f1f !important;
-  border-bottom-color: #303030 !important;
-}
-
-.simulation-config-card-dark .ant-card-head-title {
-  color: #ffffff !important;
-}
-
-/* Light mode styles for simulation configuration card */
-.simulation-config-card-light {
-  background-color: #f0f9ff !important;
-  color: inherit;
-}
-
-/* Summary cards for movement logs */
-.summary-card-dark {
-  background-color: #1f1f1f !important;
-  border: 1px solid #303030 !important;
-  color: #ffffff !important;
-}
-
-.summary-card-dark .ant-typography {
-  color: #ffffff !important;
-}
-
-.summary-card-dark .ant-typography.ant-typography-secondary {
-  color: #d9d9d9 !important;
-}
-
-.summary-card-dark span {
-  color: #ffffff !important;
-}
-
-.summary-card-light {
-  background-color: #fafafa !important;
-  border: 1px solid #f0f0f0 !important;
-  color: inherit;
-}
-
-/* Force delta row background on all cells (AntD override) */
-.ant-table-row.delta-row > .ant-table-cell,
-.ant-table-row.delta-row > td {
-  background-color: #23272f !important;
+/* Delta row styling for tables */
+.delta-row {
+  background-color: hsl(var(--muted)) !important;
   font-style: italic;
 }
-
-/* (Optional) Remove or comment out the old .delta-row background rules to avoid confusion */
-/*
-.delta-row,
-.ant-table-row.delta-row,
-.ant-table-row.delta-row > .ant-table-cell {
-  background-color: #f8f9fa !important;
-  font-style: italic;
-}
-.ant-table-row.delta-row > .ant-table-cell {
-  border-top: 1px solid #e8e8e8 !important;
-}
-[data-theme="dark"] .delta-row,
-[data-theme="dark"] .ant-table-row.delta-row,
-[data-theme="dark"] .ant-table-row.delta-row > .ant-table-cell {
-  background-color: #23272f !important;
-}
-[data-theme="dark"] .ant-table-row.delta-row > .ant-table-cell {
-  border-top: 1px solid #303030 !important;
-}
-*/
-
- 

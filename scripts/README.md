@@ -1,306 +1,203 @@
-# Scripts Directory Organization
+# Business Plan Data Population Scripts
 
-This directory contains Python scripts organized by their purpose and functionality.
+This directory contains scripts to populate the business planning system with realistic test data.
 
-## Directory Structure
+## 📁 Files Overview
 
-### `/analysis/` - Data Analysis Scripts
-Scripts for analyzing simulation results, logs, and data patterns.
+### Core Scripts
+- **`populate_business_plan.py`** - Populates business plan data via API (requires running backend)
+- **`generate_test_business_plan_data.py`** - Generates JSON test data files (offline)
+- **`setup_business_plan_data.sh`** - Master script to run both operations easily
+- **`demo_business_plan.js`** - JavaScript demo for working with the test data
 
-**Scripts:**
-- `analyze_debug_log_by_year.py` - Analyze debug simulation logs by year to identify growth issues
-- `analyze_debug_log_detailed.py` - Detailed analysis of debug logs with comprehensive metrics
-- `analyze_debug_log_simple.py` - Simple analysis of debug logs for basic insights
-- `analyze_event_log.py` - Analyze event logs for recruitment, churn, and progression patterns
-- `analyze_simulation_rec_churn_table_enhanced.py` - Enhanced analysis of recruitment and churn data
-- `analyze_simulation_rec_churn_table.py` - Basic analysis of recruitment and churn data
-- `analyze_simulation_json.py` - Analyze simulation JSON results
-- `analyze_simulation_json_yearly.py` - Analyze yearly simulation JSON results
-- `analyze_growth_issue.py` - Analyze growth issues in simulation results
-- `analyze_recruitment_rates.py` - Analyze recruitment rates and patterns
-- `analyze_tenure_distribution.py` - Analyze tenure distribution patterns
-- `analyze_progression.py` - Analyze progression patterns
-- `analyze_stockholm_margins.py` - Analyze Stockholm office margins
-- `analyze_initial_tenure.py` - Analyze initial tenure distribution
-- `verify_simulation_rates_vs_growth.py` - Verify simulation rates against growth
-- `verify_simulation_results.py` - Verify simulation results accuracy
+### Generated Data
+- **`test_data/`** - Directory containing generated JSON test files
+  - `business_plan_test_data.json` - Complete dataset for all offices
+  - `business_plan_stockholm-office.json` - Stockholm office data
+  - `business_plan_gothenburg-office.json` - Gothenburg office data  
+  - `business_plan_malmo-office.json` - Malmö office data
 
-### `/debug/` - Debugging Scripts
-Scripts for debugging simulation issues, data discrepancies, and engine problems.
+## 🚀 Quick Start
 
-**Scripts:**
-- `debug_fte_discrepancy.py` - Debug FTE discrepancies between event logs and simulation results
-- `debug_progression_issue.py` - Debug progression logic and issues
-- `debug_promotion_analysis.py` - Analyze promotion patterns and issues
-- `debug_simulation.py` - General simulation debugging
-- `debug_recruitment_issue.py` - Debug recruitment-related issues
-- `debug_monthly_metrics.py` - Debug monthly metric calculations
-- `debug_negative_financials.py` - Debug negative financial results
-- `debug_kpi_simple.py` - Simple KPI debugging
-- `debug_financial_issue.py` - Debug financial calculation issues
-- `debug_kpi_calculation.py` - Debug KPI calculation logic
-- `debug_event_logs.py` - Debug event logging functionality
-- `debug_actual_financials.py` - Debug actual financial data
-- `debug_ac_am_progression.py` - Debug AC/AM progression logic
-
-### `/test/` - Testing Scripts
-Scripts for testing various components, functionality, and edge cases.
-
-**Scripts:**
-- `test_download_functionality.py` - Test download and export functionality
-- `test_verification.py` - Test verification processes
-- `test_json_export.py` - Test JSON export functionality
-- `test_ui_simulation.py` - Test UI simulation integration
-- `test_tenure_debug.py` - Test tenure-related functionality
-- `test_single_vs_multi_year.py` - Test single vs multi-year simulation
-- `test_realistic_simulation.py` - Test realistic simulation scenarios
-- `test_refactored_engine.py` - Test refactored simulation engine
-- `test_realistic_initialization.py` - Test realistic initialization
-- `test_kpi_display.py` - Test KPI display functionality
-- `test_fixed_progression.py` - Test fixed progression logic
-- `test_formatting.py` - Test formatting functionality
-- `test_excel_export_results.py` - Test Excel export results
-- `test_event_logging_extended.py` - Extended event logging tests
-- `test_event_logging.py` - Basic event logging tests
-- `test_edge_cases_event_logs.py` - Test edge cases in event logging
-- `test_engine_debug.py` - Test engine debugging functionality
-- `test_ebitda_debug.py` - Test EBITDA debugging
-- `test_csv_logging.py` - Test CSV logging functionality
-- `test_3year_simulation.py` - Test 3-year simulation scenarios
-
-### `/fixes/` - Configuration and Data Fixes
-Scripts for fixing configuration issues, data problems, and applying patches.
-
-**Scripts:**
-- `fix_operations.py` - Fix operations-related configuration issues
-- `fix_simulation_rates.py` - Fix simulation rates based on debugging analysis
-- `patch_office_config.py` - Patch office configuration files
-- `patch_utr.py` - Patch UTR (Utilization, Tenure, Revenue) data
-- `set_consultant_recruitment_churn.py` - Set consultant recruitment and churn rates
-- `set_non_consultant_prices_to_zero.py` - Set non-consultant prices to zero
-
-### `/utilities/` - Utility Scripts
-General utility scripts for data retrieval, running processes, and checking systems.
-
-**Scripts:**
-- `get_recruitment_churn_totals.py` - Get recruitment and churn totals
-- `run_debug_simulation.py` - Run debug simulations
-- `check_ui_discrepancy.py` - Check UI discrepancies
-- `run_and_verify_simulation.py` - Run and verify simulation results
-- `generate_monthly_excel.py` - Generate monthly Excel reports
-- `generate_office_config.py` - Generate office configuration files
-- `generate_office_config_cat_progression.py` - Generate office config with progression data
-
-## Usage Guidelines
-
-1. **Analysis Scripts**: Use these to understand simulation results, identify patterns, and generate insights
-2. **Debug Scripts**: Use these when investigating issues or discrepancies in the simulation engine
-3. **Test Scripts**: Use these to verify functionality, test edge cases, and ensure system reliability
-4. **Fix Scripts**: Use these to apply configuration fixes and data corrections
-5. **Utility Scripts**: Use these for general data retrieval and system checks
-
-## Running Scripts
-
-Most scripts can be run directly from their respective directories:
-
+### Option 1: Use the Master Script (Recommended)
 ```bash
-# Example: Run an analysis script
-python scripts/analysis/analyze_debug_log_by_year.py
+# Generate test data AND populate via API
+./setup_business_plan_data.sh
 
-# Example: Run a debug script
-python scripts/debug/debug_fte_discrepancy.py
+# Only generate JSON files
+./setup_business_plan_data.sh generate
 
-# Example: Run a test script
-python scripts/test/test_json_export.py
+# Only populate via API (requires backend running)
+./setup_business_plan_data.sh populate
 ```
 
-## Notes
+### Option 2: Run Scripts Individually
 
-- All scripts are designed to work with the SimpleSim project structure
-- Most scripts include proper error handling and logging
-- Scripts in the `/test/` directory are particularly useful for regression testing
-- Scripts in the `/fixes/` directory should be run carefully as they modify configuration data
-
-# SimpleSim Server Management Scripts
-
-This directory contains scripts to manage the SimpleSim application servers.
-
-## Available Scripts
-
-### 🔄 Server Management
-- **`restart-servers.sh`** - Complete restart of both backend and frontend servers (recommended)
-- **`start-backend.sh`** - Start only the backend server
-- **`start-frontend.sh`** - Start only the frontend server  
-- **`kill-servers.sh`** - Emergency stop all servers
-
-### 📊 Logging & Monitoring
-- **`start-servers-with-logs.sh`** - Start servers with persistent logging to files
-- **`view-logs.sh`** - Interactive log viewer for server output
-
-## Quick Start
-
-### Standard Server Restart
+#### Generate Test Data Files
 ```bash
-./scripts/restart-servers.sh
+python3 generate_test_business_plan_data.py
 ```
 
-### Server Restart with Persistent Logs (for Cursor Terminal issues)
+#### Populate via API
 ```bash
-# Start servers with logging
-./scripts/start-servers-with-logs.sh
+# Start backend first
+cd ../backend
+uvicorn main:app --reload
 
-# In another terminal tab, view logs
-./scripts/view-logs.sh
+# Then populate
+python3 populate_business_plan.py
 ```
 
-### Manual Commands
-```bash
-# Emergency stop everything
-./scripts/kill-servers.sh
+## 📊 Test Data Structure
 
-# Start individual servers
-./scripts/start-backend.sh
-./scripts/start-frontend.sh
+### Offices
+- **Stockholm** - Mature Office (679 FTE)
+- **Gothenburg** - Established Office (234 FTE)  
+- **Malmö** - Emerging Office (87 FTE)
+
+### Roles and Levels
+- **Consultant** (A, AC, C, SrC, AM, M, SrM, PiP) - Has price/UTR
+- **Sales** (A, AC, C, SrC, AM, M, SrM, PiP) - No price/UTR
+- **Recruitment** (A, AC, C, SrC, AM, M, SrM, PiP) - No price/UTR
+- **Operations** (General) - Flat role, no price/UTR
+
+### Data Points per Entry
+- **recruitment** - Monthly recruitment rate
+- **churn** - Monthly churn rate  
+- **salary** - Monthly salary cost
+- **price** - Hourly price (billable roles only)
+- **utr** - Utilization rate (billable roles only)
+
+### Realistic Variations
+- **Journey-based**: Different multipliers for Emerging/Established/Mature offices
+- **Level-based**: Higher values for senior levels
+- **Seasonal**: Higher activity in Q1 and Q3
+- **Role-specific**: Different base rates for each role type
+
+## 🎯 Usage Examples
+
+### Frontend Integration
+```typescript
+// Load test data in React component
+const [businessPlan, setBusinessPlan] = useState(null);
+
+useEffect(() => {
+  // Load from API or test file
+  fetch('/api/business-plans?office_id=stockholm-office&year=2025')
+    .then(res => res.json())
+    .then(data => setBusinessPlan(data));
+}, []);
+
+// Use with ExpandablePlanningGrid
+<ExpandablePlanningGrid 
+  office={office}
+  year={2025}
+  onYearChange={setYear}
+/>
 ```
 
-## Cursor Terminal Issues
-
-If you're losing server logs in Cursor due to terminal restarts, use the logging solution:
-
-1. **Start with logging**: `./scripts/start-servers-with-logs.sh`
-2. **View logs persistently**: `./scripts/view-logs.sh`
-3. **Log files location**: `logs/backend.log` and `logs/frontend.log`
-
-You can also view logs directly:
-```bash
-# Backend logs only
-tail -f logs/backend.log
-
-# Frontend logs only  
-tail -f logs/frontend.log
-
-# Both logs combined
-tail -f logs/*.log
+### Browser Console Demo
+```javascript
+// Load demo functions
+// Then run:
+window.businessPlanDemo.run()
 ```
 
-## Ports Managed
+## 📈 Data Statistics
 
-- **Backend**: 8000, 8001
-- **Frontend**: 3000, 3001, 3002, 3003
+- **3 offices** with different journey stages
+- **12 months** of data for 2025
+- **4 roles** with 25 total role-level combinations
+- **36 monthly plans** total (12 months × 3 offices)
+- **900 total entries** across all plans
 
-## Health Checks
+## 🔧 Customization
 
-All scripts include health checks to verify servers are running properly.
+### Modify Base Values
+Edit values in `generate_test_business_plan_data.py`:
 
-## Error Handling
+```python
+# Level-based data
+LEVEL_DATA = {
+    "A": {"salary_base": 42000, "price_base": 95, "recruitment": 0.08},
+    # ... modify as needed
+}
 
-Scripts handle common issues:
-- Port conflicts ("Address already in use")
-- Stale Python cache (`__pycache__` cleanup)
-- Process termination delays
-- Module import errors (PYTHONPATH setup)
-
-## Common Issues Solved
-
-### ❌ "Address already in use" Error
-**Problem:** `ERROR: [Errno 48] Address already in use`
-
-**Solution:** Run the restart script
-```bash
-./scripts/restart-servers.sh
+# Journey multipliers  
+JOURNEY_MULTIPLIERS = {
+    "Emerging Office": {"recruitment": 1.5, "salary": 0.9},
+    # ... modify as needed
+}
 ```
 
-### ❌ Python Module Import Errors
-**Problem:** `ModuleNotFoundError: No module named 'backend'`
+### Add More Offices
+Add to the `OFFICES` list:
 
-**Solution:** The scripts automatically set PYTHONPATH and clear cache
-```bash
-./scripts/start-backend.sh
+```python
+OFFICES = [
+    # ... existing offices
+    {
+        "id": "new-office",
+        "name": "New Office", 
+        "journey": "Emerging Office",
+        "total_fte": 50
+    }
+]
 ```
 
-### ❌ Stale Server Processes
-**Problem:** Old servers keep running after crashes
+## 🧪 Testing
 
-**Solution:** Kill all processes first
+### Verify Generated Data
 ```bash
-./scripts/kill-servers.sh
-./scripts/restart-servers.sh
+# Check file structure
+ls -la test_data/
+
+# Validate JSON format
+python3 -m json.tool test_data/business_plan_test_data.json > /dev/null && echo "Valid JSON"
+
+# Count entries
+cat test_data/business_plan_test_data.json | jq '.business_plans | length'
 ```
 
-## Manual Commands
-
-If scripts are not available, use these manual commands:
-
-### Kill All Servers
+### Test API Population
 ```bash
-pkill -f uvicorn
-pkill -f vite
-lsof -ti:3000,3001,3002,3003,8000,8001 | xargs kill -9
+# Check if backend is running
+curl http://localhost:8000/docs
+
+# Test business plan endpoint
+curl http://localhost:8000/business-plans
 ```
 
-### Start Backend Manually
-```bash
-PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
+## 🚨 Troubleshooting
 
-### Start Frontend Manually
-```bash
-cd frontend && npm run dev
-```
+### Backend Not Starting
+- Check Python virtual environment is activated
+- Install dependencies: `pip install -r requirements.txt`
+- Check port 8000 is available
 
-### Check What's Running
-```bash
-lsof -i:8000,3000,3001,3002,3003
-ps aux | grep -E "(uvicorn|vite|npm.*dev)"
-```
+### API Population Fails
+- Verify backend is running: `curl http://localhost:8000/docs`
+- Check database connectivity
+- Review API endpoint URLs in populate script
 
-## Port Usage
+### Missing Test Data
+- Run generation script: `python3 generate_test_business_plan_data.py`
+- Check permissions on `test_data/` directory
+- Verify Python path includes script directory
 
-| Service  | Primary Port | Fallback Ports |
-|----------|-------------|----------------|
-| Backend  | 8000        | 8001           |
-| Frontend | 3000        | 3001, 3002, 3003 |
+## 📚 Next Steps
 
-## Health Checks
+1. **Start the frontend**: `cd frontend && npm run dev`
+2. **Navigate to Business Planning** section in the app
+3. **Select an office** to see populated data
+4. **Test the expandable grid** interface
+5. **Modify values** to test the editing functionality
 
-After starting servers, verify they're working:
+## 🤝 Contributing
 
-```bash
-# Backend health check
-curl http://localhost:8000/health
+To add new test scenarios or modify existing data:
 
-# Frontend check (adjust port as needed)
-curl http://localhost:3000
-
-# Configuration validation
-curl http://localhost:8000/simulation/config/validation
-```
-
-## Troubleshooting
-
-### Script Permission Denied
-```bash
-chmod +x scripts/*.sh
-```
-
-### Python Path Issues
-Make sure you're in the project root and set PYTHONPATH:
-```bash
-cd /path/to/simple_simulation
-PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Cache Issues
-Clear all Python cache:
-```bash
-find . -name "__pycache__" -type d -exec rm -rf {} +
-find . -name "*.pyc" -delete
-```
-
-## Integration with .cursorrules
-
-These scripts implement the **Server Port Management** rule defined in `.cursorrules`. The rule states:
-
-> **Always kill old instances and restart on port conflicts**
-
-This ensures clean development environment and prevents common server startup issues. 
+1. Update the generation scripts with new patterns
+2. Re-run the generation: `./setup_business_plan_data.sh generate`
+3. Test with the frontend interface
+4. Document any new data structures or patterns

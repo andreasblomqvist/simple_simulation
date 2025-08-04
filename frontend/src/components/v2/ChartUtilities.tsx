@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Typography, Tag, Button, Tooltip } from 'antd';
-import { InfoCircleOutlined, ExclamationCircleOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Info, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Enhanced annotation types
 export interface ChartAnnotation {
@@ -83,12 +83,12 @@ export const InteractiveAnnotation: React.FC<ChartAnnotationProps> = ({
 
   const getAnnotationIcon = () => {
     switch (annotation.content.type) {
-      case 'milestone': return <CheckCircleOutlined />;
-      case 'warning': return <WarningOutlined />;
-      case 'info': return <InfoCircleOutlined />;
-      case 'success': return <CheckCircleOutlined />;
-      case 'target': return <ExclamationCircleOutlined />;
-      default: return <InfoCircleOutlined />;
+      case 'milestone': return <CheckCircle className="h-4 w-4" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4" />;
+      case 'info': return <Info className="h-4 w-4" />;
+      case 'success': return <CheckCircle className="h-4 w-4" />;
+      case 'target': return <AlertCircle className="h-4 w-4" />;
+      default: return <Info className="h-4 w-4" />;
     }
   };
 

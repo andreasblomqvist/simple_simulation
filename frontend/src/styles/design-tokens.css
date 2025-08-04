@@ -1,0 +1,636 @@
+/**
+ * SimpleSim Unified Design Tokens
+ * Single source of truth for all design system values
+ * Integrates with shadcn/ui theme system and Tailwind CSS
+ * Based on design-tokens.md specification
+ */
+
+:root {
+  /* === BASE COLORS === */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  
+  /* === PRIMARY BRAND COLORS === */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+  --color-primary: var(--color-primary-500);
+
+  /* === NEUTRAL GRAYS === */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* === SEMANTIC COLORS === */
+  --color-success-50: #f0fdf4;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-success-900: #14532d;
+  --color-success: var(--color-success-500);
+
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-900: #78350f;
+  --color-warning: var(--color-warning-500);
+
+  --color-error-50: #fef2f2;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-900: #7f1d1d;
+  --color-error: var(--color-error-500);
+
+  --color-info-50: #f0f9ff;
+  --color-info-500: #06b6d4;
+  --color-info-600: #0891b2;
+  --color-info-900: #164e63;
+  --color-info: var(--color-info-500);
+
+  /* Legacy destructive alias for shadcn/ui compatibility */
+  --color-destructive-50: var(--color-error-50);
+  --color-destructive-100: #fee2e2;
+  --color-destructive-500: var(--color-error-500);
+  --color-destructive: var(--color-error);
+
+  /* === TYPOGRAPHY SYSTEM === */
+  
+  /* Font Families */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+
+  /* Display Typography (page titles, hero content) */
+  --text-display-xl-size: 48px;
+  --text-display-xl-weight: 700;
+  --text-display-xl-line-height: 1.1;
+  --text-display-xl-letter-spacing: -0.02em;
+
+  --text-display-lg-size: 36px;
+  --text-display-lg-weight: 600;
+  --text-display-lg-line-height: 1.2;
+  --text-display-lg-letter-spacing: -0.02em;
+
+  --text-display-md-size: 30px;
+  --text-display-md-weight: 600;
+  --text-display-md-line-height: 1.2;
+  --text-display-md-letter-spacing: -0.01em;
+
+  --text-display-sm-size: 24px;
+  --text-display-sm-weight: 600;
+  --text-display-sm-line-height: 1.3;
+  --text-display-sm-letter-spacing: -0.01em;
+
+  /* Heading Typography (section titles, card headers) */
+  --text-heading-xl-size: 20px;
+  --text-heading-xl-weight: 600;
+  --text-heading-xl-line-height: 1.3;
+
+  --text-heading-lg-size: 18px;
+  --text-heading-lg-weight: 600;
+  --text-heading-lg-line-height: 1.4;
+
+  --text-heading-md-size: 16px;
+  --text-heading-md-weight: 600;
+  --text-heading-md-line-height: 1.4;
+
+  --text-heading-sm-size: 14px;
+  --text-heading-sm-weight: 600;
+  --text-heading-sm-line-height: 1.4;
+
+  /* Body Typography (content, descriptions) */
+  --text-body-lg-size: 16px;
+  --text-body-lg-weight: 400;
+  --text-body-lg-line-height: 1.6;
+
+  --text-body-md-size: 14px;
+  --text-body-md-weight: 400;
+  --text-body-md-line-height: 1.5;
+
+  --text-body-sm-size: 12px;
+  --text-body-sm-weight: 400;
+  --text-body-sm-line-height: 1.5;
+
+  /* Label Typography (form labels, table headers) */
+  --text-label-lg-size: 14px;
+  --text-label-lg-weight: 500;
+  --text-label-lg-line-height: 1.4;
+
+  --text-label-md-size: 12px;
+  --text-label-md-weight: 500;
+  --text-label-md-line-height: 1.4;
+
+  --text-label-sm-size: 11px;
+  --text-label-sm-weight: 500;
+  --text-label-sm-line-height: 1.4;
+
+  /* Caption Typography (help text, metadata) */
+  --text-caption-lg-size: 12px;
+  --text-caption-lg-weight: 400;
+  --text-caption-lg-line-height: 1.4;
+
+  --text-caption-md-size: 11px;
+  --text-caption-md-weight: 400;
+  --text-caption-md-line-height: 1.4;
+
+  --text-caption-sm-size: 10px;
+  --text-caption-sm-weight: 400;
+  --text-caption-sm-line-height: 1.4;
+
+  /* Legacy font sizes for backward compatibility */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* === SPACING SYSTEM === */
+  /* 4px base scale as per specification */
+  --spacing-0: 0px;
+  --spacing-1: 4px;    /* xs - tight spacing */
+  --spacing-2: 8px;    /* sm - compact spacing */
+  --spacing-3: 12px;   /* md - standard spacing */
+  --spacing-4: 16px;   /* lg - comfortable spacing */
+  --spacing-5: 20px;   /* xl - loose spacing */
+  --spacing-6: 24px;   /* 2xl - section spacing */
+  --spacing-8: 32px;   /* 3xl - large section spacing */
+  --spacing-10: 40px;  /* 4xl - page section spacing */
+  --spacing-12: 48px;  /* 5xl - major page spacing */
+  --spacing-16: 64px;  /* 6xl - hero spacing */
+  --spacing-20: 80px;  /* 7xl - maximum spacing */
+  --spacing-24: 96px;  /* 8xl - page margins */
+
+  /* Legacy spacing aliases (rem-based) */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem;  /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;   /* 48px */
+  --space-16: 4rem;   /* 64px */
+  --space-20: 5rem;   /* 80px */
+  --space-24: 6rem;   /* 96px */
+
+  /* Semantic Layout Spacing */
+  --layout-container-padding: var(--spacing-4);  /* 16px */
+  --layout-section-gap: var(--spacing-8);        /* 32px */
+  --layout-card-padding: var(--spacing-6);       /* 24px */
+  --layout-button-padding: var(--spacing-3);     /* 12px */
+  --layout-input-padding: var(--spacing-3);      /* 12px */
+  --layout-table-cell: var(--spacing-3);         /* 12px */
+  --layout-list-item: var(--spacing-4);          /* 16px */
+
+  /* === BORDER RADIUS === */
+  --radius-none: 0px;
+  --radius-sm: 4px;    /* Small elements (tags, badges) */
+  --radius-md: 8px;    /* Standard elements (buttons, inputs) */
+  --radius-lg: 12px;   /* Cards, panels */
+  --radius-xl: 16px;   /* Large containers */
+  --radius-2xl: 20px;  /* Very large containers */
+  --radius-full: 9999px; /* Pills, avatars */
+  --radius: var(--radius-md); /* Default */
+
+  /* Legacy aliases */
+  --radius-base: var(--radius-sm);  /* 4px */
+
+  /* === SHADOWS & ELEVATION === */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-focus: 0 0 0 3px rgb(59 130 246 / 0.1);
+  --shadow-none: 0 0 #0000;
+  --shadow: var(--shadow-md); /* Default */
+
+  /* Legacy aliases */
+  --shadow-base: var(--shadow-md);
+
+  /* === ANIMATION & TIMING === */
+  --timing-fast: 150ms;      /* Quick interactions (hover, focus) */
+  --timing-normal: 200ms;    /* Standard transitions */
+  --timing-slow: 300ms;      /* Complex animations */
+  --timing-slower: 500ms;    /* Page transitions */
+
+  /* Legacy aliases */
+  --duration-fast: var(--timing-fast);
+  --duration-normal: var(--timing-normal);
+  --duration-slow: var(--timing-slow);
+
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);  /* Smooth standard */
+  --easing-in: cubic-bezier(0.4, 0, 1, 1);         /* Accelerating */
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);        /* Decelerating */
+  --easing-in-out: cubic-bezier(0.4, 0, 0.2, 1);   /* Smooth in-out */
+
+  /* === FOCUS INDICATORS === */
+  --focus-ring-width: 2px;
+  --focus-ring-color: var(--color-primary-500);
+  --focus-ring-style: solid;
+  --focus-ring-offset: 2px;
+
+  /* Focus ring tokens */
+  --focus-ring-primary: 0 0 0 3px rgb(59 130 246 / 0.3);
+  --focus-ring-error: 0 0 0 3px rgb(239 68 68 / 0.3);
+  --focus-ring-success: 0 0 0 3px rgb(34 197 94 / 0.2);
+  --focus-ring-warning: 0 0 0 3px rgb(245 158 11 / 0.2);
+  --focus-ring-neutral: 0 0 0 3px rgb(107 114 128 / 0.3);
+
+  /* High contrast mode */
+  --focus-high-contrast-width: 3px;
+  --focus-high-contrast-color: #000000;
+  --focus-high-contrast-style: solid;
+
+  /* === Z-INDEX SCALE === */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* === COMPONENT-SPECIFIC TOKENS === */
+  
+  /* Button Variants */
+  --button-primary-bg: var(--color-primary-500);
+  --button-primary-bg-hover: var(--color-primary-600);
+  --button-primary-bg-pressed: var(--color-primary-700);
+  --button-primary-text: #ffffff;
+  --button-primary-border: var(--color-primary-500);
+
+  --button-secondary-bg: transparent;
+  --button-secondary-bg-hover: var(--color-gray-100);
+  --button-secondary-bg-pressed: var(--color-gray-200);
+  --button-secondary-text: var(--color-gray-700);
+  --button-secondary-border: var(--color-gray-300);
+
+  --button-ghost-bg: transparent;
+  --button-ghost-bg-hover: var(--color-gray-100);
+  --button-ghost-bg-pressed: var(--color-gray-200);
+  --button-ghost-text: var(--color-gray-700);
+  --button-ghost-border: transparent;
+
+  --button-destructive-bg: var(--color-error-500);
+  --button-destructive-bg-hover: var(--color-error-600);
+  --button-destructive-bg-pressed: var(--color-error-700);
+  --button-destructive-text: #ffffff;
+  --button-destructive-border: var(--color-error-500);
+
+  /* Form Controls */
+  --form-input-bg: #ffffff;
+  --form-input-border: var(--color-gray-300);
+  --form-input-border-hover: var(--color-gray-400);
+  --form-input-border-focus: var(--color-primary-500);
+  --form-input-text: var(--color-gray-900);
+  --form-input-placeholder: var(--color-gray-400);
+  --form-input-shadow: var(--shadow-sm);
+  --form-input-shadow-focus: var(--shadow-focus);
+
+  --form-label-text: var(--color-gray-700);
+  --form-label-required: var(--color-error-500);
+  --form-help-text: var(--color-gray-500);
+
+  --form-error-text: var(--color-error-600);
+  --form-error-border: var(--color-error-300);
+  --form-error-bg: var(--color-error-50);
+
+  /* Input States */
+  --input-height-sm: 2rem;     /* 32px */
+  --input-height-md: 2.5rem;   /* 40px */
+  --input-height-lg: 3rem;     /* 48px */
+
+  --input-padding-sm: var(--spacing-2);
+  --input-padding-md: var(--spacing-3);
+  --input-padding-lg: var(--spacing-4);
+
+  --input-border-default: var(--form-input-border);
+  --input-border-hover: var(--form-input-border-hover);
+  --input-border-focus: var(--form-input-border-focus);
+  --input-border-error: var(--color-error-500);
+  --input-border-success: var(--color-success-500);
+  --input-border-warning: var(--color-warning-500);
+
+  --input-bg-default: var(--form-input-bg);
+  --input-bg-error: rgb(239 68 68 / 0.05);
+  --input-bg-success: rgb(34 197 94 / 0.05);
+  --input-bg-warning: rgb(245 158 11 / 0.05);
+  --input-bg-filled: var(--color-gray-100);
+
+  --input-focus-ring-default: var(--focus-ring-primary);
+  --input-focus-ring-error: var(--focus-ring-error);
+  --input-focus-ring-success: var(--focus-ring-success);
+  --input-focus-ring-warning: var(--focus-ring-warning);
+
+  --input-icon-size: 1rem;
+  --input-icon-spacing: var(--spacing-3);
+  --input-transition: all var(--timing-fast) var(--easing-default);
+
+  /* Table */
+  --table-header-bg: var(--color-gray-50);
+  --table-header-text: var(--color-gray-700);
+  --table-header-border: var(--color-gray-200);
+
+  --table-row-bg: #ffffff;
+  --table-row-bg-hover: var(--color-gray-50);
+  --table-row-bg-selected: var(--color-primary-50);
+  --table-row-border: var(--color-gray-200);
+  --table-row-text: var(--color-gray-900);
+
+  --table-cell-padding: var(--spacing-3);
+
+  /* KPI Card */
+  --kpi-card-padding: var(--spacing-6);
+  --kpi-card-radius: var(--radius-lg);
+  --kpi-card-shadow: var(--shadow-md);
+
+  /* Navigation */
+  --nav-width: 280px;
+  --nav-width-collapsed: 80px;
+  --nav-transition: var(--timing-normal);
+
+  /* Forms */
+  --form-label-spacing: var(--spacing-2);
+  --form-field-spacing: var(--spacing-4);
+  --form-section-spacing: var(--spacing-8);
+}
+
+/* === LIGHT THEME (Default) === */
+:root, .light, [data-theme="light"] {
+  /* Light theme semantic colors */
+  --background: var(--color-white);
+  --foreground: var(--color-gray-900);
+  
+  --card: var(--color-white);
+  --card-foreground: var(--color-gray-900);
+  
+  --popover: var(--color-white);
+  --popover-foreground: var(--color-gray-900);
+  
+  --primary: var(--color-primary-600);
+  --primary-foreground: var(--color-white);
+  
+  --secondary: var(--color-gray-100);
+  --secondary-foreground: var(--color-gray-900);
+  
+  --muted: var(--color-gray-100);
+  --muted-foreground: var(--color-gray-500);
+  
+  --accent: var(--color-gray-100);
+  --accent-foreground: var(--color-gray-900);
+  
+  --destructive: var(--color-error-600);
+  --destructive-foreground: var(--color-white);
+  
+  --border: var(--color-gray-200);
+  --input: var(--color-gray-200);
+  --ring: var(--color-primary-600);
+  
+  /* Simulation-specific semantic tokens */
+  --kpi-positive: var(--color-success-600);
+  --kpi-negative: var(--color-error-600);
+  --kpi-neutral: var(--color-gray-500);
+  
+  --chart-primary: var(--color-primary-500);
+  --chart-secondary: var(--color-primary-300);
+  --chart-accent: var(--color-info-500);
+  --chart-grid: var(--color-gray-200);
+}
+
+/* === DARK THEME === */
+.dark, [data-theme="dark"] {
+  /* Dark theme semantic colors */
+  --background: #0f0f14;
+  --foreground: #f8fafc;
+  
+  --card: #18181c;
+  --card-foreground: #f8fafc;
+  
+  --popover: #18181c;
+  --popover-foreground: #f8fafc;
+  
+  --primary: #60a5fa;
+  --primary-foreground: #0f0f14;
+  
+  --secondary: #1f1f23;
+  --secondary-foreground: #f8fafc;
+  
+  --muted: #1f1f23;
+  --muted-foreground: #8b8b92;
+  
+  --accent: #1f1f23;
+  --accent-foreground: #f8fafc;
+  
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  
+  --border: #2a2a30;
+  --input: #2a2a30;
+  --ring: #60a5fa;
+
+  /* Dark mode shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow: var(--shadow-md);
+
+  /* Adjust form inputs for dark mode */
+  --form-input-bg: var(--card);
+  --form-input-border: var(--border);
+  --form-input-text: var(--foreground);
+
+  /* Adjust table for dark mode */
+  --table-header-bg: var(--muted);
+  --table-header-text: var(--foreground);
+  --table-row-bg: var(--background);
+  --table-row-text: var(--foreground);
+
+  /* Dark mode specific component adjustments */
+  --button-secondary-bg-hover: var(--muted);
+  --button-secondary-bg-pressed: var(--accent);
+  --button-secondary-text: var(--foreground);
+  --button-secondary-border: var(--border);
+
+  --button-ghost-bg-hover: var(--muted);
+  --button-ghost-bg-pressed: var(--accent);
+  --button-ghost-text: var(--foreground);
+  
+  /* Simulation-specific tokens for dark mode */
+  --kpi-positive: var(--color-success-500);
+  --kpi-negative: var(--color-error-500);
+  --kpi-neutral: var(--color-gray-400);
+  
+  --chart-primary: var(--color-primary-400);
+  --chart-secondary: var(--color-primary-200);
+  --chart-accent: var(--color-info-400);
+  --chart-grid: var(--color-gray-700);
+}
+
+/* === DARK MODE MEDIA QUERY === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Apply dark theme styles when system preference is dark */
+    --background: #0f0f14;
+    --foreground: #f8fafc;
+    --card: #18181c;
+    --card-foreground: #f8fafc;
+    --popover: #18181c;
+    --popover-foreground: #f8fafc;
+    --primary: #60a5fa;
+    --primary-foreground: #0f0f14;
+    --secondary: #1f1f23;
+    --secondary-foreground: #f8fafc;
+    --muted: #1f1f23;
+    --muted-foreground: #8b8b92;
+    --accent: #1f1f23;
+    --accent-foreground: #f8fafc;
+    --destructive: #ef4444;
+    --destructive-foreground: #f8fafc;
+    --border: #2a2a30;
+    --input: #2a2a30;
+    --ring: #60a5fa;
+
+    /* Dark shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --shadow: var(--shadow-md);
+
+    /* Form adjustments */
+    --form-input-bg: var(--card);
+    --form-input-border: var(--border);
+    --form-input-text: var(--foreground);
+
+    /* Table adjustments */
+    --table-header-bg: var(--muted);
+    --table-header-text: var(--foreground);
+    --table-row-bg: var(--background);
+    --table-row-text: var(--foreground);
+
+    /* Component adjustments */
+    --button-secondary-bg-hover: var(--muted);
+    --button-secondary-bg-pressed: var(--accent);
+    --button-secondary-text: var(--foreground);
+    --button-secondary-border: var(--border);
+
+    --button-ghost-bg-hover: var(--muted);
+    --button-ghost-bg-pressed: var(--accent);
+    --button-ghost-text: var(--foreground);
+
+    /* Simulation tokens */
+    --kpi-positive: var(--color-success-500);
+    --kpi-negative: var(--color-error-500);
+    --kpi-neutral: var(--color-gray-400);
+    
+    --chart-primary: var(--color-primary-400);
+    --chart-secondary: var(--color-primary-200);
+    --chart-accent: var(--color-info-400);
+    --chart-grid: var(--color-gray-700);
+  }
+}
+
+/* === UTILITY CLASSES === */
+.ss-text-display-xl {
+  font-size: var(--text-display-xl-size);
+  font-weight: var(--text-display-xl-weight);
+  line-height: var(--text-display-xl-line-height);
+  letter-spacing: var(--text-display-xl-letter-spacing);
+}
+
+.ss-text-display-lg {
+  font-size: var(--text-display-lg-size);
+  font-weight: var(--text-display-lg-weight);
+  line-height: var(--text-display-lg-line-height);
+  letter-spacing: var(--text-display-lg-letter-spacing);
+}
+
+.ss-text-heading-xl {
+  font-size: var(--text-heading-xl-size);
+  font-weight: var(--text-heading-xl-weight);
+  line-height: var(--text-heading-xl-line-height);
+}
+
+.ss-text-heading-lg {
+  font-size: var(--text-heading-lg-size);
+  font-weight: var(--text-heading-lg-weight);
+  line-height: var(--text-heading-lg-line-height);
+}
+
+.ss-text-body-lg {
+  font-size: var(--text-body-lg-size);
+  font-weight: var(--text-body-lg-weight);
+  line-height: var(--text-body-lg-line-height);
+}
+
+.ss-text-body-md {
+  font-size: var(--text-body-md-size);
+  font-weight: var(--text-body-md-weight);
+  line-height: var(--text-body-md-line-height);
+}
+
+.ss-text-label-lg {
+  font-size: var(--text-label-lg-size);
+  font-weight: var(--text-label-lg-weight);
+  line-height: var(--text-label-lg-line-height);
+}
+
+.ss-text-caption-md {
+  font-size: var(--text-caption-md-size);
+  font-weight: var(--text-caption-md-weight);
+  line-height: var(--text-caption-md-line-height);
+}
+
+.ss-shadow-focus {
+  box-shadow: var(--shadow-focus);
+}
+
+.ss-transition-default {
+  transition-duration: var(--timing-normal);
+  transition-timing-function: var(--easing-default);
+}
+
+.ss-transition-fast {
+  transition-duration: var(--timing-fast);
+  transition-timing-function: var(--easing-out);
+}
+
+.ss-focus-ring {
+  outline: none;
+  box-shadow: var(--focus-ring-primary);
+}
+
+.ss-focus-ring-error {
+  outline: none;
+  box-shadow: var(--focus-ring-error);
+}

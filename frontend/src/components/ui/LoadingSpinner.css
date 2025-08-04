@@ -1,0 +1,128 @@
+/**
+ * Loading Spinner Component Styles
+ * Provides animated loading spinner with different sizes and theming support
+ */
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.loading-spinner {
+  position: relative;
+  display: inline-block;
+}
+
+/* Size variants */
+.loading-spinner.small {
+  width: 24px;
+  height: 24px;
+}
+
+.loading-spinner.medium {
+  width: 40px;
+  height: 40px;
+}
+
+.loading-spinner.large {
+  width: 64px;
+  height: 64px;
+}
+
+/* Spinner rings */
+.spinner-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  animation: loading-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+/* Ring colors and sizing based on parent size */
+.loading-spinner.small .spinner-ring {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.loading-spinner.medium .spinner-ring {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.loading-spinner.large .spinner-ring {
+  width: 64px;
+  height: 64px;
+  border-width: 4px;
+}
+
+/* Individual ring styling and timing */
+.spinner-ring:nth-child(1) {
+  border-top-color: hsl(var(--primary));
+  animation-delay: -0.45s;
+}
+
+.spinner-ring:nth-child(2) {
+  border-top-color: hsl(var(--primary) / 0.7);
+  animation-delay: -0.3s;
+}
+
+.spinner-ring:nth-child(3) {
+  border-top-color: hsl(var(--primary) / 0.5);
+  animation-delay: -0.15s;
+}
+
+.spinner-ring:nth-child(4) {
+  border-top-color: hsl(var(--primary) / 0.3);
+  animation-delay: 0s;
+}
+
+/* Loading message styling */
+.loading-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Keyframe animation */
+@keyframes loading-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .loading-message {
+    color: hsl(var(--muted-foreground));
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .spinner-ring {
+    animation-duration: 2s;
+    animation-timing-function: linear;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .spinner-ring:nth-child(1) {
+    border-top-color: currentColor;
+  }
+  
+  .spinner-ring:nth-child(2),
+  .spinner-ring:nth-child(3),
+  .spinner-ring:nth-child(4) {
+    border-top-color: transparent;
+  }
+}

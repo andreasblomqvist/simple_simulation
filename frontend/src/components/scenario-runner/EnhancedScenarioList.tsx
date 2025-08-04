@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Edit, Trash2, Download, Eye, Play } from 'lucide-react'
-import { EnhancedDataTable, Column } from '../ui/enhanced-data-table'
+import { EnhancedDataTable, EnhancedColumnDef } from '../ui/enhanced-data-table'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { 
@@ -11,16 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu'
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '../ui/alert-dialog'
+import { ScenarioDeleteDialog } from '../ui/business-modals'
 import { LoadingSpinner } from '../ui/loading-states'
 import { useToast } from '../ui/use-toast'
 import type { ScenarioListItem, ScenarioId } from '../../types/unified-data-structures'
@@ -154,7 +145,7 @@ export const EnhancedScenarioList: React.FC<EnhancedScenarioListProps> = ({
     return 'secondary'
   }
 
-  const columns: Column<ScenarioListItem>[] = [
+  const columns: EnhancedColumnDef<ScenarioListItem>[] = [
     {
       key: 'name',
       title: 'Scenario Name',
@@ -361,31 +352,26 @@ export const EnhancedScenarioList: React.FC<EnhancedScenarioListProps> = ({
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Scenario</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this scenario? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (scenarioToDelete) {
-                  handleDelete(scenarioToDelete)
-                  setDeleteDialogOpen(false)
-                  setScenarioToDelete(null)
-                }
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ScenarioDeleteDialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false)
+          setScenarioToDelete(null)
+        }}
+        onConfirm={() => {
+          if (scenarioToDelete) {
+            handleDelete(scenarioToDelete)
+            setDeleteDialogOpen(false)
+            setScenarioToDelete(null)
+          }
+        }}
+        scenarioName={
+          scenarioToDelete 
+            ? scenarios.find(s => s.id === scenarioToDelete)?.name || 'this scenario'
+            : 'this scenario'
+        }
+        loading={loading}
+      />
     </>
   )
 }

@@ -1,7 +1,7 @@
 /**
  * Planning Calculations Panel
  * 
- * Shows detailed financial calculations and projections
+ * Shows detailed financial calculations and projections using PlanningService
  */
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -15,27 +15,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import type { OfficeConfig, StandardRole, StandardLevel } from '../../types/office';
-
-interface SummaryData {
-  recruitment: number;
-  churn: number;
-  netGrowth: number;
-  revenue: number;
-  cost: number;
-  margin: number;
-}
-
-interface CellData {
-  role: StandardRole;
-  level: StandardLevel;
-  month: number;
-  year: number;
-  recruitment: number;
-  churn: number;
-  price: number;
-  utr: number;
-  salary: number;
-}
+import { PlanningService, type SummaryData, type CellData } from '../../services';
 
 interface PlanningCalculationsProps {
   office: OfficeConfig;
@@ -50,173 +30,95 @@ export const PlanningCalculations: React.FC<PlanningCalculationsProps> = ({
   totalSummary,
   getCellData
 }) => {
+  // Use service for detailed calculations
   const detailedCalculations = useMemo(() => {
-    const calculations = {
-      byRole: new Map<StandardRole, SummaryData>(),
-      byMonth: Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1,
-        recruitment: 0,
-        churn: 0,
-        netGrowth: 0,
-        revenue: 0,
-        cost: 0,
-        margin: 0
-      })),
-      financial: {
-        totalRevenue: 0,
-        totalCosts: 0,
-        grossProfit: 0,
-        averageMargin: 0,
-        averageUTR: 0,
-        averageRate: 0
-      },
-      workforce: {
-        totalRecruitment: 0,
-        totalChurn: 0,
-        netGrowth: 0,
-        growthRate: 0,
-        churnRate: 0
-      }
-    };
+    return PlanningService.calculateDetailedPlanningMetrics(
+      office,
+      year,
+      totalSummary,
+      getCellData
+    );
+  }, [office, year, totalSummary, getCellData]);
 
-    // Calculate by role and month - using the actual types from office.ts
-    const roles: StandardRole[] = ['Consultant', 'Sales', 'Operations'];
-    const levels: StandardLevel[] = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'PiP'];
-
-    roles.forEach(role => {
-      const roleSummary: SummaryData = {
-        recruitment: 0,
-        churn: 0,
-        netGrowth: 0,
-        revenue: 0,
-        cost: 0,
-        margin: 0
-      };
-
-      levels.forEach(level => {
-        for (let month = 1; month <= 12; month++) {
-          const cellData = getCellData(role, level, month);
-          const monthRevenue = cellData.price * cellData.utr * 160; // 160 hours/month
-          
-          roleSummary.recruitment += cellData.recruitment;
-          roleSummary.churn += cellData.churn;
-          roleSummary.revenue += monthRevenue;
-          roleSummary.cost += cellData.salary;
-
-          // Add to monthly totals
-          const monthCalc = calculations.byMonth[month - 1];
-          monthCalc.recruitment += cellData.recruitment;
-          monthCalc.churn += cellData.churn;
-          monthCalc.revenue += monthRevenue;
-          monthCalc.cost += cellData.salary;
-        }
-      });
-
-      roleSummary.netGrowth = roleSummary.recruitment - roleSummary.churn;
-      roleSummary.margin = roleSummary.revenue > 0 ? 
-        ((roleSummary.revenue - roleSummary.cost) / roleSummary.revenue) * 100 : 0;
-
-      calculations.byRole.set(role, roleSummary);
-    });
-
-    // Calculate monthly margins and net growth
-    calculations.byMonth.forEach(month => {
-      month.netGrowth = month.recruitment - month.churn;
-      month.margin = month.revenue > 0 ? 
-        ((month.revenue - month.cost) / month.revenue) * 100 : 0;
-    });
-
-    // Calculate financial totals
-    calculations.financial.totalRevenue = totalSummary.revenue;
-    calculations.financial.totalCosts = totalSummary.cost;
-    calculations.financial.grossProfit = totalSummary.revenue - totalSummary.cost;
-    calculations.financial.averageMargin = totalSummary.margin;
-
-    // Calculate workforce totals
-    calculations.workforce.totalRecruitment = totalSummary.recruitment;
-    calculations.workforce.totalChurn = totalSummary.churn;
-    calculations.workforce.netGrowth = totalSummary.netGrowth;
-
-    return calculations;
-  }, [totalSummary, getCellData]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const getPerformanceColor = (value: number, thresholds: { good: number; warning: number }) => {
-    if (value >= thresholds.good) return 'text-green-600 dark:text-green-400';
-    if (value >= thresholds.warning) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
-  };
+  // Use service utility functions
+  const formatCurrency = PlanningService.formatCurrency;
+  const getPerformanceColor = PlanningService.getPerformanceColor;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ backgroundColor: '#111827' }}>
       {/* Financial Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <DollarSign className="h-5 w-5" />
+      <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+        <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: '#f3f4f6' }}>
+            <DollarSign className="h-5 w-5" style={{ color: '#f3f4f6' }} />
             Financial Summary
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4" style={{ backgroundColor: '#1f2937' }}>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Revenue</span>
-              <span className="font-medium">{formatCurrency(detailedCalculations.financial.totalRevenue)}</span>
+              <span className="text-sm" style={{ color: '#d1d5db' }}>Total Revenue</span>
+              <span className="font-medium" style={{ color: '#f3f4f6' }}>{formatCurrency(detailedCalculations.financial.totalRevenue)}</span>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Costs</span>
-              <span className="font-medium">{formatCurrency(detailedCalculations.financial.totalCosts)}</span>
+              <span className="text-sm" style={{ color: '#d1d5db' }}>Total Costs</span>
+              <span className="font-medium" style={{ color: '#f3f4f6' }}>{formatCurrency(detailedCalculations.financial.totalCosts)}</span>
             </div>
             
-            <div className="flex justify-between items-center border-t pt-2">
-              <span className="text-sm font-medium">Gross Profit</span>
-              <span className={`font-bold ${getPerformanceColor(detailedCalculations.financial.grossProfit, { good: 100000, warning: 50000 })}`}>
+            <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid #374151' }}>
+              <span className="text-sm font-medium" style={{ color: '#f3f4f6' }}>Gross Profit</span>
+              <span className="font-bold" style={{ 
+                color: detailedCalculations.financial.grossProfit > 100000 ? '#10b981' : 
+                       detailedCalculations.financial.grossProfit > 50000 ? '#f59e0b' : '#ef4444'
+              }}>
                 {formatCurrency(detailedCalculations.financial.grossProfit)}
               </span>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Average Margin</span>
-              <Badge variant={detailedCalculations.financial.averageMargin > 25 ? 'default' : 'secondary'}>
+              <span className="text-sm" style={{ color: '#d1d5db' }}>Average Margin</span>
+              <span 
+                className="px-2 py-1 rounded text-xs font-medium"
+                style={{
+                  backgroundColor: detailedCalculations.financial.averageMargin > 25 ? '#1f2937' : '#374151',
+                  color: '#f3f4f6',
+                  border: '1px solid #374151'
+                }}
+              >
                 {Math.round(detailedCalculations.financial.averageMargin)}%
-              </Badge>
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Workforce Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-5 w-5" />
+      <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+        <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: '#f3f4f6' }}>
+            <Users className="h-5 w-5" style={{ color: '#f3f4f6' }} />
             Workforce Summary
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4" style={{ backgroundColor: '#1f2937' }}>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Recruitment</span>
-              <span className="font-medium text-green-600">{detailedCalculations.workforce.totalRecruitment}</span>
+              <span className="text-sm" style={{ color: '#d1d5db' }}>Total Recruitment</span>
+              <span className="font-medium" style={{ color: '#10b981' }}>{detailedCalculations.workforce.totalRecruitment}</span>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Churn</span>
-              <span className="font-medium text-red-600">{detailedCalculations.workforce.totalChurn}</span>
+              <span className="text-sm" style={{ color: '#d1d5db' }}>Total Churn</span>
+              <span className="font-medium" style={{ color: '#ef4444' }}>{detailedCalculations.workforce.totalChurn}</span>
             </div>
             
-            <div className="flex justify-between items-center border-t pt-2">
-              <span className="text-sm font-medium">Net Growth</span>
-              <span className={`font-bold ${getPerformanceColor(detailedCalculations.workforce.netGrowth, { good: 10, warning: 5 })}`}>
+            <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid #374151' }}>
+              <span className="text-sm font-medium" style={{ color: '#f3f4f6' }}>Net Growth</span>
+              <span className="font-bold" style={{
+                color: detailedCalculations.workforce.netGrowth > 10 ? '#10b981' :
+                       detailedCalculations.workforce.netGrowth > 5 ? '#f59e0b' : '#ef4444'
+              }}>
                 {detailedCalculations.workforce.netGrowth > 0 ? '+' : ''}{detailedCalculations.workforce.netGrowth}
               </span>
             </div>
@@ -225,22 +127,29 @@ export const PlanningCalculations: React.FC<PlanningCalculationsProps> = ({
       </Card>
 
       {/* Role Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <PieChart className="h-5 w-5" />
+      <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+        <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: '#f3f4f6' }}>
+            <PieChart className="h-5 w-5" style={{ color: '#f3f4f6' }} />
             Role Breakdown
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3" style={{ backgroundColor: '#1f2937' }}>
           {Array.from(detailedCalculations.byRole.entries()).map(([role, summary]) => (
             <div key={role} className="flex justify-between items-center">
-              <span className="text-sm font-medium">{role}</span>
+              <span className="text-sm font-medium" style={{ color: '#f3f4f6' }}>{role}</span>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
+                <span 
+                  className="px-2 py-1 rounded text-xs font-medium"
+                  style={{
+                    backgroundColor: '#374151',
+                    color: '#f3f4f6',
+                    border: '1px solid #4b5563'
+                  }}
+                >
                   {summary.netGrowth > 0 ? '+' : ''}{summary.netGrowth}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
+                </span>
+                <span className="text-xs" style={{ color: '#9ca3af' }}>
                   {Math.round(summary.margin)}%
                 </span>
               </div>
@@ -250,31 +159,34 @@ export const PlanningCalculations: React.FC<PlanningCalculationsProps> = ({
       </Card>
 
       {/* Monthly Trend */}
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <BarChart3 className="h-5 w-5" />
+      <Card className="lg:col-span-3" style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+        <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: '#f3f4f6' }}>
+            <BarChart3 className="h-5 w-5" style={{ color: '#f3f4f6' }} />
             Monthly Trends
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent style={{ backgroundColor: '#1f2937' }}>
           <div className="grid grid-cols-12 gap-2">
             {detailedCalculations.byMonth.map((month, index) => (
               <div key={month.month} className="text-center">
-                <div className="text-xs font-medium mb-2">
+                <div className="text-xs font-medium mb-2" style={{ color: '#f3f4f6' }}>
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][index]}
                 </div>
                 
                 <div className="space-y-1">
-                  <div className={`text-xs font-medium ${getPerformanceColor(month.netGrowth, { good: 2, warning: 0 })}`}>
+                  <div className="text-xs font-medium" style={{
+                    color: month.netGrowth > 2 ? '#10b981' :
+                           month.netGrowth > 0 ? '#f59e0b' : '#ef4444'
+                  }}>
                     {month.netGrowth > 0 ? '+' : ''}{month.netGrowth}
                   </div>
                   
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs" style={{ color: '#9ca3af' }}>
                     {Math.round(month.margin)}%
                   </div>
                   
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs" style={{ color: '#9ca3af' }}>
                     €{Math.round(month.revenue / 1000)}k
                   </div>
                 </div>

@@ -1,0 +1,62 @@
+{
+  "scenario_definition": {
+    "name": "test_kpis",
+    "description": "Test scenario for KPI calculation",
+    "time_range": {
+      "start_year": 2025,
+      "start_month": 1,
+      "end_year": 2025,
+      "end_month": 1
+    },
+    "office_scope": ["Group"],
+    "baseline_input": {
+      "global": {
+        "recruitment": {
+          "Consultant": {
+            "levels": {
+              "A": {
+                "recruitment": {
+                  "values": {
+                    "202501": 10
+                  }
+                },
+                "churn": {
+                  "values": {
+                    "202501": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "levels": {
+              "A": {
+                "recruitment": {
+                  "values": {
+                    "202501": 10
+                  }
+                },
+                "churn": {
+                  "values": {
+                    "202501": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "levers": {},
+    "economic_parameters": {
+      "price_increase": 0.03,
+      "salary_increase": 0.025,
+      "unplanned_absence": 0.05,
+      "hy_working_hours": 166.4,
+      "other_expense": 19000000
+    }
+  },
+  "office_scope": ["Group"]
+} 

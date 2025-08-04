@@ -1,9 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { Card, Select, InputNumber, Row, Col, Typography, Button, Space, Tooltip, Form, Alert, Checkbox, Divider } from 'antd';
-import { InfoCircleOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Checkbox } from '../ui/checkbox';
+import { Separator } from '../ui/separator';
+import { Info, Beaker } from 'lucide-react';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+// Temporary stub - component needs full migration
 
 // Types for lever configuration
 interface LeverConfig {

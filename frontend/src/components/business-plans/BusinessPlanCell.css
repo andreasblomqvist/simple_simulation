@@ -1,0 +1,387 @@
+/* Business Plan Cell Styles */
+
+.business-plan-cell {
+  position: relative;
+  border: 1px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 80px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.business-plan-cell:hover {
+  background: #f8f9fa;
+  border-color: #2196f3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+}
+
+.business-plan-cell.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  border-width: 2px;
+  box-shadow: 0 0 0 1px #2196f3;
+  z-index: 10;
+}
+
+.business-plan-cell.has-changes {
+  background: #fff3e0;
+  border-color: #ff9800;
+}
+
+.business-plan-cell.has-changes.selected {
+  background: #fff8e1;
+  border-color: #ff9800;
+  box-shadow: 0 0 0 1px #ff9800;
+}
+
+.business-plan-cell.editing {
+  background: #f3e5f5;
+  border-color: #9c27b0;
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.2);
+  z-index: 20;
+  min-height: 120px;
+  cursor: default;
+}
+
+/* Cell Content */
+.cell-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  font-size: 11px;
+}
+
+/* Primary Metrics */
+.primary-metrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 500;
+}
+
+.metric-label {
+  font-size: 9px;
+  color: #666;
+  font-weight: 600;
+}
+
+.metric-value {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.metric.recruitment .metric-value {
+  color: #4caf50;
+}
+
+.metric.churn .metric-value {
+  color: #f44336;
+}
+
+.metric.net-change.positive .metric-value {
+  color: #4caf50;
+}
+
+.metric.net-change.negative .metric-value {
+  color: #f44336;
+}
+
+/* Secondary Metrics */
+.secondary-metrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.secondary-metrics .metric {
+  flex: 1;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.secondary-metrics .metric-value {
+  color: #2196f3;
+  font-weight: 500;
+}
+
+/* Financial Summary */
+.financial-summary {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.revenue,
+.profit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 9px;
+  color: #666;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.summary-value.positive {
+  color: #4caf50;
+}
+
+.summary-value.negative {
+  color: #f44336;
+}
+
+/* Change Indicator */
+.change-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #ff9800;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Edit Mode */
+.cell-edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #9c27b0;
+}
+
+.edit-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9c27b0;
+}
+
+.edit-unit {
+  font-size: 10px;
+  color: #666;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #9c27b0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  background: white;
+  color: #9c27b0;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #7b1fa2;
+  box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.2);
+}
+
+/* Field Tabs */
+.field-tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.field-tab {
+  flex: 1;
+  padding: 4px 2px;
+  border: none;
+  background: #e1bee7;
+  color: #7b1fa2;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.field-tab:hover {
+  background: #ce93d8;
+}
+
+.field-tab.active {
+  background: #9c27b0;
+  color: white;
+}
+
+.edit-help {
+  font-size: 8px;
+  color: #666;
+  text-align: center;
+  margin-top: auto;
+  line-height: 1.2;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .business-plan-cell {
+    min-height: 70px;
+    padding: 6px;
+  }
+  
+  .cell-content {
+    font-size: 10px;
+  }
+  
+  .metric-value {
+    font-size: 10px;
+  }
+  
+  .secondary-metrics .metric {
+    font-size: 9px;
+  }
+  
+  .summary-value {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 768px) {
+  .business-plan-cell {
+    min-height: 60px;
+    padding: 4px;
+  }
+  
+  .cell-content {
+    font-size: 9px;
+    gap: 2px;
+  }
+  
+  .primary-metrics {
+    margin-bottom: 1px;
+  }
+  
+  .metric-value {
+    font-size: 9px;
+  }
+  
+  .secondary-metrics .metric {
+    font-size: 8px;
+  }
+  
+  .summary-label,
+  .summary-value {
+    font-size: 8px;
+  }
+  
+  .financial-summary {
+    gap: 1px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .business-plan-cell {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #ffffff;
+  }
+  
+  .business-plan-cell:hover {
+    background: #3d3d3d;
+    border-color: #64b5f6;
+  }
+  
+  .business-plan-cell.selected {
+    background: #1e3a5f;
+    border-color: #64b5f6;
+    box-shadow: 0 0 0 1px #64b5f6;
+  }
+  
+  .business-plan-cell.has-changes {
+    background: #3d2d1a;
+    border-color: #ffb74d;
+  }
+  
+  .business-plan-cell.editing {
+    background: #2d1b35;
+    border-color: #ba68c8;
+  }
+  
+  .secondary-metrics {
+    border-color: #404040;
+  }
+  
+  .metric-label,
+  .summary-label {
+    color: #cccccc;
+  }
+  
+  .edit-input {
+    background: #3d3d3d;
+    border-color: #ba68c8;
+    color: #ba68c8;
+  }
+  
+  .field-tab {
+    background: #4a2c54;
+    color: #ba68c8;
+  }
+  
+  .field-tab:hover {
+    background: #5a3c64;
+  }
+  
+  .field-tab.active {
+    background: #ba68c8;
+    color: #2d2d2d;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .business-plan-cell {
+    transition: none;
+  }
+  
+  .business-plan-cell:hover {
+    transform: none;
+  }
+  
+  .change-indicator {
+    animation: none;
+    opacity: 1;
+  }
+}
