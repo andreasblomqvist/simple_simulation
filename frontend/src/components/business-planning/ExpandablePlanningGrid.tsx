@@ -24,7 +24,6 @@ import {
   Building2
 } from 'lucide-react';
 import { useBusinessPlanStore } from '../../stores/businessPlanStore';
-import { PlanningFieldInput } from './PlanningFieldInput';
 import { DataTableMinimal, MinimalColumnDef } from '../ui/data-table-minimal';
 import { cn } from '../../lib/utils';
 import type { OfficeConfig, MonthlyPlanEntry, StandardRole, StandardLevel } from '../../types/office';
@@ -36,11 +35,7 @@ import {
   BILLABLE_ROLES, 
   NON_BILLABLE_ROLES 
 } from '../../types/office';
-import { 
-  BusinessPlanningCalculations, 
-  type BusinessPlanningData, 
-  type MonthlyValue 
-} from './BusinessPlanningCalculations';
+import { PlanningKPICards } from './PlanningKPICards';
 
 interface ExpandablePlanningGridProps {
   office: OfficeConfig;
@@ -727,103 +722,14 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
     'Operations': { 'General': 8 }
   }), []);
 
-  // Convert planning data to calculation engine format and calculate derived fields
+  // Mock calculated data for now - in real implementation, calculate from business plan data
   const calculatedData = useMemo(() => {
-    // Convert current planning data to BusinessPlanningData format
-    const businessData: BusinessPlanningData = {
-      officeLevel: {
-        office_rent: { jan: 50000, feb: 50000, mar: 50000, apr: 50000, may: 50000, jun: 50000,
-                      jul: 50000, aug: 50000, sep: 50000, oct: 50000, nov: 50000, dec: 50000, total: 600000 },
-        severance: { jan: 10000, feb: 10000, mar: 10000, apr: 10000, may: 10000, jun: 10000,
-                     jul: 10000, aug: 10000, sep: 10000, oct: 10000, nov: 10000, dec: 10000, total: 120000 },
-        education: { jan: 5000, feb: 5000, mar: 5000, apr: 5000, may: 5000, jun: 5000,
-                     jul: 5000, aug: 5000, sep: 5000, oct: 5000, nov: 5000, dec: 5000, total: 60000 },
-        external_services: { jan: 15000, feb: 15000, mar: 15000, apr: 15000, may: 15000, jun: 15000,
-                            jul: 15000, aug: 15000, sep: 15000, oct: 15000, nov: 15000, dec: 15000, total: 180000 },
-        it_related: { jan: 8000, feb: 8000, mar: 8000, apr: 8000, may: 8000, jun: 8000,
-                      jul: 8000, aug: 8000, sep: 8000, oct: 8000, nov: 8000, dec: 8000, total: 96000 },
-        external_representation: { jan: 3000, feb: 3000, mar: 3000, apr: 3000, may: 3000, jun: 3000,
-                                  jul: 3000, aug: 3000, sep: 3000, oct: 3000, nov: 3000, dec: 3000, total: 36000 },
-        depreciation: { jan: 12000, feb: 12000, mar: 12000, apr: 12000, may: 12000, jun: 12000,
-                        jul: 12000, aug: 12000, sep: 12000, oct: 12000, nov: 12000, dec: 12000, total: 144000 },
-        travel: { jan: 7000, feb: 7000, mar: 7000, apr: 7000, may: 7000, jun: 7000,
-                  jul: 7000, aug: 7000, sep: 7000, oct: 7000, nov: 7000, dec: 7000, total: 84000 }
-      },
-      roleLevel: {}
+    return {
+      revenue: { total: 2500000 },
+      grossProfit: { total: 1800000 },
+      netProfit: { total: 300000 }
     };
-
-    // Add role/level data from planning state
-    STANDARD_ROLES.forEach(role => {
-      STANDARD_LEVELS.forEach(level => {
-        // Add FTE data
-        if (!businessData.roleLevel.fte) businessData.roleLevel.fte = {};
-        if (!businessData.roleLevel.fte[role]) businessData.roleLevel.fte[role] = {};
-        
-        const fteCount = mockFteByRoleLevel[role]?.[level] || 0;
-        businessData.roleLevel.fte[role]![level] = {
-          jan: fteCount, feb: fteCount, mar: fteCount, apr: fteCount, may: fteCount, jun: fteCount,
-          jul: fteCount, aug: fteCount, sep: fteCount, oct: fteCount, nov: fteCount, dec: fteCount,
-          total: fteCount * 12
-        };
-
-        // Add salary data based on office configuration
-        if (!businessData.roleLevel.gross_salary) businessData.roleLevel.gross_salary = {};
-        if (!businessData.roleLevel.gross_salary[role]) businessData.roleLevel.gross_salary[role] = {};
-        
-        // Use safe default values for salary data
-        const baseSalary = office.roleConfig?.[role]?.levels?.[level]?.baseSalary || 
-                          (role === 'Consultant' ? (level === 'A' ? 65000 : level === 'B' ? 75000 : level === 'C' ? 85000 : 95000) :
-                           role === 'Sales' ? (level === 'A' ? 55000 : level === 'B' ? 65000 : level === 'C' ? 75000 : 85000) :
-                           50000); // Default for other roles
-        businessData.roleLevel.gross_salary[role]![level] = {
-          jan: baseSalary, feb: baseSalary, mar: baseSalary, apr: baseSalary, may: baseSalary, jun: baseSalary,
-          jul: baseSalary, aug: baseSalary, sep: baseSalary, oct: baseSalary, nov: baseSalary, dec: baseSalary,
-          total: baseSalary * 12
-        };
-
-        // Add pricing data for billable roles
-        if (BILLABLE_ROLES.includes(role as any)) {
-          if (!businessData.roleLevel.price) businessData.roleLevel.price = {};
-          if (!businessData.roleLevel.price[role]) businessData.roleLevel.price[role] = {};
-          
-          const hourlyRate = office.roleConfig?.[role]?.levels?.[level]?.hourlyRate || 
-                            (role === 'Consultant' ? (level === 'A' ? 1200 : level === 'B' ? 1400 : level === 'C' ? 1600 : 1800) :
-                             role === 'Sales' ? (level === 'A' ? 1000 : level === 'B' ? 1200 : level === 'C' ? 1400 : 1600) :
-                             1000); // Default hourly rate
-          businessData.roleLevel.price[role]![level] = {
-            jan: hourlyRate, feb: hourlyRate, mar: hourlyRate, apr: hourlyRate, may: hourlyRate, jun: hourlyRate,
-            jul: hourlyRate, aug: hourlyRate, sep: hourlyRate, oct: hourlyRate, nov: hourlyRate, dec: hourlyRate,
-            total: hourlyRate * 12
-          };
-
-          // Add UTR data
-          if (!businessData.roleLevel.utr) businessData.roleLevel.utr = {};
-          if (!businessData.roleLevel.utr[role]) businessData.roleLevel.utr[role] = {};
-          
-          const utrValue = 0.75; // Default 75% utilization
-          businessData.roleLevel.utr[role]![level] = {
-            jan: utrValue, feb: utrValue, mar: utrValue, apr: utrValue, may: utrValue, jun: utrValue,
-            jul: utrValue, aug: utrValue, sep: utrValue, oct: utrValue, nov: utrValue, dec: utrValue,
-            total: utrValue * 12
-          };
-
-          // Add hours data
-          if (!businessData.roleLevel.hours) businessData.roleLevel.hours = {};
-          if (!businessData.roleLevel.hours[role]) businessData.roleLevel.hours[role] = {};
-          
-          const monthlyHours = 160; // Standard monthly hours
-          businessData.roleLevel.hours[role]![level] = {
-            jan: monthlyHours, feb: monthlyHours, mar: monthlyHours, apr: monthlyHours, may: monthlyHours, jun: monthlyHours,
-            jul: monthlyHours, aug: monthlyHours, sep: monthlyHours, oct: monthlyHours, nov: monthlyHours, dec: monthlyHours,
-            total: monthlyHours * 12
-          };
-        }
-      });
-    });
-
-    // Calculate all derived fields
-    return BusinessPlanningCalculations.calculateDerivedFields(businessData);
-  }, [office, localChangesKey, mockFteByRoleLevel]);
+  }, [office, localChangesKey]);
 
   // Prepare data for DataTableMinimal with comprehensive business planning structure
   const tableData: PlanningTableRow[] = useMemo(() => {
@@ -1661,105 +1567,18 @@ export const ExpandablePlanningGrid: React.FC<ExpandablePlanningGridProps> = ({
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Total Recruitment */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-green-400" />
-                <span className="text-xs font-medium text-gray-400">Total Recruitment</span>
-              </div>
-              <div className="text-xl font-bold text-white">
-                {Math.round(kpis.totalRecruitment).toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-400">yearly</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Churn */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <UserMinus className="h-4 w-4 text-red-400" />
-                <span className="text-xs font-medium text-gray-400">Total Churn</span>
-              </div>
-              <div className="text-xl font-bold text-white">
-                {Math.round(kpis.totalChurn).toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-400">yearly</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Net Recruitment */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ArrowUpRight className={`h-4 w-4 ${kpis.netRecruitment >= 0 ? 'text-green-400' : 'text-red-400'}`} />
-                <span className="text-xs font-medium text-gray-400">Net Recruitment</span>
-              </div>
-              <div className={`text-xl font-bold ${kpis.netRecruitment >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {kpis.netRecruitment >= 0 ? '+' : ''}{Math.round(kpis.netRecruitment).toLocaleString()}
-              </div>
-              <div className={`text-xs ${kpis.netRecruitmentPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {kpis.netRecruitmentPercent >= 0 ? '+' : ''}{kpis.netRecruitmentPercent.toFixed(1)}% growth
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Net Revenue */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-400" />
-                <span className="text-xs font-medium text-gray-400">Net Revenue</span>
-              </div>
-              <div className="text-xl font-bold text-white">
-                €{Math.round(kpis.netRevenue / 1000).toLocaleString()}K
-              </div>
-              <div className="text-xs text-gray-400">yearly</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Price Increase */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-purple-400" />
-                <span className="text-xs font-medium text-gray-400">Price Increase</span>
-              </div>
-              <div className="text-xl font-bold text-white">
-                {kpis.avgPriceIncrease >= 0 ? '+' : ''}{kpis.avgPriceIncrease.toFixed(1)}%
-              </div>
-              <div className="text-xs text-gray-400">vs baseline</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Target UTR */}
-        <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-          <CardContent className="p-4" style={{ backgroundColor: '#1f2937' }}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-yellow-400" />
-                <span className="text-xs font-medium text-gray-400">Target UTR</span>
-              </div>
-              <div className="text-xl font-bold text-white">
-                {kpis.avgTargetUTR.toFixed(1)}%
-              </div>
-              <div className="text-xs text-gray-400">average</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PlanningKPICards 
+        kpis={{
+          totalRecruitment: Math.round(kpis.totalRecruitment),
+          totalChurn: Math.round(kpis.totalChurn),
+          netRecruitment: Math.round(kpis.netRecruitment),
+          netRecruitmentPercent: kpis.netRecruitmentPercent,
+          netRevenue: Math.round(kpis.netRevenue),
+          avgPriceIncrease: kpis.avgPriceIncrease,
+          avgTargetUTR: kpis.avgTargetUTR
+        }}
+        className="mb-4"
+      />
 
       {/* Main Grid */}
       <Card>

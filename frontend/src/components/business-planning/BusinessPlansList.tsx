@@ -451,26 +451,7 @@ export const BusinessPlansList: React.FC<Props> = ({
   const columns = useMemo(() => createColumns(handleActionClick), []);
 
   return (
-    <div className="business-plans-list space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Business Plans
-          </h2>
-          <p className="text-gray-300">
-            Manage and organize business plans across all offices
-          </p>
-        </div>
-        
-        <Button 
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Plan
-        </Button>
-      </div>
+    <div className="business-plans-list space-y-6 p-6">
 
       {/* Filters and Search */}
       <Card className="bg-gray-800 border-gray-600">

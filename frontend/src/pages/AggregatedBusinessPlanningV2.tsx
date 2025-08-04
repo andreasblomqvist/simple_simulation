@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
-import { AggregatedPlanningGrid } from '../components/business-planning/AggregatedPlanningGrid';
+import { CleanBusinessPlanTable } from '../components/business-planning/CleanBusinessPlanTable';
 import { 
   Calendar,
   Building2,

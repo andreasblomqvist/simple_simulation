@@ -22,8 +22,6 @@ import {
   Globe,
   PlusCircle,
   Settings,
-  ToggleLeft,
-  ToggleRight,
   Bot,
   Sparkles
 } from 'lucide-react';
@@ -31,18 +29,16 @@ import { useOfficeStore } from '../stores/officeStore';
 import { useBusinessPlanStore } from '../stores/businessPlanStore';
 import { ExpandablePlanningGrid } from '../components/business-planning/ExpandablePlanningGrid';
 import { CleanBusinessPlanTable } from '../components/business-planning/CleanBusinessPlanTable';
-import { MultiTablePlanningInterface } from '../components/business-planning/multi-table/MultiTablePlanningInterface';
 import { SimpleAIPlanningInterface } from '../components/business-planning/SimpleAIPlanningInterface';
 import { BusinessPlansList } from '../components/business-planning/BusinessPlansList';
 import { OfficeSelector } from '../components/business-planning/OfficeSelector';
-import { PlanningDashboard } from '../components/business-planning/PlanningDashboard';
 import { SimulationIntegration } from '../components/business-planning/SimulationIntegration';
 import { ImportExportTools } from '../components/business-planning/ImportExportTools';
 import type { OfficeConfig } from '../types/office';
 import { cn } from '../lib/utils';
 import '../components/business-planning/business-planning.css';
 
-type PlanningTab = 'plans-list' | 'office-planning' | 'ai-planning' | 'aggregated' | 'dashboard' | 'simulation' | 'settings';
+type PlanningTab = 'plans-list' | 'office-planning' | 'ai-planning' | 'aggregated' | 'simulation' | 'settings';
 
 export const BusinessPlanningV2: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,7 +47,6 @@ export const BusinessPlanningV2: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const lastUrlStateRef = useRef<string>('');
   const [showAggregatedView, setShowAggregatedView] = useState(false);
-  const [useMultiTableInterface, setUseMultiTableInterface] = useState(false);
   const [useAIInterface, setUseAIInterface] = useState(false);
   const [showAIDemo, setShowAIDemo] = useState(true);
 
@@ -75,7 +70,7 @@ export const BusinessPlanningV2: React.FC = () => {
     const office = searchParams.get('office');
     const year = searchParams.get('year');
 
-    if (tab && ['plans-list', 'office-planning', 'ai-planning', 'aggregated', 'dashboard', 'simulation', 'settings'].includes(tab)) {
+    if (tab && ['plans-list', 'office-planning', 'ai-planning', 'aggregated', 'simulation', 'settings'].includes(tab)) {
       setActiveTab(tab);
     }
     if (office) {
@@ -265,12 +260,6 @@ export const BusinessPlanningV2: React.FC = () => {
       description: 'View and manage aggregated business plans across all offices'
     },
     {
-      key: 'dashboard' as PlanningTab,
-      label: 'Analytics',
-      icon: TrendingUp,
-      description: 'Business plan analytics and performance insights'
-    },
-    {
       key: 'simulation' as PlanningTab,
       label: 'Scenarios',
       icon: Play,
@@ -394,7 +383,7 @@ export const BusinessPlanningV2: React.FC = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="relative">
           <TabsList 
-            className="grid w-full grid-cols-7 h-14 p-1.5 rounded-xl border-0 shadow-sm"
+            className="grid w-full grid-cols-6 h-14 p-1.5 rounded-xl border-0 shadow-sm"
             style={{ backgroundColor: '#374151' }}
           >
             {tabs.map(tab => {
@@ -430,15 +419,80 @@ export const BusinessPlanningV2: React.FC = () => {
 
         {/* Business Plans List Tab */}
         <TabsContent value="plans-list" className="space-y-6">
-          <BusinessPlansList
-            offices={offices}
-            onCreateNew={handleCreateNewPlan}
-            onEditPlan={handleEditPlan}
-            onViewPlan={handleViewPlan}
-            onDeletePlan={handleDeletePlan}
-            onDuplicatePlan={handleDuplicatePlan}
-            onMarkOfficial={handleMarkOfficial}
-          />
+          <Card className="border-0 shadow-md overflow-hidden" style={{ backgroundColor: '#1f2937' }}>
+            <CardHeader className="p-6" style={{ 
+              borderBottom: '1px solid #374151',
+              background: 'linear-gradient(to right, #1e3a8a, #312e81)',
+            }}>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold" style={{ color: '#f3f4f6' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#3b82f6' }}>
+                      <PlusCircle className="h-5 w-5" style={{ color: '#ffffff' }} />
+                    </div>
+                    All Business Plans
+                  </CardTitle>
+                  <p className="text-sm max-w-3xl leading-relaxed" style={{ color: '#d1d5db' }}>
+                    Manage and organize business plans across all offices with comprehensive CRUD operations and workflow management.
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <Button 
+                    onClick={() => {
+                      // Trigger the create modal by calling the handleCreateNewPlan function
+                      handleCreateNewPlan({
+                        name: '',
+                        officeId: selectedOfficeId || offices[0]?.id || '',
+                        year: selectedYear,
+                        workflow: 'manual'
+                      });
+                    }}
+                    style={{
+                      height: '36px',
+                      padding: '0 1rem',
+                      fontWeight: '500',
+                      backgroundColor: '#374151',
+                      color: '#e5e7eb',
+                      border: '2px solid #6b7280',
+                      borderRadius: '8px',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4b5563';
+                      e.currentTarget.style.borderColor = '#9ca3af';
+                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#374151';
+                      e.currentTarget.style.borderColor = '#6b7280';
+                      e.currentTarget.style.color = '#e5e7eb';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+                    }}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" style={{ color: '#e5e7eb' }} />
+                    Create New Plan
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-0" style={{ backgroundColor: '#1f2937' }}>
+              <BusinessPlansList
+                offices={offices}
+                onCreateNew={handleCreateNewPlan}
+                onEditPlan={handleEditPlan}
+                onViewPlan={handleViewPlan}
+                onDeletePlan={handleDeletePlan}
+                onDuplicatePlan={handleDuplicatePlan}
+                onMarkOfficial={handleMarkOfficial}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Enhanced Office Planning Tab */}
@@ -457,10 +511,7 @@ export const BusinessPlanningV2: React.FC = () => {
                     Office Business Planning
                   </CardTitle>
                   <p className="text-sm max-w-3xl leading-relaxed" style={{ color: '#d1d5db' }}>
-                    {useMultiTableInterface 
-                      ? 'Advanced multi-table interface with specialized tables for workforce, financial, overview, and quick entry operations. Streamline your planning workflow with intelligent data organization.'
-                      : 'Create detailed monthly plans with expandable rows for each role and level. Input recruitment, churn, price, and UTR for every role/level combination with precision and ease.'
-                    }
+                    Create detailed monthly plans with expandable rows for each role and level. Input recruitment, churn, price, and UTR for every role/level combination with precision and ease.
                   </p>
                 </div>
                 
@@ -495,68 +546,16 @@ export const BusinessPlanningV2: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Enhanced Interface Toggle */}
-                  <div className="flex items-center gap-3 pl-4" style={{ borderLeft: '1px solid #374151' }}>
-                    <span className="text-sm font-medium" style={{ color: '#d1d5db' }}>Interface:</span>
-                    <Button
-                      variant={useMultiTableInterface ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setUseMultiTableInterface(!useMultiTableInterface)}
-                      className="flex items-center gap-2 h-9 px-4 font-medium transition-all duration-200"
-                      style={{
-                        backgroundColor: useMultiTableInterface ? '#3b82f6' : '#1f2937',
-                        color: '#ffffff',
-                        border: useMultiTableInterface ? '0' : '1px solid #374151',
-                        boxShadow: useMultiTableInterface ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (useMultiTableInterface) {
-                          e.currentTarget.style.backgroundColor = '#2563eb';
-                        } else {
-                          e.currentTarget.style.backgroundColor = '#374151';
-                          e.currentTarget.style.borderColor = '#4b5563';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (useMultiTableInterface) {
-                          e.currentTarget.style.backgroundColor = '#3b82f6';
-                        } else {
-                          e.currentTarget.style.backgroundColor = '#1f2937';
-                          e.currentTarget.style.borderColor = '#374151';
-                        }
-                      }}
-                    >
-                      {useMultiTableInterface ? (
-                        <>
-                          <ToggleRight className="h-4 w-4" style={{ color: '#ffffff' }} />
-                          <span>Multi-Table</span>
-                        </>
-                      ) : (
-                        <>
-                          <ToggleLeft className="h-4 w-4" style={{ color: '#ffffff' }} />
-                          <span>Expandable</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </div>
               </div>
             </CardHeader>
             
             <CardContent>
               {selectedOffice ? (
-                useMultiTableInterface ? (
-                  <MultiTablePlanningInterface
-                    office={selectedOffice}
-                    year={selectedYear}
-                    onYearChange={handleYearChange}
-                  />
-                ) : (
-                  <CleanBusinessPlanTable
-                    office={selectedOffice}
-                    year={selectedYear}
-                  />
-                )
+                <CleanBusinessPlanTable
+                  office={selectedOffice}
+                  year={selectedYear}
+                />
               ) : (
                 <div className="text-center py-12">
                   <Building2 className="h-12 w-12 mx-auto mb-4" style={{ color: '#9ca3af' }} />
@@ -655,15 +654,24 @@ export const BusinessPlanningV2: React.FC = () => {
 
         {/* Aggregated Planning Tab */}
         <TabsContent value="aggregated" className="space-y-6">
-          <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-            <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
-              <CardTitle className="flex items-center gap-2" style={{ color: '#f3f4f6' }}>
-                <Globe className="h-5 w-5" style={{ color: '#f3f4f6' }} />
-                Company-Wide Business Planning
-              </CardTitle>
-              <p className="text-sm" style={{ color: '#9ca3af' }}>
-                View and manage aggregated business plans across all offices
-              </p>
+          <Card className="border-0 shadow-md overflow-hidden" style={{ backgroundColor: '#1f2937' }}>
+            <CardHeader className="p-6" style={{ 
+              borderBottom: '1px solid #374151',
+              background: 'linear-gradient(to right, #1e3a8a, #312e81)',
+            }}>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold" style={{ color: '#f3f4f6' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#3b82f6' }}>
+                      <Globe className="h-5 w-5" style={{ color: '#ffffff' }} />
+                    </div>
+                    Company-Wide Business Planning
+                  </CardTitle>
+                  <p className="text-sm max-w-3xl leading-relaxed" style={{ color: '#d1d5db' }}>
+                    View and manage aggregated business plans across all offices with unified metrics and consolidated insights.
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             
             <CardContent className="p-6" style={{ backgroundColor: '#1f2937' }}>
@@ -697,27 +705,27 @@ export const BusinessPlanningV2: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* Analytics Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-6">
-          <PlanningDashboard
-            offices={offices}
-            selectedOffice={selectedOffice}
-            year={selectedYear}
-            onYearChange={handleYearChange}
-          />
-        </TabsContent>
 
         {/* Simulation Integration Tab */}
         <TabsContent value="simulation" className="space-y-6">
-          <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-            <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
-              <CardTitle className="flex items-center gap-2" style={{ color: '#f3f4f6' }}>
-                <Play className="h-5 w-5" style={{ color: '#f3f4f6' }} />
-                Scenario Planning Integration
-              </CardTitle>
-              <p className="text-sm" style={{ color: '#9ca3af' }}>
-                Create scenarios using business plans as baselines
-              </p>
+          <Card className="border-0 shadow-md overflow-hidden" style={{ backgroundColor: '#1f2937' }}>
+            <CardHeader className="p-6" style={{ 
+              borderBottom: '1px solid #374151',
+              background: 'linear-gradient(to right, #1e3a8a, #312e81)',
+            }}>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold" style={{ color: '#f3f4f6' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#3b82f6' }}>
+                      <Play className="h-5 w-5" style={{ color: '#ffffff' }} />
+                    </div>
+                    Scenario Planning Integration
+                  </CardTitle>
+                  <p className="text-sm max-w-3xl leading-relaxed" style={{ color: '#d1d5db' }}>
+                    Create scenarios using business plans as baselines for advanced workforce simulation and strategic planning.
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             
             <CardContent style={{ backgroundColor: '#1f2937' }}>
@@ -734,15 +742,24 @@ export const BusinessPlanningV2: React.FC = () => {
 
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
-          <Card style={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-            <CardHeader style={{ backgroundColor: '#1f2937', borderBottom: '1px solid #374151' }}>
-              <CardTitle className="flex items-center gap-2" style={{ color: '#f3f4f6' }}>
-                <Settings className="h-5 w-5" style={{ color: '#f3f4f6' }} />
-                Business Planning Settings
-              </CardTitle>
-              <p className="text-sm" style={{ color: '#9ca3af' }}>
-                Configure templates, validation rules, and integration settings
-              </p>
+          <Card className="border-0 shadow-md overflow-hidden" style={{ backgroundColor: '#1f2937' }}>
+            <CardHeader className="p-6" style={{ 
+              borderBottom: '1px solid #374151',
+              background: 'linear-gradient(to right, #1e3a8a, #312e81)',
+            }}>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="flex items-center gap-3 text-xl font-bold" style={{ color: '#f3f4f6' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#3b82f6' }}>
+                      <Settings className="h-5 w-5" style={{ color: '#ffffff' }} />
+                    </div>
+                    Business Planning Settings
+                  </CardTitle>
+                  <p className="text-sm max-w-3xl leading-relaxed" style={{ color: '#d1d5db' }}>
+                    Configure templates, validation rules, and integration settings for enhanced business planning workflows.
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             
             <CardContent style={{ backgroundColor: '#1f2937' }}>

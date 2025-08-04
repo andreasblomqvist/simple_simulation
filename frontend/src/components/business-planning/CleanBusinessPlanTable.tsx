@@ -11,6 +11,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useBusinessPlanStore } from '../../stores/businessPlanStore';
+import { PlanningKPICards } from './PlanningKPICards';
 import type { OfficeConfig, MonthlyPlanEntry, StandardRole, StandardLevel } from '../../types/office';
 
 // ============================================================================
@@ -618,6 +619,20 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
           )}
         </div>
       </div>
+
+      {/* KPI Cards */}
+      <PlanningKPICards 
+        kpis={{
+          totalRecruitment: 48,
+          totalChurn: 24,
+          netRecruitment: 24,
+          netRecruitmentPercent: 15.8,
+          netRevenue: 2150000,
+          avgPriceIncrease: 5.2,
+          avgTargetUTR: 78.5
+        }}
+        className="mb-4"
+      />
 
       {/* Table */}
       <div className="overflow-hidden rounded-md border border-gray-600 bg-black">
