@@ -30,12 +30,12 @@ import {
 import { useOfficeStore } from '../stores/officeStore';
 import { useBusinessPlanStore } from '../stores/businessPlanStore';
 import { ExpandablePlanningGrid } from '../components/business-planning/ExpandablePlanningGrid';
+import { CleanBusinessPlanTable } from '../components/business-planning/CleanBusinessPlanTable';
 import { MultiTablePlanningInterface } from '../components/business-planning/multi-table/MultiTablePlanningInterface';
 import { SimpleAIPlanningInterface } from '../components/business-planning/SimpleAIPlanningInterface';
 import { BusinessPlansList } from '../components/business-planning/BusinessPlansList';
 import { OfficeSelector } from '../components/business-planning/OfficeSelector';
 import { PlanningDashboard } from '../components/business-planning/PlanningDashboard';
-import { AggregatedPlanningGrid } from '../components/business-planning/AggregatedPlanningGrid';
 import { SimulationIntegration } from '../components/business-planning/SimulationIntegration';
 import { ImportExportTools } from '../components/business-planning/ImportExportTools';
 import type { OfficeConfig } from '../types/office';
@@ -552,10 +552,9 @@ export const BusinessPlanningV2: React.FC = () => {
                     onYearChange={handleYearChange}
                   />
                 ) : (
-                  <ExpandablePlanningGrid
+                  <CleanBusinessPlanTable
                     office={selectedOffice}
                     year={selectedYear}
-                    onYearChange={handleYearChange}
                   />
                 )
               ) : (
@@ -667,12 +666,32 @@ export const BusinessPlanningV2: React.FC = () => {
               </p>
             </CardHeader>
             
-            <CardContent className="p-0" style={{ backgroundColor: '#1f2937' }}>
-              <AggregatedPlanningGrid
+            <CardContent className="p-6" style={{ backgroundColor: '#1f2937' }}>
+              <CleanBusinessPlanTable
+                office={{
+                  id: 'aggregated',
+                  name: 'Aggregated View',
+                  country: 'Multiple',
+                  city: 'Multiple',
+                  currency: 'EUR',
+                  timezone: 'UTC',
+                  isActive: true,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  baseline_fte: {},
+                  salaries: {},
+                  economic_parameters: {
+                    monthly_hours: 160,
+                    working_days_per_month: 20,
+                    revenue_recognition_delay_months: 0,
+                    churn_rate_annual: 0.15,
+                    recruitment_cost_per_hire: 5000,
+                    onboarding_time_months: 3
+                  }
+                }}
                 year={selectedYear}
-                onYearChange={handleYearChange}
-                selectedOffices={offices.slice(0, 3).map(office => office.id)} // Default to first 3 offices
-                onViewOfficePlan={handleViewOfficePlan}
+                isAggregated={true}
+                selectedOffices={offices.slice(0, 3).map(office => office.id)}
               />
             </CardContent>
           </Card>
