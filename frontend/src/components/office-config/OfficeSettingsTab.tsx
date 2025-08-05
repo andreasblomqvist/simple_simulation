@@ -1,12 +1,15 @@
 /**
- * Office Settings Tab Component
- * Handles office configuration, economic parameters, and general settings
+ * Enhanced Office Settings Tab Component
+ * Handles office configuration with KPI cards and improved UI
  */
 import React, { useState, useEffect } from 'react';
 import type { OfficeConfig } from '../../types/office';
 import { OfficeJourney, JOURNEY_CONFIGS } from '../../types/office';
 import { useOfficeStore } from '../../stores/officeStore';
+import { KPICard } from './KPICard';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { Settings, Building2, Globe, DollarSign } from 'lucide-react';
 import './OfficeSettingsTab.css';
 
 interface OfficeSettingsTabProps {
@@ -120,27 +123,79 @@ export const OfficeSettingsTab: React.FC<OfficeSettingsTabProps> = ({
 
   const journeyConfig = JOURNEY_CONFIGS[formData.journey];
 
+  // Calculate office KPIs
+  const getOfficeKPIs = () => {
+    const economicParams = formData.economic_parameters;
+    const totalFte = formData.total_fte || 0;
+    const journey = formData.journey;
+    const journeyConfig = JOURNEY_CONFIGS[journey as OfficeJourney];
+    
+    return {
+      totalFte,
+      costOfLiving: economicParams.cost_of_living,
+      marketMultiplier: economicParams.market_multiplier,
+      taxRate: Math.round(economicParams.tax_rate * 100),
+      journeyStage: journey,
+      expectedSize: journeyConfig ? `${journeyConfig.typical_size_range[0]}-${journeyConfig.typical_size_range[1]}` : 'N/A'
+    };
+  };
+
+  const officeKPIs = getOfficeKPIs();
+
   return (
-    <div className="office-settings-tab">
-      {/* Header */}
-      <div className="settings-header">
-        <div className="header-info">
-          <h2>Office Settings</h2>
-          <p>Configure {office.name} settings and parameters</p>
-        </div>
-        
-        <div className="header-actions">
+    <div className="space-y-6">
+      {/* Office KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          title="Total Capacity"
+          value={officeKPIs.totalFte}
+          unit="FTE"
+          subtitle={`Expected: ${officeKPIs.expectedSize}`}
+          variant={officeKPIs.totalFte > 0 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Cost of Living"
+          value={officeKPIs.costOfLiving}
+          subtitle="Economic index"
+          variant="default"
+        />
+        <KPICard
+          title="Market Multiplier"
+          value={officeKPIs.marketMultiplier.toFixed(2)}
+          subtitle="Pricing adjustment"
+          trend={officeKPIs.marketMultiplier > 1 ? 'up' : 'down'}
+          variant={officeKPIs.marketMultiplier > 1 ? 'success' : 'warning'}
+        />
+        <KPICard
+          title="Tax Rate"
+          value={officeKPIs.taxRate}
+          unit="%"
+          subtitle="Corporate tax rate"
+          variant={officeKPIs.taxRate < 30 ? 'success' : 'warning'}
+        />
+      </div>
+
+      {/* Main Settings Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Office Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Header Actions */}
           {isDirty && (
-            <>
+            <div className="flex gap-2 mb-4">
               <button 
-                className="discard-button"
+                className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
                 onClick={handleDiscard}
                 disabled={saving}
               >
                 Discard Changes
               </button>
               <button 
-                className="save-button"
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -153,10 +208,8 @@ export const OfficeSettingsTab: React.FC<OfficeSettingsTabProps> = ({
                   'Save Changes'
                 )}
               </button>
-            </>
+            </div>
           )}
-        </div>
-      </div>
 
       {/* Error Display */}
       {error && (
@@ -420,6 +473,8 @@ export const OfficeSettingsTab: React.FC<OfficeSettingsTabProps> = ({
           </div>
         </div>
       </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
