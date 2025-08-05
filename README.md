@@ -145,4 +145,4 @@ This project uses:
 > - For year-based simulation features, see the new test suite in `backend/tests/unit/test_year_based_simulation.py`.
 > - For Python 3.11 support, ensure you have Python 3.11 installed and create your virtual environment with `python3.11 -m venv .venv`.
 > - The frontend uses Vite for fast development and hot module replacement.
-> - New v2 components showcase enhanced UX with year navigation capabilities. 
+> - New v2 components showcase enhanced UX with year navigation capabilities.
