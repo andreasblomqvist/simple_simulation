@@ -65,7 +65,7 @@ export const OfficesV2: React.FC<OfficesV2Props> = () => {
 
   useEffect(() => {
     loadOffices()
-  }, [loadOffices])
+  }, []) // Remove loadOffices from dependency array to prevent infinite loop
 
   useEffect(() => {
     if (officeId && offices.length > 0) {

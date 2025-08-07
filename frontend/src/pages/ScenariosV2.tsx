@@ -11,7 +11,9 @@ import {
   Target,
   Calendar,
   Building2,
-  Settings
+  Settings,
+  Camera,
+  Database
 } from 'lucide-react'
 
 import { Button } from '../components/ui/button'
@@ -44,6 +46,7 @@ import {
 import type { ScenarioListItem, ScenarioId } from '../types/unified-data-structures'
 import { scenarioApi } from '../services/scenarioApi'
 import { showMessage } from '../utils/message'
+import { Badge } from '../components/ui/badge'
 
 // Import existing components for modal/drawer content
 import ScenarioWizardV2 from '../components/scenario-runner/ScenarioWizardV2'
@@ -176,6 +179,37 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
       },
     },
     {
+      accessorKey: "baseline_snapshot",
+      header: "Baseline",
+      cell: ({ row }) => {
+        // Check if scenario has snapshot baseline information
+        const scenario = row.original;
+        const hasSnapshot = scenario.baseline_input && 
+                           typeof scenario.baseline_input === 'object' &&
+                           'snapshot_id' in scenario.baseline_input;
+        
+        return (
+          <div className="flex items-center space-x-2">
+            {hasSnapshot ? (
+              <>
+                <Camera className="h-4 w-4 text-blue-500" />
+                <Badge variant="outline" className="text-xs">
+                  Snapshot
+                </Badge>
+              </>
+            ) : (
+              <>
+                <Database className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Current Data
+                </span>
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "created_at",
       header: "Created",
       cell: ({ row }) => (
@@ -268,13 +302,19 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Runs</CardTitle>
-            <Play className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Snapshot Based</CardTitle>
+            <Camera className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">--</div>
+            <div className="text-2xl font-bold">
+              {scenarios.filter(s => 
+                s.baseline_input && 
+                typeof s.baseline_input === 'object' &&
+                'snapshot_id' in s.baseline_input
+              ).length}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Last 30 days
+              Using historical snapshots
             </p>
           </CardContent>
         </Card>

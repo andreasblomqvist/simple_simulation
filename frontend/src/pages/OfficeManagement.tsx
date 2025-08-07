@@ -33,7 +33,7 @@ export const OfficeManagement: React.FC<OfficeManagementProps> = ({ className })
   // Load offices on mount
   useEffect(() => {
     loadOffices();
-  }, [loadOffices]);
+  }, []); // Remove loadOffices from dependency array to prevent infinite loop
 
   // Handle office selection from URL
   useEffect(() => {
