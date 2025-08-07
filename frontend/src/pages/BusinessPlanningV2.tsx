@@ -84,7 +84,7 @@ export const BusinessPlanningV2: React.FC = () => {
   // Load initial data
   useEffect(() => {
     loadOffices();
-  }, [loadOffices]);
+  }, []); // Remove loadOffices from dependency array to prevent infinite loop
 
   // Auto-select first office if none selected
   useEffect(() => {
@@ -671,10 +671,94 @@ export const BusinessPlanningV2: React.FC = () => {
                     View and manage aggregated business plans across all offices with unified metrics and consolidated insights.
                   </p>
                 </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                      style={{
+                        height: '36px',
+                        padding: '0 12px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        backgroundColor: '#1f2937',
+                        color: '#f3f4f6',
+                        transition: 'all 0.2s ease'
+                      }}
+                      disabled={isLoading}
+                    >
+                      {availableYears.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             
             <CardContent className="p-6" style={{ backgroundColor: '#1f2937' }}>
+              {/* Office Selection Interface */}
+              <div className="mb-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold" style={{ color: '#f3f4f6' }}>
+                    Included Offices ({offices.slice(0, 3).length} selected)
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // TODO: Add office selection modal
+                      console.log('Configure offices');
+                    }}
+                    style={{
+                      backgroundColor: '#374151',
+                      borderColor: '#6b7280',
+                      color: '#e5e7eb'
+                    }}
+                  >
+                    Configure Offices
+                  </Button>
+                </div>
+                
+                {/* Office Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  {offices.slice(0, 3).map(office => (
+                    <Button
+                      key={office.id}
+                      variant="outline"
+                      onClick={() => handleViewOfficePlan(office.id, selectedYear)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
+                      style={{
+                        backgroundColor: '#1f2937',
+                        borderColor: '#3b82f6',
+                        color: '#e5e7eb',
+                        borderWidth: '2px'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#374151';
+                        e.currentTarget.style.borderColor = '#60a5fa';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#1f2937';
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                      }}
+                    >
+                      <Building2 className="h-4 w-4" style={{ color: '#3b82f6' }} />
+                      <span className="font-medium">{office.name}</span>
+                      <span className="text-xs opacity-75">({selectedYear})</span>
+                    </Button>
+                  ))}
+                </div>
+                
+                <div className="text-sm" style={{ color: '#9ca3af' }}>
+                  Click on an office to view its individual business plan
+                </div>
+              </div>
+              
+              {/* Aggregated Table */}
               <CleanBusinessPlanTable
                 office={{
                   id: 'aggregated',

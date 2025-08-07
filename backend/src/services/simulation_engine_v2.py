@@ -102,7 +102,7 @@ class MonthlyTargets:
 
 @dataclass
 class MonthlyPlan:
-    """Business plan data for a specific month"""
+    """Enhanced business plan data for a specific month with baseline FTE and utilization"""
     year: int
     month: int
     recruitment: Dict[str, Dict[str, float]]  # role -> level -> count
@@ -112,6 +112,18 @@ class MonthlyPlan:
     price_per_role: Dict[str, Dict[str, float]]     # role -> level -> price
     salary_per_role: Dict[str, Dict[str, float]]    # role -> level -> salary
     utr_per_role: Dict[str, Dict[str, float]]       # role -> level -> utilization
+    
+    # ENHANCED: Baseline workforce data for accurate KPI calculation
+    baseline_fte: Dict[str, Dict[str, int]] = field(default_factory=dict)  # role -> level -> count
+    
+    # ENHANCED: Utilization and financial parameters for net sales calculation
+    utilization_targets: Dict[str, float] = field(default_factory=dict)  # role -> utilization %
+    price_per_hour: Dict[str, float] = field(default_factory=dict)       # level -> hourly rate
+    working_hours_per_month: int = 160  # Standard full-time hours
+    
+    # ENHANCED: Detailed cost breakdown
+    operating_costs: float = 0.0  # Non-salary costs (rent, utilities, etc.)
+    total_costs: float = 0.0      # Calculated: salary_costs + operating_costs
 
 
 @dataclass

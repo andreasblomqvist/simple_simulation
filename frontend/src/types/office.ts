@@ -21,14 +21,42 @@ export interface EconomicParameters {
   tax_rate: number;
 }
 
+export interface CATMatrix {
+  [level: string]: {
+    [catStage: string]: number; // CAT0, CAT6, CAT12, etc. -> probability (0.0 to 1.0)
+  };
+}
+
+export interface PopulationSnapshot {
+  id: string;
+  name: string;
+  snapshot_date: string;
+  description?: string;
+  total_fte: number;
+  created_at: string;
+  is_default: boolean;
+}
+
+export interface BusinessPlan {
+  id: string;
+  name: string;
+  plan_date: string;
+  description?: string;
+  created_at: string;
+  is_active: boolean;
+}
+
 export interface OfficeConfig {
   id: string;
   name: string;
   journey: OfficeJourney;
   timezone: string;
   economic_parameters: EconomicParameters;
-  total_fte: number;
-  roles: Record<string, Record<string, any>>;
+  cat_matrix?: CATMatrix;
+  snapshots: PopulationSnapshot[];
+  business_plans: BusinessPlan[];
+  current_snapshot_id?: string;
+  active_business_plan_id?: string;
   created_at?: string;
   updated_at?: string;
 }

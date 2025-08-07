@@ -62,29 +62,22 @@ try {
 Write-Host "Waiting for processes to terminate..."
 Start-Sleep -Seconds 3
 
-# Step 4: Start backend using the dedicated script
+# Step 4: Start backend server
 Write-Host "Starting backend server..."
 try {
-    $backendResult = & ".\scripts\start-backend.ps1"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Backend failed to start"
-        exit 1
-    }
-    Write-Host "✅ Backend started successfully"
+    $pythonPath = "C:\Users\andre\AppData\Local\Programs\Python\Python313\python.exe"
+    Start-Process -FilePath "cmd" -ArgumentList @("/c", "set PYTHONPATH=backend & $pythonPath -m uvicorn main:app --reload --host 0.0.0.0 --port 8000") -WindowStyle Normal -WorkingDirectory "backend"
+    Write-Host "✅ Backend started in new window"
 } catch {
     Write-Host "ERROR: Failed to start backend: $($_.Exception.Message)"
     exit 1
 }
 
-# Step 5: Start frontend using the dedicated script
+# Step 5: Start frontend server
 Write-Host "Starting frontend server..."
 try {
-    $frontendResult = & ".\scripts\start-frontend.ps1"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Frontend failed to start"
-        exit 1
-    }
-    Write-Host "✅ Frontend started successfully"
+    Start-Process -FilePath "cmd" -ArgumentList @("/c", "npm run dev") -WindowStyle Normal -WorkingDirectory "frontend"
+    Write-Host "✅ Frontend started in new window"
 } catch {
     Write-Host "ERROR: Failed to start frontend: $($_.Exception.Message)"
     exit 1
@@ -92,7 +85,10 @@ try {
 
 Write-Host ""
 Write-Host "✅ Server restart complete!"
-Write-Host "Both servers are now running in separate terminal windows where you can see their output."
+Write-Host "Backend: http://localhost:8000 - Running in new window"
+Write-Host "Frontend: http://localhost:3000 - Running in new window"
+Write-Host ""
+Write-Host "Both servers are now running in separate terminal windows."
 Write-Host ""
 Write-Host "To stop servers manually:"
 Write-Host "   Stop-Process -Name uvicorn,vite,node,npm -Force"

@@ -392,14 +392,21 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
         return int_targets
     
     def _calculate_salary_budget(self, monthly_plan: MonthlyPlan) -> float:
-        """Calculate total salary budget from role-level salaries"""
+        """Calculate total salary budget from role-level salaries and baseline FTE"""
         total_budget = 0.0
         
-        # This would need actual workforce counts - simplified for now
-        for role, levels in monthly_plan.salary_per_role.items():
-            for level, salary in levels.items():
-                # Would multiply by actual FTE count for this role/level
-                total_budget += salary  # Simplified
+        # ENHANCED: Use baseline FTE for accurate salary calculation
+        if hasattr(monthly_plan, 'baseline_fte') and monthly_plan.baseline_fte:
+            for role, levels in monthly_plan.salary_per_role.items():
+                baseline_role = monthly_plan.baseline_fte.get(role, {})
+                for level, salary in levels.items():
+                    fte_count = baseline_role.get(level, 0)
+                    total_budget += salary * fte_count
+        else:
+            # Fallback to simplified calculation
+            for role, levels in monthly_plan.salary_per_role.items():
+                for level, salary in levels.items():
+                    total_budget += salary  # Simplified
         
         return total_budget
     
@@ -512,6 +519,132 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
             for level, salary in levels.items():
                 adjusted_salaries[role][level] = salary * multiplier
         return adjusted_salaries
+    
+    def calculate_net_sales_utilization_based(self, monthly_plan: MonthlyPlan, 
+                                            current_workforce: Dict[str, Dict[str, int]] = None) -> float:
+        """
+        Calculate net sales based on consultant utilization formula:
+        Net Sales = Sum across all consultant levels of:
+        (Number of Consultants at Level) × (Utilization Rate) × (Price per Hour for Level) × (Working Hours per Month)
+        """
+        if not hasattr(monthly_plan, 'utilization_targets') or not monthly_plan.utilization_targets:
+            logger.warning("Monthly plan missing utilization targets, using legacy revenue calculation")
+            return monthly_plan.revenue
+        
+        # Use current workforce if provided, otherwise use baseline FTE
+        workforce_data = current_workforce if current_workforce else getattr(monthly_plan, 'baseline_fte', {})
+        
+        if not workforce_data:
+            logger.warning("No workforce data available for net sales calculation")
+            return monthly_plan.revenue
+        
+        total_revenue = 0.0
+        consultant_workforce = workforce_data.get('Consultant', {})
+        consultant_utilization = monthly_plan.utilization_targets.get('Consultant', 0.85)  # Default 85%
+        working_hours = getattr(monthly_plan, 'working_hours_per_month', 160)
+        
+        for level, consultant_count in consultant_workforce.items():
+            if consultant_count > 0:
+                # Get price per hour for this level
+                level_price = monthly_plan.price_per_hour.get(level, 0.0)
+                if level_price == 0.0:
+                    # Fallback to price_per_role if price_per_hour not available
+                    level_price = monthly_plan.price_per_role.get('Consultant', {}).get(level, 0.0)
+                
+                level_revenue = (
+                    consultant_count * 
+                    consultant_utilization * 
+                    level_price * 
+                    working_hours
+                )
+                
+                total_revenue += level_revenue
+                
+                logger.debug(f"Level {level}: {consultant_count} consultants × {consultant_utilization:.0%} util × "
+                           f"${level_price}/hr × {working_hours}hrs = ${level_revenue:,.0f}")
+        
+        logger.debug(f"Total net sales (utilization-based): ${total_revenue:,.0f}")
+        return total_revenue
+    
+    def sync_baseline_fte_from_snapshot(self, business_plan: BusinessPlan, 
+                                      population_snapshot: 'PopulationSnapshot') -> BusinessPlan:
+        """
+        Sync baseline FTE data from population snapshot into business plan
+        
+        Args:
+            business_plan: Business plan to enhance
+            population_snapshot: Population snapshot with current workforce
+            
+        Returns:
+            Enhanced BusinessPlan with baseline FTE data
+        """
+        from .simulation_engine_v2 import PopulationSnapshot, MonthlyPlan
+        
+        # Count workforce by role and level
+        workforce_counts = {}
+        for entry in population_snapshot.workforce:
+            if entry.role not in workforce_counts:
+                workforce_counts[entry.role] = {}
+            if entry.level not in workforce_counts[entry.role]:
+                workforce_counts[entry.role][entry.level] = 0
+            workforce_counts[entry.role][entry.level] += 1
+        
+        # Update all monthly plans with baseline FTE
+        enhanced_monthly_plans = {}
+        for month_key, monthly_plan in business_plan.monthly_plans.items():
+            # Create enhanced monthly plan with baseline FTE
+            enhanced_plan = MonthlyPlan(
+                year=monthly_plan.year,
+                month=monthly_plan.month,
+                recruitment=monthly_plan.recruitment,
+                churn=monthly_plan.churn,
+                revenue=monthly_plan.revenue,
+                costs=monthly_plan.costs,
+                price_per_role=monthly_plan.price_per_role,
+                salary_per_role=monthly_plan.salary_per_role,
+                utr_per_role=monthly_plan.utr_per_role,
+                baseline_fte=workforce_counts,  # Add baseline workforce data
+                utilization_targets=self._create_default_utilization_targets(),
+                price_per_hour=self._extract_price_per_hour(monthly_plan),
+                working_hours_per_month=160,
+                operating_costs=monthly_plan.costs * 0.3,  # Estimate 30% operating costs
+                total_costs=monthly_plan.costs
+            )
+            
+            enhanced_monthly_plans[month_key] = enhanced_plan
+        
+        enhanced_business_plan = BusinessPlan(
+            office_id=business_plan.office_id,
+            name=f"{business_plan.name} (Enhanced)",
+            monthly_plans=enhanced_monthly_plans
+        )
+        
+        logger.info(f"Enhanced business plan with baseline FTE: {len(workforce_counts)} roles, "
+                   f"{sum(sum(levels.values()) for levels in workforce_counts.values())} total FTE")
+        
+        return enhanced_business_plan
+    
+    def _create_default_utilization_targets(self) -> Dict[str, float]:
+        """Create default utilization targets by role"""
+        return {
+            'Consultant': 0.85,    # 85% billable utilization
+            'Sales': 0.0,          # Non-billable
+            'Recruitment': 0.0,    # Non-billable  
+            'Operations': 0.0      # Non-billable
+        }
+    
+    def _extract_price_per_hour(self, monthly_plan: MonthlyPlan) -> Dict[str, float]:
+        """Extract price per hour by level from existing price_per_role data"""
+        price_per_hour = {}
+        
+        # Extract from consultant pricing (main billable role)
+        consultant_pricing = monthly_plan.price_per_role.get('Consultant', {})
+        for level, monthly_price in consultant_pricing.items():
+            # Convert monthly price to hourly (assume 160 hours/month)
+            hourly_rate = monthly_price / 160.0
+            price_per_hour[level] = hourly_rate
+        
+        return price_per_hour
 
 
 # ============================================================================

@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { OfficeConfig, OfficeBusinessPlanSummary } from '../types/office';
+import type { OfficeConfig, OfficeBusinessPlanSummary, CATMatrix } from '../types/office';
 import { OfficeJourney } from '../types/office';
 
 interface OfficeStoreState {
@@ -23,6 +23,10 @@ interface OfficeStoreState {
   createOffice: (office: Omit<OfficeConfig, 'id' | 'created_at' | 'updated_at'>) => Promise<OfficeConfig>;
   updateOffice: (office: OfficeConfig) => Promise<OfficeConfig>;
   deleteOffice: (officeId: string) => Promise<void>;
+  
+  // CAT Matrix operations
+  updateOfficeCAT: (officeId: string, catMatrix: CATMatrix) => Promise<void>;
+  resetOfficeCAT: (officeId: string) => Promise<void>;
   
   // Utils
   clearError: () => void;
@@ -67,15 +71,19 @@ export const useOfficeStore = create<OfficeStoreState>()(
 
       // Load all offices
       loadOffices: async () => {
+        console.log('🏢 Loading offices from:', API_BASE);
         set({ loading: true, error: null });
         
         try {
           const response = await fetch(API_BASE);
+          console.log('🏢 Response status:', response.status, response.statusText);
           if (!response.ok) {
             throw new Error(`Failed to load offices: ${response.statusText}`);
           }
           
           const offices: OfficeConfig[] = await response.json();
+          console.log('🏢 Loaded offices:', offices.length, 'offices');
+          console.log('🏢 First office:', offices[0]?.name);
           const officesByJourney = groupOfficesByJourney(offices);
           
           set({ 
@@ -84,6 +92,7 @@ export const useOfficeStore = create<OfficeStoreState>()(
             loading: false 
           });
         } catch (error) {
+          console.error('🏢 Error loading offices:', error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to load offices',
             loading: false 
@@ -242,6 +251,90 @@ export const useOfficeStore = create<OfficeStoreState>()(
       // Get office by ID
       getOfficeById: (officeId: string) => {
         return get().offices.find(office => office.id === officeId);
+      },
+
+      // Update office CAT matrix
+      updateOfficeCAT: async (officeId: string, catMatrix: CATMatrix) => {
+        set({ loading: true, error: null });
+        
+        try {
+          const response = await fetch(`${API_BASE}/${officeId}/cat-matrix`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ cat_matrix: catMatrix }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update CAT matrix: ${response.statusText}`);
+          }
+          
+          // Update office in state
+          const currentOffices = get().offices;
+          const updatedOffices = currentOffices.map(office => 
+            office.id === officeId 
+              ? { ...office, cat_matrix: catMatrix }
+              : office
+          );
+          const officesByJourney = groupOfficesByJourney(updatedOffices);
+          
+          set({ 
+            offices: updatedOffices,
+            officesByJourney,
+            currentOffice: get().currentOffice?.id === officeId 
+              ? { ...get().currentOffice!, cat_matrix: catMatrix }
+              : get().currentOffice,
+            loading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to update CAT matrix',
+            loading: false 
+          });
+          throw error;
+        }
+      },
+
+      // Reset office CAT matrix to default
+      resetOfficeCAT: async (officeId: string) => {
+        set({ loading: true, error: null });
+        
+        try {
+          const response = await fetch(`${API_BASE}/${officeId}/cat-matrix/reset`, {
+            method: 'POST',
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to reset CAT matrix: ${response.statusText}`);
+          }
+          
+          const resetMatrix: CATMatrix = await response.json();
+          
+          // Update office in state
+          const currentOffices = get().offices;
+          const updatedOffices = currentOffices.map(office => 
+            office.id === officeId 
+              ? { ...office, cat_matrix: resetMatrix }
+              : office
+          );
+          const officesByJourney = groupOfficesByJourney(updatedOffices);
+          
+          set({ 
+            offices: updatedOffices,
+            officesByJourney,
+            currentOffice: get().currentOffice?.id === officeId 
+              ? { ...get().currentOffice!, cat_matrix: resetMatrix }
+              : get().currentOffice,
+            loading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to reset CAT matrix',
+            loading: false 
+          });
+          throw error;
+        }
       },
     }),
     {

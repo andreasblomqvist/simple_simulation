@@ -5,6 +5,8 @@ import { DashboardLayout } from '../components/layout/DashboardLayout'
 // Import pages for routing
 import { EnhancedDashboardV2 } from '../pages/EnhancedDashboardV2'
 import { OfficesV2 } from '../pages/OfficesV2'
+import { OfficeOverview } from '../pages/OfficeOverview'
+import { OfficeViewWithTabs } from '../components/office/OfficeViewWithTabs'
 import { ScenariosV2 } from '../pages/ScenariosV2'
 import { ScenarioResultsV2 } from '../pages/ScenarioResultsV2'
 import { SimulationLab } from '../pages/SimulationLab'
@@ -29,9 +31,9 @@ export function EnhancedRoutes() {
         <Route path="dashboard" element={<EnhancedDashboardV2 />} />
         
         {/* Office Management Routes */}
-        <Route path="offices" element={<OfficesV2 />} />
+        <Route path="offices" element={<OfficeViewWithTabs />} />
         <Route path="offices/:officeId" element={<OfficesV2 />} />
-        <Route path="office-overview/:officeId" element={<OfficesV2 />} />
+        <Route path="office-overview/:officeId" element={<OfficeOverview />} />
         
         {/* Business Planning Routes */}
         <Route path="business-planning" element={<BusinessPlanningV2 />} />
