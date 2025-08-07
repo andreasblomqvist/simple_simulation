@@ -1,0 +1,410 @@
+{
+  "london": {
+    "id": "london_baseline_2024",
+    "office_id": "london",
+    "snapshot_date": "2024-01",
+    "name": "London Office Baseline - January 2024",
+    "workforce": [
+      {
+        "id": "london_person_0001",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2021-08",
+        "level_start_date": "2021-08",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0002",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2023-01",
+        "level_start_date": "2023-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0003",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0004",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0005",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-12",
+        "level_start_date": "2022-12",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0006",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2021-08",
+        "level_start_date": "2021-08",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0007",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0008",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2021-12",
+        "level_start_date": "2021-12",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0009",
+        "role": "Consultant",
+        "level": "SrC",
+        "hire_date": "2022-10",
+        "level_start_date": "2022-10",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0010",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2022-09",
+        "level_start_date": "2022-09",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0011",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2021-08",
+        "level_start_date": "2021-08",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0012",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-04",
+        "level_start_date": "2021-04",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0013",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0014",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-02",
+        "level_start_date": "2021-02",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0015",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-04",
+        "level_start_date": "2021-04",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0016",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2022-02",
+        "level_start_date": "2022-02",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0017",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0018",
+        "role": "Consultant",
+        "level": "SrC",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0019",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0020",
+        "role": "Consultant",
+        "level": "AC",
+        "hire_date": "2021-08",
+        "level_start_date": "2021-08",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0021",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0022",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-09",
+        "level_start_date": "2022-09",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0023",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2023-01",
+        "level_start_date": "2023-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0024",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0025",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2023-01",
+        "level_start_date": "2023-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0026",
+        "role": "Consultant",
+        "level": "SrC",
+        "hire_date": "2022-06",
+        "level_start_date": "2022-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0027",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2023-06",
+        "level_start_date": "2023-06",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0028",
+        "role": "Consultant",
+        "level": "C",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0029",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2021-04",
+        "level_start_date": "2021-04",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0030",
+        "role": "Consultant",
+        "level": "A",
+        "hire_date": "2022-03",
+        "level_start_date": "2022-03",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0031",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2021-01",
+        "level_start_date": "2021-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0032",
+        "role": "Sales",
+        "level": "AC",
+        "hire_date": "2021-09",
+        "level_start_date": "2021-09",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0033",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2023-04",
+        "level_start_date": "2023-04",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0034",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2021-11",
+        "level_start_date": "2021-11",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0035",
+        "role": "Sales",
+        "level": "AC",
+        "hire_date": "2022-12",
+        "level_start_date": "2022-12",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0036",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2022-05",
+        "level_start_date": "2022-05",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0037",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2023-01",
+        "level_start_date": "2023-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0038",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2021-12",
+        "level_start_date": "2021-12",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0039",
+        "role": "Sales",
+        "level": "C",
+        "hire_date": "2023-03",
+        "level_start_date": "2023-03",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0040",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2021-12",
+        "level_start_date": "2021-12",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0041",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2021-01",
+        "level_start_date": "2021-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0042",
+        "role": "Sales",
+        "level": "AC",
+        "hire_date": "2021-09",
+        "level_start_date": "2021-09",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0043",
+        "role": "Sales",
+        "level": "A",
+        "hire_date": "2023-02",
+        "level_start_date": "2023-02",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0044",
+        "role": "Sales",
+        "level": "AC",
+        "hire_date": "2021-07",
+        "level_start_date": "2021-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0045",
+        "role": "Sales",
+        "level": "C",
+        "hire_date": "2022-09",
+        "level_start_date": "2022-09",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0046",
+        "role": "Recruitment",
+        "level": "C",
+        "hire_date": "2022-01",
+        "level_start_date": "2022-01",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0047",
+        "role": "Recruitment",
+        "level": "AC",
+        "hire_date": "2023-04",
+        "level_start_date": "2023-04",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0048",
+        "role": "Recruitment",
+        "level": "C",
+        "hire_date": "2023-02",
+        "level_start_date": "2023-02",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0049",
+        "role": "Operations",
+        "level": "Operations",
+        "hire_date": "2023-07",
+        "level_start_date": "2023-07",
+        "office": "london"
+      },
+      {
+        "id": "london_person_0050",
+        "role": "Operations",
+        "level": "Operations",
+        "hire_date": "2021-03",
+        "level_start_date": "2021-03",
+        "office": "london"
+      }
+    ]
+  }
+}

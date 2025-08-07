@@ -1,0 +1,121 @@
+{
+  "Consultant": {
+    "role": "Consultant",
+    "progression_probabilities": {
+      "A": {
+        "CAT0": 0.0,
+        "CAT6": 0.919,
+        "CAT12": 0.85,
+        "CAT18": 0.0,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      },
+      "AC": {
+        "CAT0": 0.0,
+        "CAT6": 0.054,
+        "CAT12": 0.759,
+        "CAT18": 0.4,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      },
+      "C": {
+        "CAT0": 0.0,
+        "CAT6": 0.05,
+        "CAT12": 0.442,
+        "CAT18": 0.597,
+        "CAT24": 0.278,
+        "CAT30": 0.643,
+        "CAT30+": 0.2
+      },
+      "SrC": {
+        "CAT0": 0.0,
+        "CAT6": 0.206,
+        "CAT12": 0.438,
+        "CAT18": 0.317,
+        "CAT24": 0.211,
+        "CAT30": 0.206,
+        "CAT30+": 0.167
+      },
+      "M": {
+        "CAT0": 0.0,
+        "CAT6": 0.0,
+        "CAT12": 0.01,
+        "CAT18": 0.02,
+        "CAT24": 0.03,
+        "CAT30": 0.04,
+        "CAT30+": 0.05
+      }
+    }
+  },
+  "Sales": {
+    "role": "Sales",
+    "progression_probabilities": {
+      "A": {
+        "CAT0": 0.0,
+        "CAT6": 0.8,
+        "CAT12": 0.75,
+        "CAT18": 0.0,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      },
+      "AC": {
+        "CAT0": 0.0,
+        "CAT6": 0.05,
+        "CAT12": 0.7,
+        "CAT18": 0.35,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      },
+      "C": {
+        "CAT0": 0.0,
+        "CAT6": 0.04,
+        "CAT12": 0.4,
+        "CAT18": 0.5,
+        "CAT24": 0.25,
+        "CAT30": 0.6,
+        "CAT30+": 0.15
+      }
+    }
+  },
+  "Recruitment": {
+    "role": "Recruitment",
+    "progression_probabilities": {
+      "A": {
+        "CAT0": 0.0,
+        "CAT6": 0.85,
+        "CAT12": 0.8,
+        "CAT18": 0.0,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      },
+      "AC": {
+        "CAT0": 0.0,
+        "CAT6": 0.06,
+        "CAT12": 0.72,
+        "CAT18": 0.38,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      }
+    }
+  },
+  "Operations": {
+    "role": "Operations",
+    "progression_probabilities": {
+      "Operations": {
+        "CAT0": 0.0,
+        "CAT6": 0.0,
+        "CAT12": 0.0,
+        "CAT18": 0.0,
+        "CAT24": 0.0,
+        "CAT30": 0.0,
+        "CAT30+": 0.0
+      }
+    }
+  }
+}

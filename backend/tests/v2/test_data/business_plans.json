@@ -1,0 +1,1209 @@
+{
+  "london": {
+    "office_id": "london",
+    "plan_id": "london_growth_2024_2025",
+    "name": "London Office Growth Plan 2024-2025",
+    "monthly_plans": {
+      "2024-01": {
+        "month": "2024-01",
+        "revenue": 489494,
+        "costs": 427427,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 52,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-02": {
+        "month": "2024-02",
+        "revenue": 511783,
+        "costs": 415912,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 54,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-03": {
+        "month": "2024-03",
+        "revenue": 509911,
+        "costs": 380674,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 56,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-04": {
+        "month": "2024-04",
+        "revenue": 501287,
+        "costs": 407255,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 58,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-05": {
+        "month": "2024-05",
+        "revenue": 512727,
+        "costs": 430445,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 60,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-06": {
+        "month": "2024-06",
+        "revenue": 519107,
+        "costs": 433182,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 1
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 62,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-07": {
+        "month": "2024-07",
+        "revenue": 587284,
+        "costs": 427149,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 64,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-08": {
+        "month": "2024-08",
+        "revenue": 558764,
+        "costs": 396337,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 66,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-09": {
+        "month": "2024-09",
+        "revenue": 468572,
+        "costs": 409501,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 68,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-10": {
+        "month": "2024-10",
+        "revenue": 529298,
+        "costs": 406493,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 70,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-11": {
+        "month": "2024-11",
+        "revenue": 485590,
+        "costs": 443995,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 72,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2024-12": {
+        "month": "2024-12",
+        "revenue": 515543,
+        "costs": 439116,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 1
+          },
+          "Operations": {
+            "Operations": 1
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 74,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-01": {
+        "month": "2025-01",
+        "revenue": 476374,
+        "costs": 434909,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 76,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-02": {
+        "month": "2025-02",
+        "revenue": 507327,
+        "costs": 395616,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 78,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-03": {
+        "month": "2025-03",
+        "revenue": 551868,
+        "costs": 393084,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 80,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-04": {
+        "month": "2025-04",
+        "revenue": 585074,
+        "costs": 399260,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 82,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-05": {
+        "month": "2025-05",
+        "revenue": 533872,
+        "costs": 416479,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 84,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-06": {
+        "month": "2025-06",
+        "revenue": 461956,
+        "costs": 445872,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 1
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 86,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-07": {
+        "month": "2025-07",
+        "revenue": 592648,
+        "costs": 419408,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 88,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-08": {
+        "month": "2025-08",
+        "revenue": 469232,
+        "costs": 385538,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 90,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-09": {
+        "month": "2025-09",
+        "revenue": 510174,
+        "costs": 377309,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 92,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-10": {
+        "month": "2025-10",
+        "revenue": 585721,
+        "costs": 386446,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 94,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-11": {
+        "month": "2025-11",
+        "revenue": 505113,
+        "costs": 381517,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0
+          },
+          "Recruitment": {
+            "A": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 0,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 96,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      },
+      "2025-12": {
+        "month": "2025-12",
+        "revenue": 582157,
+        "costs": 392774,
+        "recruitment": {
+          "Consultant": {
+            "A": 2,
+            "AC": 1,
+            "C": 1
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 1
+          },
+          "Recruitment": {
+            "A": 1
+          },
+          "Operations": {
+            "Operations": 1
+          }
+        },
+        "churn": {
+          "Consultant": {
+            "A": 1,
+            "AC": 1,
+            "C": 0,
+            "SrC": 0,
+            "M": 0
+          },
+          "Sales": {
+            "A": 1,
+            "AC": 0,
+            "C": 0
+          },
+          "Recruitment": {
+            "A": 0,
+            "AC": 0,
+            "C": 0
+          },
+          "Operations": {
+            "Operations": 0
+          }
+        },
+        "targets": {
+          "revenue_target": 600000,
+          "headcount_target": 98,
+          "utilization_target": 0.85,
+          "client_satisfaction": 0.92
+        }
+      }
+    }
+  }
+}

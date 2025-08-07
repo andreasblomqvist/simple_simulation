@@ -1,0 +1,46 @@
+{
+  "Consultant": {
+    "role": "Consultant",
+    "progression_probabilities": {
+      "A": {
+        "AC": 0.15,
+        "C": 0.02
+      },
+      "AC": {
+        "C": 0.12,
+        "SrC": 0.01
+      },
+      "C": {
+        "SrC": 0.08,
+        "M": 0.005
+      },
+      "SrC": {
+        "M": 0.06
+      }
+    }
+  },
+  "Sales": {
+    "role": "Sales",
+    "progression_probabilities": {
+      "A": {
+        "AC": 0.18,
+        "C": 0.03
+      },
+      "AC": {
+        "C": 0.15
+      }
+    }
+  },
+  "Recruitment": {
+    "role": "Recruitment",
+    "progression_probabilities": {
+      "A": {
+        "AC": 0.2,
+        "C": 0.04
+      },
+      "AC": {
+        "C": 0.18
+      }
+    }
+  }
+}

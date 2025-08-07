@@ -1,8 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from src.services.simulation_engine import SimulationEngine
-from routers import simulation, offices, health, scenarios, business_plans
+from routers import simulation, offices, health, scenarios, business_plans, snapshots, simulation_v2
 from src.routes import mcp_routes
+from src.database.connection import init_database, close_database
 import os
 import logging
 from datetime import datetime
@@ -90,6 +91,14 @@ async def startup_event():
     """Load configuration data during FastAPI startup"""
     logger.info("FastAPI server starting up...")
     
+    # Initialize database connection
+    try:
+        await init_database()
+        logger.info("Database initialization completed")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        # Continue startup even if database fails (for development)
+    
     # Use the same path logic as config service
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up to backend directory and then to config
@@ -110,15 +119,27 @@ async def startup_event():
     else:
         logger.info("No existing configuration file found - server will start with empty configuration")
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources during FastAPI shutdown"""
+    logger.info("FastAPI server shutting down...")
+    try:
+        await close_database()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.error(f"Error during database shutdown: {e}")
+
 # Initialize simulation engine
 engine = SimulationEngine()
 
 # Include routers (no engine injection needed with JSON file approach)
 app.include_router(health.router)
 app.include_router(simulation.router)
+app.include_router(simulation_v2.router)  # V2 Engine API
 app.include_router(offices.router)
 app.include_router(scenarios.router)
 app.include_router(business_plans.router)
+app.include_router(snapshots.router)
 app.include_router(mcp_routes.router)
 
 # Legacy endpoint for backward compatibility

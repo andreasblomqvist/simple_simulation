@@ -1,0 +1,98 @@
+{
+  "london": {
+    "name": "London Office",
+    "current_snapshot_id": "london_baseline_2024",
+    "business_plan_id": "london_growth_2024_2025",
+    "economic_parameters": {
+      "base_salary_ranges": {
+        "Consultant": {
+          "A": {
+            "min": 45000,
+            "max": 55000
+          },
+          "AC": {
+            "min": 55000,
+            "max": 70000
+          },
+          "C": {
+            "min": 70000,
+            "max": 90000
+          },
+          "SrC": {
+            "min": 90000,
+            "max": 120000
+          },
+          "M": {
+            "min": 120000,
+            "max": 150000
+          }
+        },
+        "Sales": {
+          "A": {
+            "min": 35000,
+            "max": 45000
+          },
+          "AC": {
+            "min": 45000,
+            "max": 60000
+          },
+          "C": {
+            "min": 60000,
+            "max": 80000
+          }
+        },
+        "Recruitment": {
+          "A": {
+            "min": 30000,
+            "max": 40000
+          },
+          "AC": {
+            "min": 40000,
+            "max": 50000
+          },
+          "C": {
+            "min": 50000,
+            "max": 65000
+          }
+        },
+        "Operations": {
+          "Operations": {
+            "min": 35000,
+            "max": 55000
+          }
+        }
+      },
+      "churn_rates": {
+        "Consultant": {
+          "A": 0.08,
+          "AC": 0.06,
+          "C": 0.04,
+          "SrC": 0.02,
+          "M": 0.01
+        },
+        "Sales": {
+          "A": 0.1,
+          "AC": 0.07,
+          "C": 0.05
+        },
+        "Recruitment": {
+          "A": 0.12,
+          "AC": 0.08,
+          "C": 0.05
+        },
+        "Operations": {
+          "Operations": 0.06
+        }
+      },
+      "recruitment_capacity": {
+        "monthly_max": 10,
+        "role_priorities": [
+          "Consultant",
+          "Sales",
+          "Recruitment",
+          "Operations"
+        ]
+      }
+    }
+  }
+}

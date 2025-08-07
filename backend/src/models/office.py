@@ -30,7 +30,7 @@ class EconomicParameters(BaseModel):
     tax_rate: float = Field(ge=0.0, le=1.0, description="Tax rate (0.0 to 1.0)")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "cost_of_living": 1.2,
                 "market_multiplier": 1.1,
@@ -38,6 +38,39 @@ class EconomicParameters(BaseModel):
             }
         }
 
+
+class CATMatrix(BaseModel):
+    """CAT (Career Advancement Timeline) progression matrix."""
+    A: Dict[str, float] = Field(default_factory=dict, description="Associate level progression rates")
+    AC: Dict[str, float] = Field(default_factory=dict, description="Advanced Consultant progression rates")
+    C: Dict[str, float] = Field(default_factory=dict, description="Consultant progression rates")
+    SrC: Dict[str, float] = Field(default_factory=dict, description="Senior Consultant progression rates")
+    AM: Dict[str, float] = Field(default_factory=dict, description="Account Manager progression rates")
+    M: Dict[str, float] = Field(default_factory=dict, description="Manager progression rates")
+    SrM: Dict[str, float] = Field(default_factory=dict, description="Senior Manager progression rates")
+    Pi: Dict[str, float] = Field(default_factory=dict, description="Principal progression rates")
+    P: Dict[str, float] = Field(default_factory=dict, description="Partner progression rates")
+    X: Dict[str, float] = Field(default_factory=dict, description="Special role progression rates")
+    OPE: Dict[str, float] = Field(default_factory=dict, description="Operations progression rates")
+
+class PopulationSnapshot(BaseModel):
+    """Population snapshot reference."""
+    id: str = Field(description="Snapshot identifier")
+    name: str = Field(description="Snapshot name")
+    snapshot_date: str = Field(description="Snapshot date in YYYY-MM-DD format")
+    description: Optional[str] = Field(None, description="Snapshot description")
+    total_fte: float = Field(description="Total FTE in snapshot")
+    created_at: str = Field(description="Creation timestamp")
+    is_default: bool = Field(default=False, description="Whether this is the default snapshot")
+
+class BusinessPlan(BaseModel):
+    """Business plan reference."""
+    id: str = Field(description="Business plan identifier")
+    name: str = Field(description="Business plan name")
+    plan_date: str = Field(description="Plan date in YYYY-MM-DD format")
+    description: Optional[str] = Field(None, description="Plan description")
+    created_at: str = Field(description="Creation timestamp")
+    is_active: bool = Field(default=False, description="Whether this plan is currently active")
 
 class OfficeConfig(BaseModel):
     """Office configuration model."""
@@ -52,6 +85,11 @@ class OfficeConfig(BaseModel):
     ))
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    cat_matrix: Optional[CATMatrix] = Field(None, description="Career advancement timeline matrix")
+    snapshots: List[PopulationSnapshot] = Field(default_factory=list, description="Associated population snapshots")
+    business_plans: List[BusinessPlan] = Field(default_factory=list, description="Associated business plans")
+    current_snapshot_id: Optional[str] = Field(None, description="ID of currently active snapshot")
+    active_business_plan_id: Optional[str] = Field(None, description="ID of currently active business plan")
 
     @validator('name')
     def validate_name(cls, v):
@@ -68,7 +106,7 @@ class OfficeConfig(BaseModel):
 
     class Config:
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Stockholm",
                 "journey": "mature",
@@ -96,7 +134,7 @@ class WorkforceEntry(BaseModel):
         return v.strip()
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "role": "Consultant",
                 "level": "SrC",
@@ -140,7 +178,7 @@ class WorkforceDistribution(BaseModel):
         return sum(entry.fte for entry in self.workforce if entry.level == level)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "office_id": "123e4567-e89b-12d3-a456-426614174000",
                 "start_date": "2024-01-01",
@@ -170,7 +208,7 @@ class MonthlyPlanEntry(BaseModel):
         return v.strip()
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "role": "Consultant",
                 "level": "SrC",
@@ -227,7 +265,7 @@ class MonthlyBusinessPlan(BaseModel):
         return sum(entry.salary for entry in self.entries)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "office_id": "123e4567-e89b-12d3-a456-426614174000",
                 "year": 2024,
@@ -253,7 +291,7 @@ class ProgressionPoint(BaseModel):
     rate: float = Field(ge=0, le=1, description="Progression rate for this month")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "month": 6,
                 "rate": 0.08
@@ -312,7 +350,7 @@ class ProgressionConfig(BaseModel):
 
     class Config:
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "office_id": "123e4567-e89b-12d3-a456-426614174000",
                 "level": "SrC",
@@ -363,7 +401,7 @@ class OfficeBusinessPlanSummary(BaseModel):
         }
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "office": {
                     "name": "Stockholm",

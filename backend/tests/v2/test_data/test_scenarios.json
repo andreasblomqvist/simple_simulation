@@ -1,0 +1,31 @@
+[
+  {
+    "scenario_id": "growth_10pct_london",
+    "name": "London 10% Growth - 2 Years",
+    "description": "Target 10% workforce growth in London over 24 months",
+    "time_range": {
+      "start_year": 2024,
+      "start_month": 1,
+      "end_year": 2025,
+      "end_month": 12
+    },
+    "office_ids": [
+      "london"
+    ],
+    "levers": {
+      "recruitment_multiplier": 1.2,
+      "churn_multiplier": 0.9,
+      "price_multiplier": 1.03,
+      "salary_multiplier": 1.02
+    },
+    "expected_outcomes": {
+      "workforce_growth_pct": 10.0,
+      "events_expected": [
+        "hired",
+        "churned",
+        "promoted"
+      ],
+      "minimum_events": 30
+    }
+  }
+]
