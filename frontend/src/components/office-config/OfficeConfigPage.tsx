@@ -8,6 +8,8 @@ import { useBusinessPlanStore } from '../../stores/businessPlanStore';
 import { ModernBusinessPlanTable } from '../business-plans/ModernBusinessPlanTable';
 import { OfficeOverviewTab } from './OfficeOverviewTab';
 import { WorkforceTab } from './WorkforceTab';
+import { SeniorityDistributionTab } from './SeniorityDistributionTab';
+import { SalaryLadderTab } from './SalaryLadderTab';
 import { ProgressionTab } from './ProgressionTab';
 import { OfficeSettingsTab } from './OfficeSettingsTab';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -17,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
-import { X, BarChart3, Calendar, Users, TrendingUp, Settings } from 'lucide-react';
+import { X, BarChart3, Calendar, Users, Clock, DollarSign, TrendingUp, Settings } from 'lucide-react';
 import './OfficeConfigPage.css';
 
 interface OfficeConfigPageProps {
@@ -25,12 +27,14 @@ interface OfficeConfigPageProps {
   onOfficeUpdate: (office: OfficeConfig) => void;
 }
 
-type TabKey = 'overview' | 'business-plans' | 'workforce' | 'progression' | 'settings';
+type TabKey = 'overview' | 'business-plans' | 'workforce' | 'seniority' | 'salary' | 'progression' | 'settings';
 
 const tabs = [
   { key: 'overview' as TabKey, label: 'Overview', icon: BarChart3 },
   { key: 'business-plans' as TabKey, label: 'Business Plans', icon: Calendar },
   { key: 'workforce' as TabKey, label: 'Workforce', icon: Users },
+  { key: 'seniority' as TabKey, label: 'Seniority', icon: Clock },
+  { key: 'salary' as TabKey, label: 'Salary', icon: DollarSign },
   { key: 'progression' as TabKey, label: 'Progression', icon: TrendingUp },
   { key: 'settings' as TabKey, label: 'Settings', icon: Settings },
 ];
@@ -92,6 +96,10 @@ export const OfficeConfigPage: React.FC<OfficeConfigPageProps> = ({
         return <BusinessPlansTab office={office} />;
       case 'workforce':
         return <WorkforceTab office={office} />;
+      case 'seniority':
+        return <SeniorityDistributionTab office={office} />;
+      case 'salary':
+        return <SalaryLadderTab office={office} />;
       case 'progression':
         return <ProgressionTab office={office} />;
       case 'settings':
@@ -149,7 +157,7 @@ export const OfficeConfigPage: React.FC<OfficeConfigPageProps> = ({
 
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as TabKey)} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
             {tabs.map(tab => {
               const IconComponent = tab.icon;
               return (

@@ -1,6 +1,6 @@
 /**
- * Workforce Management Tab Component
- * Handles initial workforce distribution setup and management
+ * Enhanced Workforce Management Tab Component
+ * Displays workforce KPIs and snapshot population with improved UI
  */
 import React, { useState, useEffect } from 'react';
 import { 
@@ -13,8 +13,12 @@ import {
   StandardLevel
 } from '../../types/office';
 import { useBusinessPlanStore } from '../../stores/businessPlanStore';
+import { KPICard } from './KPICard';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Badge } from '../ui/badge';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import './WorkforceTab.css';
+import { Users, UserCheck, Briefcase, Settings } from 'lucide-react';
 
 interface WorkforceTabProps {
   office: OfficeConfig;
@@ -164,195 +168,150 @@ export const WorkforceTab: React.FC<WorkforceTabProps> = ({ office }) => {
   const getLevelFte = (level: StandardLevel) => 
     workforceData.filter(entry => entry.level === level).reduce((sum, entry) => sum + entry.fte, 0);
 
+  // Get workforce breakdown for KPI cards
+  const getWorkforceKPIs = () => {
+    return {
+      consultants: getRoleFte('Consultant'),
+      sales: getRoleFte('Sales'),
+      recruiters: getRoleFte('Recruitment'),
+      operations: getRoleFte('Operations')
+    };
+  };
+
+  // Get snapshot population data for table
+  const getSnapshotData = () => {
+    const snapshot: Array<{ role: string; level: string; fte: number }> = [];
+    
+    STANDARD_ROLES.forEach(role => {
+      STANDARD_LEVELS.forEach(level => {
+        const entry = workforceData.find(e => e.role === role && e.level === level);
+        if (entry && entry.fte > 0) {
+          snapshot.push({
+            role: entry.role,
+            level: entry.level,
+            fte: entry.fte
+          });
+        }
+      });
+    });
+    
+    return snapshot.sort((a, b) => {
+      // Sort by role first, then by level
+      if (a.role !== b.role) {
+        return STANDARD_ROLES.indexOf(a.role as StandardRole) - STANDARD_ROLES.indexOf(b.role as StandardRole);
+      }
+      return STANDARD_LEVELS.indexOf(a.level as StandardLevel) - STANDARD_LEVELS.indexOf(b.level as StandardLevel);
+    });
+  };
+
+  const workforceKPIs = getWorkforceKPIs();
+  const snapshotData = getSnapshotData();
+
   if (loading) {
     return (
-      <div className="workforce-tab-loading">
-        <LoadingSpinner size="large" message="Loading workforce data..." />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <KPICard key={i} title="Loading..." value={0} loading={true} />
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading workforce data...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LoadingSpinner size="large" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="workforce-tab">
-      {/* Header */}
-      <div className="workforce-header">
-        <div className="header-info">
-          <h2>Workforce Distribution</h2>
-          <p>Configure the initial workforce distribution for {office.name}</p>
-        </div>
-        
-        <div className="header-actions">
-          {isDirty && (
-            <>
-              <button 
-                className="discard-button"
-                onClick={handleDiscard}
-                disabled={saving}
-              >
-                Discard Changes
-              </button>
-              <button 
-                className="save-button"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <LoadingSpinner size="small" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </button>
-            </>
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          title="Consultants"
+          value={Math.round(workforceKPIs.consultants)}
+          unit="FTE"
+          subtitle="Billable consultants"
+          variant={workforceKPIs.consultants > 0 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Sales"
+          value={Math.round(workforceKPIs.sales)}
+          unit="FTE"
+          subtitle="Business development"
+          variant={workforceKPIs.sales > 0 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Recruiters"
+          value={Math.round(workforceKPIs.recruiters)}
+          unit="FTE"
+          subtitle="Talent acquisition"
+          variant={workforceKPIs.recruiters > 0 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Operations"
+          value={Math.round(workforceKPIs.operations)}
+          unit="FTE"
+          subtitle="Support functions"
+          variant={workforceKPIs.operations > 0 ? 'success' : 'default'}
+        />
+      </div>
+
+      {/* Snapshot Population Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Snapshot Population
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {snapshotData.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead className="text-right">FTE</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {snapshotData.map((item, index) => (
+                  <TableRow key={`${item.role}-${item.level}`}>
+                    <TableCell className="font-medium">{item.role}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.level}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {Math.round(item.fte)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No workforce data available</p>
+              <p className="text-sm mt-1">Configure workforce distribution to see population snapshot</p>
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Error Display */}
-      {error && (
-        <div className="error-banner">
-          <span className="error-text">{error}</span>
-          <button onClick={() => setError(null)} className="error-dismiss">✕</button>
-        </div>
-      )}
-
-      {/* Summary Stats */}
-      <div className="workforce-summary">
-        <div className="summary-card total">
-          <span className="summary-label">Total Workforce</span>
-          <span className="summary-value">{Math.round(getTotalFte())}</span>
-          <span className="summary-unit">FTE</span>
-        </div>
-        
-        {STANDARD_ROLES.map(role => (
-          <div key={role} className="summary-card role">
-            <span className="summary-label">{role}</span>
-            <span className="summary-value">{Math.round(getRoleFte(role))}</span>
-            <span className="summary-unit">FTE</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Fill Tools */}
-      <div className="quick-fill-section">
-        <h3>Quick Fill Tools</h3>
-        <div className="quick-fill-controls">
-          {STANDARD_ROLES.map(role => (
-            <div key={role} className="quick-fill-role">
-              <span className="role-label">{role}:</span>
-              <input
-                type="number"
-                placeholder="Total FTE"
-                min="0"
-                max="999"
-                className="quick-fill-input"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const value = parseInt((e.target as HTMLInputElement).value) || 0;
-                    handleQuickFill(role, value);
-                    (e.target as HTMLInputElement).value = '';
-                  }
-                }}
-              />
-              <button
-                className="quick-fill-button"
-                onClick={() => {
-                  const input = document.querySelector(
-                    `.quick-fill-role:nth-child(${STANDARD_ROLES.indexOf(role) + 1}) .quick-fill-input`
-                  ) as HTMLInputElement;
-                  const value = parseInt(input.value) || 0;
-                  handleQuickFill(role, value);
-                  input.value = '';
-                }}
-              >
-                Distribute
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Workforce Grid */}
-      <div className="workforce-grid">
-        <div className="grid-header">
-          <div className="header-cell role-header">Role</div>
-          {STANDARD_LEVELS.map(level => (
-            <div key={level} className="header-cell level-header">
-              <span className="level-name">{level}</span>
-              <span className="level-total">{Math.round(getLevelFte(level))}</span>
-            </div>
-          ))}
-          <div className="header-cell total-header">Total</div>
-        </div>
-
-        {STANDARD_ROLES.map(role => (
-          <div key={role} className="grid-row">
-            <div className="role-cell">
-              <span className="role-name">{role}</span>
-              <span className="role-total">{Math.round(getRoleFte(role))} FTE</span>
-            </div>
-            
-            {STANDARD_LEVELS.map(level => {
-              const entry = workforceData.find(e => e.role === role && e.level === level);
-              const fte = entry?.fte || 0;
-              const notes = entry?.notes || '';
-              
-              return (
-                <div key={`${role}-${level}`} className="workforce-cell">
-                  <input
-                    type="number"
-                    value={fte}
-                    onChange={(e) => handleFteChange(role, level, parseInt(e.target.value) || 0)}
-                    min="0"
-                    max="999"
-                    className="fte-input"
-                    placeholder="0"
-                  />
-                  <textarea
-                    value={notes}
-                    onChange={(e) => handleNotesChange(role, level, e.target.value)}
-                    placeholder="Notes (optional)"
-                    className="notes-input"
-                    rows={2}
-                  />
-                </div>
-              );
-            })}
-            
-            <div className="total-cell">
-              <span className="total-value">{Math.round(getRoleFte(role))}</span>
-            </div>
-          </div>
-        ))}
-
-        {/* Level Totals Row */}
-        <div className="grid-row totals-row">
-          <div className="role-cell">
-            <span className="role-name">Total</span>
-          </div>
-          {STANDARD_LEVELS.map(level => (
-            <div key={level} className="total-cell">
-              <span className="total-value">{Math.round(getLevelFte(level))}</span>
-            </div>
-          ))}
-          <div className="total-cell grand-total">
-            <span className="total-value">{Math.round(getTotalFte())}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Help Text */}
-      <div className="workforce-help">
-        <h4>Tips:</h4>
-        <ul>
-          <li>Use the Quick Fill tools to distribute FTE evenly across levels for each role</li>
-          <li>Enter numbers directly in the grid for precise control</li>
-          <li>Add notes to document specific requirements or assumptions</li>
-          <li>Changes are saved automatically when you click "Save Changes"</li>
-        </ul>
-      </div>
+      {/* Total Summary Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5" />
+            Total Workforce: {Math.round(getTotalFte())} FTE
+          </CardTitle>
+        </CardHeader>
+      </Card>
     </div>
   );
 };

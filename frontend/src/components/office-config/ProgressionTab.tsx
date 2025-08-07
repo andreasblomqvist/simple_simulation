@@ -1,6 +1,6 @@
 /**
- * CAT Progression Configuration Tab Component
- * Handles progression curve configuration for all levels
+ * Enhanced CAT Progression Configuration Tab Component
+ * Handles progression curve configuration with KPI cards
  */
 import React, { useState, useEffect } from 'react';
 import { 
@@ -11,7 +11,10 @@ import {
   STANDARD_LEVELS,
   StandardLevel
 } from '../../types/office';
+import { KPICard } from './KPICard';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { TrendingUp, Settings, BarChart3, Target } from 'lucide-react';
 import './ProgressionTab.css';
 
 interface ProgressionTabProps {
@@ -206,27 +209,76 @@ export const ProgressionTab: React.FC<ProgressionTabProps> = ({ office }) => {
     );
   }
 
+  // Calculate progression KPIs
+  const getProgressionKPIs = () => {
+    const totalConfigs = progressionConfigs.length;
+    const customConfigs = progressionConfigs.filter(c => c.curve_type === ProgressionCurve.CUSTOM).length;
+    const averageRate = progressionConfigs.reduce((sum, config) => sum + config.monthly_rate, 0) / totalConfigs;
+    const activeConfigs = progressionConfigs.filter(c => c.monthly_rate > 0).length;
+    
+    return {
+      totalConfigs,
+      customConfigs,
+      averageRate: Math.round(averageRate * 100) / 100,
+      activeConfigs
+    };
+  };
+
+  const progressionKPIs = getProgressionKPIs();
+
   return (
-    <div className="progression-tab">
-      {/* Header */}
-      <div className="progression-header">
-        <div className="header-info">
-          <h2>CAT Progression Configuration</h2>
-          <p>Configure progression curves for career advancement tracks in {office.name}</p>
-        </div>
-        
-        <div className="header-actions">
+    <div className="space-y-6">
+      {/* Progression KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          title="Total Levels"
+          value={progressionKPIs.totalConfigs}
+          subtitle="Career progression levels"
+          variant="default"
+        />
+        <KPICard
+          title="Custom Curves"
+          value={progressionKPIs.customConfigs}
+          subtitle="Custom progression curves"
+          variant={progressionKPIs.customConfigs > 0 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Average Rate"
+          value={progressionKPIs.averageRate}
+          unit="%"
+          subtitle="Monthly progression rate"
+          trend={progressionKPIs.averageRate > 15 ? 'up' : 'neutral'}
+          variant={progressionKPIs.averageRate > 15 ? 'success' : 'default'}
+        />
+        <KPICard
+          title="Active Tracks"
+          value={progressionKPIs.activeConfigs}
+          subtitle="Configured progression paths"
+          variant={progressionKPIs.activeConfigs === progressionKPIs.totalConfigs ? 'success' : 'warning'}
+        />
+      </div>
+
+      {/* Main Progression Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            CAT Progression Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Header Actions */}
           {isDirty && (
-            <>
+            <div className="flex gap-2 mb-4">
               <button 
-                className="discard-button"
+                className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
                 onClick={handleDiscard}
                 disabled={saving}
               >
                 Discard Changes
               </button>
               <button 
-                className="save-button"
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -239,10 +291,8 @@ export const ProgressionTab: React.FC<ProgressionTabProps> = ({ office }) => {
                   'Save Changes'
                 )}
               </button>
-            </>
+            </div>
           )}
-        </div>
-      </div>
 
       {/* Error Display */}
       {error && (
@@ -484,6 +534,8 @@ export const ProgressionTab: React.FC<ProgressionTabProps> = ({ office }) => {
           <li><strong>Apply to All:</strong> Use this to quickly set the same curve pattern across all levels</li>
         </ul>
       </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
