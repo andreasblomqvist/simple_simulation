@@ -791,10 +791,24 @@ class SimulationEngineV2(SimulationEngineInterface):
                 office_state.name, year, month
             )
             
+            # DEBUG: Log recruitment targets from business plan
+            logger.info(f"[RECRUITMENT DEBUG] {office_state.name} {year}-{month:02d} business plan targets:")
+            for role, levels in monthly_targets.recruitment_targets.items():
+                role_total = sum(levels.values())
+                if role_total > 0:
+                    logger.info(f"  {role}: {role_total} total ({levels})")
+            
             # Apply scenario levers
             adjusted_targets = self.business_processor.apply_scenario_levers(
                 monthly_targets, levers
             )
+            
+            # DEBUG: Log final adjusted targets
+            logger.info(f"[RECRUITMENT DEBUG] {office_state.name} {year}-{month:02d} FINAL adjusted targets:")
+            for role, levels in adjusted_targets.recruitment_targets.items():
+                role_total = sum(levels.values())
+                if role_total > 0:
+                    logger.info(f"  {role}: {role_total} total ({levels})")
         else:
             # No business plan or processor available - cannot proceed
             logger.error(f"No business plan processor or business plan data available for {office_state.name} {year}-{month:02d}")
@@ -834,24 +848,14 @@ class SimulationEngineV2(SimulationEngineInterface):
                             {level: target_count}, role, level, office_state.name, current_date
                         )
                         
-                        # Add new people to office workforce and create hire events
+                        # Add new people to office workforce (hire events already created by workforce manager)
                         for person in new_people:
                             office_state.add_person(person)
                             
-                            # Create hire event for each new person
-                            hire_event = PersonEvent(
-                                date=current_date,
-                                event_type=EventType.HIRED,
-                                details={
-                                    "person_id": person.id,
-                                    "role": person.current_role,
-                                    "level": person.current_level,
-                                    "office": person.current_office,
-                                    "hire_date": person.hire_date.strftime("%Y-%m-%d")
-                                },
-                                simulation_month=(year - 2025) * 12 + month
-                            )
-                            month_events.append(hire_event)
+                            # Collect hire events from person (already created by workforce manager)
+                            for event in person.events:
+                                if event.event_type == EventType.HIRED and event.date == current_date:
+                                    month_events.append(event)
         
         return month_events
     

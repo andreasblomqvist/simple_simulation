@@ -444,7 +444,8 @@ class BusinessPlanStorage:
                     
                     global_data["recruitment"][role]["levels"][level]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
                     global_data["recruitment"][role]["levels"][level]["churn"]["values"][month_str] = entry.get("churn", 0)
-                    global_data["churn"][role]["levels"][level]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
+                    # FIXED: Use actual churn data, not duplicated recruitment data
+                    global_data["churn"][role]["levels"][level]["recruitment"]["values"][month_str] = 0  # No recruitment in churn section
                     global_data["churn"][role]["levels"][level]["churn"]["values"][month_str] = entry.get("churn", 0)
                 else:
                     # Flat role (e.g., Operations) - still needs levels wrapper for consistency
@@ -460,7 +461,8 @@ class BusinessPlanStorage:
                     
                     global_data["recruitment"][role]["levels"]["default"]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
                     global_data["recruitment"][role]["levels"]["default"]["churn"]["values"][month_str] = entry.get("churn", 0)
-                    global_data["churn"][role]["levels"]["default"]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
+                    # FIXED: Use actual churn data, not duplicated recruitment data
+                    global_data["churn"][role]["levels"]["default"]["recruitment"]["values"][month_str] = 0  # No recruitment in churn section
                     global_data["churn"][role]["levels"]["default"]["churn"]["values"][month_str] = entry.get("churn", 0)
         
         return {
@@ -540,7 +542,8 @@ class BusinessPlanStorage:
                     
                     global_data["recruitment"][role]["levels"][level]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
                     global_data["recruitment"][role]["levels"][level]["churn"]["values"][month_str] = entry.get("churn", 0)
-                    global_data["churn"][role]["levels"][level]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
+                    # FIXED: Use actual churn data, not duplicated recruitment data
+                    global_data["churn"][role]["levels"][level]["recruitment"]["values"][month_str] = 0  # No recruitment in churn section
                     global_data["churn"][role]["levels"][level]["churn"]["values"][month_str] = entry.get("churn", 0)
                 else:
                     # Flat role (e.g., Operations) - still needs levels wrapper for consistency
@@ -556,7 +559,8 @@ class BusinessPlanStorage:
                     
                     global_data["recruitment"][role]["levels"]["default"]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
                     global_data["recruitment"][role]["levels"]["default"]["churn"]["values"][month_str] = entry.get("churn", 0)
-                    global_data["churn"][role]["levels"]["default"]["recruitment"]["values"][month_str] = entry.get("recruitment", 0)
+                    # FIXED: Use actual churn data, not duplicated recruitment data
+                    global_data["churn"][role]["levels"]["default"]["recruitment"]["values"][month_str] = 0  # No recruitment in churn section
                     global_data["churn"][role]["levels"]["default"]["churn"]["values"][month_str] = entry.get("churn", 0)
         
         return {

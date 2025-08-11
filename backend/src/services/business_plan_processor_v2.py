@@ -742,9 +742,9 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
                 recruitment_targets[role] = {}
                 churn_targets[role] = {}
             
-            # Extract targets - keep as float to preserve fractional recruitment rates
-            recruitment = float(entry.get('recruitment', 0))
-            churn = float(entry.get('churn', 0))
+            # Extract targets as integers - people are whole numbers
+            recruitment = int(entry.get('recruitment', 0))
+            churn = int(entry.get('churn', 0))
             salary = float(entry.get('salary', 0))
             price = float(entry.get('price', 0))
             

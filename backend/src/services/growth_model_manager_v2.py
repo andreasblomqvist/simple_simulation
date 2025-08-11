@@ -437,32 +437,21 @@ class GrowthModelManagerV2(GrowthModelManagerInterface):
     
     def _create_default_monthly_plans(self, office_data: Dict[str, Any], 
                                      time_range: TimeRange) -> List[MonthlyPlan]:
-        """Create default monthly plans from office configuration"""
+        """DISABLED: No longer create fallback business plans - requires explicit business plan"""
+        logger.warning(f"No business plan found for office - creating empty monthly plans. Use explicit business plans for proper simulation.")
+        
         monthly_plans = []
         
-        # Extract office size and journey for scaling
-        total_fte = office_data.get('total_fte', 100)
-        journey = office_data.get('journey', 'Emerging')
-        
-        # Scale targets based on office size
-        base_recruitment = max(1, total_fte // 20)  # ~5% monthly recruitment
-        base_revenue = total_fte * 8000  # ~$8k revenue per FTE per month
-        base_costs = base_revenue * 0.6   # 60% cost ratio
-        
+        # Create empty monthly plans with NO recruitment/churn targets
+        # This prevents fallback data from interfering with proper business plan recruitment
         for year, month in time_range.get_month_list():
             monthly_plan = MonthlyPlan(
                 year=year,
                 month=month,
-                recruitment={
-                    "Consultant": {"A": float(base_recruitment * 0.6), "AC": float(base_recruitment * 0.3), "C": float(base_recruitment * 0.1)},
-                    "Sales": {"A": float(base_recruitment * 0.2), "AC": float(base_recruitment * 0.1)}
-                },
-                churn={
-                    "Consultant": {"A": float(base_recruitment * 0.3), "AC": float(base_recruitment * 0.15), "C": float(base_recruitment * 0.05)},
-                    "Sales": {"A": float(base_recruitment * 0.1), "AC": float(base_recruitment * 0.05)}
-                },
-                revenue=base_revenue,
-                costs=base_costs,
+                recruitment={},  # EMPTY - no fallback recruitment
+                churn={},        # EMPTY - no fallback churn
+                revenue=0.0,     # Empty revenue
+                costs=0.0,       # Empty costs
                 price_per_role={
                     "Consultant": {"A": 5000.0, "AC": 7000.0, "C": 10000.0},
                     "Sales": {"A": 4000.0, "AC": 6000.0}
