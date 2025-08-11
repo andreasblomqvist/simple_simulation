@@ -1,0 +1,30 @@
+{
+  "id": "5ec0ea4b-88d8-474f-9d51-8c704a2ada3d",
+  "name": "Final Debug",
+  "description": "Final debug test",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 2
+  },
+  "office_scope": [
+    "Oslo"
+  ],
+  "levers": {
+    "recruitment": {},
+    "churn": {},
+    "progression": {}
+  },
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": null,
+  "business_plan_id": "20ba0f6d-a238-4ab5-a7aa-488efa393797",
+  "created_at": "2025-08-10 22:11:16.730961",
+  "updated_at": "2025-08-10T22:11:16.792869"
+}

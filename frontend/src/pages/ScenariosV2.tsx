@@ -87,10 +87,21 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
 
   const handleDelete = async (scenarioId: ScenarioId) => {
     try {
+      console.log('Deleting scenario:', scenarioId)
       await scenarioApi.deleteScenario(scenarioId)
+      console.log('Delete successful, reloading scenarios...')
       showMessage.success('Scenario deleted successfully')
-      loadScenarios()
+      
+      // If we're currently viewing this scenario, navigate back to scenarios list
+      const currentPath = location.pathname
+      if (currentPath.includes(scenarioId)) {
+        navigate('/scenarios')
+      }
+      
+      await loadScenarios()
+      console.log('Scenarios reloaded successfully')
     } catch (error) {
+      console.error('Delete/reload error:', error)
       showMessage.error('Failed to delete scenario: ' + (error as Error).message)
     }
   }
@@ -182,8 +193,26 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
       accessorKey: "baseline_snapshot",
       header: "Baseline",
       cell: ({ row }) => {
-        // Check if scenario has snapshot baseline information
         const scenario = row.original;
+        
+        // Check for business plan ID first (V2 architecture)
+        if (scenario.business_plan_id) {
+          return (
+            <div className="flex items-center space-x-2">
+              <Database className="h-4 w-4 text-green-500" />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-green-700">
+                  Business Plan
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {scenario.business_plan_id.slice(0, 8)}...
+                </span>
+              </div>
+            </div>
+          );
+        }
+        
+        // Check if scenario has snapshot baseline information (legacy)
         const hasSnapshot = scenario.baseline_input && 
                            typeof scenario.baseline_input === 'object' &&
                            'snapshot_id' in scenario.baseline_input;
@@ -199,9 +228,9 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
               </>
             ) : (
               <>
-                <Database className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Current Data
+                <Database className="h-4 w-4 text-amber-500" />
+                <span className="text-xs text-amber-700">
+                  No Business Plan
                 </span>
               </>
             )}
@@ -256,7 +285,7 @@ export const ScenariosV2: React.FC<ScenariosV2Props> = () => {
                 className="text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                Delete Scenario
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

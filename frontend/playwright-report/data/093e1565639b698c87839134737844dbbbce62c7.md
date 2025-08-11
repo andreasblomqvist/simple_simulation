@@ -1,0 +1,89 @@
+# Page snapshot
+
+```yaml
+- text: SimpleSim Workforce Planning
+- button
+- navigation:
+  - link "Dashboard Overview and key metrics":
+    - /url: /
+  - link "Scenarios Scenario management and comparison":
+    - /url: /scenarios
+  - link "Business Planning Workforce and financial planning":
+    - /url: /business-planning
+  - link "Offices":
+    - /url: /offices
+  - link "Simulation Lab Advanced simulation experiments":
+    - /url: /simulation-lab
+  - link "Settings Application settings and configuration":
+    - /url: /settings
+- text: Version 2.0.0 © 2024 SimpleSim
+- banner:
+  - textbox "Search scenarios, offices, plans..."
+  - button
+  - button "Admin User"
+- main:
+  - button "Back to Offices"
+  - heading "Munich" [level=1]
+  - paragraph: Office configuration and management
+  - heading "Total FTE" [level=3]
+  - text: "332"
+  - paragraph: Full-time employees
+  - heading "Journey" [level=3]
+  - text: Established
+  - paragraph: Office maturity stage
+  - heading "Cost of Living" [level=3]
+  - text: 110.0%
+  - paragraph: Relative to baseline
+  - heading "Roles" [level=3]
+  - text: "1"
+  - paragraph: Configured roles
+  - heading "Munich" [level=3]
+  - text: established Europe/Berlin
+  - alert:
+    - text: "Failed to load office summary: Not Found"
+    - button
+  - tablist:
+    - tab "Overview" [selected]
+    - tab "Business Plans"
+    - tab "Workforce"
+    - tab "Progression"
+    - tab "Settings"
+  - tabpanel "Overview":
+    - heading "Munich" [level=3]
+    - text: "Established Europe/Berlin 0 FTE Year:"
+    - combobox: "2025"
+    - heading "Workforce" [level=3]
+    - text: "0"
+    - paragraph: Current FTE
+    - text: "Net Growth (2025): 0 Turnover Rate: 0.0%"
+    - heading "Revenue (2025)" [level=3]
+    - text: $0
+    - paragraph: Annual Revenue
+    - text: "Monthly Average: $0 Gross Margin: 0.0%"
+    - heading "Costs (2025)" [level=3]
+    - text: $0
+    - paragraph: Annual Salary Cost
+    - text: "Monthly Average: $0 Cost per FTE: $0"
+    - heading "Hiring (2025)" [level=3]
+    - text: "0"
+    - paragraph: Total Recruitment
+    - text: "Monthly Average: 0 Churn: 0"
+    - 'heading "Office Journey: Established" [level=3]'
+    - heading "Maturity Indicators" [level=4]
+    - list:
+      - listitem: Steady growth
+      - listitem: Multiple roles
+      - listitem: Established processes
+      - listitem: Market presence
+    - heading "Expected Performance" [level=4]
+    - text: "Size Range: 25 - 75 FTE Monthly Recruitment Rate: 0.08% Monthly Churn Rate: 0.05% Office Size 0 FTE 25 75"
+    - heading "Economic Configuration" [level=3]
+    - text: Cost of Living Multiplier 1.10x Market Rate Multiplier 1.20x Tax Rate 28.0%
+    - heading "Quick Actions" [level=3]
+    - button "View Business Plans"
+    - button "Edit Workforce"
+    - button "Configure Progression"
+    - button "Office Settings"
+- region "Notifications (F8)":
+  - list
+```

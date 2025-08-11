@@ -1,88 +1,127 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# SimpleSim Server Restart Script
-# Automatically kills old instances and restarts servers cleanly
+# SimpleSim Full Restart Script
+# - Stops any running servers
+# - Ensures backend venv and dependencies
+# - Starts FastAPI backend (port 8000) and waits for health
+# - Ensures frontend deps
+# - Starts Vite dev server (port 3000) and waits for readiness
 
-echo "🔄 SimpleSim Server Restart Script"
-echo "=================================="
+set -Eeuo pipefail
 
-# Function to kill processes by port
-kill_by_port() {
-    local port=$1
-    local pids=$(lsof -ti:$port 2>/dev/null)
-    if [ ! -z "$pids" ]; then
-        echo "📍 Killing processes on port $port: $pids"
-        echo $pids | xargs kill -9 2>/dev/null || true
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKEND_PORT="8000"
+FRONTEND_PORT="3000"
+BACKEND_LOG="$PROJECT_ROOT/backend/logs/dev-backend.log"
+FRONTEND_LOG="$PROJECT_ROOT/frontend/dev-frontend.log"
+
+info() { echo -e "[INFO] $*"; }
+warn() { echo -e "[WARN] $*"; }
+error() { echo -e "[ERROR] $*"; }
+
+wait_for_http() {
+  local url="$1"; local name="$2"; local attempts="${3:-60}"; local delay="${4:-1}"
+  for ((i=1; i<=attempts; i++)); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      info "$name is ready at $url"
+      return 0
     fi
+    sleep "$delay"
+  done
+  return 1
 }
 
-# Function to kill processes by name
-kill_by_name() {
-    local name=$1
-    echo "📍 Killing all $name processes..."
-    pkill -f $name 2>/dev/null || true
+wait_for_port() {
+  local port="$1"; local name="$2"; local attempts="${3:-60}"; local delay="${4:-1}"
+  for ((i=1; i<=attempts; i++)); do
+    if (echo > "/dev/tcp/127.0.0.1/$port") >/dev/null 2>&1; then
+      info "$name port $port is accepting connections"
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
 }
 
-# Step 1: Kill existing server processes
-echo "🚫 Killing existing server processes..."
-kill_by_name "uvicorn"
-kill_by_name "vite"
-kill_by_name "npm.*dev"
+cd "$PROJECT_ROOT"
 
-# Kill by specific ports
-for port in 3000 3001 3002 3003 8000 8001; do
-    kill_by_port $port
-done
-
-# Step 2: Clear Python cache
-echo "🧹 Clearing Python cache..."
-find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-find . -name "*.pyc" -delete 2>/dev/null || true
-
-# Step 3: Wait for processes to fully terminate
-echo "⏳ Waiting for processes to terminate..."
-sleep 3
-
-# Step 4: Start backend server
-echo "🚀 Starting backend server..."
-cd "$(dirname "$0")/.." # Go to project root
-PYTHONPATH=. python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 &
-BACKEND_PID=$!
-
-# Wait a moment for backend to start
-sleep 2
-
-# Step 5: Start frontend server
-echo "🌐 Starting frontend server..."
-cd frontend
-npm run dev &
-FRONTEND_PID=$!
-
-# Step 6: Wait and verify servers are running
-echo "⏳ Waiting for servers to start..."
-sleep 5
-
-# Check if backend is responding
-if curl -s http://localhost:8000/health > /dev/null; then
-    echo "✅ Backend server is running on http://localhost:8000"
+# 1) Stop any existing servers
+if [[ -x "$PROJECT_ROOT/scripts/kill-servers.sh" ]]; then
+  info "Stopping existing servers via scripts/kill-servers.sh"
+  "$PROJECT_ROOT/scripts/kill-servers.sh" || true
 else
-    echo "❌ Backend server failed to start"
+  warn "scripts/kill-servers.sh not found or not executable; attempting lightweight stop"
+  pkill -f uvicorn 2>/dev/null || true
+  pkill -f vite 2>/dev/null || true
+  pkill -f "npm.*dev" 2>/dev/null || true
 fi
 
-# Check if frontend is running (try common ports)
-for port in 3000 3001 3002 3003; do
-    if curl -s http://localhost:$port > /dev/null; then
-        echo "✅ Frontend server is running on http://localhost:$port"
-        break
-    fi
-done
+# 2) Backend: ensure venv and deps
+info "Ensuring Python virtual environment (.venv) exists"
+if [[ ! -d ".venv" ]]; then
+  python3 -m venv .venv
+fi
+# shellcheck disable=SC1091
+source .venv/bin/activate
 
-echo ""
-echo "🎉 Server restart complete!"
-echo "📝 Backend PID: $BACKEND_PID"
-echo "📝 Frontend PID: $FRONTEND_PID"
-echo ""
-echo "💡 To stop servers manually:"
-echo "   Backend: kill $BACKEND_PID"
-echo "   Frontend: kill $FRONTEND_PID"
-echo "   Or run: pkill -f uvicorn && pkill -f vite" 
+if [[ -f "$PROJECT_ROOT/backend/requirements.txt" ]]; then
+  info "Installing backend dependencies (pip)"
+  pip install -r "$PROJECT_ROOT/backend/requirements.txt"
+else
+  warn "backend/requirements.txt not found; skipping pip install"
+fi
+
+# 3) Backend: start FastAPI
+info "Starting FastAPI backend on port $BACKEND_PORT"
+mkdir -p "$PROJECT_ROOT/backend/logs"
+# Note: run from project root so module path backend.main:app resolves
+nohup uvicorn backend.main:app --reload --port "$BACKEND_PORT" >"$BACKEND_LOG" 2>&1 &
+BACKEND_PID=$!
+info "Backend PID: $BACKEND_PID (logs: $BACKEND_LOG)"
+
+# 4) Wait for backend health
+if wait_for_http "http://127.0.0.1:$BACKEND_PORT/health" "Backend health" 90 1; then
+  info "Backend is healthy"
+else
+  error "Backend did not become healthy. Check logs: $BACKEND_LOG"
+  exit 1
+fi
+
+# 5) Frontend: ensure deps
+info "Ensuring frontend dependencies (npm install)"
+pushd "$PROJECT_ROOT/frontend" >/dev/null
+if [[ ! -d node_modules ]]; then
+  npm install
+else
+  # Optional: quick check for missing lockfile/node_modules mismatch
+  if [[ ! -f package-lock.json ]]; then
+    warn "package-lock.json missing; running npm install"
+    npm install
+  fi
+fi
+popd >/dev/null
+
+# 6) Frontend: start Vite dev server
+info "Starting Vite dev server on port $FRONTEND_PORT"
+nohup bash -lc "cd '$PROJECT_ROOT/frontend' && npm run dev -- --port $FRONTEND_PORT" >"$FRONTEND_LOG" 2>&1 &
+FRONTEND_PID=$!
+info "Frontend PID: $FRONTEND_PID (logs: $FRONTEND_LOG)"
+
+# 7) Wait for frontend readiness (port and HTTP)
+if wait_for_port "$FRONTEND_PORT" "Frontend (Vite)" 60 1; then
+  # Give Vite a moment to compile initial build
+  sleep 2
+  wait_for_http "http://127.0.0.1:$FRONTEND_PORT" "Frontend HTTP" 60 1 || true
+else
+  warn "Frontend port $FRONTEND_PORT not responding yet; check logs: $FRONTEND_LOG"
+fi
+
+info "All set!"
+echo
+echo "Backend:  http://localhost:$BACKEND_PORT (health: /health)"
+echo "Frontend: http://localhost:$FRONTEND_PORT"
+echo
+echo "Tail logs:"
+echo "  tail -f '$BACKEND_LOG'"
+echo "  tail -f '$FRONTEND_LOG'"
+echo

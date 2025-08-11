@@ -5539,6 +5539,7 @@
     "name": "Oslo",
     "total_fte": 96,
     "journey": "Emerging Office",
+    "current_snapshot_id": "oslo_current_workforce",
     "roles": {
       "Consultant": {
         "A": {

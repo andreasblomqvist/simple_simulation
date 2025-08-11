@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- text: SimpleSim Workforce Planning
+- button
+- navigation:
+  - link "Dashboard Overview and key metrics":
+    - /url: /
+  - link "Scenarios Scenario management and comparison":
+    - /url: /scenarios
+  - link "Business Planning Workforce and financial planning":
+    - /url: /business-planning
+  - link "Offices":
+    - /url: /offices
+  - link "Simulation Lab Advanced simulation experiments":
+    - /url: /simulation-lab
+  - link "Settings Application settings and configuration":
+    - /url: /settings
+- text: Version 2.0.0 © 2024 SimpleSim
+- banner:
+  - textbox "Search scenarios, offices, plans..."
+  - button
+  - button "Admin User"
+- main:
+  - button "Back to Offices"
+  - heading "Stockholm" [level=1]
+  - paragraph: Office configuration and management
+  - heading "Total FTE" [level=3]
+  - text: "679"
+  - paragraph: Full-time employees
+  - heading "Journey" [level=3]
+  - text: Mature
+  - paragraph: Office maturity stage
+  - heading "Cost of Living" [level=3]
+  - text: 100.0%
+  - paragraph: Relative to baseline
+  - heading "Roles" [level=3]
+  - text: "1"
+  - paragraph: Configured roles
+  - text: ⚠️
+  - heading "Something went wrong" [level=2]
+  - paragraph: An unexpected error occurred. Please try refreshing the page or contact support if the problem persists.
+  - group: Error Details (Development)
+  - button "Try Again"
+  - button "Refresh Page"
+- region "Notifications (F8)":
+  - list
+```

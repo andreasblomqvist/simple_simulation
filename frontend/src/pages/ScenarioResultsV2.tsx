@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { 
   ArrowLeft,
@@ -35,9 +35,10 @@ export const ScenarioResultsV2: React.FC<ScenarioResultsV2Props> = () => {
   const [scenario, setScenario] = useState<any>(null)
   const [results, setResults] = useState<SimulationResults | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const redirectedRef = useRef(false)
 
   useEffect(() => {
-    if (scenarioId) {
+    if (scenarioId && !redirectedRef.current) {
       loadScenarioAndResults(scenarioId)
     }
   }, [scenarioId])
@@ -60,8 +61,22 @@ export const ScenarioResultsV2: React.FC<ScenarioResultsV2Props> = () => {
         setResults(null)
       }
     } catch (error) {
-      setError('Failed to load scenario: ' + (error as Error).message)
-      showMessage.error('Failed to load scenario: ' + (error as Error).message)
+      const errorMessage = 'Failed to load scenario: ' + (error as Error).message
+      console.log('Error loading scenario:', errorMessage)
+      
+      // If scenario not found (404), redirect to scenarios list
+      if (errorMessage.includes('Scenario not found') || errorMessage.includes('404')) {
+        if (!redirectedRef.current) {
+          console.log('Scenario not found, redirecting to scenarios list')
+          redirectedRef.current = true
+          showMessage.error('Scenario not found, redirecting to scenarios list')
+          navigate('/scenarios')
+        }
+        return
+      }
+      
+      setError(errorMessage)
+      showMessage.error(errorMessage)
     } finally {
       setLoading(false)
     }

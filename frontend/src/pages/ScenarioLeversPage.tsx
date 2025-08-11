@@ -19,9 +19,10 @@ export const ScenarioLeversPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const redirectedRef = useRef(false)
 
   useEffect(() => {
-    if (scenarioId) {
+    if (scenarioId && !redirectedRef.current) {
       loadScenario()
     }
   }, [scenarioId])
@@ -37,7 +38,21 @@ export const ScenarioLeversPage: React.FC = () => {
       console.log('DEBUG: Scenario levers:', scenarioData.levers)
       setScenario(scenarioData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scenario')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load scenario'
+      console.log('Error loading scenario:', errorMessage)
+      
+      // If scenario not found (404), redirect to scenarios list
+      if (errorMessage.includes('Scenario not found') || errorMessage.includes('404')) {
+        if (!redirectedRef.current) {
+          console.log('Scenario not found, redirecting to scenarios list')
+          redirectedRef.current = true
+          showMessage.error('Scenario not found, redirecting to scenarios list')
+          navigate('/scenarios')
+        }
+        return
+      }
+      
+      setError(errorMessage)
       showMessage.error('Failed to load scenario')
     } finally {
       setLoading(false)

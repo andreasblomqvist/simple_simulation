@@ -249,9 +249,33 @@ class BusinessPlanStorage:
                         aggregated_entries[key] = {
                             "role": role,
                             "level": level,
+                            # Workforce fields
                             "recruitment": 0,
                             "churn": 0,
+                            # Net Sales fields
+                            "consultant_time": 0,
+                            "planned_absence": 0,
+                            "unplanned_absence": 0,
+                            "vacation_withdrawal": 0,
+                            "vacation": 0,
+                            "invoiced_time": 0,
+                            "average_price": 0,
+                            # Operating Costs - Expenses
+                            "client_loss": 0,
+                            "education": 0,
+                            "external_representation": 0,
+                            "external_services": 0,
+                            "internal_representation": 0,
+                            "it_related_staff": 0,
+                            "office_related": 0,
+                            "office_rent": 0,
+                            # Operating Costs - Salaries & Related
                             "salary": 0,
+                            "variable_salary": 0,
+                            "social_security": 0,
+                            "other_expenses": 0,
+                            "pension": 0,
+                            # Legacy fields for compatibility
                             "price": 0,
                             "utr": 0,
                             "office_count": 0
@@ -259,21 +283,59 @@ class BusinessPlanStorage:
                     
                     # Sum up numeric values
                     agg_entry = aggregated_entries[key]
+                    # Workforce fields
                     agg_entry["recruitment"] += entry.get("recruitment", 0)
                     agg_entry["churn"] += entry.get("churn", 0)
+                    # Net Sales fields
+                    agg_entry["consultant_time"] += entry.get("consultant_time", 0)
+                    agg_entry["planned_absence"] += entry.get("planned_absence", 0)
+                    agg_entry["unplanned_absence"] += entry.get("unplanned_absence", 0)
+                    agg_entry["vacation_withdrawal"] += entry.get("vacation_withdrawal", 0)
+                    agg_entry["vacation"] += entry.get("vacation", 0)
+                    agg_entry["invoiced_time"] += entry.get("invoiced_time", 0)
+                    agg_entry["average_price"] += entry.get("average_price", 0)
+                    # Operating Costs - Expenses
+                    agg_entry["client_loss"] += entry.get("client_loss", 0)
+                    agg_entry["education"] += entry.get("education", 0)
+                    agg_entry["external_representation"] += entry.get("external_representation", 0)
+                    agg_entry["external_services"] += entry.get("external_services", 0)
+                    agg_entry["internal_representation"] += entry.get("internal_representation", 0)
+                    agg_entry["it_related_staff"] += entry.get("it_related_staff", 0)
+                    agg_entry["office_related"] += entry.get("office_related", 0)
+                    agg_entry["office_rent"] += entry.get("office_rent", 0)
+                    # Operating Costs - Salaries & Related
                     agg_entry["salary"] += entry.get("salary", 0)
+                    agg_entry["variable_salary"] += entry.get("variable_salary", 0)
+                    agg_entry["social_security"] += entry.get("social_security", 0)
+                    agg_entry["other_expenses"] += entry.get("other_expenses", 0)
+                    agg_entry["pension"] += entry.get("pension", 0)
+                    # Legacy fields
                     agg_entry["price"] += entry.get("price", 0)
                     agg_entry["utr"] += entry.get("utr", 0)
                     agg_entry["office_count"] += 1
             
-            # Calculate weighted averages for price, UTR, and salary
+            # Calculate weighted averages for pricing and rate fields, sum for cost fields
             for entry in aggregated_entries.values():
                 if entry["office_count"] > 0:
+                    # Average these fields across offices
+                    entry["average_price"] = round(entry["average_price"] / entry["office_count"])
+                    entry["consultant_time"] = round(entry["consultant_time"] / entry["office_count"])
+                    entry["planned_absence"] = round(entry["planned_absence"] / entry["office_count"])
+                    entry["unplanned_absence"] = round(entry["unplanned_absence"] / entry["office_count"])
+                    entry["vacation_withdrawal"] = round(entry["vacation_withdrawal"] / entry["office_count"])
+                    entry["vacation"] = round(entry["vacation"] / entry["office_count"])
+                    entry["invoiced_time"] = round(entry["invoiced_time"] / entry["office_count"])
+                    # Salary fields are averaged per person
                     entry["salary"] = round(entry["salary"] / entry["office_count"])
+                    entry["variable_salary"] = round(entry["variable_salary"] / entry["office_count"])
+                    entry["social_security"] = round(entry["social_security"] / entry["office_count"])
+                    entry["pension"] = round(entry["pension"] / entry["office_count"])
+                    # Legacy fields
                     if entry["price"] > 0:
                         entry["price"] = round(entry["price"] / entry["office_count"])
                     if entry["utr"] > 0:
                         entry["utr"] = round(entry["utr"] / entry["office_count"], 2)
+                    # Note: Cost fields like client_loss, education, etc. are summed, not averaged
                 
                 # Remove office_count from final output
                 del entry["office_count"]
@@ -506,6 +568,68 @@ class BusinessPlanStorage:
                 "month_range": f"{start_month}-{end_month}"
             }
         }
+
+    def get_unified_plan(self, plan_id: str) -> Optional[Dict[str, Any]]:
+        """Get unified business plan in V2 engine format by aggregating monthly records
+        
+        Option A implementation: Aggregate-on-Demand
+        This method takes a business plan ID and finds all related monthly records
+        to create the unified yearly structure expected by the V2 engine.
+        
+        Args:
+            plan_id: Business plan ID (any monthly record ID from the set)
+            
+        Returns:
+            Unified business plan with monthly_plans structure or None if not found
+        """
+        # Get the base plan to extract office_id and year
+        base_plan = self.get_plan(plan_id)
+        if not base_plan:
+            return None
+        
+        office_id = base_plan.get("office_id")
+        year = base_plan.get("year")
+        
+        if not office_id or not year:
+            return None
+        
+        # Get all plans for this office and year
+        all_plans = self.get_plans(office_id=office_id, year=year)
+        
+        if not all_plans:
+            return None
+        
+        # Build monthly_plans structure
+        monthly_plans = {}
+        
+        for plan in all_plans:
+            month = plan.get("month")
+            if month:
+                # Convert month to V2 engine format: "YYYY-MM"
+                month_key = f"{year}-{month:02d}"
+                
+                # Transform entries to expected format
+                monthly_plan = {
+                    "month": month,
+                    "year": year,
+                    "entries": plan.get("entries", [])
+                }
+                
+                monthly_plans[month_key] = monthly_plan
+        
+        # Return unified plan structure expected by V2 engine
+        unified_plan = {
+            "id": f"{office_id}-{year}",  # Create unified ID
+            "office_id": office_id,
+            "year": year,
+            "monthly_plans": monthly_plans,
+            "created_at": base_plan.get("created_at"),
+            "updated_at": datetime.now().isoformat(),
+            "source": "aggregated_monthly_records",
+            "original_plan_count": len(all_plans)
+        }
+        
+        return unified_plan
 
 # Global instance
 business_plan_storage = BusinessPlanStorage()

@@ -15,10 +15,65 @@ import logging
 import math
 from dataclasses import dataclass, asdict
 
-from .simulation_engine_v2 import (
-    BusinessPlan, MonthlyPlan, MonthlyTargets, GrowthRates, Levers, TimeRange,
-    BusinessPlanProcessorInterface, ValidationResult
-)
+# Avoid circular imports - define interfaces locally
+from typing import Protocol
+
+class BusinessPlanProcessorInterface(Protocol):
+    def initialize(self, **kwargs) -> None: pass
+    def load_business_plan(self, office_id: str, business_plan_data: Dict[str, Any]) -> bool: pass
+    def get_monthly_targets(self, office_id: str, year: int, month: int) -> 'MonthlyTargets': pass
+    def apply_scenario_levers(self, targets: 'MonthlyTargets', levers: 'Levers') -> 'MonthlyTargets': pass
+
+# Define data classes locally to avoid circular imports
+@dataclass
+class BusinessPlan:
+    office_id: str
+    monthly_plans: Dict[str, 'MonthlyPlan']
+    metadata: Dict[str, Any]
+
+@dataclass
+class MonthlyPlan:
+    month: str
+    total_fte: float
+    role_breakdown: Dict[str, float]
+    financial_targets: Dict[str, float]
+    
+@dataclass 
+class MonthlyTargets:
+    recruitment_targets: Dict[str, float]
+    churn_targets: Dict[str, float]
+    progression: Dict[str, float] = None
+    financial: Dict[str, float] = None
+    revenue_target: float = 0.0
+    operating_costs: float = 0.0
+    salary_budget: float = 0.0
+    year: int = 2025
+    month: int = 1
+
+@dataclass
+class GrowthRates:
+    annual_growth: float
+    market_adjustment: float
+    
+@dataclass
+class Levers:
+    recruitment_multiplier: float = 1.0
+    churn_multiplier: float = 1.0
+    progression_multiplier: float = 1.0
+    price_multiplier: float = 1.0
+    salary_multiplier: float = 1.0
+
+@dataclass
+class TimeRange:
+    start_year: int
+    start_month: int
+    end_year: int
+    end_month: int
+
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    errors: List[str]
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -59,7 +114,7 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
     def __init__(self):
         self.loaded_plans: Dict[str, BusinessPlan] = {}
         self.validation_config = BusinessPlanValidation()
-        self.default_growth_rates = GrowthRates()
+        self.default_growth_rates = GrowthRates(annual_growth=0.05, market_adjustment=1.0)
         
     def initialize(self, **kwargs) -> bool:
         """Initialize business plan processor"""
@@ -88,7 +143,15 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
             logger.warning(f"No business plan found for office {office}")
             return self._create_empty_targets(year, month)
         
-        # Get plan for specific month
+        # Extract targets from unified business plan format (new format)
+        if isinstance(business_plan, dict) and 'monthly_plans' in business_plan:
+            return self._extract_targets_from_unified_plan(business_plan, year, month)
+        
+        # Extract targets from raw business plan entries (old single-month format)
+        if isinstance(business_plan, dict) and 'entries' in business_plan:
+            return self._extract_targets_from_raw_plan(business_plan, year, month)
+        
+        # Fallback to complex BusinessPlan object format (legacy)
         monthly_plan = business_plan.get_plan_for_month(year, month)
         if not monthly_plan:
             logger.warning(f"No monthly plan found for {office} {year}-{month:02d}")
@@ -196,10 +259,29 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
         
         return adjusted_targets
     
-    def load_business_plan(self, office: str, business_plan: BusinessPlan) -> bool:
-        """Load business plan for office"""
+    def load_business_plan(self, office: str, business_plan) -> bool:
+        """Load business plan for office (supports both raw dict and BusinessPlan object)"""
         try:
-            # Validate business plan
+            # Handle raw business plan format (dict)
+            if isinstance(business_plan, dict):
+                # Check for unified format first (monthly_plans)
+                if business_plan.get('monthly_plans'):
+                    self.loaded_plans[office] = business_plan
+                    monthly_count = len(business_plan.get('monthly_plans', {}))
+                    logger.info(f"Loaded unified business plan for {office} with {monthly_count} monthly plans")
+                    return True
+                
+                # Check for old single-month format (entries)
+                elif business_plan.get('entries'):
+                    self.loaded_plans[office] = business_plan
+                    logger.info(f"Loaded raw business plan for {office} with {len(business_plan['entries'])} entries")
+                    return True
+                
+                else:
+                    logger.error(f"Business plan for {office} has no entries or monthly_plans")
+                    return False
+            
+            # Handle complex BusinessPlan object (legacy)
             validation_result = self.validate_business_plan(business_plan)
             if not validation_result.is_valid:
                 logger.error(f"Invalid business plan for {office}: {validation_result.errors}")
@@ -633,6 +715,123 @@ class BusinessPlanProcessorV2(BusinessPlanProcessorInterface):
             'Operations': 0.0      # Non-billable
         }
     
+    def _extract_targets_from_raw_plan(self, business_plan: Dict[str, Any], year: int, month: int) -> MonthlyTargets:
+        """Extract monthly targets from raw business plan entries format
+        
+        Raw format: {id, office_id, year, month, entries: [{role, level, recruitment, churn, salary, price, utr}]}
+        """
+        # Check if this business plan matches the requested year
+        plan_year = business_plan.get('year')
+        
+        if plan_year != year:
+            logger.warning(f"Business plan is for year {plan_year}, requested year {year}")
+            return self._create_empty_targets(year, month)
+        
+        # Extract recruitment/churn targets from entries
+        recruitment_targets = {}
+        churn_targets = {}
+        total_revenue = 0.0
+        total_salary = 0.0
+        
+        for entry in business_plan.get('entries', []):
+            role = entry.get('role', 'Unknown')
+            level = entry.get('level', 'default')
+            
+            # Initialize role structures if needed
+            if role not in recruitment_targets:
+                recruitment_targets[role] = {}
+                churn_targets[role] = {}
+            
+            # Extract targets - keep as float to preserve fractional recruitment rates
+            recruitment = float(entry.get('recruitment', 0))
+            churn = float(entry.get('churn', 0))
+            salary = float(entry.get('salary', 0))
+            price = float(entry.get('price', 0))
+            
+            recruitment_targets[role][level] = recruitment
+            churn_targets[role][level] = churn
+            
+            # Debug logging
+            if recruitment > 0 or churn > 0:
+                logger.info(f"Business plan targets: {role} {level} - recruitment={recruitment}, churn={churn}, salary={salary}, price={price}")
+            
+            # Calculate revenue and salary budget
+            # Revenue = recruitment * price (simplified)
+            total_revenue += recruitment * price
+            total_salary += recruitment * salary
+        
+        logger.debug(f"Extracted targets from raw business plan: {len(business_plan.get('entries', []))} entries, "
+                    f"${total_revenue:,.0f} revenue, ${total_salary:,.0f} salary budget")
+        
+        return MonthlyTargets(
+            year=year,
+            month=month,
+            recruitment_targets=recruitment_targets,
+            churn_targets=churn_targets,
+            revenue_target=total_revenue,
+            operating_costs=total_salary * 0.3,  # Estimate 30% of salary as operating costs
+            salary_budget=total_salary
+        )
+    
+    def _extract_targets_from_unified_plan(self, business_plan: Dict[str, Any], year: int, month: int) -> MonthlyTargets:
+        """Extract monthly targets from unified business plan format with monthly_plans
+        
+        Unified format: {id, office_id, year, monthly_plans: {"YYYY-MM": {month, year, entries: [...]}}}
+        """
+        monthly_plans = business_plan.get('monthly_plans', {})
+        month_key = f"{year}-{month:02d}"
+        
+        # Look for the specific month in monthly_plans
+        monthly_plan = monthly_plans.get(month_key)
+        if not monthly_plan:
+            logger.warning(f"No monthly plan found for {year}-{month:02d} in unified business plan")
+            return self._create_empty_targets(year, month)
+        
+        # Extract recruitment/churn targets from entries
+        recruitment_targets = {}
+        churn_targets = {}
+        total_revenue = 0.0
+        total_salary = 0.0
+        
+        for entry in monthly_plan.get('entries', []):
+            role = entry.get('role', 'Unknown')
+            level = entry.get('level', 'default')
+            
+            # Initialize role structures if needed
+            if role not in recruitment_targets:
+                recruitment_targets[role] = {}
+                churn_targets[role] = {}
+            
+            # Extract targets
+            recruitment = entry.get('recruitment', 0)
+            churn = entry.get('churn', 0)
+            salary = float(entry.get('salary', 0))
+            price = float(entry.get('price', 0))
+            
+            # Debug log
+            logger.debug(f"Processing entry: {role} {level} - recruitment: {recruitment}, churn: {churn}, salary: {salary}, price: {price}")
+            
+            recruitment_targets[role][level] = int(recruitment)
+            churn_targets[role][level] = int(churn)
+            
+            # Calculate revenue and salary budget
+            # Revenue = recruitment * price (simplified)
+            total_revenue += recruitment * price
+            total_salary += recruitment * salary
+        
+        logger.debug(f"Extracted targets from unified business plan for {month_key}: {len(monthly_plan.get('entries', []))} entries, "
+                    f"${total_revenue:,.0f} revenue, ${total_salary:,.0f} salary budget")
+        
+        return MonthlyTargets(
+            year=year,
+            month=month,
+            recruitment_targets=recruitment_targets,
+            churn_targets=churn_targets,
+            revenue_target=total_revenue,
+            operating_costs=total_salary * 0.3,  # Estimate 30% of salary as operating costs
+            salary_budget=total_salary
+        )
+
     def _extract_price_per_hour(self, monthly_plan: MonthlyPlan) -> Dict[str, float]:
         """Extract price per hour by level from existing price_per_role data"""
         price_per_hour = {}

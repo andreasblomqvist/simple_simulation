@@ -194,10 +194,32 @@ export const BusinessPlanningV2: React.FC = () => {
     // TODO: Load plan data in read-only mode
   };
 
-  const handleDeletePlan = (planId: string) => {
-    // In a real implementation, call API to delete the plan
-    console.log('Delete plan:', planId);
-    // TODO: Call delete API and refresh list
+  const handleDeletePlan = async (planId: string) => {
+    console.log('handleDeletePlan called with planId:', planId);
+    try {
+      console.log('Making DELETE request to:', `http://localhost:8000/business-plans/${planId}`);
+      const response = await fetch(`http://localhost:8000/business-plans/${planId}`, {
+        method: 'DELETE',
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Successfully deleted plan:', planId, result);
+        alert('Business plan deleted successfully!');
+        // Force a page reload to refresh the business plans list
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to delete plan:', errorData);
+        alert(`Failed to delete business plan: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      alert('Error deleting business plan. Please try again.');
+    }
   };
 
   const handleDuplicatePlan = (planId: string) => {

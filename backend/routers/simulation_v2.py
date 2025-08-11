@@ -54,6 +54,7 @@ class ScenarioRequestV2(BaseModel):
     time_range: TimeRangeRequest
     office_ids: List[str] = Field(..., min_items=1, max_items=20)
     levers: LeversRequest = Field(default_factory=LeversRequest)
+    business_plan_id: Optional[str] = Field(None, description="Business plan ID for V2 engine")
     
     # V2 specific options
     include_kpis: bool = Field(True, description="Calculate KPIs")
@@ -259,7 +260,7 @@ async def get_scenario_status(scenario_id: str):
         completed_at=status_data.get("completed_at")
     )
 
-@router.get("/scenarios/{scenario_id}/results", response_model=SimulationResultsResponse)
+@router.get("/scenarios/{scenario_id}/results")
 async def get_scenario_results(
     scenario_id: str,
     include_monthly: bool = Query(False, description="Include monthly results"),
@@ -267,78 +268,66 @@ async def get_scenario_results(
     include_kpis: bool = Query(True, description="Include KPIs")
 ):
     """Get simulation results"""
-    if scenario_id not in simulation_manager.completed_results:
-        # Check if still running
-        if scenario_id in simulation_manager.running_simulations:
-            status = simulation_manager.running_simulations[scenario_id]["status"]
-            if status in ["running", "queued"]:
-                raise HTTPException(status_code=202, detail=f"Simulation still {status}")
-            elif status == "failed":
-                error_msg = simulation_manager.running_simulations[scenario_id].get("error_message", "Unknown error")
-                raise HTTPException(status_code=500, detail=f"Simulation failed: {error_msg}")
+    try:
+        if scenario_id not in simulation_manager.completed_results:
+            # Check if still running
+            if scenario_id in simulation_manager.running_simulations:
+                status = simulation_manager.running_simulations[scenario_id]["status"]
+                if status in ["running", "queued"]:
+                    raise HTTPException(status_code=202, detail=f"Simulation still {status}")
+                elif status == "failed":
+                    error_msg = simulation_manager.running_simulations[scenario_id].get("error_message", "Unknown error")
+                    raise HTTPException(status_code=500, detail=f"Simulation failed: {error_msg}")
+            
+            raise HTTPException(status_code=404, detail=f"Results for scenario {scenario_id} not found")
         
-        raise HTTPException(status_code=404, detail=f"Results for scenario {scenario_id} not found")
+        results = simulation_manager.completed_results[scenario_id]
+        status_data = simulation_manager.running_simulations.get(scenario_id, {})
+        
+        # Calculate execution time
+        started_at = status_data.get("started_at")
+        completed_at = status_data.get("completed_at")
+        execution_time = 0.0
+        if started_at and completed_at:
+            execution_time = (completed_at - started_at).total_seconds()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving results: {str(e)}")
     
-    results = simulation_manager.completed_results[scenario_id]
-    status_data = simulation_manager.running_simulations.get(scenario_id, {})
+    # Build simplified response to debug
+    response = {
+        "scenario_id": scenario_id,
+        "execution_time_seconds": execution_time,
+        "total_months": len(results.monthly_results),
+        "total_events": len(results.all_events),
+        "has_final_workforce": bool(results.final_workforce),
+        "office_count": len(results.final_workforce) if results.final_workforce else 0
+    }
     
-    # Calculate execution time
-    started_at = status_data.get("started_at")
-    completed_at = status_data.get("completed_at")
-    execution_time = 0.0
-    if started_at and completed_at:
-        execution_time = (completed_at - started_at).total_seconds()
-    
-    # Build response
-    response = SimulationResultsResponse(
-        scenario_id=scenario_id,
-        execution_time_seconds=execution_time,
-        total_months=len(results.monthly_results),
-        total_events=len(results.all_events),
-        final_workforce_count=sum(office.get_total_workforce() for office in results.final_workforce.values())
-    )
-    
-    # Add optional data
-    if include_monthly and results.monthly_results:
-        response.monthly_results = {
-            key: {
+    # Add summary information for debugging
+    if results.monthly_results:
+        monthly_summary = {}
+        for key, month_result in results.monthly_results.items():
+            monthly_summary[key] = {
                 "year": month_result.year,
                 "month": month_result.month,
-                "office_results": month_result.office_results,
+                "office_count": len(month_result.office_results),
                 "event_count": len(month_result.events)
             }
-            for key, month_result in results.monthly_results.items()
-        }
+        response["monthly_summary"] = monthly_summary
     
-    if include_events and results.all_events:
-        response.events = [
-            EventResponse(
-                date=event.date.isoformat(),
-                event_type=event.event_type.value,
-                person_id=event.details.get("person_id", "unknown"),
-                details=event.details,
-                from_state=event.from_state,
-                to_state=event.to_state,
-                probability_used=event.probability_used
-            )
-            for event in results.all_events[:1000]  # Limit to prevent huge responses
-        ]
-    
-    if include_kpis and results.kpi_data:
-        response.kpis = KPIResponse(**results.kpi_data)
-    
-    # Office summary
-    response.office_summary = {
-        office_id: {
-            "final_workforce": office_state.get_total_workforce(),
-            "workforce_by_role": {
-                role: sum(len([p for p in people if p.is_active]) 
-                         for people in levels.values())
-                for role, levels in office_state.workforce.items()
+    # Office summary  
+    if results.final_workforce:
+        response["office_summary"] = {
+            office_id: {
+                "final_workforce": office_state.get_total_workforce(),
+                "workforce_by_role": {
+                    role: sum(len([p for p in people if p.is_active]) 
+                             for people in levels.values())
+                    for role, levels in office_state.workforce.items()
+                }
             }
+            for office_id, office_state in results.final_workforce.items()
         }
-        for office_id, office_state in results.final_workforce.items()
-    }
     
     return response
 
@@ -478,7 +467,8 @@ async def execute_simulation_background(scenario_id: str, scenario: ScenarioRequ
             name=scenario.name,
             time_range=time_range,
             office_ids=scenario.office_ids,
-            levers=levers
+            levers=levers,
+            business_plan_id=scenario.business_plan_id
         )
         
         simulation_manager.update_progress(scenario_id, 30.0, "running")

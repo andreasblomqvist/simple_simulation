@@ -447,15 +447,32 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   };
 
 
+  // Pre-compute all chart data for all years to avoid hooks in render functions
+  const allChartData = useMemo(() => {
+    const chartData: Record<string, {
+      fteData: any[];
+      recruitmentChurnData: any[];
+      quarterlyData: any[];
+    }> = {};
+    
+    yearsData.forEach(yearData => {
+      chartData[yearData.year] = {
+        fteData: ResultsService.generateFTEGrowthData(yearData),
+        recruitmentChurnData: ResultsService.generateRecruitmentChurnData(yearData),
+        quarterlyData: ResultsService.generateQuarterlyWorkforceData(yearData),
+      };
+    });
+    
+    return chartData;
+  }, [yearsData]);
+
   // FTE Growth Chart
   const renderFTEGrowthChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
+    if (!targetYear) return null;
     
-    // Generate FTE growth data using service
-    const fteData = useMemo(() => {
-      if (!targetYear) return [];
-      return ResultsService.generateFTEGrowthData(targetYear);
-    }, [targetYear]);
+    // Use pre-computed FTE data
+    const fteData = allChartData[targetYear.year]?.fteData || [];
 
     return (
     <Card className="mb-6">
@@ -579,12 +596,10 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   // Recruitment vs Churn Chart
   const renderRecruitmentChurnChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
+    if (!targetYear) return null;
     
-    // Generate recruitment vs churn data using service
-    const recruitmentChurnDataForYear = useMemo(() => {
-      if (!targetYear) return [];
-      return ResultsService.generateRecruitmentChurnData(targetYear);
-    }, [targetYear]);
+    // Use pre-computed recruitment/churn data
+    const recruitmentChurnDataForYear = allChartData[targetYear.year]?.recruitmentChurnData || [];
 
     return (
     <Card className="mb-6">
@@ -626,12 +641,10 @@ const ModernResultsDisplay: React.FC<ModernResultsDisplayProps> = ({ result }) =
   // Quarterly Workforce Analytics Chart
   const renderQuarterlyWorkforceChart = (yearData?: YearData) => {
     const targetYear = yearData || currentYearData;
+    if (!targetYear) return null;
     
-    // Generate quarterly workforce data using service
-    const quarterlyDataForYear = useMemo(() => {
-      if (!targetYear) return [];
-      return ResultsService.generateQuarterlyWorkforceData(targetYear);
-    }, [targetYear]);
+    // Use pre-computed quarterly data
+    const quarterlyDataForYear = allChartData[targetYear.year]?.quarterlyData || [];
 
     if (!quarterlyDataForYear.length) return null;
 

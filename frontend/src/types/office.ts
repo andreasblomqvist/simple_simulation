@@ -59,6 +59,8 @@ export interface OfficeConfig {
   active_business_plan_id?: string;
   created_at?: string;
   updated_at?: string;
+  // Frontend computed property for convenience (extracted from snapshots[0].total_fte)
+  total_fte?: number;
 }
 
 export interface WorkforceEntry {

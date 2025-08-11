@@ -60,8 +60,11 @@ class ScenarioStorageService:
         # Save to file
         file_path = os.path.join(self.definitions_dir, f"{scenario_def.id}.json")
         try:
+            scenario_data = scenario_def.model_dump()
+            logger.info(f"DEBUG: Saving scenario {scenario_def.id} with business_plan_id: {scenario_data.get('business_plan_id', 'NOT SET')}")
+            
             with open(file_path, 'w') as f:
-                json.dump(scenario_def.model_dump(), f, indent=2, default=str)
+                json.dump(scenario_data, f, indent=2, default=str)
             
             logger.info(f"Created scenario: {scenario_def.id} - {scenario_def.name}")
             return scenario_def.id
@@ -212,7 +215,8 @@ class ScenarioStorageService:
                                 'created_at': scenario.created_at,
                                 'updated_at': scenario.updated_at,
                                 'time_range': scenario.time_range,
-                                'office_scope': scenario.office_scope
+                                'office_scope': scenario.office_scope,
+                                'business_plan_id': getattr(scenario, 'business_plan_id', None)
                             })
             
             # Check legacy location (root directory)
@@ -232,7 +236,8 @@ class ScenarioStorageService:
                                 'created_at': scenario.created_at,
                                 'updated_at': scenario.updated_at,
                                 'time_range': scenario.time_range,
-                                'office_scope': scenario.office_scope
+                                'office_scope': scenario.office_scope,
+                                'business_plan_id': getattr(scenario, 'business_plan_id', None)
                             })
             
             # Sort by updated_at (most recent first)

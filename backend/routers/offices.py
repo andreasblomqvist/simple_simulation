@@ -95,6 +95,32 @@ router = APIRouter(
     tags=["offices"]
 )
 
+# CRITICAL: This route must be first to avoid being caught by /{office_id}
+@router.get("/all")
+def get_all_offices():
+    """Get all offices with total_fte from snapshots"""
+    config = config_service.get_config()
+    offices = []
+    
+    for office_name, office_data in config.items():
+        # Get total_fte directly from office configuration
+        total_fte = float(office_data.get('total_fte', 0))
+        
+        office = {
+            "id": office_name,
+            "name": office_name,
+            "journey": JOURNEY_MAP.get(office_data.get("journey", "emerging").strip(), "emerging"),
+            "total_fte": total_fte,
+            "economic_parameters": office_data.get("economic_parameters", {
+                "cost_of_living": 1.0,
+                "market_multiplier": 1.0,
+                "tax_rate": 0.25
+            })
+        }
+        offices.append(office)
+    
+    return offices
+
 # Add this mapping at the top of the file (after imports)
 JOURNEY_MAP = {
     "Mature Office": "mature",
@@ -109,6 +135,20 @@ def _build_office_config(name: str, data: dict) -> OfficeConfig:
     """Helper function to build OfficeConfig with all fields"""
     journey_raw = data.get("journey", "emerging")
     journey = JOURNEY_MAP.get(journey_raw.strip(), "emerging")
+    
+    # Get total_fte from snapshots if available, otherwise calculate from roles
+    total_fte = 0.0
+    if 'snapshots' in data and data['snapshots']:
+        # Use FTE from existing snapshot
+        snapshot = data['snapshots'][0] if isinstance(data['snapshots'], list) else data['snapshots']
+        total_fte = snapshot.get('total_fte', 0.0)
+    elif 'roles' in data:
+        # Fallback: calculate from roles data
+        for role_name, role_data in data['roles'].items():
+            if isinstance(role_data, dict):
+                for level_name, level_data in role_data.items():
+                    if isinstance(level_data, dict) and 'fte' in level_data:
+                        total_fte += level_data['fte']
     
     # Mock CAT matrix data (in production, this would come from database)
     default_cat_matrix = CATMatrix(
@@ -125,15 +165,18 @@ def _build_office_config(name: str, data: dict) -> OfficeConfig:
         OPE={}
     )
     
-    # Mock snapshots (in production, this would come from database)
-    # The total_fte would be calculated from the snapshot's workforce data
+    # Create snapshot with actual total_fte from office configuration
+    actual_total_fte = float(data.get('total_fte', 0))
+    print(f"DEBUG: Office {name} - data keys: {list(data.keys())}")
+    print(f"DEBUG: Office {name} - raw total_fte: {data.get('total_fte')}")
+    print(f"DEBUG: Office {name} - actual_total_fte: {actual_total_fte}")
     mock_snapshots = [
         PopulationSnapshot(
             id="snapshot1",
             name=f"{name} - Current Baseline",
             snapshot_date="2025-01-01",
             description="Current workforce baseline",
-            total_fte=100.0,  # This would be calculated from snapshot workforce data
+            total_fte=actual_total_fte,  # Use real total_fte from config file
             created_at="2025-01-06T12:00:00Z",
             is_default=True
         )
@@ -156,8 +199,12 @@ def _build_office_config(name: str, data: dict) -> OfficeConfig:
         name=name,
         journey=journey,
         timezone=data.get("timezone", "UTC"),
-        economic_parameters=EconomicParameters(**data.get("economic_parameters", {})),
-        cat_matrix=default_cat_matrix,
+        economic_parameters=EconomicParameters(
+            cost_of_living=data.get("economic_parameters", {}).get("cost_of_living", 1.0),
+            market_multiplier=data.get("economic_parameters", {}).get("market_multiplier", 1.0),
+            tax_rate=data.get("economic_parameters", {}).get("tax_rate", 0.25)
+        ),
+        cat_matrix=data.get("cat_matrix", default_cat_matrix),
         snapshots=mock_snapshots,
         business_plans=mock_business_plans,
         current_snapshot_id="snapshot1",
@@ -165,6 +212,9 @@ def _build_office_config(name: str, data: dict) -> OfficeConfig:
     )
 
 # All specific routes must come BEFORE any generic /{office_id} routes
+
+# Other specific routes continue below
+
 # Simple test endpoint
 @router.get("/{office_id}/test-simple")
 def test_simple(office_id: str):
@@ -224,15 +274,37 @@ def get_office_workforce(office_id: str):
     if office_id not in config:
         raise HTTPException(status_code=404, detail="Office not found")
     
-    # In production, this would fetch the workforce data from the current snapshot
-    # For now, we'll return mock data or data from the snapshot service
-    # The workforce data should come from snapshots, not directly from office config
+    office_data = config[office_id]
+    workforce = []
+    
+    # Extract workforce data from office configuration roles
+    if 'roles' in office_data:
+        for role_name, role_data in office_data['roles'].items():
+            if isinstance(role_data, dict):
+                # Check if this is a flat role (has fte directly) or leveled role
+                if 'fte' in role_data:
+                    # Flat role like Operations
+                    workforce.append({
+                        "role": role_name,
+                        "level": "All",  # Use "All" for flat roles
+                        "fte": role_data['fte'],
+                        "notes": f"{role_name} (all levels)"
+                    })
+                else:
+                    # Leveled role like Consultant, Sales, Recruitment
+                    for level_name, level_data in role_data.items():
+                        if isinstance(level_data, dict) and 'fte' in level_data:
+                            workforce.append({
+                                "role": role_name,
+                                "level": level_name,
+                                "fte": level_data['fte'],
+                                "notes": f"{role_name} {level_name} level"
+                            })
     
     return {
         "office_id": office_id,
         "start_date": "2025-01-01",
-        "workforce": [],  # This would be populated from the snapshot
-        "message": "Workforce data should be retrieved from the current snapshot"
+        "workforce": workforce
     }
 
 @router.get("/{office_id}/summary")
@@ -251,20 +323,87 @@ def get_office_summary(office_id: str):
         "workforce_distribution": workforce_response
     }
 
-@router.get("", response_model=List[OfficeConfig])
-def get_offices():
-    """Get all offices"""
-    config = config_service.get_config()
-    offices = []
-    for name, data in config.items():
-        offices.append(_build_office_config(name, data))
-    return offices
-
-# Static endpoints (no parameters)
+# Static endpoints (no parameters) - these must come before generic /{office_id} routes
 @router.get("/health")
 def office_health_check():
     """Health check for office API"""
     return {"status": "ok"}
+
+# Snapshot endpoints (simple implementation without database)
+@router.get("/snapshots/{snapshot_id}")
+def get_snapshot(snapshot_id: str):
+    """Get a snapshot by ID - generates from config data"""
+    # For now, support a default snapshot per office
+    if not snapshot_id.startswith("snapshot"):
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    
+    # Extract office name from snapshot_id (format: snapshot1, snapshot_stockholm, etc)
+    if snapshot_id == "snapshot1":
+        # Default snapshot - try Stockholm as example
+        office_name = "Stockholm"
+    else:
+        # Extract office name from snapshot id
+        office_name = snapshot_id.replace("snapshot_", "").replace("snapshot", "").capitalize()
+    
+    config = config_service.get_config()
+    if office_name not in config:
+        raise HTTPException(status_code=404, detail="Office not found for snapshot")
+    
+    office_data = config[office_name]
+    
+    # Generate workforce data from config
+    workforce_data = {}
+    if 'roles' in office_data:
+        for role_name, role_data in office_data['roles'].items():
+            if isinstance(role_data, dict):
+                if 'fte' in role_data:
+                    # Flat role
+                    workforce_data[role_name] = {"All": role_data['fte']}
+                else:
+                    # Leveled role
+                    role_levels = {}
+                    for level_name, level_data in role_data.items():
+                        if isinstance(level_data, dict) and 'fte' in level_data:
+                            role_levels[level_name] = level_data['fte']
+                    if role_levels:
+                        workforce_data[role_name] = role_levels
+    
+    total_fte = office_data.get('total_fte', 0)
+    
+    return {
+        "id": snapshot_id,
+        "office_id": office_name,
+        "office_name": office_name,
+        "snapshot_date": "2025-01-01",
+        "snapshot_name": f"{office_name} - Current Baseline",
+        "description": f"Current workforce baseline for {office_name}",
+        "total_fte": total_fte,
+        "is_default": True,
+        "is_approved": True,
+        "source": "current",
+        "created_at": "2025-01-06T12:00:00Z",
+        "created_by": "system",
+        "last_used_at": "2025-01-06T12:00:00Z",
+        "tags": ["baseline", "current"],
+        "workforce_data": workforce_data,
+        "metadata": {
+            "total_fte": total_fte,
+            "role_count": len(workforce_data),
+            "journey": office_data.get("journey", "mature")
+        }
+    }
+
+@router.get("/debug-config")
+def debug_office_config():
+    """Debug endpoint to see raw config data"""
+    config = config_service.get_config()
+    stockholm_data = config.get('Stockholm', {})
+    return {
+        "stockholm_total_fte": stockholm_data.get('total_fte'),
+        "stockholm_name": stockholm_data.get('name'),
+        "config_keys": list(config.keys())[:5]
+    }
+
 
 @router.get("/export")
 def export_offices():
@@ -280,6 +419,7 @@ def export_offices():
 @router.get("/{office_id}")
 def get_office(office_id: str):
     """Get a specific office by ID"""
+    print(f"DEBUG: get_office called with office_id: {office_id}")
     config = config_service.get_config()
     if office_id in config:
         data = config[office_id]

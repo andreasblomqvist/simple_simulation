@@ -1,0 +1,60 @@
+# Page snapshot
+
+```yaml
+- text: SimpleSim Workforce Planning
+- navigation:
+  - link "Dashboard Overview and key metrics":
+    - /url: /
+  - link "Scenarios Scenario management and comparison":
+    - /url: /scenarios
+  - link "Business Planning Workforce and financial planning":
+    - /url: /business-planning
+  - link "Offices":
+    - /url: /offices
+  - link "Simulation Lab Advanced simulation experiments":
+    - /url: /simulation-lab
+  - link "Settings Application settings and configuration":
+    - /url: /settings
+- text: Version 2.0.0 © 2024 SimpleSim
+- button
+- banner:
+  - button
+  - textbox "Search scenarios, offices, plans..."
+  - button
+  - button "Admin User"
+- main:
+  - heading "Office Management" [level=1]
+  - paragraph: Manage and oversee all office locations with comprehensive analytics and insights
+  - tablist:
+    - tab "All Offices" [selected]
+  - tabpanel "All Offices":
+    - heading "All Offices Overview" [level=3]
+    - paragraph: Comprehensive overview of all offices with key metrics, journey stages, and management actions
+    - table:
+      - rowgroup:
+        - row "Office Total FTE Journey Cost of Living":
+          - cell "Office"
+          - cell "Total FTE"
+          - cell "Journey"
+          - cell "Cost of Living"
+          - cell
+      - rowgroup:
+        - row "Stockholm Stockholm 679 Mature 100.0%":
+          - cell "Stockholm Stockholm"
+          - cell "679"
+          - cell "Mature"
+          - cell "100.0%"
+          - cell:
+            - button "View Overview"
+            - button "Configure Office"
+        - row "Munich Munich 332 Established 110.0%":
+          - cell "Munich Munich"
+          - cell "332"
+          - cell "Established"
+          - cell "110.0%"
+          - cell:
+            - button "View Overview"
+            - button "Configure Office"
+- region "Notifications (F8)":
+  - list
+```

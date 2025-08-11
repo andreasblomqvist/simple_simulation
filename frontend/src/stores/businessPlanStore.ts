@@ -147,7 +147,7 @@ export const useBusinessPlanStore = create<BusinessPlanStoreState>()(
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`/api/offices/${officeId}/workforce`);
+          const response = await fetch(`http://localhost:8000/offices/${officeId}/workforce`);
           if (!response.ok) {
             throw new Error(`Failed to load workforce: ${response.statusText}`);
           }
@@ -171,7 +171,7 @@ export const useBusinessPlanStore = create<BusinessPlanStoreState>()(
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`/api/offices/${officeId}/summary`);
+          const response = await fetch(`http://localhost:8000/offices/${officeId}/summary`);
           if (!response.ok) {
             throw new Error(`Failed to load office summary: ${response.statusText}`);
           }

@@ -176,56 +176,124 @@ export const OfficeViewWithTabs: React.FC<OfficeViewWithTabsProps> = ({ office, 
     }
   }, [office, resetOfficeCAT]);
 
-  // Move workforceData to earlier in the component to fix hoisting issue
+
+
+  // Load CAT matrix data when Settings tab is active
+  const loadCatMatrix = useCallback(async (officeId: string) => {
+    if (!officeId) return;
+    
+    setLoadingCatMatrix(true);
+    try {
+      const response = await fetch(`http://localhost:8000/offices/${officeId}/cat-matrix`);
+      if (response.ok) {
+        const catMatrix = await response.json();
+        console.log('🐱 Loaded CAT matrix:', catMatrix);
+        setCatMatrixData(catMatrix);
+      } else {
+        console.log('🐱 No CAT matrix found, using global default values');
+        // Use exact global CAT matrix values from SettingsV2.tsx - converted from percentages to decimals
+        const defaultCatMatrix = {
+          'A': { CAT0: 0.0, CAT6: 0.919, CAT12: 0.85, CAT18: 0.0, CAT24: 0.0, CAT30: 0.0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'AC': { CAT0: 0.0, CAT6: 0.054, CAT12: 0.759, CAT18: 0.4, CAT24: 0.0, CAT30: 0.0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'C': { CAT0: 0.0, CAT6: 0.05, CAT12: 0.442, CAT18: 0.597, CAT24: 0.278, CAT30: 0.643, CAT36: 0.2, CAT42: 0.0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'SrC': { CAT0: 0.0, CAT6: 0.206, CAT12: 0.438, CAT18: 0.317, CAT24: 0.211, CAT30: 0.206, CAT36: 0.167, CAT42: 0.0, CAT48: 0.0, CAT54: 0.0, CAT60: 0.0 },
+          'AM': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.0, CAT18: 0.189, CAT24: 0.197, CAT30: 0.234, CAT36: 0.048, CAT42: 0.0, CAT48: 0.0, CAT54: 0.0, CAT60: 0.0 },
+          'M': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.01, CAT18: 0.02, CAT24: 0.03, CAT30: 0.04, CAT36: 0.05, CAT42: 0.06, CAT48: 0.07, CAT54: 0.08, CAT60: 0.1 },
+          'SrM': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.005, CAT18: 0.01, CAT24: 0.015, CAT30: 0.02, CAT36: 0.025, CAT42: 0.03, CAT48: 0.04, CAT54: 0.05, CAT60: 0.06 },
+          'Pi': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'P': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'X': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
+          'OPE': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 }
+        };
+        setCatMatrixData(defaultCatMatrix);
+      }
+    } catch (error) {
+      console.error('Failed to load CAT matrix:', error);
+      setCatMatrixData(null);
+    } finally {
+      setLoadingCatMatrix(false);
+    }
+  }, []);
+
+  // Load CAT matrix when switching to Settings tab
+  useEffect(() => {
+    if (activeTab === 'settings' && office?.id && !catMatrixData && !loadingCatMatrix) {
+      loadCatMatrix(office.id);
+    }
+  }, [activeTab, office?.id, catMatrixData, loadingCatMatrix, loadCatMatrix]);
+
+
+  // Fetch workforce data from API for the office
+  const [apiWorkforceData, setApiWorkforceData] = useState<any>(null);
+  
+  useEffect(() => {
+    if (office?.id) {
+      fetch(`http://localhost:8000/offices/${office.id}/workforce`)
+        .then(res => res.json())
+        .then(data => setApiWorkforceData(data.workforce))
+        .catch(err => console.error('Failed to fetch workforce:', err));
+    }
+  }, [office?.id]);
+
+  // Transform API workforce data into a more usable format
   const workforceData = useMemo(() => {
-    if (!office) return { data: [], levels: [] };
-    const roles = office.roles || {};
-    const data: Array<{ 
-      role: string;
-      [key: string]: string | number; // Dynamic level columns
-    }> = [];
+    if (!apiWorkforceData || !Array.isArray(apiWorkforceData)) {
+      return { data: [], levels: [] };
+    }
 
-    // Get all unique levels across all roles
+    // Get all unique roles and levels
+    const roleMap = new Map<string, Record<string, number>>();
     const allLevels = new Set<string>();
-    Object.entries(roles).forEach(([roleName, roleData]) => {
-      if (typeof roleData === 'object' && roleData !== null) {
-        Object.keys(roleData).forEach(levelName => {
-          allLevels.add(levelName);
-        });
+
+    apiWorkforceData.forEach((entry: any) => {
+      const role = entry.role || 'Unknown';
+      const level = entry.level || 'Unknown';
+      const fte = entry.fte || 0;
+
+      // Track all levels
+      if (level !== 'Unknown') {
+        allLevels.add(level);
       }
+
+      // Initialize role if not exists
+      if (!roleMap.has(role)) {
+        roleMap.set(role, {});
+      }
+
+      // Add FTE to role/level
+      const roleData = roleMap.get(role)!;
+      roleData[level] = (roleData[level] || 0) + fte;
     });
 
-    // Build data with roles as rows and levels as columns
-    Object.entries(roles).forEach(([roleName, roleData]) => {
-      if (typeof roleData === 'object' && roleData !== null) {
-        const roleRow: { role: string; [key: string]: string | number } = { role: roleName };
-        
-        // Add FTE values for each level
-        Object.entries(roleData).forEach(([levelName, levelData]) => {
-          if (typeof levelData === 'object' && levelData !== null && 'fte' in levelData) {
-            roleRow[levelName] = levelData.fte || 0;
-          }
-        });
+    // Convert to array format
+    const data: Array<{ role: string; [key: string]: string | number }> = [];
+    
+    roleMap.forEach((levelData, roleName) => {
+      const roleRow: { role: string; [key: string]: string | number } = { role: roleName };
+      
+      // Add level data
+      Object.entries(levelData).forEach(([level, fte]) => {
+        roleRow[level] = fte;
+      });
 
-        // Fill in 0 for levels that don't exist for this role
-        allLevels.forEach(level => {
-          if (!(level in roleRow)) {
-            roleRow[level] = 0;
-          }
-        });
+      // Fill in 0 for missing levels
+      allLevels.forEach(level => {
+        if (!(level in roleRow)) {
+          roleRow[level] = 0;
+        }
+      });
 
-        data.push(roleRow);
-      }
+      data.push(roleRow);
     });
 
-    // Filter and sort levels in career progression order
+    // Sort levels in career progression order
     const careerProgression = ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'];
     const validLevels = careerProgression.filter(level => allLevels.has(level));
     
     return { data, levels: validLevels };
-  }, [office]);
+  }, [apiWorkforceData]);
 
-  // Save snapshot functionality
+  // Save snapshot functionality (moved after workforceData declaration)
   const handleSaveAsNewSnapshot = useCallback(async () => {
     if (!office) return;
     
@@ -306,85 +374,27 @@ export const OfficeViewWithTabs: React.FC<OfficeViewWithTabsProps> = ({ office, 
     }
   }, [office, selectedSnapshot]);
 
-  // Load CAT matrix data when Settings tab is active
-  const loadCatMatrix = useCallback(async (officeId: string) => {
-    if (!officeId) return;
-    
-    setLoadingCatMatrix(true);
-    try {
-      const response = await fetch(`/api/offices/${officeId}/cat-matrix`);
-      if (response.ok) {
-        const catMatrix = await response.json();
-        console.log('🐱 Loaded CAT matrix:', catMatrix);
-        setCatMatrixData(catMatrix);
-      } else {
-        console.log('🐱 No CAT matrix found, using global default values');
-        // Use exact global CAT matrix values from SettingsV2.tsx - converted from percentages to decimals
-        const defaultCatMatrix = {
-          'A': { CAT0: 0.0, CAT6: 0.919, CAT12: 0.85, CAT18: 0.0, CAT24: 0.0, CAT30: 0.0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'AC': { CAT0: 0.0, CAT6: 0.054, CAT12: 0.759, CAT18: 0.4, CAT24: 0.0, CAT30: 0.0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'C': { CAT0: 0.0, CAT6: 0.05, CAT12: 0.442, CAT18: 0.597, CAT24: 0.278, CAT30: 0.643, CAT36: 0.2, CAT42: 0.0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'SrC': { CAT0: 0.0, CAT6: 0.206, CAT12: 0.438, CAT18: 0.317, CAT24: 0.211, CAT30: 0.206, CAT36: 0.167, CAT42: 0.0, CAT48: 0.0, CAT54: 0.0, CAT60: 0.0 },
-          'AM': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.0, CAT18: 0.189, CAT24: 0.197, CAT30: 0.234, CAT36: 0.048, CAT42: 0.0, CAT48: 0.0, CAT54: 0.0, CAT60: 0.0 },
-          'M': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.01, CAT18: 0.02, CAT24: 0.03, CAT30: 0.04, CAT36: 0.05, CAT42: 0.06, CAT48: 0.07, CAT54: 0.08, CAT60: 0.1 },
-          'SrM': { CAT0: 0.0, CAT6: 0.0, CAT12: 0.005, CAT18: 0.01, CAT24: 0.015, CAT30: 0.02, CAT36: 0.025, CAT42: 0.03, CAT48: 0.04, CAT54: 0.05, CAT60: 0.06 },
-          'Pi': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'P': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'X': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 },
-          'OPE': { CAT0: 0.0, CAT6: 0, CAT12: 0, CAT18: 0, CAT24: 0, CAT30: 0, CAT36: 0, CAT42: 0, CAT48: 0, CAT54: 0, CAT60: 0 }
-        };
-        setCatMatrixData(defaultCatMatrix);
-      }
-    } catch (error) {
-      console.error('Failed to load CAT matrix:', error);
-      setCatMatrixData(null);
-    } finally {
-      setLoadingCatMatrix(false);
-    }
-  }, []);
-
-  // Load CAT matrix when switching to Settings tab
-  useEffect(() => {
-    if (activeTab === 'settings' && office?.id && !catMatrixData && !loadingCatMatrix) {
-      loadCatMatrix(office.id);
-    }
-  }, [activeTab, office?.id, catMatrixData, loadingCatMatrix, loadCatMatrix]);
-
   const officeStats = useMemo(() => {
-    if (!office) return null;
-    const roles = office.roles || {};
+    if (!office || !apiWorkforceData) return null;
     
-    // Calculate role counts
+    // Calculate role counts from workforce data
     let totalRecruiters = 0;
     let totalSales = 0;
     let totalOperations = 0;
     let totalConsultants = 0;
 
-    Object.entries(roles).forEach(([roleName, roleData]) => {
-      if (typeof roleData === 'object' && roleData !== null) {
-        let roleTotal = 0;
-        
-        // Check if this is a flat role (Operations) with direct fte property
-        if ('fte' in roleData && typeof roleData.fte === 'number') {
-          roleTotal = roleData.fte;
-        } else {
-          // Handle leveled roles (Consultant, Sales, Recruitment)
-          roleTotal = Object.values(roleData).reduce((sum, level) => {
-            if (typeof level === 'object' && level !== null && 'fte' in level) {
-              return sum + (level.fte || 0);
-            }
-            return sum;
-          }, 0);
-        }
+    // Calculate total from actual workforce data
+    let totalEmployees = 0;
 
-        if (roleName === 'Recruitment') totalRecruiters = roleTotal;
-        else if (roleName === 'Sales') totalSales = roleTotal;
-        else if (roleName === 'Operations') totalOperations = roleTotal;
-        else if (roleName === 'Consultant') totalConsultants = roleTotal;
-      }
+    apiWorkforceData.forEach((entry: any) => {
+      const fte = entry.fte || 0;
+      totalEmployees += fte; // Add to total first
+      
+      if (entry.role === 'Recruitment') totalRecruiters += fte;
+      else if (entry.role === 'Sales') totalSales += fte;
+      else if (entry.role === 'Operations') totalOperations += fte;
+      else if (entry.role === 'Consultant') totalConsultants += fte;
     });
-
-    const totalEmployees = office.total_fte || 0;
     
     // Calculate percentages
     const recruitersPercent = totalEmployees > 0 ? (totalRecruiters / totalEmployees) * 100 : 0;
@@ -424,7 +434,7 @@ export const OfficeViewWithTabs: React.FC<OfficeViewWithTabsProps> = ({ office, 
       nonDebitRatio,
       nonConsultantFTE
     };
-  }, [office]);
+  }, [office, apiWorkforceData]);
 
   const workforceColumns: MinimalColumnDef<any>[] = useMemo(() => {
     const columns: MinimalColumnDef<any>[] = [
@@ -887,7 +897,7 @@ export const OfficeViewWithTabs: React.FC<OfficeViewWithTabsProps> = ({ office, 
               </div>
 
               {/* KPI Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-6">
                 <KPICard
                   title="Total Employees"
                   value={Math.round(officeStats.totalEmployees)}
@@ -896,6 +906,14 @@ export const OfficeViewWithTabs: React.FC<OfficeViewWithTabsProps> = ({ office, 
                   icon={<Users className="h-4 w-4" />}
                   iconBgColor="#3b82f6"
                   trend={{ value: 5.2, isPositive: true }}
+                />
+                <KPICard
+                  title="Consultants"
+                  value={Math.round(officeStats.totalConsultants)}
+                  percentage={officeStats.consultantsPercent}
+                  subtitle="Billable consultants"
+                  icon={<Activity className="h-4 w-4" />}
+                  iconBgColor="#8b5cf6"
                 />
                 <KPICard
                   title="Recruiters"

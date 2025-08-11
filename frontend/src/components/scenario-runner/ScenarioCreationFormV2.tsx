@@ -50,9 +50,17 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
     loading: boolean;
     error?: string;
   }>({ type: null, loading: false });
+  const [businessPlans, setBusinessPlans] = useState<Array<{
+    id: string;
+    office_id: string;
+    year: number;
+    month: number;
+  }>>([]);
+  const [selectedBusinessPlan, setSelectedBusinessPlan] = useState<string>('');
 
   useEffect(() => {
     loadAvailableOffices();
+    loadBusinessPlans();
   }, []);
 
   // Detect business plan baseline from URL parameters
@@ -130,6 +138,31 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
     }
   };
 
+  const loadBusinessPlans = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/business-plans');
+      if (response.ok) {
+        const plans = await response.json();
+        // Group by office and year, showing only the latest month for each office-year combination
+        const latestPlans = plans.reduce((acc: any[], plan: any) => {
+          const key = `${plan.office_id}-${plan.year}`;
+          const existing = acc.find(p => `${p.office_id}-${p.year}` === key);
+          if (!existing || plan.month > existing.month) {
+            return [...acc.filter(p => `${p.office_id}-${p.year}` !== key), plan];
+          }
+          return acc;
+        }, []);
+        setBusinessPlans(latestPlans.sort((a: any, b: any) => {
+          if (a.year !== b.year) return b.year - a.year;
+          if (a.office_id !== b.office_id) return a.office_id.localeCompare(b.office_id);
+          return b.month - a.month;
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load business plans:', error);
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -159,6 +192,10 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
 
     if (formData.officeScope === 'individual' && formData.offices.length === 0) {
       newErrors.offices = 'Select at least one office';
+    }
+
+    if (!selectedBusinessPlan) {
+      newErrors.businessPlan = 'Business plan selection is required';
     }
 
     setErrors(newErrors);
@@ -234,10 +271,12 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
       office_scope: officeScopeList,
       levers: {},
       economic_params: {},
-      baseline_input: baselineInput || undefined
+      baseline_input: baselineInput || undefined,
+      business_plan_id: selectedBusinessPlan || undefined
     };
 
     console.log('[DEBUG] Final scenario definition:', scenarioDefinition);
+    console.log('[DEBUG] Business plan ID in scenario:', scenarioDefinition.business_plan_id);
     onNext({ scenarioId: '', scenario: scenarioDefinition });
   };
 
@@ -335,6 +374,65 @@ const ScenarioCreationFormV2: React.FC<ScenarioCreationFormV2Props> = ({
           rows={2}
         />
       </div>
+
+      {/* Business Plan Baseline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Business Plan Baseline *</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="businessPlan">Select Business Plan</Label>
+            <Select
+              value={selectedBusinessPlan}
+              onValueChange={(value) => {
+                setSelectedBusinessPlan(value);
+                if (value && value !== 'none') {
+                  const plan = businessPlans.find(p => p.id === value);
+                  if (plan) {
+                    // Update form with business plan details
+                    const capitalizedOffice = plan.office_id.charAt(0).toUpperCase() + plan.office_id.slice(1);
+                    setFormData(prev => ({
+                      ...prev,
+                      name: prev.name || `${capitalizedOffice} Business Plan Scenario`,
+                      description: prev.description || `Based on ${capitalizedOffice} business plan (${plan.year}/${plan.month})`,
+                      startYear: plan.year,
+                      startMonth: plan.month,
+                      officeScope: 'individual',
+                      offices: [capitalizedOffice]
+                    }));
+                    setBaselineInfo({
+                      type: 'business-plan',
+                      office: plan.office_id,
+                      year: plan.year,
+                      loading: false
+                    });
+                  }
+                } else {
+                  setBaselineInfo({ type: null, loading: false });
+                }
+              }}
+            >
+              <SelectTrigger className={cn(errors.businessPlan && "border-destructive")}>
+                <SelectValue placeholder="Select a business plan *" />
+              </SelectTrigger>
+              <SelectContent>
+                {businessPlans.map(plan => (
+                  <SelectItem key={plan.id} value={plan.id}>
+                    {plan.office_id.charAt(0).toUpperCase() + plan.office_id.slice(1)} - {plan.year}/{plan.month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.businessPlan && (
+              <p className="text-sm text-destructive">{errors.businessPlan}</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Select a business plan to use its recruitment and churn data as baseline values for the scenario
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Time Range */}
       <Card>

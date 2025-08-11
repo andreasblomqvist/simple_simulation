@@ -1,0 +1,30 @@
+{
+  "id": "856d0b3f-e2c2-4dd4-a1aa-0a9f566c624c",
+  "name": "sdsdsd",
+  "description": "Based on Oslo business plan (2025/12)",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 12
+  },
+  "office_scope": [
+    "Oslo"
+  ],
+  "levers": {
+    "recruitment": {},
+    "churn": {},
+    "progression": {}
+  },
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": null,
+  "business_plan_id": "20ba0f6d-a238-4ab5-a7aa-488efa393797",
+  "created_at": "2025-08-10 20:22:57.936319",
+  "updated_at": "2025-08-10T20:22:58.055550"
+}

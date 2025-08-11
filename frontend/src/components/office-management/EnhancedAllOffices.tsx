@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Users, TrendingUp, MapPin, Eye, Edit } from 'lucide-react';
 import { EnhancedDataTable, EnhancedColumnDef } from '../ui/enhanced-data-table';
@@ -12,53 +12,25 @@ import {
 } from '../ui/dropdown-menu';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { useToast } from '../ui/use-toast';
-
-interface Office {
-  id: string;
-  name: string;
-  total_fte: number;
-  journey: string;
-  roles: Record<string, Record<string, any>>;
-  economic_parameters?: {
-    cost_of_living: number;
-    market_multiplier: number;
-    tax_rate: number;
-  };
-}
+import { useOfficeStore } from '../../stores/officeStore';
+import { OfficeConfig } from '../../types/office';
 
 export const EnhancedAllOffices: React.FC = () => {
   const navigate = useNavigate();
-  const [offices, setOffices] = useState<Office[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Use the office store instead of local state
+  const { offices, loading, error, loadOffices } = useOfficeStore();
 
   useEffect(() => {
     loadOffices();
-  }, []);
+  }, [loadOffices]);
 
-  const loadOffices = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/offices');
-      if (!response.ok) throw new Error('Failed to fetch offices');
-      const data = await response.json();
-      setOffices(data);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load offices: ' + (error as Error).message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRowClick = (office: Office) => {
+  const handleRowClick = (office: OfficeConfig) => {
     navigate(`/offices/${office.id}`);
   };
 
-  const handleEdit = (office: Office) => {
+  const handleEdit = (office: OfficeConfig) => {
     navigate(`/offices/${office.id}/edit`);
   };
 
@@ -75,91 +47,93 @@ export const EnhancedAllOffices: React.FC = () => {
     }
   };
 
-  const getTotalRoles = (roles: Record<string, Record<string, any>>) => {
-    return Object.keys(roles).length;
-  };
 
-  const columns: EnhancedColumnDef<Office>[] = [
+  const columns: EnhancedColumnDef<OfficeConfig>[] = [
     {
-      key: 'name',
-      title: 'Office Name',
-      sortable: true,
-      render: (value: string, record: Office) => (
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Building2 className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <div className="font-medium text-foreground">{value}</div>
-            <div className="text-sm text-muted-foreground">
-              <MapPin className="inline h-3 w-3 mr-1" />
-              Office ID: {record.id}
+      accessorKey: 'name',
+      header: 'Office Name',
+      enableSorting: true,
+      cell: ({ getValue, row }) => {
+        const value = getValue<string>();
+        const record = row.original;
+        return (
+          <div className="flex items-center space-x-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="font-medium text-foreground">{value}</div>
+              <div className="text-sm text-muted-foreground">
+                <MapPin className="inline h-3 w-3 mr-1" />
+                Office ID: {record.id}
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      key: 'journey',
-      title: 'Journey Stage',
-      sortable: true,
-      render: (value: string) => (
-        <Badge variant={getJourneyVariant(value)}>{value}</Badge>
-      ),
+      accessorKey: 'journey',
+      header: 'Journey Stage',
+      enableSorting: true,
+      cell: ({ getValue }) => {
+        const value = getValue<string>();
+        return <Badge variant={getJourneyVariant(value)}>{value}</Badge>;
+      },
     },
     {
-      key: 'total_fte',
-      title: 'Total Headcount',
-      sortable: true,
-      render: (value: number) => (
-        <div className="flex items-center space-x-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{value} FTE</span>
-        </div>
-      ),
+      accessorKey: 'total_fte',
+      header: 'Total Headcount',
+      enableSorting: true,
+      cell: ({ getValue }) => {
+        const value = getValue<number>();
+        return (
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{value} FTE</span>
+          </div>
+        );
+      },
     },
     {
-      key: 'roles',
-      title: 'Role Types',
-      render: (roles: Record<string, Record<string, any>>) => (
-        <div className="text-sm text-muted-foreground">
-          {getTotalRoles(roles)} role types
-        </div>
-      ),
+      accessorKey: 'economic_parameters',
+      header: 'Economic Metrics',
+      cell: ({ getValue }) => {
+        const params = getValue<any>();
+        return (
+          <div className="space-y-1 text-sm">
+            <div>CoL: {params?.cost_of_living?.toFixed(2) || 'N/A'}</div>
+            <div>Market: {params?.market_multiplier?.toFixed(2) || 'N/A'}</div>
+          </div>
+        );
+      },
     },
     {
-      key: 'economic_parameters',
-      title: 'Economic Metrics',
-      render: (params: any) => (
-        <div className="space-y-1 text-sm">
-          <div>CoL: {params?.cost_of_living?.toFixed(2) || 'N/A'}</div>
-          <div>Market: {params?.market_multiplier?.toFixed(2) || 'N/A'}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      title: 'Actions',
-      width: '120px',
-      render: (_, record: Office) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              Actions
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate(`/offices/${record.id}`)}>
-              <Eye className="mr-2 h-4 w-4" />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEdit(record)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Office
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const record = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/offices/${record.id}`)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEdit(record)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Office
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
   ];
 
@@ -177,8 +151,34 @@ export const EnhancedAllOffices: React.FC = () => {
     </div>
   );
 
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error Loading Offices</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => loadOffices()}>Retry</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Debug Display */}
+      <div className="p-4 bg-gray-100 rounded">
+        <h3>Debug: Office Data</h3>
+        {offices.slice(0, 3).map(office => (
+          <div key={office.id}>
+            {office.name}: {office.total_fte || 0} FTE ({office.journey})
+          </div>
+        ))}
+      </div>
+      
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -226,19 +226,14 @@ export const EnhancedAllOffices: React.FC = () => {
         data={offices}
         columns={columns}
         loading={loading}
-        title="Office Management"
-        description="Manage your office locations and workforce data"
-        searchable
+        searchable={true}
         searchPlaceholder="Search offices..."
-        selectable={false}
+        searchColumn="name"
+        enableSelection={false}
         onRowClick={handleRowClick}
-        pagination
-        defaultPageSize={10}
-        pageSizeOptions={[5, 10, 25, 50]}
-        onRefresh={loadOffices}
-        actions={headerActions}
+        enablePagination={true}
+        pageSize={10}
         emptyMessage="No offices found. Add your first office to get started."
-        getRowKey={(record) => record.id}
       />
     </div>
   );

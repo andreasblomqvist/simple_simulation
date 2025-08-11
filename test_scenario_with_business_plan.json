@@ -1,0 +1,19 @@
+{
+  "scenario_definition": {
+    "name": "Oslo Business Plan Scenario",
+    "description": "Testing scenario with business plan ID",
+    "time_range": {
+      "start_month": 1,
+      "start_year": 2025,
+      "end_month": 12,
+      "end_year": 2025
+    },
+    "office_scope": ["Oslo"],
+    "levers": {
+      "recruitment": {},
+      "churn": {},
+      "progression": {}
+    },
+    "business_plan_id": "20ba0f6d-a238-4ab5-a7aa-488efa393797"
+  }
+}

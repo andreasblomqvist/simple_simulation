@@ -1,0 +1,24 @@
+{
+  "scenario_definition": {
+    "name": "Oslo Test Fixed",
+    "description": "Testing with correct office name case",
+    "time_range": {
+      "start_month": 1,
+      "start_year": 2025,
+      "end_month": 12,
+      "end_year": 2025
+    },
+    "office_scope": ["Oslo"],
+    "levers": {
+      "recruitment": {},
+      "churn": {},
+      "progression": {}
+    },
+    "baseline_input": {
+      "global": {
+        "recruitment": {},
+        "churn": {}
+      }
+    }
+  }
+}

@@ -64,6 +64,9 @@ class WorkforceManagerV2(WorkforceManagerInterface):
         self.progression_config = ProgressionConfiguration([6, 12])  # Default: June and December
         self.recruitment_config = RecruitmentConfiguration()
         self.level_progression_months = {}  # Will be loaded from config
+        
+        # Fractional accumulation for recruitment
+        self.recruitment_accumulator: Dict[str, float] = {}  # "office:role:level" -> accumulated fractional value
         self.random_seed: Optional[int] = None
         self.event_counter = 0
     
@@ -185,7 +188,7 @@ class WorkforceManagerV2(WorkforceManagerInterface):
         
         return events
     
-    def process_recruitment(self, targets: Dict[str, int], role: str, level: str, office: str, current_date: date) -> List[Person]:
+    def process_recruitment(self, targets: Dict[str, float], role: str, level: str, office: str, current_date: date) -> List[Person]:
         """
         Process recruitment for specific role/level
         
@@ -201,12 +204,26 @@ class WorkforceManagerV2(WorkforceManagerInterface):
         """
         new_people = []
         
-        target_count = targets.get(level, 0)
+        target_count = targets.get(level, 0.0)
         if target_count <= 0:
             return new_people
         
+        # Fractional accumulation for recruitment
+        accumulator_key = f"{office}:{role}:{level}"
+        current_accumulation = self.recruitment_accumulator.get(accumulator_key, 0.0)
+        
+        # Add this month's fractional target
+        total_accumulation = current_accumulation + target_count
+        
+        # Determine how many people to hire this month
+        people_to_hire = int(total_accumulation)  # Floor of accumulated value
+        remaining_fractional = total_accumulation - people_to_hire
+        
+        # Update accumulator with remaining fractional part
+        self.recruitment_accumulator[accumulator_key] = remaining_fractional
+        
         # Create new hires
-        for _ in range(target_count):
+        for _ in range(people_to_hire):
             person = self._create_new_hire(role, level, office, current_date)
             
             # Create hire event
@@ -215,6 +232,9 @@ class WorkforceManagerV2(WorkforceManagerInterface):
             
             new_people.append(person)
             logger.debug(f"Hired new person {person.id} as {role} {level} in {office}")
+        
+        if people_to_hire > 0:
+            logger.info(f"Recruited {people_to_hire} {role} {level} in {office} (target: {target_count}, accumulated: {total_accumulation:.2f}, remaining: {remaining_fractional:.2f})")
         
         return new_people
     

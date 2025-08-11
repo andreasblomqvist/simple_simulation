@@ -114,15 +114,8 @@ export class ScenarioService {
     progression_config: ProgressionConfig;
     cat_curves: CATCurves;
   }> {
-    try {
-      // Fetch from the progression config endpoint or use defaults
-      const response = await fetch('/api/config/progression');
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.warn('Could not fetch progression config from backend, using defaults:', error);
-    }
+    // Skip API fetch - always use defaults for now
+    console.log('Using default progression configuration (skipping API fetch)');
 
     // Default progression configuration (from backend/config/progression_config.py)
     const defaultProgressionConfig: ProgressionConfig = {
@@ -239,6 +232,13 @@ export class ScenarioService {
   static async buildScenarioDefinition(formData: ScenarioFormData): Promise<ScenarioDefinition> {
     const { scenario, baselineData, leversData } = formData;
     
+    // Extract business_plan_id - check both scenario and baselineData
+    const businessPlanId = scenario.business_plan_id || baselineData?.business_plan_id;
+    console.log('ScenarioService: Building scenario with baselineData:', baselineData);
+    console.log('ScenarioService: Scenario business_plan_id:', scenario.business_plan_id);
+    console.log('ScenarioService: BaselineData business_plan_id:', baselineData?.business_plan_id);
+    console.log('ScenarioService: Final businessPlanId:', businessPlanId);
+    
     // Ensure we have valid baseline input
     const baselineInput = baselineData || {
       global: {
@@ -264,15 +264,24 @@ export class ScenarioService {
       catCurves = catCurves || defaultProgression.cat_curves;
     }
 
-    return {
+    const scenarioDefinition: ScenarioDefinition = {
       ...scenario,
       description: scenario.description || 'No description provided',
-      baseline_input: baselineInput,
+      // baseline_input removed - V2 engine uses business plans instead
       levers,
       economic_params: scenario.economic_params || {},
       progression_config: progressionConfig,
       cat_curves: catCurves
-    } as ScenarioDefinition;
+    };
+
+    // Add business_plan_id if present
+    if (businessPlanId && businessPlanId !== 'none') {
+      console.log('ScenarioService: Adding business_plan_id to scenario:', businessPlanId);
+      scenarioDefinition.business_plan_id = businessPlanId;
+    }
+
+    console.log('ScenarioService: Final scenario definition:', scenarioDefinition);
+    return scenarioDefinition;
   }
 
   /**
@@ -385,7 +394,9 @@ export class ScenarioService {
     
     if (refs.baselineGridRef?.current?.getCurrentData) {
       const gridData = refs.baselineGridRef.current.getCurrentData();
-      if (gridData && gridData.global) {
+      console.log('ScenarioService: extractRefData got gridData:', gridData);
+      if (gridData) {
+        // Preserve the entire gridData object, including business_plan_id
         baselineData = gridData;
       }
     }

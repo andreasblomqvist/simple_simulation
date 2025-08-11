@@ -156,6 +156,7 @@ export interface ScenarioDefinition {
   progression_config?: ProgressionConfig;
   cat_curves?: CATCurves;
   baseline_input?: BaselineInput;
+  business_plan_id?: string; // ID of business plan to use as baseline
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
 }
@@ -287,6 +288,7 @@ export interface ScenarioListItem {
   updated_at: string;
   time_range: TimeRange;
   office_scope: OfficeScope;
+  business_plan_id?: string;
 }
 
 export interface ScenarioListResponse {

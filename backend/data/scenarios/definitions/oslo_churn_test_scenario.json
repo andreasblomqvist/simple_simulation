@@ -1,0 +1,71 @@
+{
+  "id": "oslo_churn_test_scenario",
+  "name": "Oslo Churn Test",
+  "description": "Test scenario for Oslo with churn values to verify churn functionality",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 12
+  },
+  "office_scope": ["Oslo"],
+  "levers": {
+    "recruitment": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "PiP": 1.0
+    },
+    "churn": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "PiP": 1.0
+    },
+    "progression": {
+      "A": 1.0,
+      "AC": 1.0,
+      "C": 1.0,
+      "SrC": 1.0,
+      "AM": 1.0,
+      "M": 1.0,
+      "SrM": 1.0,
+      "PiP": 1.0
+    }
+  },
+  "economic_params": {
+    "inflation_rate": 0.02,
+    "salary_growth_rate": 0.03,
+    "revenue_growth_rate": 0.05
+  },
+  "progression_config": {
+    "evaluation_months": [5, 11],
+    "progression_probabilities": {
+      "A": {"CAT6": 0.1, "CAT12": 0.3, "CAT18": 0.5, "CAT24": 0.8},
+      "AC": {"CAT6": 0.05, "CAT12": 0.2, "CAT18": 0.4, "CAT24": 0.7},
+      "C": {"CAT6": 0.02, "CAT12": 0.1, "CAT18": 0.3, "CAT24": 0.6},
+      "SrC": {"CAT6": 0.01, "CAT12": 0.05, "CAT18": 0.2, "CAT24": 0.4},
+      "AM": {"CAT6": 0.005, "CAT12": 0.02, "CAT18": 0.1, "CAT24": 0.3},
+      "M": {"CAT6": 0.002, "CAT12": 0.01, "CAT18": 0.05, "CAT24": 0.2},
+      "SrM": {"CAT6": 0.001, "CAT12": 0.005, "CAT18": 0.02, "CAT24": 0.1},
+      "PiP": {"CAT6": 0.0, "CAT12": 0.0, "CAT18": 0.0, "CAT24": 0.0}
+    }
+  },
+  "cat_curves": {
+    "CAT6": {"slope": 0.8, "intercept": 0.1},
+    "CAT12": {"slope": 0.85, "intercept": 0.15},
+    "CAT18": {"slope": 0.9, "intercept": 0.2},
+    "CAT24": {"slope": 0.95, "intercept": 0.25}
+  },
+  "business_plan_id": "oslo_with_churn_test",
+  "created_at": "2025-08-10T22:45:00.000000",
+  "updated_at": "2025-08-10T22:45:00.000000"
+}

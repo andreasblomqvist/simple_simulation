@@ -1,0 +1,50 @@
+{
+  "office_id": "Oslo",
+  "year": 2025,
+  "month": 1,
+  "entries": [
+    {
+      "role": "Consultant",
+      "level": "A",
+      "recruitment": 0.5,
+      "churn": 0.3,
+      "consultant_time": 160,
+      "planned_absence": 3,
+      "unplanned_absence": 6,
+      "vacation_withdrawal": 0,
+      "vacation": 13,
+      "invoiced_time": 130,
+      "average_price": 1360,
+      "client_loss": 0,
+      "education": 5000,
+      "external_representation": 2000,
+      "external_services": 8000,
+      "internal_representation": 1500,
+      "it_related_staff": 10000,
+      "office_related": 3000,
+      "office_rent": 25000,
+      "salary": 45000,
+      "variable_salary": 3000,
+      "social_security": 6000,
+      "other_expenses": 2000,
+      "pension": 2500
+    },
+    {
+      "role": "Consultant",
+      "level": "AC",
+      "recruitment": 0.3,
+      "churn": 0.2,
+      "consultant_time": 160,
+      "planned_absence": 3,
+      "unplanned_absence": 6,
+      "vacation_withdrawal": 0,
+      "vacation": 13,
+      "invoiced_time": 130,
+      "average_price": 1360,
+      "salary": 52000,
+      "variable_salary": 3500,
+      "social_security": 7000,
+      "pension": 3000
+    }
+  ]
+}

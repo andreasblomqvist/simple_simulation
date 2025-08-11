@@ -21,7 +21,8 @@ import {
   UserMinus,
   ArrowUpRight,
   Target,
-  Building2
+  Building2,
+  Calendar
 } from 'lucide-react';
 import { useBusinessPlanStore } from '../../stores/businessPlanStore';
 import { DataTableMinimal, MinimalColumnDef } from '../ui/data-table-minimal';
@@ -36,6 +37,12 @@ import {
   NON_BILLABLE_ROLES 
 } from '../../types/office';
 import { PlanningKPICards } from './PlanningKPICards';
+import { 
+  businessPlanningRegistry, 
+  BUSINESS_PLANNING_SECTIONS,
+  getFieldsForRole,
+  getFieldsByCategory 
+} from '../../config/business-planning-fields';
 
 interface ExpandablePlanningGridProps {
   office: OfficeConfig;
@@ -81,7 +88,14 @@ interface PlanningTableRow {
 const FIELD_CATEGORIES = {
   sales_metrics: {
     office_level: ['net_sales', 'ebitda', 'ebitda_margin'],
-    role_level: ['price', 'utr', 'hours']
+    role_level: [
+      // Basic pricing
+      'price', 'utr', 'hours',
+      // Detailed Net Sales breakdown
+      'consultant_time', 'planned_absence', 'unplanned_absence',
+      'vacation_withdrawal', 'vacation', 'available_consultant_time',
+      'invoiced_time', 'utilization_rate_percentage', 'average_price_hour'
+    ]
   },
   workforce_planning: {
     office_level: [],
@@ -94,10 +108,15 @@ const FIELD_CATEGORIES = {
       // Office & Operational Expenses  
       'office_rent', 'travel', 'external_representation', 'it_related', 
       'education', 'external_services', 'severance', 'depreciation',
+      // New Expense Fields
+      'client_loss', 'internal_representation', 'it_related_staff',
+      'office_related', 'other_expenses',
       // Total
       'total_operating_expenses'
     ],
     role_level: [
+      // Include variable salary at role level
+      'variable_salary',
       // Individual salary components per role/level
       'gross_salary', 'social_security', 'pension', 'bonus_provision', 'total_salary_cost'
     ]
@@ -338,6 +357,175 @@ const FIELD_CONFIG = {
     min: 0,
     step: 100
   },
+  // New expense fields
+  client_loss: {
+    label: 'Client Loss',
+    icon: DollarSign,
+    color: 'text-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-950/20',
+    type: 'input',
+    level: 'office',
+    min: 0,
+    step: 1000
+  },
+  internal_representation: {
+    label: 'Internal Representation',
+    icon: Users,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    type: 'input',
+    level: 'office',
+    min: 0,
+    step: 500
+  },
+  it_related_staff: {
+    label: 'IT Related (Staff)',
+    icon: Calculator,
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50 dark:bg-gray-950/20',
+    type: 'input',
+    level: 'office',
+    min: 0,
+    step: 1000
+  },
+  office_related: {
+    label: 'Office Related',
+    icon: Building2,
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
+    type: 'input',
+    level: 'office',
+    min: 0,
+    step: 500
+  },
+  other_expenses: {
+    label: 'Other',
+    icon: Calculator,
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50 dark:bg-gray-950/20',
+    type: 'input',
+    level: 'office',
+    min: 0,
+    step: 500
+  },
+  variable_salary: {
+    label: 'Variable Salary',
+    icon: DollarSign,
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    step: 1000,
+    applicableRoles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+  },
+  
+  // Net Sales detailed fields
+  consultant_time: {
+    label: 'Consultant Time',
+    icon: Clock,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    max: 200,
+    step: 1,
+    applicableRoles: ['Consultant']
+  },
+  planned_absence: {
+    label: 'Planned Absence',
+    icon: Calendar,
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    max: 100,
+    step: 1,
+    applicableRoles: ['Consultant']
+  },
+  unplanned_absence: {
+    label: 'Unplanned Absence',
+    icon: Clock,
+    color: 'text-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    max: 100,
+    step: 1,
+    applicableRoles: ['Consultant']
+  },
+  vacation_withdrawal: {
+    label: 'Vacation Withdrawal',
+    icon: Calendar,
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    max: 100,
+    step: 1,
+    applicableRoles: ['Consultant']
+  },
+  vacation: {
+    label: 'Vacation',
+    icon: Calendar,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    max: 100,
+    step: 1,
+    applicableRoles: ['Consultant']
+  },
+  available_consultant_time: {
+    label: 'Available Consultant Time',
+    icon: Clock,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+    type: 'calculated',
+    level: 'role_level',
+    formula: 'consultant_time - planned_absence - unplanned_absence - vacation_withdrawal - vacation',
+    dependencies: ['consultant_time', 'planned_absence', 'unplanned_absence', 'vacation_withdrawal', 'vacation'],
+    applicableRoles: ['Consultant']
+  },
+  invoiced_time: {
+    label: 'Invoiced Time',
+    icon: DollarSign,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    type: 'calculated',
+    level: 'role_level',
+    formula: 'available_consultant_time × utr',
+    dependencies: ['available_consultant_time', 'utr'],
+    applicableRoles: ['Consultant']
+  },
+  utilization_rate_percentage: {
+    label: 'Utilization Rate (%)',
+    icon: Target,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+    type: 'calculated',
+    level: 'role_level',
+    formula: '(invoiced_time ÷ available_consultant_time) × 100',
+    dependencies: ['invoiced_time', 'available_consultant_time'],
+    applicableRoles: ['Consultant']
+  },
+  average_price_hour: {
+    label: 'Average Price (hour)',
+    icon: DollarSign,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    type: 'input',
+    level: 'role_level',
+    min: 0,
+    step: 10,
+    applicableRoles: ['Consultant']
+  },
+  
   severance: {
     label: 'Severance',
     icon: Users,
@@ -464,8 +652,8 @@ const FIELD_CONFIG = {
     bgColor: 'bg-red-50 dark:bg-red-950/20',
     type: 'calculated',
     level: 'office',
-    formula: 'office_rent + travel + external_representation + it_related + education + external_services + severance + depreciation + total_salary_expenses',
-    dependencies: ['office_rent', 'travel', 'external_representation', 'it_related', 'education', 'external_services', 'severance', 'depreciation', 'total_salary_expenses']
+    formula: 'office_rent + travel + external_representation + it_related + education + external_services + severance + depreciation + client_loss + internal_representation + it_related_staff + office_related + other_expenses + total_salary_expenses',
+    dependencies: ['office_rent', 'travel', 'external_representation', 'it_related', 'education', 'external_services', 'severance', 'depreciation', 'client_loss', 'internal_representation', 'it_related_staff', 'office_related', 'other_expenses', 'total_salary_expenses']
   }
 }
 

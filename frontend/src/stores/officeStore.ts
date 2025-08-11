@@ -33,7 +33,7 @@ interface OfficeStoreState {
   getOfficeById: (officeId: string) => OfficeConfig | undefined;
 }
 
-const API_BASE = '/api/offices';
+const API_BASE = 'http://localhost:8000/offices';
 
 // Helper function to group offices by journey
 const groupOfficesByJourney = (offices: OfficeConfig[]): Record<OfficeJourney, OfficeConfig[]> => {
@@ -71,19 +71,45 @@ export const useOfficeStore = create<OfficeStoreState>()(
 
       // Load all offices
       loadOffices: async () => {
-        console.log('🏢 Loading offices from:', API_BASE);
+        console.log('🏢 Loading offices...');
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(API_BASE);
-          console.log('🏢 Response status:', response.status, response.statusText);
+          // Use the /offices/all endpoint which returns offices with FTE data directly
+          const response = await fetch('http://localhost:8000/offices/all');
           if (!response.ok) {
             throw new Error(`Failed to load offices: ${response.statusText}`);
           }
           
-          const offices: OfficeConfig[] = await response.json();
-          console.log('🏢 Loaded offices:', offices.length, 'offices');
-          console.log('🏢 First office:', offices[0]?.name);
+          const officesData = await response.json();
+          const offices: OfficeConfig[] = officesData.map((officeData: any) => {
+            // The /all endpoint returns total_fte directly, but we need to add snapshots structure
+            // for compatibility with detailed office views
+            return {
+              ...officeData,
+              snapshots: officeData.snapshots || [{
+                id: 'default',
+                name: `${officeData.name} - Current`,
+                snapshot_date: new Date().toISOString(),
+                description: 'Current workforce baseline',
+                total_fte: officeData.total_fte,
+                created_at: new Date().toISOString(),
+                is_default: true
+              }],
+              business_plans: officeData.business_plans || [{
+                id: 'default',
+                name: `${officeData.name} - Current Plan`,
+                plan_date: new Date().toISOString(),
+                description: 'Current business plan',
+                created_at: new Date().toISOString(),
+                is_active: true
+              }],
+              current_snapshot_id: officeData.current_snapshot_id || 'default',
+              active_business_plan_id: officeData.active_business_plan_id || 'default'
+            };
+          });
+          
+          console.log('🏢 Successfully loaded', offices.length, 'offices');
           const officesByJourney = groupOfficesByJourney(offices);
           
           set({ 
@@ -118,7 +144,19 @@ export const useOfficeStore = create<OfficeStoreState>()(
             throw new Error(`Office not found: ${response.statusText}`);
           }
           
-          const fetchedOffice: OfficeConfig = await response.json();
+          const officeData = await response.json();
+          
+          // Extract total_fte from snapshots if available, otherwise default to 0
+          const totalFte = officeData.snapshots && officeData.snapshots.length > 0 
+            ? officeData.snapshots[0].total_fte 
+            : 0;
+          
+          // Add the total_fte property to the office object for frontend compatibility
+          const fetchedOffice: OfficeConfig = {
+            ...officeData,
+            total_fte: totalFte
+          };
+          
           set({ 
             currentOffice: fetchedOffice,
             loading: false 

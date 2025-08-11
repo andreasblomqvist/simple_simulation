@@ -1,0 +1,95 @@
+# Page snapshot
+
+```yaml
+- text: SimpleSim Workforce Planning
+- button
+- navigation:
+  - link "Dashboard Overview and key metrics":
+    - /url: /
+  - link "Scenarios Scenario management and comparison":
+    - /url: /scenarios
+  - link "Business Planning Workforce and financial planning":
+    - /url: /business-planning
+  - link "Offices Office management and configuration":
+    - /url: /offices
+  - link "Simulation Lab Advanced simulation experiments":
+    - /url: /simulation-lab
+  - link "Settings Application settings and configuration":
+    - /url: /settings
+- text: Version 2.0.0 © 2024 SimpleSim
+- banner:
+  - textbox "Search scenarios, offices, plans..."
+  - button
+  - button "Admin User"
+- main:
+  - heading "Dashboard" [level=1]
+  - paragraph: Welcome back! Here's an overview of your workforce simulation activity.
+  - region:
+    - heading "Total Offices" [level=3]
+    - text: "12"
+    - paragraph: +9.1% from last month
+    - heading "Active Scenarios" [level=3]
+    - text: "5"
+    - paragraph: +66.7% from last month
+    - heading "Completed Simulations" [level=3]
+    - text: "23"
+    - paragraph: +27.8% from last month
+    - heading "Total Workforce" [level=3]
+    - text: 1.2K
+    - paragraph: +4.9% from last month
+  - region:
+    - heading "Quick Actions" [level=3]
+    - paragraph: Get started with common workforce simulation tasks
+    - link "Create Scenario Start a new workforce simulation":
+      - /url: /scenarios
+      - heading "Create Scenario" [level=3]
+      - paragraph: Start a new workforce simulation
+    - link "Manage Offices Configure office settings":
+      - /url: /offices
+      - heading "Manage Offices" [level=3]
+      - paragraph: Configure office settings
+    - link "View Reports Analyze simulation results":
+      - /url: /reports
+      - heading "View Reports" [level=3]
+      - paragraph: Analyze simulation results
+    - link "Settings Configure platform settings":
+      - /url: /settings
+      - heading "Settings" [level=3]
+      - paragraph: Configure platform settings
+    - heading "Recent Activity" [level=3]
+    - paragraph: Latest scenarios and simulations
+    - paragraph: Q4 Growth Analysis
+    - text: completed
+    - paragraph: Stockholm
+    - text: 2 days ago
+    - paragraph: Recruitment Optimization
+    - text: running
+    - paragraph: Munich
+    - text: 1 week ago Progress 65%
+    - progressbar
+    - paragraph: Cost Reduction Study
+    - text: draft
+    - paragraph: All Offices
+    - text: 3 days ago
+    - paragraph: Remote Work Impact
+    - text: completed
+    - paragraph: London
+    - text: 1 week ago
+    - link "View All Scenarios":
+      - /url: /scenarios
+      - button "View All Scenarios"
+  - region:
+    - heading "System Overview" [level=3]
+    - paragraph: Current status across all offices and scenarios
+    - paragraph: Active Simulations
+    - paragraph: "3"
+    - text: Running smoothly
+    - paragraph: Processing Queue
+    - paragraph: "0"
+    - text: All clear
+    - paragraph: System Health
+    - paragraph: Excellent
+    - text: All systems operational
+- region "Notifications (F8)":
+  - list
+```

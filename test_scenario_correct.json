@@ -1,0 +1,17 @@
+{
+  "scenario_definition": {
+    "name": "Test Debug Scenario",
+    "description": "Testing scenario execution",
+    "time_range": {
+      "start_month": 1,
+      "start_year": 2025,
+      "end_month": 12,
+      "end_year": 2025
+    },
+    "office_scope": ["Stockholm"],
+    "levers": {
+      "recruitment": {},
+      "churn": {}
+    }
+  }
+}

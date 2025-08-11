@@ -1,0 +1,30 @@
+{
+  "id": "0879498d-eb0b-432b-aaf4-8fa31f5b94b7",
+  "name": "Test Fix",
+  "description": "Test transformation fix",
+  "time_range": {
+    "start_year": 2025,
+    "start_month": 1,
+    "end_year": 2025,
+    "end_month": 3
+  },
+  "office_scope": [
+    "Oslo"
+  ],
+  "levers": {
+    "recruitment": {},
+    "churn": {},
+    "progression": {}
+  },
+  "economic_params": {
+    "working_hours_per_month": 160.0,
+    "employment_cost_rate": 0.3,
+    "unplanned_absence": 0.05,
+    "other_expense": 1000000.0
+  },
+  "progression_config": null,
+  "cat_curves": null,
+  "business_plan_id": "20ba0f6d-a238-4ab5-a7aa-488efa393797",
+  "created_at": "2025-08-10 20:23:27.477707",
+  "updated_at": "2025-08-10T20:23:27.547990"
+}

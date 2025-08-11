@@ -1,0 +1,416 @@
+{
+  "scenario_id": "e4eda4ee-fb63-420e-9dc2-5bd45169cf14",
+  "saved_at": "2025-08-10T22:12:53.447175",
+  "results": {
+    "years": {
+      "2025": {
+        "offices": {
+          "Oslo": {
+            "roles": {
+              "Consultant": {
+                "months": [
+                  {
+                    "fte": 0,
+                    "price": 0.0,
+                    "salary": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  }
+                ]
+              },
+              "Sales": {
+                "months": [
+                  {
+                    "fte": 0,
+                    "price": 0.0,
+                    "salary": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  }
+                ]
+              },
+              "Recruitment": {
+                "months": [
+                  {
+                    "fte": 0,
+                    "price": 0.0,
+                    "salary": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  }
+                ]
+              },
+              "Operations": {
+                "months": [
+                  {
+                    "fte": 5,
+                    "price": 0.0,
+                    "salary": 0.0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  },
+                  {
+                    "fte": 0,
+                    "price": 0,
+                    "salary": 0,
+                    "recruitment": 0,
+                    "churn": 0,
+                    "progression": 0
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

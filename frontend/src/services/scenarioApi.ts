@@ -19,6 +19,7 @@ import type {
 } from '../types/unified-data-structures';
 
 const API_BASE = 'http://localhost:8000/scenarios';
+const API_BASE_V2 = 'http://localhost:8000/api/v2/scenarios';
 
 class ScenarioApiService {
   private correlationId: string | null = null;
@@ -137,10 +138,12 @@ class ScenarioApiService {
       console.warn('Validation endpoint not available, skipping validation');
     }
 
+    console.log('ScenarioAPI: Creating scenario with data:', JSON.stringify(scenario, null, 2));
     const response = await this.request<{scenario_id: string}>('/create', {
       method: 'POST',
       body: JSON.stringify(scenario),
     });
+    console.log('ScenarioAPI: Created scenario with ID:', response.scenario_id);
     return response.scenario_id;
   }
 
@@ -212,7 +215,7 @@ class ScenarioApiService {
       scenario_definition: scenario,
       office_scope: officeScope,
     };
-    console.log('DEBUG: Sending scenario request to API:', JSON.stringify(request, null, 2));
+    console.log('DEBUG: Sending scenario request to API (with business_plan_id):', JSON.stringify(request, null, 2));
     return this.runScenario(request);
   }
 
@@ -254,24 +257,31 @@ class ScenarioApiService {
    */
   async getAvailableOffices(): Promise<OfficeName[]> {
     try {
-      const response = await fetch('http://localhost:8000/offices');
-      const offices = await response.json();
-      return offices.map((office: any) => office.name);
+      // Get office names from the health endpoint which we know works
+      const response = await fetch('http://localhost:8000/health');
+      const healthData = await response.json();
+      
+      if (healthData.office_names && Array.isArray(healthData.office_names)) {
+        return [...healthData.office_names, 'Group']; // Add Group option
+      }
+      
+      throw new Error('No office_names in health response');
     } catch (error) {
       console.warn('Failed to fetch offices from API, using fallback list:', error);
-      // Fallback to hardcoded list
+      // Fallback to hardcoded list with correct capitalization
       return [
         'Stockholm',
         'Munich',
-        'Amsterdam',
-        'Berlin',
-        'Copenhagen',
-        'Frankfurt',
-        'Hamburg',
+        'Hamburg', 
         'Helsinki',
         'Oslo',
+        'Berlin',
+        'Copenhagen',
         'Zurich',
-        'Colombia',
+        'Frankfurt',
+        'Amsterdam',
+        'Cologne',
+        'Toronto',
         'Group'
       ];
     }

@@ -176,10 +176,11 @@ class ScenarioDefinition(BaseModel):
     economic_params: EconomicParameters = Field(default_factory=EconomicParameters)
     progression_config: Optional[ProgressionConfig] = Field(None, description="Custom progression configuration")
     cat_curves: Optional[CATCurves] = Field(None, description="Custom CAT curves")
-    baseline_input: BaselineInput = Field(..., description="Baseline recruitment and churn data")
+    business_plan_id: Optional[str] = Field(None, description="Business plan ID to use as baseline")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
+    # baseline_input removed - V2 engine uses business plans instead
     model_config = ConfigDict(populate_by_name=True)
 
 

@@ -93,14 +93,22 @@ class ScenarioResolver:
         """Apply baseline input to set absolute recruitment/churn values with exact distribution."""
         config = copy.deepcopy(base_config)
         baseline_input = scenario_data.get('baseline_input', {})
+        business_plan_id = scenario_data.get('business_plan_id')
         
-        logger.info(f"[DEBUG] _apply_baseline_input called with baseline_input: {baseline_input is not None}")
+        logger.info(f"[DEBUG] _apply_baseline_input called with baseline_input: {baseline_input is not None}, business_plan_id: {business_plan_id}")
+        
+        # If no baseline_input but we have a business_plan_id, fetch from business plan
+        if not baseline_input and business_plan_id:
+            logger.info(f"[DEBUG] Fetching baseline from business plan: {business_plan_id}")
+            baseline_input = self._fetch_baseline_from_business_plan(business_plan_id, scenario_data)
+        
         if baseline_input:
             logger.info(f"[DEBUG] baseline_input keys: {list(baseline_input.keys())}")
         
         if not baseline_input:
-            logger.info("[DEBUG] No baseline_input provided, returning config unchanged")
-            return config
+            logger.info("[DEBUG] No baseline_input provided and no business plan, using default baseline")
+            # Generate a default baseline with reasonable values
+            baseline_input = self._generate_default_baseline(scenario_data)
         
         # Apply exact distribution to preserve total FTE
         config = self._apply_exact_distribution(config, baseline_input, scenario_data.get('time_range'))
@@ -795,4 +803,109 @@ class ScenarioResolver:
         if hasattr(levers, 'model_dump'):
             levers = levers.model_dump()
         
-        return self._adjust_cat_curves_by_levers(cat_curves, levers) 
+        return self._adjust_cat_curves_by_levers(cat_curves, levers)
+    
+    def _fetch_baseline_from_business_plan(self, business_plan_id: str, scenario_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch baseline data from business plan storage."""
+        try:
+            from .business_plan_storage import business_plan_storage
+            
+            # Extract office scope and time range from scenario
+            office_scope = scenario_data.get('office_scope', [])
+            time_range = scenario_data.get('time_range', {})
+            
+            # Get time range details
+            if hasattr(time_range, 'get'):
+                start_year = time_range.get('start_year', 2025)
+                start_month = time_range.get('start_month', 1)
+                end_year = time_range.get('end_year', 2025)
+                end_month = time_range.get('end_month', 12)
+            else:
+                # Pydantic model
+                start_year = time_range.start_year
+                start_month = time_range.start_month
+                end_year = time_range.end_year
+                end_month = time_range.end_month
+            
+            # For now, use the first year of the time range for business plan
+            # In future, could aggregate across multiple years
+            year = start_year
+            
+            # If multiple offices, get aggregated plan
+            if len(office_scope) > 1 or 'Group' in office_scope:
+                baseline = business_plan_storage.export_aggregated_as_simulation_baseline(
+                    year=year,
+                    office_ids=None if 'Group' in office_scope else office_scope,
+                    start_month=start_month,
+                    end_month=min(end_month, 12) if year == start_year else 12
+                )
+            else:
+                # Single office
+                office_id = office_scope[0] if office_scope else 'Stockholm'
+                baseline = business_plan_storage.export_as_simulation_baseline(
+                    office_id=office_id,
+                    year=year,
+                    start_month=start_month,
+                    end_month=min(end_month, 12) if year == start_year else 12
+                )
+            
+            logger.info(f"[DEBUG] Successfully fetched baseline from business plan {business_plan_id}")
+            return baseline
+            
+        except Exception as e:
+            logger.error(f"[DEBUG] Failed to fetch baseline from business plan: {e}")
+            return {}
+    
+    def _generate_default_baseline(self, scenario_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a default baseline with reasonable values for all offices."""
+        time_range = scenario_data.get('time_range', {})
+        
+        # Get time range details
+        if hasattr(time_range, 'get'):
+            start_year = time_range.get('start_year', 2025)
+            start_month = time_range.get('start_month', 1)
+        else:
+            # Pydantic model
+            start_year = time_range.start_year if hasattr(time_range, 'start_year') else 2025
+            start_month = time_range.start_month if hasattr(time_range, 'start_month') else 1
+        
+        # Create a default baseline with typical values
+        month_str = f"{start_year}{start_month:02d}"
+        
+        default_baseline = {
+            "global": {
+                "recruitment": {
+                    "Consultant": {
+                        "levels": {
+                            "A": {"recruitment": {"values": {month_str: 10.0}}, "churn": {"values": {month_str: 2.0}}},
+                            "AC": {"recruitment": {"values": {month_str: 5.0}}, "churn": {"values": {month_str: 3.0}}},
+                            "C": {"recruitment": {"values": {month_str: 3.0}}, "churn": {"values": {month_str: 4.0}}},
+                            "SrC": {"recruitment": {"values": {month_str: 1.0}}, "churn": {"values": {month_str: 3.0}}},
+                            "AM": {"recruitment": {"values": {month_str: 1.0}}, "churn": {"values": {month_str: 2.0}}},
+                            "M": {"recruitment": {"values": {month_str: 0.5}}, "churn": {"values": {month_str: 1.0}}},
+                            "SrM": {"recruitment": {"values": {month_str: 0.2}}, "churn": {"values": {month_str: 0.5}}},
+                            "Pi": {"recruitment": {"values": {month_str: 0.1}}, "churn": {"values": {month_str: 0.2}}},
+                            "P": {"recruitment": {"values": {month_str: 0.1}}, "churn": {"values": {month_str: 0.1}}}
+                        }
+                    }
+                },
+                "churn": {
+                    "Consultant": {
+                        "levels": {
+                            "A": {"recruitment": {"values": {month_str: 10.0}}, "churn": {"values": {month_str: 2.0}}},
+                            "AC": {"recruitment": {"values": {month_str: 5.0}}, "churn": {"values": {month_str: 3.0}}},
+                            "C": {"recruitment": {"values": {month_str: 3.0}}, "churn": {"values": {month_str: 4.0}}},
+                            "SrC": {"recruitment": {"values": {month_str: 1.0}}, "churn": {"values": {month_str: 3.0}}},
+                            "AM": {"recruitment": {"values": {month_str: 1.0}}, "churn": {"values": {month_str: 2.0}}},
+                            "M": {"recruitment": {"values": {month_str: 0.5}}, "churn": {"values": {month_str: 1.0}}},
+                            "SrM": {"recruitment": {"values": {month_str: 0.2}}, "churn": {"values": {month_str: 0.5}}},
+                            "Pi": {"recruitment": {"values": {month_str: 0.1}}, "churn": {"values": {month_str: 0.2}}},
+                            "P": {"recruitment": {"values": {month_str: 0.1}}, "churn": {"values": {month_str: 0.1}}}
+                        }
+                    }
+                }
+            }
+        }
+        
+        logger.info("[DEBUG] Generated default baseline with reasonable values")
+        return default_baseline 

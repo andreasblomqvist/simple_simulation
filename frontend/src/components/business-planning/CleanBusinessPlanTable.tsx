@@ -27,6 +27,7 @@ interface TableRow {
   depth: number;
   isEditable: boolean;
   isCalculated: boolean;
+  isSubtotal?: boolean;
   
   // Data for leaf nodes
   fieldKey?: string;
@@ -77,39 +78,165 @@ const TABLE_STRUCTURE = [
     type: 'category' as RowType,
     fields: [
       {
+        id: 'starting_fte',
+        name: 'Starting FTE (Population)',
+        fieldKey: 'starting_fte',
+        hasRoles: true,
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      {
         id: 'recruitment',
-        name: 'Recruitment',
+        name: 'Recruitment (+)',
         fieldKey: 'recruitment',
         hasRoles: true,
         roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
       },
       {
         id: 'churn',
-        name: 'Churn',
+        name: 'Churn (-)',
         fieldKey: 'churn',
         hasRoles: true,
         roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      {
+        id: 'ending_fte',
+        name: 'Ending FTE',
+        fieldKey: 'ending_fte',
+        hasRoles: true,
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations'],
+        isCalculated: true
+      },
+      // Category subtotals
+      {
+        id: 'total_workforce',
+        name: '🔢 Total Workforce',
+        fieldKey: 'total_workforce',
+        hasRoles: false,
+        isCalculated: true,
+        isSubtotal: true
       }
     ]
   },
   {
-    id: 'revenue',
-    name: '💰 REVENUE',
+    id: 'net_sales',
+    name: '⏱️ NET SALES',
     type: 'category' as RowType,
     fields: [
       {
-        id: 'price',
-        name: 'Price (€/h)',
-        fieldKey: 'price',
-        hasRoles: true,
-        roles: ['Consultant'] // Only consultants have pricing
+        id: 'consultant_time',
+        name: 'Consultant Time',
+        fieldKey: 'consultant_time',
+        hasRoles: false,
+        defaultValue: 160
       },
       {
-        id: 'utr',
+        id: 'planned_absence',
+        name: 'Planned Absence',
+        fieldKey: 'planned_absence',
+        hasRoles: false,
+        defaultValue: 20
+      },
+      {
+        id: 'unplanned_absence',
+        name: 'Unplanned Absence',
+        fieldKey: 'unplanned_absence',
+        hasRoles: false,
+        defaultValue: 10
+      },
+      {
+        id: 'vacation_withdrawal',
+        name: 'Vacation Withdrawal',
+        fieldKey: 'vacation_withdrawal',
+        hasRoles: false,
+        defaultValue: 0
+      },
+      {
+        id: 'vacation',
+        name: 'Vacation',
+        fieldKey: 'vacation',
+        hasRoles: false,
+        defaultValue: 16
+      },
+      {
+        id: 'available_consultant_time',
+        name: 'Available Consultant Time',
+        fieldKey: 'available_consultant_time',
+        hasRoles: false,
+        isCalculated: true
+      },
+      {
+        id: 'invoiced_time',
+        name: 'Invoiced Time',
+        fieldKey: 'invoiced_time',
+        hasRoles: false,
+        defaultValue: 110
+      },
+      {
+        id: 'utilization_rate',
         name: 'Utilization Rate (%)',
-        fieldKey: 'utr',
+        fieldKey: 'utilization_rate',
+        hasRoles: false,
+        defaultValue: 0.85
+      },
+      {
+        id: 'average_price',
+        name: 'Average Price (hour)',
+        fieldKey: 'average_price',
+        hasRoles: false,
+        defaultValue: 1200
+      },
+      // Category subtotal
+      {
+        id: 'total_net_sales',
+        name: '💰 Total Net Sales',
+        fieldKey: 'total_net_sales',
+        hasRoles: false,
+        isCalculated: true,
+        isSubtotal: true
+      }
+    ]
+  },
+  {
+    id: 'salary',
+    name: '💰 SALARY',
+    type: 'category' as RowType,
+    fields: [
+      {
+        id: 'salary',
+        name: 'Base Salary',
+        fieldKey: 'salary',
         hasRoles: true,
-        roles: ['Consultant'] // Only consultants have utilization
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      {
+        id: 'variable_salary',
+        name: 'Variable Salary',
+        fieldKey: 'variable_salary',
+        hasRoles: true,
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      {
+        id: 'social_security',
+        name: 'Social Security',
+        fieldKey: 'social_security',
+        hasRoles: true,
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      {
+        id: 'pension',
+        name: 'Pension',
+        fieldKey: 'pension',
+        hasRoles: true,
+        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+      },
+      // Category subtotal
+      {
+        id: 'total_salary_costs',
+        name: '👥 Total Salary Costs',
+        fieldKey: 'total_salary_costs',
+        hasRoles: false,
+        isCalculated: true,
+        isSubtotal: true
       }
     ]
   },
@@ -118,33 +245,86 @@ const TABLE_STRUCTURE = [
     name: '💸 OPERATING COSTS',
     type: 'category' as RowType,
     fields: [
+      // Expenses Category
+      {
+        id: 'client_loss',
+        name: 'Client Loss',
+        fieldKey: 'client_loss',
+        hasRoles: false,
+        defaultValue: 0
+      },
+      {
+        id: 'education',
+        name: 'Education',
+        fieldKey: 'education',
+        hasRoles: false,
+        defaultValue: 10000
+      },
+      {
+        id: 'external_representation',
+        name: 'External Representation',
+        fieldKey: 'external_representation',
+        hasRoles: false,
+        defaultValue: 5000
+      },
+      {
+        id: 'external_services',
+        name: 'External Services',
+        fieldKey: 'external_services',
+        hasRoles: false,
+        defaultValue: 15000
+      },
+      {
+        id: 'internal_representation',
+        name: 'Internal Representation',
+        fieldKey: 'internal_representation',
+        hasRoles: false,
+        defaultValue: 3000
+      },
+      {
+        id: 'it_related_staff',
+        name: 'IT Related (Staff)',
+        fieldKey: 'it_related_staff',
+        hasRoles: false,
+        defaultValue: 20000
+      },
+      {
+        id: 'office_related',
+        name: 'Office Related',
+        fieldKey: 'office_related',
+        hasRoles: false,
+        defaultValue: 5000
+      },
       {
         id: 'office_rent',
         name: 'Office Rent',
         fieldKey: 'office_rent',
-        hasRoles: false, // Office-level field
+        hasRoles: false,
         defaultValue: 50000
       },
       {
-        id: 'it_services',
-        name: 'IT Services',
-        fieldKey: 'it_services',
-        hasRoles: false, // Office-level field
-        defaultValue: 8000
-      },
-      {
-        id: 'travel',
-        name: 'Travel',
-        fieldKey: 'travel',
-        hasRoles: false, // Office-level field
+        id: 'other_expenses',
+        name: 'Other',
+        fieldKey: 'other_expenses',
+        hasRoles: false,
         defaultValue: 5000
       },
+      // Category subtotal
       {
-        id: 'salary',
-        name: 'Salaries',
-        fieldKey: 'salary',
-        hasRoles: true,
-        roles: ['Consultant', 'Sales', 'Recruitment', 'Operations']
+        id: 'total_expenses',
+        name: '💸 Total Expenses',
+        fieldKey: 'total_expenses',
+        hasRoles: false,
+        isCalculated: true,
+        isSubtotal: true
+      },
+      {
+        id: 'total_operating_costs',
+        name: '💰 Total Operating Costs',
+        fieldKey: 'total_operating_costs',
+        hasRoles: false,
+        isCalculated: true,
+        isSubtotal: true
       }
     ]
   },
@@ -157,6 +337,13 @@ const TABLE_STRUCTURE = [
         id: 'total_revenue',
         name: 'Total Revenue',
         fieldKey: 'total_revenue',
+        hasRoles: false,
+        isCalculated: true
+      },
+      {
+        id: 'total_salary_cost',
+        name: 'Total Salary Cost',
+        fieldKey: 'total_salary_cost',
         hasRoles: false,
         isCalculated: true
       },
@@ -187,9 +374,9 @@ const TABLE_STRUCTURE = [
 
 // Role levels configuration
 const ROLE_LEVELS: Record<string, string[]> = {
-  Consultant: ['A', 'AC', 'AM', 'P'],
-  Sales: ['A', 'AC', 'AM', 'P'],
-  Recruitment: ['A', 'AC', 'AM', 'P'],
+  Consultant: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'],
+  Sales: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'],
+  Recruitment: ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'],
   Operations: ['General'] // Flat role
 };
 
@@ -212,7 +399,7 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
     updateMonthlyPlan
   } = useBusinessPlanStore();
 
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['workforce', 'revenue', 'costs', 'summary']));
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['workforce', 'net_sales', 'salary', 'costs', 'summary']));
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [localChanges, setLocalChanges] = useState<Map<string, number>>(new Map());
 
@@ -278,56 +465,590 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
     const planKey = `${role}-${level}-${month}`;
     const planEntry = planDataMap.get(planKey);
     
-    if (planEntry && field in planEntry) {
-      return (planEntry as any)[field] || 0;
+    if (planEntry) {
+      // Check for exact field match first
+      if (field in planEntry && (planEntry as any)[field] !== undefined) {
+        const value = (planEntry as any)[field];
+        // For salary-related fields, only return non-zero values (0 means "use default")
+        if (['salary', 'variable_salary', 'social_security', 'pension'].includes(field) && value === 0) {
+          // Fall through to default values
+        } else {
+          return value;
+        }
+      }
+      
+      // Check for legacy field mappings for backward compatibility
+      if (field === 'utilization_rate' && 'utr' in planEntry && (planEntry as any).utr !== undefined) {
+        return (planEntry as any).utr;
+      }
+      if (field === 'average_price' && 'price' in planEntry && (planEntry as any).price !== undefined) {
+        return (planEntry as any).price;
+      }
     }
     
-    // Default values
+    // Default values for starting FTE based on Oslo office data
+    if (field === 'starting_fte') {
+      // Get starting FTE from office configuration for Oslo
+      // Total: 85 consultants (not 96 - that was total with other roles)
+      if (role === 'Consultant') {
+        const osloConsultantFTE: Record<string, number> = {
+          'A': 5,
+          'AC': 10,
+          'C': 20,
+          'SrC': 18,
+          'AM': 18,
+          'M': 9,
+          'SrM': 4,
+          'Pi': 1,
+          'P': 0
+        };
+        return osloConsultantFTE[level] || 0;
+      }
+      if (role === 'Sales') {
+        // Estimated based on typical distribution
+        const salesFTE: Record<string, number> = {
+          'A': 2,
+          'AC': 2,
+          'C': 2,
+          'SrC': 1,
+          'AM': 1,
+          'M': 1,
+          'SrM': 0,
+          'Pi': 0,
+          'P': 0
+        };
+        return salesFTE[level] || 0;
+      }
+      if (role === 'Recruitment') {
+        const recruitmentFTE: Record<string, number> = {
+          'A': 1,
+          'AC': 1,
+          'C': 1,
+          'SrC': 1,
+          'AM': 0,
+          'M': 0,
+          'SrM': 0,
+          'Pi': 0,
+          'P': 0
+        };
+        return recruitmentFTE[level] || 0;
+      }
+      if (role === 'Operations') {
+        return 1; // Operations General
+      }
+      return 0;
+    }
+    
+    // Calculate ending FTE
+    if (field === 'ending_fte') {
+      const starting = getValue(role, level, month, 'starting_fte');
+      const recruitment = getValue(role, level, month, 'recruitment');
+      const churn = getValue(role, level, month, 'churn');
+      return Math.max(0, starting + recruitment - churn);
+    }
+    
+    // Other default values
     if (field === 'price') return 1200;
     if (field === 'utr') return 0.75;
-    if (field === 'salary') return 65000;
+    if (field === 'salary') {
+      // Use 2025 Oslo BASE salary ladder as default values - same for Consultant, Sales, and Recruitment
+      const oslo2025BaseSalaries: Record<string, Record<string, number>> = {
+        'Consultant': {
+          'A': 640000 / 12,      // 53,333/month base
+          'AC': 670000 / 12,     // 55,833/month base
+          'C': 750000 / 12,      // 62,500/month base
+          'SrC': 800000 / 12,    // 66,667/month base
+          'AM': 860000 / 12,     // 71,667/month base
+          'M': 920000 / 12,      // 76,667/month base
+          'SrM': 1050000 / 12,   // 87,500/month base
+          'Pi': 1240000 / 12,    // 103,333/month base
+          'P': 1548000 / 12      // 129,000/month base
+        },
+        'Sales': {
+          // Same base salary structure as Consultant
+          'A': 640000 / 12,      
+          'AC': 670000 / 12,     
+          'C': 750000 / 12,      
+          'SrC': 800000 / 12,    
+          'AM': 860000 / 12,     
+          'M': 920000 / 12,     
+          'SrM': 1050000 / 12,
+          'Pi': 1240000 / 12,
+          'P': 1548000 / 12
+        },
+        'Recruitment': {
+          // Same base salary structure as Consultant
+          'A': 640000 / 12,      
+          'AC': 670000 / 12,     
+          'C': 750000 / 12,      
+          'SrC': 800000 / 12,    
+          'AM': 860000 / 12,     
+          'M': 920000 / 12,     
+          'SrM': 1050000 / 12,
+          'Pi': 1240000 / 12,
+          'P': 1548000 / 12
+        },
+        'Operations': { 'General': 640000 / 12 }
+      };
+      return oslo2025BaseSalaries[role]?.[level] || (640000 / 12);
+    }
+    if (field === 'variable_salary') {
+      // Use 2025 Oslo VARIABLE salary ladder as default values - same for Consultant, Sales, and Recruitment
+      const oslo2025VariableSalaries: Record<string, Record<string, number>> = {
+        'Consultant': {
+          'A': 0 / 12,           // 0/month variable
+          'AC': 20000 / 12,      // 1,667/month variable
+          'C': 50000 / 12,       // 4,167/month variable
+          'SrC': 80000 / 12,     // 6,667/month variable
+          'AM': 120000 / 12,     // 10,000/month variable
+          'M': 170000 / 12,      // 14,167/month variable
+          'SrM': 250000 / 12,    // 20,833/month variable
+          'Pi': 330000 / 12,     // 27,500/month variable
+          'P': 408000 / 12       // 34,000/month variable
+        },
+        'Sales': {
+          // Same variable salary structure as Consultant
+          'A': 0 / 12,
+          'AC': 20000 / 12,
+          'C': 50000 / 12,
+          'SrC': 80000 / 12,
+          'AM': 120000 / 12,
+          'M': 170000 / 12,
+          'SrM': 250000 / 12,
+          'Pi': 330000 / 12,
+          'P': 408000 / 12
+        },
+        'Recruitment': {
+          // Same variable salary structure as Consultant
+          'A': 0 / 12,
+          'AC': 20000 / 12,
+          'C': 50000 / 12,
+          'SrC': 80000 / 12,
+          'AM': 120000 / 12,
+          'M': 170000 / 12,
+          'SrM': 250000 / 12,
+          'Pi': 330000 / 12,
+          'P': 408000 / 12
+        },
+        'Operations': { 'General': 0 / 12 } // No variable for operations
+      };
+      return oslo2025VariableSalaries[role]?.[level] || 0;
+    }
+    if (field === 'social_security') {
+      // Norwegian employer social security contributions (NAV) - typically 14.1% of gross salary
+      // Calculate based on base + variable salary for the role/level
+      const baseSalary = getValue(role, level, month, 'salary') || 
+        getValue(role, level, month, 'salary'); // Get base salary
+      const variableSalary = getValue(role, level, month, 'variable_salary') || 0;
+      
+      // If we have salary data, calculate 14.1% of gross
+      if (baseSalary && baseSalary > 0) {
+        const totalGross = baseSalary + variableSalary;
+        return totalGross * 0.141; // 14.1% social security rate
+      }
+      
+      // Fallback: use default based on 2025 salary ladder
+      const defaultBaseSalaries: Record<string, Record<string, number>> = {
+        'Consultant': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Sales': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Recruitment': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Operations': { 'General': 640000/12 }
+      };
+      const defaultVariableSalaries: Record<string, Record<string, number>> = {
+        'Consultant': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Sales': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Recruitment': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Operations': { 'General': 0 }
+      };
+      
+      const defaultBase = defaultBaseSalaries[role]?.[level] || (640000/12);
+      const defaultVariable = defaultVariableSalaries[role]?.[level] || 0;
+      const defaultGross = defaultBase + defaultVariable;
+      return defaultGross * 0.141; // 14.1% social security rate
+    }
+    if (field === 'pension') {
+      // Norwegian pension contributions from salary ladder: 0G-7.1G = 4.5%, 7.1G-12G = 8.5%
+      // Calculate based on base + variable salary for the role/level
+      const baseSalary = getValue(role, level, month, 'salary') || 0;
+      const variableSalary = getValue(role, level, month, 'variable_salary') || 0;
+      
+      if (baseSalary > 0) {
+        const totalGross = baseSalary + variableSalary;
+        const annualGross = totalGross * 12;
+        
+        // Norwegian G-value for 2025 is approximately 124,028 NOK
+        const gValue = 124028;
+        const threshold1 = 7.1 * gValue; // ~880,599 NOK
+        
+        if (annualGross <= threshold1) {
+          return (totalGross * 0.045); // 4.5% for lower bracket
+        } else {
+          // 4.5% on first 7.1G, 8.5% on amount above
+          const lowerAmount = threshold1 / 12; // Monthly threshold
+          const lowerPension = lowerAmount * 0.045;
+          const upperAmount = totalGross - lowerAmount;
+          const upperPension = upperAmount * 0.085;
+          return lowerPension + upperPension;
+        }
+      }
+      
+      // Fallback: use default based on 2025 salary ladder
+      const defaultBaseSalaries: Record<string, Record<string, number>> = {
+        'Consultant': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Sales': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Recruitment': { 'A': 640000/12, 'AC': 670000/12, 'C': 750000/12, 'SrC': 800000/12, 'AM': 860000/12, 'M': 920000/12, 'SrM': 1050000/12, 'Pi': 1240000/12, 'P': 1548000/12 },
+        'Operations': { 'General': 640000/12 }
+      };
+      const defaultVariableSalaries: Record<string, Record<string, number>> = {
+        'Consultant': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Sales': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Recruitment': { 'A': 0, 'AC': 20000/12, 'C': 50000/12, 'SrC': 80000/12, 'AM': 120000/12, 'M': 170000/12, 'SrM': 250000/12, 'Pi': 330000/12, 'P': 408000/12 },
+        'Operations': { 'General': 0 }
+      };
+      
+      const defaultBase = defaultBaseSalaries[role]?.[level] || (640000/12);
+      const defaultVariable = defaultVariableSalaries[role]?.[level] || 0;
+      const defaultGross = defaultBase + defaultVariable;
+      const defaultAnnualGross = defaultGross * 12;
+      
+      const gValue = 124028;
+      const threshold1 = 7.1 * gValue;
+      
+      if (defaultAnnualGross <= threshold1) {
+        return defaultGross * 0.045; // 4.5%
+      } else {
+        const lowerAmount = threshold1 / 12;
+        const lowerPension = lowerAmount * 0.045;
+        const upperAmount = defaultGross - lowerAmount;
+        const upperPension = upperAmount * 0.085;
+        return lowerPension + upperPension;
+      }
+    }
+    if (field === 'utilization_rate') return 0.85;
+    if (field === 'consultant_time') return 160;
+    if (field === 'planned_absence') return 20;
+    if (field === 'unplanned_absence') return 10;
+    if (field === 'vacation') return 16;
+    if (field === 'invoiced_time') return 110;
+    if (field === 'average_price') return 1200;
     return 0;
   }, [planDataMap, localChanges, isAggregated, aggregatedData, selectedOffices]);
 
   // Calculate summary fields
   const calculateSummaryFields = useCallback((month: number) => {
     let totalRevenue = 0;
+    let totalSalaryCost = 0;
     let totalCosts = 0;
 
     const officeMultiplier = isAggregated ? Math.min(selectedOffices.length, 5) : 1;
 
-    // Calculate revenue (only for Consultants)
-    const consultantLevels = ROLE_LEVELS.Consultant || ['A', 'AC', 'AM', 'P'];
+    // Calculate revenue from consultants using ending FTE (total workforce) 
+    const consultantLevels = ROLE_LEVELS.Consultant || ['A', 'AC', 'C', 'SrC', 'AM', 'M', 'SrM', 'Pi', 'P'];
     consultantLevels.forEach(level => {
-      const price = getValue('Consultant', level, month, 'price');
-      const utr = getValue('Consultant', level, month, 'utr');
-      const monthlyHours = 160; // Standard working hours
-      const fte = isAggregated ? 2 : 1; // More FTE for aggregated view
+      // Get the ending FTE (total workforce for this level)
+      const endingFTE = getValue('Consultant', level, month, 'ending_fte');
       
-      totalRevenue += price * utr * monthlyHours * fte * officeMultiplier;
+      if (endingFTE > 0) {
+        // Get utilization rate and pricing
+        const utilizationRate = getValue('Consultant', level, month, 'utilization_rate') || getValue('Consultant', level, month, 'utr') || 0.85;
+        const monthlyHours = 160; // Standard working hours per month
+        const invoicedTime = monthlyHours * utilizationRate; // Actual billable hours
+        
+        // Get average price - check both field names
+        let averagePrice = getValue('Consultant', level, month, 'average_price') || getValue('Consultant', level, month, 'price');
+        
+        // If no price found or too low, use defaults based on level
+        // Target: 12-15M revenue with 96 consultants at 85% utilization
+        // Average needed: ~1,300-1,600 NOK/hour
+        if (!averagePrice || averagePrice < 500) {
+          const defaultPrices: Record<string, number> = {
+            'A': 1200,    // Junior
+            'AC': 1300,   // Associate Consultant
+            'C': 1400,    // Consultant  
+            'SrC': 1500,  // Senior Consultant
+            'AM': 1600,   // Associate Manager
+            'M': 1750,    // Manager
+            'SrM': 1900,  // Senior Manager
+            'Pi': 2100,   // Principal
+            'P': 2400     // Partner
+          };
+          averagePrice = defaultPrices[level] || 1400;
+        }
+        
+        // Calculate revenue: FTE count × billable hours × hourly rate
+        const levelRevenue = endingFTE * invoicedTime * averagePrice;
+        totalRevenue += levelRevenue;
+      }
     });
 
-    // Calculate costs
-    // Office-level costs (scale by number of offices for aggregated view)
-    totalCosts += 50000 * officeMultiplier; // Office rent
-    totalCosts += 8000 * officeMultiplier;  // IT services
-    totalCosts += 5000 * officeMultiplier;  // Travel
-
-    // Salary costs for all roles
+    // Calculate salary costs using ending FTE for all roles
     Object.entries(ROLE_LEVELS).forEach(([role, levels]) => {
       levels.forEach(level => {
-        const salary = getValue(role, level, month, 'salary');
-        const monthlyPortion = salary / 12;
-        const fteCount = isAggregated ? (role === 'Operations' ? 1 : 2) : 1;
-        totalCosts += monthlyPortion * fteCount * officeMultiplier;
+        // Get the ending FTE (total workforce for this role/level)
+        const endingFTE = getValue(role, level, month, 'ending_fte');
+        
+        if (endingFTE > 0) {
+          // Get salary - prioritize saved business plan data, fallback to 2025 Oslo salary ladder defaults
+          let monthlySalary = getValue(role, level, month, 'salary');
+          
+          // If no saved business plan data, use 2025 Oslo salary ladder as defaults
+          if (!monthlySalary || monthlySalary === 0) {
+            // 2025 Oslo BASE salary ladder (excluding variable) - same for Consultant, Sales, and Recruitment
+            const oslo2025BaseSalaries: Record<string, Record<string, number>> = {
+              'Consultant': {
+                'A': 640000 / 12,      // 640,000 NOK/year base = 53,333/month
+                'AC': 670000 / 12,     // 670,000 NOK/year base = 55,833/month  
+                'C': 750000 / 12,      // 750,000 NOK/year base = 62,500/month
+                'SrC': 800000 / 12,    // 800,000 NOK/year base = 66,667/month
+                'AM': 860000 / 12,     // 860,000 NOK/year base = 71,667/month
+                'M': 920000 / 12,      // 920,000 NOK/year base = 76,667/month
+                'SrM': 1050000 / 12,   // 1,050,000 NOK/year base = 87,500/month
+                'Pi': 1240000 / 12,    // 1,240,000 NOK/year base = 103,333/month (Principal)
+                'P': 1548000 / 12      // 1,548,000 NOK/year base = 129,000/month (Partner)
+              },
+              'Sales': {
+                // Same base salary structure as Consultant
+                'A': 640000 / 12,      
+                'AC': 670000 / 12,     
+                'C': 750000 / 12,      
+                'SrC': 800000 / 12,    
+                'AM': 860000 / 12,     
+                'M': 920000 / 12,     
+                'SrM': 1050000 / 12,
+                'Pi': 1240000 / 12,
+                'P': 1548000 / 12
+              },
+              'Recruitment': {
+                // Same base salary structure as Consultant
+                'A': 640000 / 12,      
+                'AC': 670000 / 12,     
+                'C': 750000 / 12,      
+                'SrC': 800000 / 12,    
+                'AM': 860000 / 12,     
+                'M': 920000 / 12,     
+                'SrM': 1050000 / 12,
+                'Pi': 1240000 / 12,
+                'P': 1548000 / 12
+              },
+              'Operations': {
+                'General': 640000 / 12 // Use Analyst level base salary
+              }
+            };
+            monthlySalary = oslo2025BaseSalaries[role]?.[level] || (640000 / 12);
+          }
+          
+          // Get additional salary components or use defaults
+          let variableSalary = getValue(role, level, month, 'variable_salary');
+          let socialSecurity = getValue(role, level, month, 'social_security');
+          let pension = getValue(role, level, month, 'pension');
+          
+          // If no values found in data, use 2025 Oslo variable salary structure - same for all roles
+          if (!variableSalary || variableSalary === 0) {
+            const oslo2025VariableSalaries: Record<string, Record<string, number>> = {
+              'Consultant': {
+                'A': 0 / 12,           // 0 variable
+                'AC': 20000 / 12,      // 20,000 variable yearly
+                'C': 50000 / 12,       // 50,000 variable yearly
+                'SrC': 80000 / 12,     // 80,000 variable yearly
+                'AM': 120000 / 12,     // 120,000 variable yearly
+                'M': 170000 / 12,      // 170,000 variable yearly
+                'SrM': 250000 / 12,    // 250,000 variable yearly
+                'Pi': 330000 / 12,     // 330,000 variable yearly
+                'P': 408000 / 12       // 408,000 variable yearly
+              },
+              'Sales': {
+                // Same variable structure as Consultant
+                'A': 0 / 12,
+                'AC': 20000 / 12,
+                'C': 50000 / 12,
+                'SrC': 80000 / 12,
+                'AM': 120000 / 12,
+                'M': 170000 / 12,
+                'SrM': 250000 / 12,
+                'Pi': 330000 / 12,
+                'P': 408000 / 12
+              },
+              'Recruitment': {
+                // Same variable structure as Consultant
+                'A': 0 / 12,
+                'AC': 20000 / 12,
+                'C': 50000 / 12,
+                'SrC': 80000 / 12,
+                'AM': 120000 / 12,
+                'M': 170000 / 12,
+                'SrM': 250000 / 12,
+                'Pi': 330000 / 12,
+                'P': 408000 / 12
+              },
+              'Operations': {
+                'General': 0 / 12  // No variable for operations
+              }
+            };
+            variableSalary = oslo2025VariableSalaries[role]?.[level] || 0;
+          }
+          if (!socialSecurity || socialSecurity === 0) {
+            socialSecurity = monthlySalary * 0.17;
+          }
+          if (!pension || pension === 0) {
+            pension = monthlySalary * 0.05;
+          }
+          
+          // Additional costs from actual data
+          const other = 350; // ~350 NOK per FTE per month
+          const vacation = (monthlySalary * 0.12); // Vacation pay provision
+          const groupService = 1636; // ~1636 NOK per FTE per month
+          
+          // Calculate total salary cost for this role/level including all components
+          const levelSalaryCost = endingFTE * (
+            monthlySalary +     // Base salary
+            variableSalary +    // Variable/bonus
+            socialSecurity +    // Social security  
+            pension +           // Pension
+            other +             // Other costs
+            vacation +          // Vacation provision
+            groupService        // Group services
+          );
+          totalSalaryCost += levelSalaryCost;
+          
+          // Debug logging for salary calculations
+          if (month === 1 && endingFTE > 0) {
+            console.log(`Salary calculation for ${role}-${level}:`, {
+              endingFTE,
+              monthlySalary: Math.round(monthlySalary),
+              variableSalary: Math.round(variableSalary),
+              socialSecurity: Math.round(socialSecurity),
+              pension: Math.round(pension),
+              levelSalaryCost: Math.round(levelSalaryCost),
+              totalSalaryCostSoFar: Math.round(totalSalaryCost)
+            });
+          }
+        }
       });
     });
 
+    // Calculate operating costs
+    let operatingCosts = 0;
+    const currentMonthPlan = monthlyPlans.find(p => p.month === month && p.year === year);
+    
+    // Calculate total FTE for scaling costs
+    let totalFTE = 0;
+    Object.entries(ROLE_LEVELS).forEach(([role, levels]) => {
+      levels.forEach(level => {
+        totalFTE += getValue(role, level, month, 'ending_fte');
+      });
+    });
+    
+    if (currentMonthPlan && currentMonthPlan.entries.length > 0) {
+      // Sum up operating costs from all entries (avoiding double counting)
+      const firstEntry = currentMonthPlan.entries[0];
+      
+      // Office-level costs (only count once, not per person)
+      operatingCosts += (firstEntry as any).office_rent || 450000; // Monthly office rent
+      operatingCosts += (firstEntry as any).it_related_staff || 150000; // IT costs
+      operatingCosts += (firstEntry as any).office_related || 50000; // Office supplies
+      operatingCosts += (firstEntry as any).external_services || 100000; // External services
+      operatingCosts += (firstEntry as any).education || 30000; // Training/education
+      operatingCosts += (firstEntry as any).external_representation || 20000; // External representation
+      operatingCosts += (firstEntry as any).internal_representation || 15000; // Internal representation
+      operatingCosts += (firstEntry as any).other_expenses || 35000; // Other
+      operatingCosts += (firstEntry as any).client_loss || 0; // Client losses if any
+    } else {
+      // Realistic default operating costs scaled to actual FTE
+      // Based on Oslo office data: should be realistic for the actual headcount
+      const baseCosts = {
+        office_rent: 450000,        // Fixed monthly rent
+        it_related_staff: 150000,   // IT infrastructure
+        office_related: 50000,      // Office supplies
+        external_services: 100000,  // External consulting/services
+        education: 30000,           // Training per month
+        external_representation: 20000, // Client entertainment
+        internal_representation: 15000, // Internal events
+        other_expenses: 35000       // Miscellaneous
+      };
+      
+      // Sum all base costs
+      operatingCosts = Object.values(baseCosts).reduce((sum, cost) => sum + cost, 0);
+      
+      // Add variable costs that scale with headcount (beyond the base office)
+      if (totalFTE > 50) {
+        const extraFTE = totalFTE - 50;
+        operatingCosts += extraFTE * 2000; // Additional ~2k NOK per extra FTE for supplies, etc.
+      }
+    }
+    
+    // Debug logging for operating costs
+    if (month === 1) {
+      console.log(`Operating costs for month ${month}:`, {
+        totalFTE,
+        operatingCosts: Math.round(operatingCosts),
+        hasCurrentMonthPlan: !!currentMonthPlan
+      });
+    }
+
+    totalCosts = totalSalaryCost + operatingCosts;
     const ebitda = totalRevenue - totalCosts;
     const ebitdaMargin = totalRevenue > 0 ? (ebitda / totalRevenue) * 100 : 0;
+    
+    // Debug logging for checking calculations
+    if (month === 1) {
+      console.log('Financial Summary for month', month, ':', {
+        totalRevenue: Math.round(totalRevenue).toLocaleString('no-NO'),
+        totalSalaryCost: Math.round(totalSalaryCost).toLocaleString('no-NO'),
+        operatingCosts: Math.round(operatingCosts).toLocaleString('no-NO'),
+        totalCosts: Math.round(totalCosts).toLocaleString('no-NO'),
+        ebitda: Math.round(ebitda).toLocaleString('no-NO'),
+        ebitdaMargin: ebitdaMargin.toFixed(1) + '%',
+        totalFTE
+      });
+    }
 
-    return { totalRevenue, totalCosts, ebitda, ebitdaMargin };
-  }, [getValue, isAggregated, selectedOffices]);
+    // Calculate category subtotals
+    let totalWorkforce = 0;
+    let totalNetSales = 0;
+    let totalExpenses = 0;
+    let totalSalaryCosts = 0;
+    let totalOperatingCosts = 0;
+    
+    // Calculate total workforce (ending FTE across all roles/levels)
+    ['Consultant', 'Sales', 'Recruitment', 'Operations'].forEach(role => {
+      const levels = ROLE_LEVELS[role] || ['General'];
+      levels.forEach(level => {
+        totalWorkforce += getValue(role, level, month, 'ending_fte');
+      });
+    });
+    
+    // Total Net Sales = Revenue
+    totalNetSales = totalRevenue;
+    
+    // Total Expenses (non-salary operating costs)
+    const expenseFields = [
+      'client_loss', 'education', 'external_representation', 'external_services',
+      'internal_representation', 'it_related_staff', 'office_related', 'office_rent',
+      'other_expenses'
+    ];
+    expenseFields.forEach(fieldKey => {
+      totalExpenses += getValue('Consultant', 'A', month, fieldKey) * officeMultiplier;
+    });
+    
+    // Total Salary Costs (salary-related costs)
+    totalSalaryCosts = totalSalaryCost;
+    
+    // Total Operating Costs = Expenses + Salaries
+    totalOperatingCosts = totalExpenses + totalSalaryCosts;
+
+    return { 
+      totalRevenue, 
+      totalSalaryCost, 
+      totalCosts, 
+      ebitda, 
+      ebitdaMargin,
+      totalWorkforce,
+      totalNetSales,
+      totalExpenses,
+      totalSalaryCosts,
+      totalOperatingCosts
+    };
+  }, [getValue, isAggregated, selectedOffices, monthlyPlans, year]);
 
   // Build table rows
   const tableRows = useMemo(() => {
@@ -425,11 +1146,14 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
             let value = 0;
             
             if (field.isCalculated) {
-              // Calculate summary fields
+              // Calculate summary fields and time-based calculations
               const summary = calculateSummaryFields(idx + 1);
               switch (field.fieldKey) {
                 case 'total_revenue':
                   value = summary.totalRevenue;
+                  break;
+                case 'total_salary_cost':
+                  value = summary.totalSalaryCost;
                   break;
                 case 'total_costs':
                   value = summary.totalCosts;
@@ -440,10 +1164,74 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
                 case 'ebitda_margin':
                   value = summary.ebitdaMargin;
                   break;
+                case 'total_workforce':
+                  value = summary.totalWorkforce;
+                  break;
+                case 'total_net_sales':
+                  value = summary.totalNetSales;
+                  break;
+                case 'total_expenses':
+                  value = summary.totalExpenses;
+                  break;
+                case 'total_salary_costs':
+                  value = summary.totalSalaryCosts;
+                  break;
+                case 'total_operating_costs':
+                  value = summary.totalOperatingCosts;
+                  break;
+                case 'available_consultant_time':
+                  // Calculate from actual time fields from business plan data
+                  let totalConsultantTime = 0;
+                  let totalPlannedAbsence = 0;
+                  let totalUnplannedAbsence = 0;
+                  let totalVacation = 0;
+                  let totalVacationWithdrawal = 0;
+                  
+                  // Get data from current month's plan
+                  const currentMonthPlan = monthlyPlans.find(p => p.month === idx + 1 && p.year === year);
+                  if (currentMonthPlan) {
+                    currentMonthPlan.entries.forEach(entry => {
+                      if (entry.role === 'Consultant') {
+                        totalConsultantTime += (entry as any).consultant_time || 160;
+                        totalPlannedAbsence += (entry as any).planned_absence || 0;
+                        totalUnplannedAbsence += (entry as any).unplanned_absence || 0;
+                        totalVacation += (entry as any).vacation || 0;
+                        totalVacationWithdrawal += (entry as any).vacation_withdrawal || 0;
+                      }
+                    });
+                  }
+                  
+                  value = totalConsultantTime - totalPlannedAbsence - totalUnplannedAbsence - totalVacation + totalVacationWithdrawal;
+                  break;
               }
             } else {
-              // Use default value for office-level fields
-              value = field.defaultValue || 0;
+              // For office-level fields, check if we have data from business plan entries
+              const currentMonthPlan = monthlyPlans.find(p => p.month === idx + 1 && p.year === year);
+              if (currentMonthPlan && currentMonthPlan.entries.length > 0) {
+                // Try to get value from first entry (office-level fields apply to all)
+                const firstEntry = currentMonthPlan.entries[0];
+                if (firstEntry && field.fieldKey) {
+                  // Check for exact field match first
+                  if (field.fieldKey in firstEntry && (firstEntry as any)[field.fieldKey] !== undefined) {
+                    value = (firstEntry as any)[field.fieldKey];
+                  }
+                  // Check for legacy field mappings
+                  else if (field.fieldKey === 'utilization_rate' && 'utr' in firstEntry && (firstEntry as any).utr !== undefined) {
+                    value = (firstEntry as any).utr;
+                  }
+                  else if (field.fieldKey === 'average_price' && 'price' in firstEntry && (firstEntry as any).price !== undefined) {
+                    value = (firstEntry as any).price;
+                  }
+                  else {
+                    value = field.defaultValue || 0;
+                  }
+                } else {
+                  value = field.defaultValue || 0;
+                }
+              } else {
+                // Use default value for office-level fields when no plan data
+                value = field.defaultValue || 0;
+              }
             }
             
             monthlyData[month] = value;
@@ -457,6 +1245,7 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
             depth: 1,
             isEditable: !field.isCalculated, // Show as editable but handle clicks differently
             isCalculated: !!field.isCalculated,
+            isSubtotal: !!(field as any).isSubtotal,
             parentId: categoryId,
             fieldKey: field.fieldKey,
             ...monthlyData,
@@ -518,7 +1307,7 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
           level: level as StandardLevel,
           recruitment: existing?.recruitment || 0,
           churn: existing?.churn || 0,
-          salary: existing?.salary || 65000,
+          salary: existing?.salary || getValue(role, level, monthNum, 'salary'),
           price: existing?.price || 1200,
           utr: existing?.utr || 0.75
         });
@@ -659,7 +1448,8 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
                 className={cn(
                   "border-b border-gray-600 transition-colors hover:bg-gray-800",
                   row.type === 'category' && "bg-gray-900 font-semibold",
-                  row.type === 'office-field' && row.isCalculated && "bg-green-950/20"
+                  row.type === 'office-field' && row.isCalculated && !row.isSubtotal && "bg-green-950/20",
+                  row.isSubtotal && "bg-blue-950/30 border-blue-500/30 font-semibold"
                 )}
               >
                 <td className="px-4 py-3 align-middle text-base font-medium text-white border-r border-gray-600">
@@ -775,14 +1565,24 @@ export const CleanBusinessPlanTable: React.FC<CleanBusinessPlanTableProps> = ({
 // ============================================================================
 
 function formatValue(value: number, fieldKey?: string): string {
-  if (fieldKey === 'utr') {
+  if (fieldKey === 'utr' || fieldKey === 'utilization_rate') {
     return `${Math.round(value * 100)}%`;
   }
   if (fieldKey === 'ebitda_margin') {
     return `${value.toFixed(1)}%`;
   }
-  if (fieldKey === 'price' || fieldKey?.includes('cost') || fieldKey?.includes('revenue') || fieldKey?.includes('ebitda')) {
-    return value >= 1000 ? `${Math.round(value / 1000)}k` : value.toString();
+  // Format currency fields with NOK
+  if (fieldKey === 'price' || fieldKey === 'average_price') {
+    return `${Math.round(value).toLocaleString('no-NO')} kr`;
+  }
+  if (fieldKey?.includes('cost') || fieldKey?.includes('salary') || fieldKey?.includes('revenue') || fieldKey?.includes('ebitda') || fieldKey?.includes('rent') || fieldKey?.includes('education') || fieldKey?.includes('services') || fieldKey?.includes('expenses') || fieldKey?.includes('operating') || fieldKey?.includes('sales')) {
+    return value >= 1000 ? `${Math.round(value / 1000).toLocaleString('no-NO')}k kr` : `${Math.round(value).toLocaleString('no-NO')} kr`;
+  }
+  if (fieldKey?.includes('workforce') && fieldKey !== 'total_workforce') {
+    return Math.round(value).toString() + ' FTE';
+  }
+  if (fieldKey === 'total_workforce') {
+    return `${Math.round(value)} Total FTE`;
   }
   return Math.round(value).toString();
 }

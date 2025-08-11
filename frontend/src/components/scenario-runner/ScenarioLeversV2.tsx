@@ -91,6 +91,8 @@ interface ScenarioLeversProps {
   readOnly?: boolean;
   baselineValues?: Record<LeverType, Record<string, number>>;
   baselineData?: any;
+  saving?: boolean;
+  simulating?: boolean;
 }
 
 export interface ScenarioLeversRef {
@@ -115,7 +117,9 @@ const ScenarioLeversV2 = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({
   levers: externalLevers, 
   readOnly = false, 
   baselineValues: propBaselineValues, 
-  baselineData 
+  baselineData,
+  saving = false,
+  simulating = false
 }, ref) => {
   const [levers, setLevers] = useState<LeverState>(() => {
     if (externalLevers) {
@@ -546,7 +550,7 @@ const ScenarioLeversV2 = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold text-white">Scenario Levers</h2>
         <p className="text-white/80">Configure multipliers and run simulation</p>
-        <div className="text-sm text-white/60">Step 3 of 3</div>
+        <div className="text-sm text-white/60">Step 2 of 2</div>
         <div className="w-full bg-gray-700 rounded-full h-2 mb-6">
           <div className="bg-blue-500 h-2 rounded-full" style={{ width: '100%' }}></div>
         </div>
@@ -580,15 +584,22 @@ const ScenarioLeversV2 = forwardRef<ScenarioLeversRef, ScenarioLeversProps>(({
       {(!readOnly && (onNext || onBack)) && (
         <div className="flex justify-between">
           {onBack && (
-            <Button variant="outline" onClick={onBack} className="border-gray-600 text-white hover:bg-gray-800">
+            <Button variant="outline" onClick={onBack}>
               ← Back
             </Button>
           )}
-          {onNext && (
-            <Button onClick={onNext} className="bg-blue-600 hover:bg-blue-700 text-white">
-              Save Scenario
-            </Button>
-          )}
+          <div className="space-x-2">
+            {onRunSimulation && (
+              <Button onClick={onRunSimulation} variant="secondary" disabled={saving || simulating}>
+                {simulating ? '🚀 Running...' : '🚀 Run & View Results'}
+              </Button>
+            )}
+            {onNext && (
+              <Button onClick={onNext} disabled={saving || simulating}>
+                {saving ? 'Saving...' : 'Save Scenario'}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

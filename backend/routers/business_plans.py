@@ -12,11 +12,35 @@ router = APIRouter(
 class MonthlyPlanEntry(BaseModel):
     role: str
     level: str
+    # Workforce fields
     recruitment: float = 0
     churn: float = 0
-    price: float = 100
-    utr: float = 0.75
-    salary: float = 5000
+    # Net Sales fields
+    consultant_time: float = 160
+    planned_absence: float = 20
+    unplanned_absence: float = 10
+    vacation_withdrawal: float = 0
+    vacation: float = 16
+    invoiced_time: float = 110
+    average_price: float = 1200
+    # Operating Costs - Expenses
+    client_loss: float = 0
+    education: float = 10000
+    external_representation: float = 5000
+    external_services: float = 15000
+    internal_representation: float = 3000
+    it_related_staff: float = 20000
+    office_related: float = 5000
+    office_rent: float = 50000
+    # Operating Costs - Salaries & Related
+    salary: float = 65000
+    variable_salary: float = 0
+    social_security: float = 0
+    other_expenses: float = 5000
+    pension: float = 0
+    # Legacy fields for compatibility
+    price: float = 1200  # Now maps to average_price
+    utr: float = 0.75    # Calculated from available/invoiced time
 
 class MonthlyBusinessPlan(BaseModel):
     id: str
@@ -133,7 +157,32 @@ def update_business_plan(plan_id: str, plan_data: dict):
 
 @router.delete("/{plan_id}")
 def delete_business_plan(plan_id: str):
-    """Delete a business plan"""
+    """Delete a business plan or yearly business plan (all monthly plans for office-year)"""
+    # Check if this is a yearly plan ID (office_id-year format)
+    if '-' in plan_id and len(plan_id.split('-')) >= 2:
+        parts = plan_id.split('-')
+        # Try to parse the last part as a year
+        try:
+            year = int(parts[-1])
+            office_id = '-'.join(parts[:-1])  # Rejoin in case office has hyphens
+            
+            # Get all monthly plans for this office and year
+            monthly_plans = business_plan_storage.get_plans(office_id=office_id, year=year)
+            if not monthly_plans:
+                raise HTTPException(status_code=404, detail="Business plan not found")
+            
+            # Delete all monthly plans
+            deleted_count = 0
+            for plan in monthly_plans:
+                if business_plan_storage.delete_plan(plan['id']):
+                    deleted_count += 1
+            
+            return {"message": f"Deleted {deleted_count} monthly plans for {office_id} {year}"}
+        except ValueError:
+            # Not a year, treat as regular plan ID
+            pass
+    
+    # Regular single plan deletion
     success = business_plan_storage.delete_plan(plan_id)
     if not success:
         raise HTTPException(status_code=404, detail="Business plan not found")

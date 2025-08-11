@@ -292,7 +292,7 @@ class BusinessModel:
         return None
 
 
-@dataclass 
+@dataclass
 class ScenarioRequest:
     """Request to run a scenario"""
     scenario_id: str
@@ -300,7 +300,11 @@ class ScenarioRequest:
     time_range: TimeRange
     office_ids: List[str]
     levers: Levers
+    business_plan_id: Optional[str] = None
     growth_rates: Optional[GrowthRates] = None
+    include_kpis: bool = True
+    include_events: bool = True
+    validation_enabled: bool = True
 
 
 @dataclass
@@ -570,10 +574,20 @@ class SimulationEngineV2(SimulationEngineInterface):
             from .kpi_calculator_v2 import KPICalculatorV2
             
             # Initialize components
+            logger.info("Initializing WorkforceManagerV2...")
             self.workforce_manager = WorkforceManagerV2()
+            
+            logger.info("Initializing BusinessPlanProcessorV2...")
             self.business_processor = BusinessPlanProcessorV2()
+            logger.info(f"BusinessPlanProcessorV2 initialized: {self.business_processor is not None}")
+            
+            logger.info("Initializing SnapshotLoaderV2...")
             self.snapshot_loader = SnapshotLoaderV2()
+            
+            logger.info("Initializing GrowthModelManagerV2...")
             self.growth_manager = GrowthModelManagerV2()
+            
+            logger.info("Initializing KPICalculatorV2...")
             self.kpi_calculator = KPICalculatorV2()
             
             # Initialize each component
@@ -680,9 +694,10 @@ class SimulationEngineV2(SimulationEngineInterface):
                         office_id, 
                         office_config['current_snapshot_id']
                     )
+                    logger.info(f"Loaded {len(people)} people from snapshot for {office_id}")
                 else:
-                    # Create empty workforce if no snapshot
                     people = []
+                    logger.warning(f"No snapshot found for {office_id}, starting with empty workforce")
                 
                 # Organize people by role and level
                 workforce = {}
@@ -693,18 +708,28 @@ class SimulationEngineV2(SimulationEngineInterface):
                         workforce[person.current_role][person.current_level] = []
                     workforce[person.current_role][person.current_level].append(person)
                 
-                # Create office state
+                # Create office state with raw business plan data
                 office_state = OfficeState(
                     name=office_config['name'],
                     workforce=workforce,
-                    business_plan=office_config.get('business_plan'),
+                    business_plan=office_config.get('business_plan'),  # This is now raw dict data
                     snapshot=office_config.get('snapshot'),
                     cat_matrices=office_config.get('cat_matrices', {}),
                     economic_parameters=office_config.get('economic_parameters')
                 )
                 
+                # Load business plan into business processor if available
+                if self.business_processor and office_state.business_plan:
+                    # Use the office state name (capitalized) as the key for the business processor
+                    success = self.business_processor.load_business_plan(office_state.name, office_state.business_plan)
+                    logger.info(f"Loaded business plan for {office_state.name} into processor: {success}")
+                
+                # Debug logging
+                has_bp = office_state.business_plan is not None
+                bp_entries = len(office_state.business_plan.get('entries', [])) if has_bp else 0
+                logger.info(f"Office {office_id} initialized: {len(people)} people, business_plan: {has_bp} (with {bp_entries} entries)")
+                
                 self.office_states[office_id] = office_state
-                logger.debug(f"Initialized office {office_id} with {len(people)} people")
                 
             except Exception as e:
                 logger.error(f"Failed to initialize office {office_id}: {str(e)}")
@@ -725,13 +750,16 @@ class SimulationEngineV2(SimulationEngineInterface):
             monthly_events = []
             
             for office_id, office_state in self.office_states.items():
+                logger.info(f"[BEFORE PROCESSING] {office_id} {year}-{month:02d}: {office_state.get_total_workforce()} people")
+                
                 office_events = self._process_office_month(
                     office_state, year, month, current_date, scenario.levers
                 )
                 monthly_events.extend(office_events)
                 
                 # Collect office metrics
-                office_metrics = self._collect_office_metrics(office_state, year, month)
+                office_metrics = self._collect_office_metrics(office_state, year, month, office_id)
+                logger.info(f"[AFTER METRICS] {office_id} metrics: {office_metrics}")
                 monthly_office_results[office_id] = office_metrics
             
             # Store monthly results
@@ -755,7 +783,10 @@ class SimulationEngineV2(SimulationEngineInterface):
         month_events = []
         
         # 1. Get monthly targets from business plan
+        logger.info(f"Processing {office_state.name} for {year}-{month:02d}: business_processor={self.business_processor is not None}, business_plan={office_state.business_plan is not None}")
+        
         if self.business_processor and office_state.business_plan:
+            logger.info(f"Getting monthly targets for {office_state.name} {year}-{month:02d}")
             monthly_targets = self.business_processor.get_monthly_targets(
                 office_state.name, year, month
             )
@@ -765,8 +796,9 @@ class SimulationEngineV2(SimulationEngineInterface):
                 monthly_targets, levers
             )
         else:
-            # Create default targets if no business plan
-            adjusted_targets = self._create_default_monthly_targets(year, month)
+            # No business plan or processor available - cannot proceed
+            logger.error(f"No business plan processor or business plan data available for {office_state.name} {year}-{month:02d}")
+            raise ValueError(f"Business plan is required for simulation but not available for {office_state.name}")
         
         # 2. Process churn
         if self.workforce_manager:
@@ -817,28 +849,218 @@ class SimulationEngineV2(SimulationEngineInterface):
                                     "office": person.current_office,
                                     "hire_date": person.hire_date.strftime("%Y-%m-%d")
                                 },
-                                simulation_month=(year - 2024) * 12 + month
+                                simulation_month=(year - 2025) * 12 + month
                             )
                             month_events.append(hire_event)
         
         return month_events
     
-    def _collect_office_metrics(self, office_state: OfficeState, year: int, month: int) -> Dict[str, Any]:
+    def _collect_office_metrics(self, office_state: OfficeState, year: int, month: int, office_id: str = None) -> Dict[str, Any]:
         """Collect metrics for office for the month"""
+        total_workforce = office_state.get_total_workforce()
+        logger.info(f"[METRICS DEBUG] {office_state.name} {year}-{month:02d}: total_workforce={total_workforce}")
+        
+        # Debug workforce structure
+        for role, levels in office_state.workforce.items():
+            for level, people in levels.items():
+                active_count = len([p for p in people if p.is_active])
+                if active_count > 0:
+                    logger.info(f"[WORKFORCE DEBUG] {role} {level}: {active_count} active people")
+        
         metrics = {
-            'total_workforce': office_state.get_total_workforce(),
+            'total_workforce': total_workforce,
             'workforce_by_role': {},
-            'revenue': 0.0,  # Would be calculated from business plan
-            'costs': 0.0,    # Would be calculated from business plan
-            'salary_costs': 0.0  # Would be calculated from business plan
+            'revenue': 0.0,
+            'costs': 0.0,
+            'salary_costs': 0.0,
+            'recruitment_by_role': {},
+            'churn_by_role': {}
         }
         
-        # Count workforce by role
+        # Count events for this month
+        month_events = [e for e in self.all_events if e.simulation_month == ((year - 2025) * 12 + month)]
+        
+        # Count recruitment and churn by role
+        for event in month_events:
+            if event.event_type == EventType.HIRED:
+                role = event.details.get('role', 'Unknown')
+                level = event.details.get('level', 'Unknown')
+                if role not in metrics['recruitment_by_role']:
+                    metrics['recruitment_by_role'][role] = {}
+                if level not in metrics['recruitment_by_role'][role]:
+                    metrics['recruitment_by_role'][role][level] = 0
+                metrics['recruitment_by_role'][role][level] += 1
+                
+            elif event.event_type == EventType.CHURNED:
+                role = event.details.get('role', 'Unknown') 
+                level = event.details.get('level', 'Unknown')
+                if role not in metrics['churn_by_role']:
+                    metrics['churn_by_role'][role] = {}
+                if level not in metrics['churn_by_role'][role]:
+                    metrics['churn_by_role'][role][level] = 0
+                metrics['churn_by_role'][role][level] += 1
+        
+        # Count workforce by role and level, calculate revenue, salary costs, and operating costs
+        total_monthly_revenue = 0.0
+        total_monthly_salary_costs = 0.0
+        total_monthly_operating_costs = 0.0
+        
         for role, levels in office_state.workforce.items():
-            role_total = sum(len([p for p in people if p.is_active]) for people in levels.values())
-            metrics['workforce_by_role'][role] = role_total
+            role_workforce = {}
+            
+            for level, people in levels.items():
+                active_people = [p for p in people if p.is_active]
+                level_count = len(active_people)
+                
+                if level_count > 0:
+                    role_workforce[level] = level_count
+                    
+                    # Calculate revenue and costs from business plan data
+                    # Use office_id if provided, otherwise fall back to office_state.name
+                    lookup_key = office_id if office_id else office_state.name
+                    business_plan_data = self._get_business_plan_data_for_role_level(lookup_key, role, level)
+                    if business_plan_data:
+                        # Calculate monthly revenue - ONLY for billable roles (Consultants)
+                        if role == 'Consultant':
+                            hourly_rate = business_plan_data.get('price', 0)
+                            
+                            # Use actual invoiced hours from business plan if available, otherwise calculate from UTR
+                            invoiced_hours = 0
+                            if 'invoiced_time' in business_plan_data:
+                                invoiced_hours = business_plan_data.get('invoiced_time', 0)
+                            else:
+                                # Fallback: calculate from UTR and standard hours
+                                utilization = business_plan_data.get('utr', 0)
+                                consultant_time = business_plan_data.get('consultant_time', 160)
+                                invoiced_hours = utilization * consultant_time
+                            
+                            monthly_revenue_per_person = hourly_rate * invoiced_hours
+                            level_revenue = monthly_revenue_per_person * level_count
+                            total_monthly_revenue += level_revenue
+                        
+                        # Calculate monthly salary costs (total monthly compensation * headcount)
+                        # Business plan values are already monthly per person
+                        base_salary = business_plan_data.get('salary', 0)
+                        variable_salary = business_plan_data.get('variable_salary', 0)
+                        social_security = business_plan_data.get('social_security', 0)
+                        pension = business_plan_data.get('pension', 0)
+                        
+                        monthly_total_compensation_per_person = base_salary + variable_salary + social_security + pension
+                        level_salary_costs = monthly_total_compensation_per_person * level_count
+                        total_monthly_salary_costs += level_salary_costs
+                        
+                        # Calculate monthly operating costs (per role/level * headcount)
+                        monthly_operating_costs_per_person = business_plan_data.get('operating_costs', 0)
+                        level_operating_costs = monthly_operating_costs_per_person * level_count
+                        total_monthly_operating_costs += level_operating_costs
+            
+            if role_workforce:  # Only add roles that have active workforce
+                if len(role_workforce) == 1 and 'General' in role_workforce:
+                    # Flat role (like Operations)
+                    metrics['workforce_by_role'][role] = role_workforce['General']
+                else:
+                    # Leveled role (like Consultant)
+                    metrics['workforce_by_role'][role] = role_workforce
+        
+        # Update metrics with calculated values
+        metrics['revenue'] = total_monthly_revenue
+        metrics['salary_costs'] = total_monthly_salary_costs
+        metrics['operating_costs'] = total_monthly_operating_costs
+        metrics['costs'] = total_monthly_salary_costs + total_monthly_operating_costs  # Total costs = salary + operating
         
         return metrics
+    
+    def _get_business_plan_data_for_role_level(self, office_id: str, role: str, level: str) -> Optional[Dict[str, Any]]:
+        """Get business plan data (salary, price, utr) for a specific role and level"""
+        try:
+            office_state = self.office_states.get(office_id)
+            if not office_state or not office_state.business_plan:
+                logger.info(f"[BP DEBUG] No office state or business plan for {office_id}")
+                return None
+            
+            business_plan = office_state.business_plan
+            logger.info(f"[BP DEBUG] Looking for {role}/{level}, BP structure: {list(business_plan.keys())}")
+            
+            # Handle legacy format with direct entries
+            if 'entries' in business_plan:
+                entries = business_plan.get('entries', [])
+                for entry in entries:
+                    if entry.get('role') == role and entry.get('level') == level:
+                        # Calculate operating costs from business plan fields
+                        operating_costs = (
+                            entry.get('office_rent', 0) +
+                            entry.get('external_representation', 0) +
+                            entry.get('internal_representation', 0) +
+                            entry.get('external_services', 0) +
+                            entry.get('it_related_staff', 0) +
+                            entry.get('education', 0) +
+                            entry.get('client_loss', 0) +
+                            entry.get('office_related', 0) +
+                            entry.get('other_expenses', 0)
+                        )
+                        
+                        # Handle both legacy field names (price/utr) and new field names (average_price/calculated utr)
+                        price = entry.get('price', 0) or entry.get('average_price', 0)
+                        
+                        # Calculate utilization rate from time fields if not provided directly
+                        utr = entry.get('utr', 0)
+                        if not utr and 'invoiced_time' in entry:
+                            # Calculate UTR: invoiced_time / consultant_time (total available time)
+                            consultant_time = entry.get('consultant_time', 160)  # Standard 160h/month
+                            invoiced_time = entry.get('invoiced_time', 0)
+                            
+                            if consultant_time > 0:
+                                utr = invoiced_time / consultant_time
+                        
+                        return {
+                            'salary': entry.get('salary', 0),
+                            'variable_salary': entry.get('variable_salary', 0),
+                            'social_security': entry.get('social_security', 0),
+                            'pension': entry.get('pension', 0),
+                            'price': price,
+                            'utr': utr,
+                            'operating_costs': operating_costs
+                        }
+            
+            # Handle unified format with monthly_plans
+            elif 'monthly_plans' in business_plan:
+                monthly_plans = business_plan.get('monthly_plans', {})
+                # Use the first available month's data (they should all be similar)
+                if monthly_plans:
+                    first_month_key = sorted(monthly_plans.keys())[0]
+                    first_month_plan = monthly_plans[first_month_key]
+                    
+                    # Look for entries in the monthly plan
+                    entries = first_month_plan.get('entries', [])
+                    for entry in entries:
+                        if entry.get('role') == role and entry.get('level') == level:
+                            # Calculate operating costs from business plan fields
+                            operating_costs = (
+                                entry.get('office_rent', 0) +
+                                entry.get('external_representation', 0) +
+                                entry.get('internal_representation', 0) +
+                                entry.get('external_services', 0) +
+                                entry.get('it_related_staff', 0) +
+                                entry.get('education', 0) +
+                                entry.get('client_loss', 0) +
+                                entry.get('office_related', 0) +
+                                entry.get('other_expenses', 0)
+                            )
+                            
+                            return {
+                                'salary': entry.get('salary', 0),
+                                'variable_salary': entry.get('variable_salary', 0),
+                                'social_security': entry.get('social_security', 0),
+                                'pension': entry.get('pension', 0),
+                                'price': entry.get('price', 0),
+                                'utr': entry.get('utr', 0),
+                                'operating_costs': operating_costs
+                            }
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Error getting business plan data for {role}/{level}: {e}")
+            return None
     
     def _generate_simulation_results(self) -> SimulationResults:
         """Generate final simulation results"""
@@ -850,18 +1072,90 @@ class SimulationEngineV2(SimulationEngineInterface):
         )
     
     def _load_office_configuration(self, office_id: str) -> Dict[str, Any]:
-        """Load office configuration with real CAT matrices and test data"""
+        """Load office configuration with real CAT matrices and business plan data"""
         # Load CAT matrices from test data
         cat_matrices = self._load_cat_matrices()
         
-        # For now, all offices get the same CAT matrix data (in practice, this could be office-specific)
+        # Load business plan if scenario has business_plan_id
+        business_plan = None
+        if self.current_scenario and self.current_scenario.business_plan_id:
+            business_plan = self._load_business_plan(self.current_scenario.business_plan_id, office_id)
+        
+        # Load snapshot ID from actual office configuration
+        current_snapshot_id = None
+        if office_id.lower() == 'oslo':
+            current_snapshot_id = 'oslo_current_workforce'  # Use the Oslo snapshot we created
+        
         return {
-            'name': f"Office {office_id}",
-            'current_snapshot_id': None,  # Would come from actual config
-            'business_plan': None,        # Would come from actual config
-            'cat_matrices': cat_matrices, # Load real CAT matrices
-            'economic_parameters': None   # Would come from actual config
+            'name': office_id.capitalize(),  # Use actual office ID, capitalized
+            'current_snapshot_id': current_snapshot_id,
+            'business_plan': business_plan,
+            'cat_matrices': cat_matrices,
+            'economic_parameters': self._get_default_economic_parameters()
         }
+    
+    def _load_business_plan(self, business_plan_id: str, office_id: str) -> Optional[Dict[str, Any]]:
+        """Load business plan by ID for specific office"""
+        try:
+            from .business_plan_storage import BusinessPlanStorage
+            
+            bp_service = BusinessPlanStorage()
+            
+            # First try to get the specific plan directly (for complete business plans)
+            specific_plan = bp_service.get_plan(business_plan_id)
+            
+            if specific_plan:
+                plan_office = specific_plan.get('office_id', '').lower()
+                current_office = office_id.lower()
+                
+                # Check if this business plan matches the current office
+                if plan_office == current_office:
+                    logger.info(f"Loaded specific business plan {business_plan_id} for {office_id}")
+                    return specific_plan  # Return the specific plan directly
+            
+            # Fallback to unified plan aggregation for general case
+            unified_plan = bp_service.get_unified_plan(business_plan_id)
+            
+            if unified_plan:
+                plan_office = unified_plan.get('office_id', '').lower()
+                current_office = office_id.lower()
+                
+                # Check if this business plan matches the current office
+                # Handle case variations (Oslo, oslo, OSLO)
+                if plan_office == current_office:
+                    monthly_plans = unified_plan.get('monthly_plans', {})
+                    total_months = len(monthly_plans)
+                    logger.info(f"Loaded unified business plan for {office_id}: year {unified_plan.get('year')} with {total_months} months of data")
+                    return unified_plan  # Return unified business plan with monthly_plans structure
+                else:
+                    # For Group scenarios or when office doesn't match, we could potentially
+                    # use the business plan as a template or aggregate data
+                    logger.info(f"Business plan {business_plan_id} is for office '{plan_office}', current office is '{current_office}'")
+                    
+                    # For now, if office is 'Group' and we have any business plan, use it
+                    if office_id.lower() == 'group':
+                        logger.info(f"Using unified business plan from {plan_office} for Group scenario")
+                        return unified_plan
+                    else:
+                        logger.warning(f"Business plan office mismatch: plan is for '{plan_office}', but processing '{current_office}'")
+                        return None
+            else:
+                logger.warning(f"Unified business plan {business_plan_id} not found")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error loading unified business plan {business_plan_id}: {e}")
+            return None
+    
+    def _get_default_economic_parameters(self) -> EconomicParameters:
+        """Get default economic parameters"""
+        return EconomicParameters(
+            base_salary_multiplier=1.0,
+            price_multiplier=1.0,
+            cost_of_living_adjustment=1.0,
+            tax_rate=0.0
+        )
+    
     
     def _load_cat_matrices(self) -> Dict[str, CATMatrix]:
         """Load CAT matrices from test data"""
@@ -893,23 +1187,6 @@ class SimulationEngineV2(SimulationEngineInterface):
             logger.warning(f"Failed to load CAT matrices: {str(e)}")
             return {}
     
-    def _create_default_monthly_targets(self, year: int, month: int) -> MonthlyTargets:
-        """Create default monthly targets when no business plan is available"""
-        return MonthlyTargets(
-            year=year,
-            month=month,
-            recruitment_targets={
-                "Consultant": {"A": 2, "AC": 1, "C": 0},
-                "Sales": {"A": 1, "AC": 0}
-            },
-            churn_targets={
-                "Consultant": {"A": 1, "AC": 0, "C": 0},
-                "Sales": {"A": 0, "AC": 0}
-            },
-            revenue_target=100000.0,
-            operating_costs=60000.0,
-            salary_budget=50000.0
-        )
     
     def _log_quarterly_checkpoint(self, year: int, month: int):
         """Log quarterly progress checkpoint"""

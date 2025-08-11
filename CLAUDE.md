@@ -409,3 +409,56 @@ When working on UI features, follow this priority:
 5. **Accessibility**: Ensure WCAG 2.1 AA compliance
 
 **Remember**: The design system eliminates UI bloat while maintaining all powerful functionality. Always consult the design files before making any UI/UX changes.
+
+## Data Architecture & Configuration Management
+
+### Single Source of Truth Pattern
+⚠️ **CRITICAL: The system uses `backend/config/office_configuration.json` as the master database**
+
+**Configuration Lifecycle**:
+1. **Master File**: `backend/config/office_configuration.json` is the definitive source for all office configurations
+2. **Startup Logic**: System checks for existing config file on startup; if empty/missing, requires user upload
+3. **Partial Updates**: Excel imports perform partial updates (add/modify offices without removing others)
+4. **Baseline Definition**: All KPI calculations use current config state as baseline for comparisons
+
+**Data Flow**: Configuration Service → In-Memory Cache → API Endpoints → Frontend
+
+### Workforce Data Structure Evolution
+⚠️ **IMPORTANT: Workforce data has migrated from roles-based to snapshot-based storage**
+
+- **Legacy**: FTE data stored in `roles` objects with individual level breakdowns
+- **Current**: FTE data stored in `snapshots` with aggregated totals per office
+- **Backend**: Office endpoints now generate mock snapshots from config data
+- **Frontend**: Components extract `total_fte` from `office.snapshots[0].total_fte`
+
+### Simulation Engine Architecture
+**Processing Order (Monthly)**:
+1. **Churn**: Remove people based on monthly churn rates
+2. **Progression**: Move people between levels (only in evaluation months: May/November)  
+3. **Recruitment**: Add new hires based on recruitment rates with fractional accumulation
+
+**Key Patterns**:
+- **Deterministic Results**: Uses fractional accumulation for reproducible outcomes
+- **Individual Tracking**: Person-level tracking for detailed analytics
+- **Fresh State**: Engine resets before each simulation run
+
+### API Router Architecture
+**Multiple Router Systems**:
+- **Configuration-based**: `/routers/offices.py` (uses JSON config, `/offices` prefix)
+- **Database-based**: `/src/routes/offices.py` (uses database models, `/api/offices` prefix)
+- **Route Conflicts**: Ensure specific routes (`/all`, `/health`) are defined before generic `/{office_id}` routes
+
+## Server Management Issues
+
+### Backend Reload Problems
+**Common Issue**: FastAPI reload doesn't always pick up changes to router files
+
+**Solutions**:
+1. Use `./scripts/restart-servers.sh` for full restart
+2. For manual restart: Kill backend process and restart with `uvicorn backend.main:app --reload`
+3. Check for cached responses or route conflicts if changes don't appear
+4. Verify route registration order in `backend/main.py`
+
+### Port Conflicts
+**Default Ports**: Backend (8000), Frontend (3000)
+**Alternative Ports**: Use `--port 8001` or `--port 8002` if default ports are occupied

@@ -1,10 +1,15 @@
+import sys
+import os
+# Add paths to allow imports to work
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.dirname(__file__))
+
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from src.services.simulation_engine import SimulationEngine
 from routers import simulation, offices, health, scenarios, business_plans, snapshots, simulation_v2
 from src.routes import mcp_routes
 from src.database.connection import init_database, close_database
-import os
 import logging
 from datetime import datetime
 from src.services.config_service import config_service
@@ -38,7 +43,7 @@ def setup_logging():
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
     
-    # Create formatters
+    # Create formatters for logs
     console_formatter = logging.Formatter('%(levelname)s: %(message)s')
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     
@@ -139,8 +144,75 @@ app.include_router(simulation_v2.router)  # V2 Engine API
 app.include_router(offices.router)
 app.include_router(scenarios.router)
 app.include_router(business_plans.router)
-app.include_router(snapshots.router)
+app.include_router(snapshots.router)  # Re-enabled with config-based implementation
 app.include_router(mcp_routes.router)
+
+# Simple snapshot endpoints (without database)
+@app.get("/snapshots/{snapshot_id}")
+def get_snapshot_simple(snapshot_id: str):
+    """Get a snapshot by ID - generates from config data"""
+    from src.services.config_service import config_service
+    from fastapi import HTTPException
+    
+    # For now, support a default snapshot per office
+    if not snapshot_id.startswith("snapshot"):
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    
+    # Extract office name from snapshot_id (format: snapshot1, snapshot_stockholm, etc)
+    if snapshot_id == "snapshot1":
+        # Default snapshot - try Stockholm as example
+        office_name = "Stockholm"
+    else:
+        # Extract office name from snapshot id
+        office_name = snapshot_id.replace("snapshot_", "").replace("snapshot", "").capitalize()
+    
+    config = config_service.get_config()
+    if office_name not in config:
+        raise HTTPException(status_code=404, detail="Office not found for snapshot")
+    
+    office_data = config[office_name]
+    
+    # Generate workforce data from config
+    workforce_data = {}
+    if 'roles' in office_data:
+        for role_name, role_data in office_data['roles'].items():
+            if isinstance(role_data, dict):
+                if 'fte' in role_data:
+                    # Flat role
+                    workforce_data[role_name] = {"All": role_data['fte']}
+                else:
+                    # Leveled role
+                    role_levels = {}
+                    for level_name, level_data in role_data.items():
+                        if isinstance(level_data, dict) and 'fte' in level_data:
+                            role_levels[level_name] = level_data['fte']
+                    if role_levels:
+                        workforce_data[role_name] = role_levels
+    
+    total_fte = office_data.get('total_fte', 0)
+    
+    return {
+        "id": snapshot_id,
+        "office_id": office_name,
+        "office_name": office_name,
+        "snapshot_date": "2025-01-01",
+        "snapshot_name": f"{office_name} - Current Baseline",
+        "description": f"Current workforce baseline for {office_name}",
+        "total_fte": total_fte,
+        "is_default": True,
+        "is_approved": True,
+        "source": "current",
+        "created_at": "2025-01-06T12:00:00Z",
+        "created_by": "system",
+        "last_used_at": "2025-01-06T12:00:00Z",
+        "tags": ["baseline", "current"],
+        "workforce_data": workforce_data,
+        "metadata": {
+            "total_fte": total_fte,
+            "role_count": len(workforce_data),
+            "journey": office_data.get("journey", "mature")
+        }
+    }
 
 # Legacy endpoint for backward compatibility
 @app.post("/simulate")

@@ -24,6 +24,8 @@ interface MonthRowData {
 }
 
 const BaselineInputGridV2 = forwardRef<any, BaselineInputGridProps>(({ onNext, initialData }, ref) => {
+  const [selectedBusinessPlan, setSelectedBusinessPlan] = React.useState<string | null>(null);
+  
   // Use the baseline data hook
   const {
     selectedRole,
@@ -43,10 +45,42 @@ const BaselineInputGridV2 = forwardRef<any, BaselineInputGridProps>(({ onNext, i
     onNext
   });
 
-  // Expose getCurrentData through imperative handle
+  // Expose getCurrentData and selectedBusinessPlan through imperative handle
   useImperativeHandle(ref, () => ({
-    getCurrentData
+    getCurrentData: () => {
+      const data = getCurrentData();
+      // If business plan is selected, add it to the data
+      if (selectedBusinessPlan && selectedBusinessPlan !== 'none') {
+        console.log('BaselineInputGridV2: Adding business_plan_id to data:', selectedBusinessPlan);
+        return {
+          ...data,
+          business_plan_id: selectedBusinessPlan
+        };
+      }
+      console.log('BaselineInputGridV2: No business plan selected, returning data without business_plan_id');
+      return data;
+    },
+    getSelectedBusinessPlan: () => selectedBusinessPlan
   }));
+
+  // Function to load data from business plan
+  const loadFromBusinessPlan = async (planId: string) => {
+    try {
+      // For demo purposes - in real implementation, you'd fetch from the API
+      // using the planId to get actual business plan data
+      const response = await fetch(`http://localhost:8000/business-plans/export-baseline?office_id=Oslo&year=2025&start_month=1&end_month=12`);
+      if (response.ok) {
+        const businessPlanData = await response.json();
+        // This would populate the baseline data with business plan values
+        console.log('Loaded business plan data:', businessPlanData);
+        // You could call a function from the useBaselineData hook to populate the data
+        alert('Business plan data loaded! (This is a demo - actual implementation would populate the grid)');
+      }
+    } catch (error) {
+      console.error('Failed to load business plan data:', error);
+      alert('Failed to load business plan data');
+    }
+  };
 
 
   // Build DataTable columns
@@ -90,6 +124,42 @@ const BaselineInputGridV2 = forwardRef<any, BaselineInputGridProps>(({ onNext, i
             Configure monthly recruitment and churn values for each role and level
           </p>
         </div>
+        
+        {/* Business Plan Quick Load */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg text-blue-800">Quick Load from Business Plan</CardTitle>
+            <CardDescription className="text-blue-600">
+              Load recruitment and churn data from an existing business plan instead of entering manually
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4">
+              <Select onValueChange={(planId) => {
+                console.log('BaselineInputGridV2: Business plan selected:', planId);
+                setSelectedBusinessPlan(planId);
+                if (planId && planId !== 'none') {
+                  loadFromBusinessPlan(planId);
+                }
+              }}>
+                <SelectTrigger className="w-80">
+                  <SelectValue placeholder="Select a business plan to load data from..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Don't use business plan data</SelectItem>
+                  <SelectItem value="Oslo-2025">Oslo - 2025/1</SelectItem>
+                  <SelectItem value="Stockholm-2025">Stockholm - 2025/1</SelectItem>
+                  <SelectItem value="Copenhagen-2025">Copenhagen - 2025/1</SelectItem>
+                  <SelectItem value="Munich-2025">Munich - 2025/1</SelectItem>
+                  <SelectItem value="Helsinki-2025">Helsinki - 2025/1</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm">
+                Load Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         
         <Alert>
           <Info className="h-4 w-4" />

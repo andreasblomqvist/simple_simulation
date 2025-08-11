@@ -26,6 +26,7 @@ import { DataTableMinimal, MinimalColumnDef } from '../ui/data-table-minimal';
 import { Input } from '../ui/input';
 import { CreateBusinessPlanModal } from './CreateBusinessPlanModal';
 import { cn } from '../../lib/utils';
+import { useBusinessPlanStore } from '../../stores/businessPlanStore';
 import type { OfficeConfig } from '../../types/office';
 
 interface BusinessPlan {
@@ -46,6 +47,7 @@ interface BusinessPlan {
   headcountTarget?: number;
   completionPercentage: number;
   isOfficial: boolean;
+  monthlyPlansCount?: number;
 }
 
 interface Props {
@@ -174,9 +176,9 @@ const CREATED_BY_CONFIG = {
 // Helper functions for formatting (moved outside component to prevent re-creation)
 const formatCurrency = (amount?: number) => {
   if (!amount) return '-';
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('no-NO', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'NOK',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount);
@@ -401,10 +403,136 @@ export const BusinessPlansList: React.FC<Props> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [businessPlans, setBusinessPlans] = useState<BusinessPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch business plans from backend
+  useEffect(() => {
+    const fetchBusinessPlans = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:8000/business-plans');
+        const data = await response.json();
+        
+        console.log('Fetched business plans:', data.length, 'plans');
+        
+        // Transform backend data to match BusinessPlan interface
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        // Group monthly plans by office and year to create yearly business plans
+        const groupedPlans: { [key: string]: any[] } = {};
+        
+        data.forEach((plan: any) => {
+          const key = `${plan.office_id}-${plan.year}`;
+          if (!groupedPlans[key]) {
+            groupedPlans[key] = [];
+          }
+          groupedPlans[key].push(plan);
+        });
+        
+        const transformedPlans: BusinessPlan[] = Object.entries(groupedPlans).map(([key, monthlyPlans]) => {
+          // Get the first plan for basic info
+          const firstPlan = monthlyPlans[0];
+          const office_id = firstPlan.office_id;
+          const year = firstPlan.year;
+          
+          // Aggregate across all months
+          let totalSalaryBudget = 0;
+          let totalRevenue = 0;
+          let totalHeadcount = 0;
+          let totalOperatingCosts = 0;
+          let monthsWithData = new Set<number>();
+          
+          monthlyPlans.forEach((plan: any) => {
+            monthsWithData.add(plan.month);
+            
+            plan.entries?.forEach((entry: any) => {
+              // Calculate monthly salary costs
+              const monthlySalary = (entry.salary || 0) / 12;
+              const variableSalary = entry.variable_salary || 0;
+              const socialSecurity = entry.social_security || 0;
+              const pension = entry.pension || 0;
+              totalSalaryBudget += monthlySalary + variableSalary + socialSecurity + pension;
+              
+              // Calculate revenue (only for consultants with billable time)
+              if (entry.role === 'Consultant' && entry.invoiced_time && entry.average_price) {
+                totalRevenue += entry.invoiced_time * entry.average_price;
+              }
+              
+              // Calculate headcount (recruitment - churn for this month)
+              const netHeadcount = (entry.recruitment || 0) - (entry.churn || 0);
+              totalHeadcount += Math.max(0, netHeadcount);
+              
+              // Calculate operating costs
+              const operatingCosts = (entry.client_loss || 0) + 
+                                   (entry.education || 0) + 
+                                   (entry.external_representation || 0) + 
+                                   (entry.external_services || 0) + 
+                                   (entry.internal_representation || 0) + 
+                                   (entry.it_related_staff || 0) + 
+                                   (entry.office_related || 0) + 
+                                   (entry.office_rent || 0) + 
+                                   (entry.other_expenses || 0);
+              totalOperatingCosts += operatingCosts;
+            });
+          });
+          
+          const totalBudget = totalSalaryBudget + totalOperatingCosts;
+          const completionPercentage = (monthsWithData.size / 12) * 100; // Based on how many months have data
+          
+          // Find the most recent plan for timestamps
+          const latestPlan = monthlyPlans.reduce((latest, current) => {
+            return new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest;
+          });
+          
+          return {
+            id: key, // Use office-year as the unified ID
+            name: `${office_id} ${year} Business Plan`,
+            office: {
+              id: office_id,
+              name: offices.find(o => o.id === office_id)?.name || office_id
+            },
+            year: year,
+            status: completionPercentage === 100 ? 'active' : 'draft' as const,
+            createdBy: 'manual' as const,
+            createdAt: new Date(firstPlan.created_at),
+            updatedAt: new Date(latestPlan.updated_at),
+            description: `Annual business plan for ${office_id} covering ${monthsWithData.size} months`,
+            totalBudget: Math.round(totalBudget),
+            targetRevenue: Math.round(totalRevenue),
+            headcountTarget: Math.round(totalHeadcount * 10) / 10,
+            completionPercentage: Math.round(completionPercentage),
+            isOfficial: false,
+            monthlyPlansCount: monthlyPlans.length
+          };
+        });
+        
+        console.log('Transformed plans:', transformedPlans.length, 'plans');
+        setBusinessPlans(transformedPlans);
+      } catch (error) {
+        console.error('Failed to fetch business plans:', error);
+        console.log('Error details:', error);
+        // Fallback to mock data on error
+        console.log('Using mock data as fallback');
+        setBusinessPlans(mockBusinessPlans);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBusinessPlans();
+  }, [offices]);
 
   // Filter data based on search and filters
   const filteredData = useMemo(() => {
-    return mockBusinessPlans.filter(plan => {
+    console.log('Filtering data:', {
+      businessPlansCount: businessPlans.length,
+      searchTerm,
+      statusFilter, 
+      yearFilter
+    });
+    
+    const filtered = businessPlans.filter(plan => {
       const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            plan.office.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
@@ -412,15 +540,19 @@ export const BusinessPlansList: React.FC<Props> = ({
       const matchesStatus = statusFilter === 'all' || plan.status === statusFilter;
       const matchesYear = yearFilter === 'all' || plan.year.toString() === yearFilter;
       
-      return matchesSearch && matchesStatus && matchesYear;
+      const matches = matchesSearch && matchesStatus && matchesYear;
+      return matches;
     });
-  }, [searchTerm, statusFilter, yearFilter]);
+    
+    console.log('Filtered result:', filtered.length, 'plans');
+    return filtered;
+  }, [businessPlans, searchTerm, statusFilter, yearFilter]);
 
   // Get unique years for filter
   const availableYears = useMemo(() => {
-    const years = Array.from(new Set(mockBusinessPlans.map(plan => plan.year))).sort((a, b) => b - a);
+    const years = Array.from(new Set(businessPlans.map(plan => plan.year))).sort((a, b) => b - a);
     return years;
-  }, []);
+  }, [businessPlans]);
 
 
   const handleActionClick = (action: string, planId: string, event: React.MouseEvent) => {
@@ -434,8 +566,12 @@ export const BusinessPlansList: React.FC<Props> = ({
         onEditPlan(planId);
         break;
       case 'delete':
-        if (confirm('Are you sure you want to delete this business plan?')) {
+        console.log('Delete button clicked for plan:', planId);
+        if (window.confirm('Are you sure you want to delete this business plan?')) {
+          console.log('User confirmed deletion for plan:', planId);
           onDeletePlan(planId);
+        } else {
+          console.log('User cancelled deletion for plan:', planId);
         }
         break;
       case 'duplicate':
@@ -449,6 +585,17 @@ export const BusinessPlansList: React.FC<Props> = ({
 
   // Get stable columns definition using useCallback to prevent re-creation
   const columns = useMemo(() => createColumns(handleActionClick), []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading business plans...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="business-plans-list space-y-6 p-6">
@@ -495,7 +642,7 @@ export const BusinessPlansList: React.FC<Props> = ({
 
             {/* Results Count */}
             <div className="text-sm text-gray-400 whitespace-nowrap">
-              {filteredData.length} of {mockBusinessPlans.length} plans
+              {filteredData.length} of {businessPlans.length} plans
             </div>
           </div>
         </CardContent>
@@ -525,7 +672,7 @@ export const BusinessPlansList: React.FC<Props> = ({
                 <span className="text-sm text-gray-400">Active Plans</span>
               </div>
               <div className="text-2xl font-bold text-white">
-                {mockBusinessPlans.filter(p => p.status === 'active').length}
+                {businessPlans.filter(p => p.status === 'active').length}
               </div>
             </div>
           </CardContent>
@@ -539,7 +686,7 @@ export const BusinessPlansList: React.FC<Props> = ({
                 <span className="text-sm text-gray-400">Draft Plans</span>
               </div>
               <div className="text-2xl font-bold text-white">
-                {mockBusinessPlans.filter(p => p.status === 'draft').length}
+                {businessPlans.filter(p => p.status === 'draft').length}
               </div>
             </div>
           </CardContent>
@@ -553,7 +700,7 @@ export const BusinessPlansList: React.FC<Props> = ({
                 <span className="text-sm text-gray-400">AI Generated</span>
               </div>
               <div className="text-2xl font-bold text-white">
-                {mockBusinessPlans.filter(p => p.createdBy === 'ai_conversation').length}
+                {businessPlans.filter(p => p.createdBy === 'ai_conversation').length}
               </div>
             </div>
           </CardContent>
@@ -567,7 +714,7 @@ export const BusinessPlansList: React.FC<Props> = ({
                 <span className="text-sm text-gray-400">Current Year</span>
               </div>
               <div className="text-2xl font-bold text-white">
-                {mockBusinessPlans.filter(p => p.year === new Date().getFullYear()).length}
+                {businessPlans.filter(p => p.year === new Date().getFullYear()).length}
               </div>
             </div>
           </CardContent>
@@ -581,7 +728,7 @@ export const BusinessPlansList: React.FC<Props> = ({
                 <span className="text-sm text-gray-400">Official Plans</span>
               </div>
               <div className="text-2xl font-bold text-white">
-                {mockBusinessPlans.filter(p => p.isOfficial).length}
+                {businessPlans.filter(p => p.isOfficial).length}
               </div>
             </div>
           </CardContent>

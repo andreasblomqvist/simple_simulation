@@ -51,11 +51,7 @@ export interface UseScenarioFormReturn {
 const WIZARD_STEPS = [
   { 
     title: 'Scenario Details',
-    description: 'Define basic scenario information'
-  },
-  { 
-    title: 'Baseline Input',
-    description: 'Configure initial parameters'
+    description: 'Define scenario information and select business plan'
   },
   { 
     title: 'Levers',
@@ -108,12 +104,12 @@ export function useScenarioForm(options: UseScenarioFormOptions = {}): UseScenar
     loadScenario();
   }, [loadScenario]);
   
-  // Navigation handlers
+  // Navigation handlers - go directly to levers step (step 1)
   const handleDetailsNext = useCallback((data: { scenario: ScenarioDefinition }) => {
     setState(prev => ({
       ...prev,
       scenario: data.scenario,
-      current: 1,
+      current: 1, // Go directly to levers step
       baselineData: data.scenario.baseline_input || prev.baselineData
     }));
   }, []);
@@ -166,7 +162,10 @@ export function useScenarioForm(options: UseScenarioFormOptions = {}): UseScenar
       // Use extracted data or fallback to state
       const formData: ScenarioFormData = {
         scenario: state.scenario,
-        baselineData: baselineData || state.baselineData,
+        baselineData: {
+          ...baselineData || state.baselineData,
+          business_plan_id: state.scenario.business_plan_id // Preserve business plan ID
+        },
         leversData
       };
       
@@ -182,6 +181,7 @@ export function useScenarioForm(options: UseScenarioFormOptions = {}): UseScenar
           isEditing ? 'Scenario updated!' : 'Scenario created!'
         );
         
+        navigate('/scenarios');
         onComplete?.();
       } else {
         setState(prev => ({
@@ -221,17 +221,20 @@ export function useScenarioForm(options: UseScenarioFormOptions = {}): UseScenar
       // Use extracted data or fallback to state
       const formData: ScenarioFormData = {
         scenario: state.scenario,
-        baselineData: baselineData || state.baselineData,
+        baselineData: {
+          ...baselineData || state.baselineData,
+          business_plan_id: state.scenario.business_plan_id // Preserve business plan ID
+        },
         leversData
       };
       
       const result = await ScenarioService.runSimulation(formData);
       
-      if (result.success) {
-        setState(prev => ({
-          ...prev,
-          simulationResult: result.result || null
-        }));
+      if (result.success && result.scenarioId) {
+        // Navigate to results view instead of showing JSON
+        showMessage.success('Simulation completed successfully');
+        navigate(`/scenarios/${result.scenarioId}/results`);
+        onComplete?.();
       } else {
         setState(prev => ({
           ...prev,

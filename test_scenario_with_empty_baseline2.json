@@ -1,0 +1,24 @@
+{
+  "scenario_definition": {
+    "name": "Test Scenario with Empty Baseline Object",
+    "description": "Testing scenario with empty baseline_input object",
+    "time_range": {
+      "start_month": 1,
+      "start_year": 2025,
+      "end_month": 12,
+      "end_year": 2025
+    },
+    "office_scope": ["Stockholm"],
+    "levers": {
+      "recruitment": {},
+      "churn": {},
+      "progression": {}
+    },
+    "baseline_input": {
+      "global": {
+        "recruitment": {},
+        "churn": {}
+      }
+    }
+  }
+}
